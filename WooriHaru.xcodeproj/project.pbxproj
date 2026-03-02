@@ -7,13 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		A10001 /* WooriHaruApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20001; };
-		A10002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20002; };
-		A10003 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20003; };
-		A10004 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20004; };
+		A10001 /* WooriHaruApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20001 /* WooriHaruApp.swift */; };
+		A10002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20002 /* ContentView.swift */; };
+		A10003 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20003 /* Assets.xcassets */; };
+		A10004 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20004 /* Preview Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		88C2E2B22F557CCD001249F8 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		A20001 /* WooriHaruApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WooriHaruApp.swift; sourceTree = "<group>"; };
 		A20002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A20003 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -43,6 +44,7 @@
 		A40002 /* WooriHaru */ = {
 			isa = PBXGroup;
 			children = (
+				88C2E2B22F557CCD001249F8 /* Info.plist */,
 				A20001 /* WooriHaruApp.swift */,
 				A20002 /* ContentView.swift */,
 				A20003 /* Assets.xcassets */,
@@ -72,7 +74,7 @@
 /* Begin PBXNativeTarget section */
 		A50001 /* WooriHaru */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = A70001;
+			buildConfigurationList = A70001 /* Build configuration list for PBXNativeTarget "WooriHaru" */;
 			buildPhases = (
 				A60001 /* Sources */,
 				A30001 /* Frameworks */,
@@ -102,7 +104,7 @@
 					};
 				};
 			};
-			buildConfigurationList = A70003;
+			buildConfigurationList = A70003 /* Build configuration list for PBXProject "WooriHaru" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = ko;
 			hasScannedForEncodings = 0;
@@ -112,6 +114,8 @@
 				Base,
 			);
 			mainGroup = A40001;
+			packageReferences = (
+			);
 			productRefGroup = A40003 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -273,8 +277,10 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"WooriHaru/Preview Content\"";
+				DEVELOPMENT_TEAM = 4L7RX6VCB2;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = WooriHaru/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "우리 하루";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -302,8 +308,10 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"WooriHaru/Preview Content\"";
+				DEVELOPMENT_TEAM = 4L7RX6VCB2;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = WooriHaru/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "우리 하루";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -345,7 +353,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
 	};
 	rootObject = A80001 /* Project object */;
 }
