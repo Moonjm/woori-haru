@@ -5,6 +5,7 @@ struct CalendarView: View {
     @State private var recordVM = RecordViewModel()
     @State private var showSheet = false
     @State private var showPicker = false
+    @State private var initialScrollDone = false
     @Environment(AuthViewModel.self) private var authVM
 
     var body: some View {
@@ -61,23 +62,28 @@ struct CalendarView: View {
                     }
                     .onChange(of: showPicker) { _, show in
                         if !show {
-                            // After picker closes, scroll to the target month
                             let target = String(format: "%04d-%02d", calendarVM.pickerTargetYear, calendarVM.pickerTargetMonth)
                             if calendarVM.months.contains(where: { $0.id == target }) {
                                 withAnimation { proxy.scrollTo(target, anchor: .top) }
                             }
                         }
                     }
+                    .onChange(of: calendarVM.months.count) {
+                        if !initialScrollDone && !calendarVM.months.isEmpty {
+                            initialScrollDone = true
+                            let today = Date()
+                            let todayMonth = String(format: "%04d-%02d", today.year, today.month)
+                            proxy.scrollTo(todayMonth, anchor: .top)
+                        }
+                    }
                 }
             }
 
-            // Side drawer overlay
             if calendarVM.isDrawerOpen {
                 SideDrawerView(isOpen: $calendarVM.isDrawerOpen)
                     .transition(.move(edge: .leading))
             }
 
-            // Year/month picker overlay
             if showPicker {
                 YearMonthPickerView(isPresented: $showPicker) { year, month in
                     Task {

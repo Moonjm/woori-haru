@@ -22,7 +22,7 @@ enum APIError: Error, LocalizedError {
 final class APIClient {
     static let shared = APIClient()
 
-    let baseURL = "https://tree.eunji.shop/api"
+    let baseURL = "https://daily.eunji.shop/api"
     private let session: URLSession
     private var isRefreshing = false
 
