@@ -31,6 +31,9 @@
 		E10002 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20002 /* LoginView.swift */; };
 		F10001 /* Date+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20001 /* Date+Extensions.swift */; };
 		F10002 /* Color+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20002 /* Color+Extensions.swift */; };
+		G10001 /* WeekdayHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = G20001 /* WeekdayHeaderView.swift */; };
+		G10002 /* DayCellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = G20002 /* DayCellView.swift */; };
+		G10003 /* CalendarHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = G20003 /* CalendarHeaderView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -60,6 +63,9 @@
 		E20002 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 		F20001 /* Date+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Date+Extensions.swift"; sourceTree = "<group>"; };
 		F20002 /* Color+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Extensions.swift"; sourceTree = "<group>"; };
+		G20001 /* WeekdayHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekdayHeaderView.swift; sourceTree = "<group>"; };
+		G20002 /* DayCellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayCellView.swift; sourceTree = "<group>"; };
+		G20003 /* CalendarHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarHeaderView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -171,6 +177,9 @@
 		B40005 /* Calendar */ = {
 			isa = PBXGroup;
 			children = (
+				G20001 /* WeekdayHeaderView.swift */,
+				G20002 /* DayCellView.swift */,
+				G20003 /* CalendarHeaderView.swift */,
 			);
 			path = Calendar;
 			sourceTree = "<group>";
@@ -336,6 +345,9 @@
 				E10002 /* LoginView.swift in Sources */,
 				F10001 /* Date+Extensions.swift in Sources */,
 				F10002 /* Color+Extensions.swift in Sources */,
+				G10001 /* WeekdayHeaderView.swift in Sources */,
+				G10002 /* DayCellView.swift in Sources */,
+				G10003 /* CalendarHeaderView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
