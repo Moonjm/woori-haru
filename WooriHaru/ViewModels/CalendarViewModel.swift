@@ -11,9 +11,10 @@ struct MonthData: Identifiable {
     var cells: [DayCell]
 
     struct DayCell: Identifiable {
-        let id: String      // "yyyy-MM-dd" or "empty-N"
-        let date: Date?
-        let day: Int?
+        let id: String      // "yyyy-MM-dd"
+        let date: Date
+        let day: Int
+        let isCurrentMonth: Bool
     }
 }
 
@@ -211,22 +212,27 @@ final class CalendarViewModel {
 
         var cells: [MonthData.DayCell] = []
 
-        // Leading empty cells
-        for i in 0..<leadingEmpties {
-            cells.append(.init(id: "\(id)-empty-\(i)", date: nil, day: nil))
+        // 이전 월 날짜 (leading)
+        for i in (0..<leadingEmpties).reversed() {
+            let prevDate = calendar.date(byAdding: .day, value: -(i + 1), to: startOfMonth)!
+            cells.append(.init(id: "\(id)-prev-\(prevDate.dateString)", date: prevDate, day: prevDate.day, isCurrentMonth: false))
         }
 
-        // Day cells
+        // 현재 월 날짜
         for day in 1...daysInMonth {
             let dayDate = calendar.date(byAdding: .day, value: day - 1, to: startOfMonth)!
-            cells.append(.init(id: dayDate.dateString, date: dayDate, day: day))
+            cells.append(.init(id: dayDate.dateString, date: dayDate, day: day, isCurrentMonth: true))
         }
 
-        // Trailing empty cells to complete the grid (total 42 cells = 6 rows)
-        let totalCells = 42
+        // 다음 월 날짜 (trailing)
+        let totalRows = (cells.count + 6) / 7
+        let totalCells = totalRows * 7
         let trailing = totalCells - cells.count
-        for i in 0..<trailing {
-            cells.append(.init(id: "\(id)-trail-\(i)", date: nil, day: nil))
+        let lastDay = calendar.date(byAdding: .day, value: daysInMonth - 1, to: startOfMonth)!
+        for i in 1...max(trailing, 1) {
+            guard cells.count < totalCells else { break }
+            let nextDate = calendar.date(byAdding: .day, value: i, to: lastDay)!
+            cells.append(.init(id: "\(id)-next-\(nextDate.dateString)", date: nextDate, day: nextDate.day, isCurrentMonth: false))
         }
 
         return MonthData(

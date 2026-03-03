@@ -5,35 +5,35 @@ struct DayCellView: View {
     let records: [DailyRecord]
     let overeatLevel: OvereatLevel?
     let holidays: [String]
+    let isCurrentMonth: Bool
     let onTap: () -> Void
 
     var body: some View {
         VStack(spacing: 2) {
-            // Date number + overeat indicator
             HStack(spacing: 2) {
                 dateNumber
-                overeatIndicator
+                if isCurrentMonth { overeatIndicator }
                 Spacer()
             }
 
-            // Holiday labels (max 2)
-            ForEach(holidays.prefix(2), id: \.self) { name in
-                Text(name)
-                    .font(.system(size: 8))
-                    .lineLimit(1)
-                    .padding(.horizontal, 2)
-                    .padding(.vertical, 1)
-                    .background(Color.red.opacity(0.1))
-                    .foregroundStyle(Color.red500)
-                    .cornerRadius(2)
-            }
+            if isCurrentMonth {
+                ForEach(holidays.prefix(2), id: \.self) { name in
+                    Text(name)
+                        .font(.system(size: 8))
+                        .lineLimit(1)
+                        .padding(.horizontal, 2)
+                        .padding(.vertical, 1)
+                        .background(Color.red.opacity(0.1))
+                        .foregroundStyle(Color.red500)
+                        .cornerRadius(2)
+                }
 
-            // Record emojis
-            let emojis = records.map { $0.category.emoji }
-            if !emojis.isEmpty {
-                Text(emojis.joined())
-                    .font(.system(size: 12))
-                    .lineLimit(2)
+                let emojis = records.map { $0.category.emoji }
+                if !emojis.isEmpty {
+                    Text(emojis.joined())
+                        .font(.system(size: 12))
+                        .lineLimit(2)
+                }
             }
 
             Spacer(minLength: 0)
@@ -41,8 +41,9 @@ struct DayCellView: View {
         .frame(maxWidth: .infinity, minHeight: 80)
         .padding(2)
         .background(.white)
+        .opacity(isCurrentMonth ? 1.0 : 0.3)
         .contentShape(Rectangle())
-        .onTapGesture(perform: onTap)
+        .onTapGesture { if isCurrentMonth { onTap() } }
     }
 
     @ViewBuilder
