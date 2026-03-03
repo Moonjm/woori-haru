@@ -31,6 +31,8 @@ final class CalendarViewModel {
     var holidays: [String: [String]] = [:]
     var currentMonthLabel: String = ""
     var isDrawerOpen: Bool = false
+    var pickerTargetYear: Int = Calendar.current.component(.year, from: Date())
+    var pickerTargetMonth: Int = Calendar.current.component(.month, from: Date())
 
     // MARK: - Private
 
@@ -110,6 +112,8 @@ final class CalendarViewModel {
 
     /// Jumps to a specific month, loading it (and surrounding months) if needed.
     func scrollToMonth(year: Int, month: Int) async {
+        pickerTargetYear = year
+        pickerTargetMonth = month
         let targetId = String(format: "%04d-%02d", year, month)
 
         // If the month is already loaded, just update the label

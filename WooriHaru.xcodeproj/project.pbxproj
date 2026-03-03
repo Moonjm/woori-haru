@@ -38,6 +38,10 @@
 		H10002 /* RecordListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = H20002 /* RecordListView.swift */; };
 		H10003 /* RecordFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = H20003 /* RecordFormView.swift */; };
 		H10004 /* RecordSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = H20004 /* RecordSheetView.swift */; };
+		I10001 /* MonthGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = I20001 /* MonthGridView.swift */; };
+		I10002 /* CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = I20002 /* CalendarView.swift */; };
+		I10003 /* YearMonthPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = I20003 /* YearMonthPickerView.swift */; };
+		I10004 /* SideDrawerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = I20004 /* SideDrawerView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -74,6 +78,10 @@
 		H20002 /* RecordListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordListView.swift; sourceTree = "<group>"; };
 		H20003 /* RecordFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordFormView.swift; sourceTree = "<group>"; };
 		H20004 /* RecordSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordSheetView.swift; sourceTree = "<group>"; };
+		I20001 /* MonthGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonthGridView.swift; sourceTree = "<group>"; };
+		I20002 /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarView.swift; sourceTree = "<group>"; };
+		I20003 /* YearMonthPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YearMonthPickerView.swift; sourceTree = "<group>"; };
+		I20004 /* SideDrawerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SideDrawerView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -185,9 +193,12 @@
 		B40005 /* Calendar */ = {
 			isa = PBXGroup;
 			children = (
-				G20001 /* WeekdayHeaderView.swift */,
-				G20002 /* DayCellView.swift */,
+				I20002 /* CalendarView.swift */,
 				G20003 /* CalendarHeaderView.swift */,
+				G20002 /* DayCellView.swift */,
+				I20001 /* MonthGridView.swift */,
+				G20001 /* WeekdayHeaderView.swift */,
+				I20003 /* YearMonthPickerView.swift */,
 			);
 			path = Calendar;
 			sourceTree = "<group>";
@@ -242,6 +253,7 @@
 		B40012 /* Components */ = {
 			isa = PBXGroup;
 			children = (
+				I20004 /* SideDrawerView.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -364,6 +376,10 @@
 				H10002 /* RecordListView.swift in Sources */,
 				H10003 /* RecordFormView.swift in Sources */,
 				H10004 /* RecordSheetView.swift in Sources */,
+				I10001 /* MonthGridView.swift in Sources */,
+				I10002 /* CalendarView.swift in Sources */,
+				I10003 /* YearMonthPickerView.swift in Sources */,
+				I10004 /* SideDrawerView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
