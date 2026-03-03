@@ -39,6 +39,9 @@ final class CalendarViewModel {
     private let recordService = RecordService()
     private let holidayService = HolidayService()
     private let calendar = Calendar.current
+    private var isLoadingEarlier = false
+    private var isLoadingLater = false
+    private var loadedMonthIds: Set<String> = []
 
     // Track loaded year ranges to avoid duplicate holiday fetches
     private var loadedHolidayYears: Set<Int> = []
@@ -53,7 +56,9 @@ final class CalendarViewModel {
         var monthList: [MonthData] = []
         for offset in -2...2 {
             let date = currentStart.addingMonths(offset)
-            monthList.append(buildMonthData(date))
+            let data = buildMonthData(date)
+            monthList.append(data)
+            loadedMonthIds.insert(data.id)
         }
         months = monthList
         currentMonthLabel = currentStart.monthDisplayText
@@ -72,12 +77,20 @@ final class CalendarViewModel {
 
     /// Prepends 3 months when the user scrolls toward earlier months.
     func loadEarlierMonths() async {
-        guard let earliest = months.first else { return }
+        guard !isLoadingEarlier, let earliest = months.first else { return }
+        isLoadingEarlier = true
+        defer { isLoadingEarlier = false }
+
         var newMonths: [MonthData] = []
         for offset in stride(from: -3, through: -1, by: 1) {
             let date = earliest.startDate.addingMonths(offset)
-            newMonths.append(buildMonthData(date))
+            let data = buildMonthData(date)
+            guard !loadedMonthIds.contains(data.id) else { continue }
+            newMonths.append(data)
         }
+        guard !newMonths.isEmpty else { return }
+
+        for m in newMonths { loadedMonthIds.insert(m.id) }
         months.insert(contentsOf: newMonths, at: 0)
 
         await withTaskGroup(of: Void.self) { group in
@@ -91,12 +104,20 @@ final class CalendarViewModel {
 
     /// Appends 3 months when the user scrolls toward later months.
     func loadLaterMonths() async {
-        guard let latest = months.last else { return }
+        guard !isLoadingLater, let latest = months.last else { return }
+        isLoadingLater = true
+        defer { isLoadingLater = false }
+
         var newMonths: [MonthData] = []
         for offset in 1...3 {
             let date = latest.startDate.addingMonths(offset)
-            newMonths.append(buildMonthData(date))
+            let data = buildMonthData(date)
+            guard !loadedMonthIds.contains(data.id) else { continue }
+            newMonths.append(data)
         }
+        guard !newMonths.isEmpty else { return }
+
+        for m in newMonths { loadedMonthIds.insert(m.id) }
         months.append(contentsOf: newMonths)
 
         await withTaskGroup(of: Void.self) { group in
@@ -130,10 +151,13 @@ final class CalendarViewModel {
         guard let targetDate = calendar.date(from: comps) else { return }
 
         let targetStart = targetDate.startOfMonth()
+        loadedMonthIds.removeAll()
         var monthList: [MonthData] = []
         for offset in -2...2 {
             let date = targetStart.addingMonths(offset)
-            monthList.append(buildMonthData(date))
+            let data = buildMonthData(date)
+            monthList.append(data)
+            loadedMonthIds.insert(data.id)
         }
         months = monthList
         currentMonthLabel = targetStart.monthDisplayText
