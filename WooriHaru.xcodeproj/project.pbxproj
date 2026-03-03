@@ -25,6 +25,8 @@
 		D10005 /* PairService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20005 /* PairService.swift */; };
 		D10006 /* PairEventService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20006 /* PairEventService.swift */; };
 		D10007 /* HolidayService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20007 /* HolidayService.swift */; };
+		E10001 /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20001 /* AuthViewModel.swift */; };
+		E10002 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20002 /* LoginView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -48,6 +50,8 @@
 		D20005 /* PairService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairService.swift; sourceTree = "<group>"; };
 		D20006 /* PairEventService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairEventService.swift; sourceTree = "<group>"; };
 		D20007 /* HolidayService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HolidayService.swift; sourceTree = "<group>"; };
+		E20001 /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
+		E20002 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -134,6 +138,7 @@
 		B40003 /* ViewModels */ = {
 			isa = PBXGroup;
 			children = (
+				E20001 /* AuthViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -198,6 +203,7 @@
 		B40011 /* Auth */ = {
 			isa = PBXGroup;
 			children = (
+				E20002 /* LoginView.swift */,
 			);
 			path = Auth;
 			sourceTree = "<group>";
@@ -312,6 +318,8 @@
 				D10005 /* PairService.swift in Sources */,
 				D10006 /* PairEventService.swift in Sources */,
 				D10007 /* HolidayService.swift in Sources */,
+				E10001 /* AuthViewModel.swift in Sources */,
+				E10002 /* LoginView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
