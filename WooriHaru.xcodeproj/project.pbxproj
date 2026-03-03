@@ -34,6 +34,10 @@
 		G10001 /* WeekdayHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = G20001 /* WeekdayHeaderView.swift */; };
 		G10002 /* DayCellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = G20002 /* DayCellView.swift */; };
 		G10003 /* CalendarHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = G20003 /* CalendarHeaderView.swift */; };
+		H10001 /* OvereatSelectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = H20001 /* OvereatSelectorView.swift */; };
+		H10002 /* RecordListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = H20002 /* RecordListView.swift */; };
+		H10003 /* RecordFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = H20003 /* RecordFormView.swift */; };
+		H10004 /* RecordSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = H20004 /* RecordSheetView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -66,6 +70,10 @@
 		G20001 /* WeekdayHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekdayHeaderView.swift; sourceTree = "<group>"; };
 		G20002 /* DayCellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayCellView.swift; sourceTree = "<group>"; };
 		G20003 /* CalendarHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarHeaderView.swift; sourceTree = "<group>"; };
+		H20001 /* OvereatSelectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OvereatSelectorView.swift; sourceTree = "<group>"; };
+		H20002 /* RecordListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordListView.swift; sourceTree = "<group>"; };
+		H20003 /* RecordFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordFormView.swift; sourceTree = "<group>"; };
+		H20004 /* RecordSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordSheetView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -187,6 +195,10 @@
 		B40006 /* Record */ = {
 			isa = PBXGroup;
 			children = (
+				H20001 /* OvereatSelectorView.swift */,
+				H20002 /* RecordListView.swift */,
+				H20003 /* RecordFormView.swift */,
+				H20004 /* RecordSheetView.swift */,
 			);
 			path = Record;
 			sourceTree = "<group>";
@@ -348,6 +360,10 @@
 				G10001 /* WeekdayHeaderView.swift in Sources */,
 				G10002 /* DayCellView.swift in Sources */,
 				G10003 /* CalendarHeaderView.swift in Sources */,
+				H10001 /* OvereatSelectorView.swift in Sources */,
+				H10002 /* RecordListView.swift in Sources */,
+				H10003 /* RecordFormView.swift in Sources */,
+				H10004 /* RecordSheetView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
