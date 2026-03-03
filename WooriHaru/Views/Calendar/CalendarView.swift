@@ -1,0 +1,98 @@
+import SwiftUI
+
+struct CalendarView: View {
+    @State private var calendarVM = CalendarViewModel()
+    @State private var recordVM = RecordViewModel()
+    @State private var showSheet = false
+    @State private var showPicker = false
+    @Environment(AuthViewModel.self) private var authVM
+
+    var body: some View {
+        ZStack {
+            VStack(spacing: 0) {
+                CalendarHeaderView(
+                    monthLabel: calendarVM.currentMonthLabel,
+                    onMenuTap: { withAnimation { calendarVM.isDrawerOpen = true } },
+                    onMonthTap: { showPicker.toggle() },
+                    onSearchTap: { /* Phase 3 */ }
+                )
+
+                WeekdayHeaderView()
+
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVStack(spacing: 0, pinnedViews: [.sectionHeaders]) {
+                            ForEach(calendarVM.months) { monthData in
+                                Section {
+                                    MonthGridView(
+                                        monthData: monthData,
+                                        records: calendarVM.records,
+                                        overeats: calendarVM.overeats,
+                                        holidays: calendarVM.holidays,
+                                        onSelectDate: { date in
+                                            recordVM.selectedDate = date
+                                            showSheet = true
+                                        }
+                                    )
+                                } header: {
+                                    Text(monthData.startDate.monthDisplayText)
+                                        .font(.subheadline)
+                                        .fontWeight(.semibold)
+                                        .foregroundStyle(Color.slate500)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .padding(.horizontal, 16)
+                                        .padding(.vertical, 8)
+                                        .background(.white.opacity(0.9))
+                                        .id(monthData.id)
+                                }
+                                .onAppear {
+                                    calendarVM.currentMonthLabel = monthData.startDate.monthDisplayText
+                                    if monthData.id == calendarVM.months.last?.id {
+                                        Task { await calendarVM.loadLaterMonths() }
+                                    }
+                                    if monthData.id == calendarVM.months.first?.id {
+                                        Task { await calendarVM.loadEarlierMonths() }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    .onChange(of: showPicker) { _, show in
+                        if !show {
+                            // After picker closes, scroll to the target month
+                            let target = String(format: "%04d-%02d", calendarVM.pickerTargetYear, calendarVM.pickerTargetMonth)
+                            if calendarVM.months.contains(where: { $0.id == target }) {
+                                withAnimation { proxy.scrollTo(target, anchor: .top) }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Side drawer overlay
+            if calendarVM.isDrawerOpen {
+                SideDrawerView(isOpen: $calendarVM.isDrawerOpen)
+                    .transition(.move(edge: .leading))
+            }
+
+            // Year/month picker overlay
+            if showPicker {
+                YearMonthPickerView(isPresented: $showPicker) { year, month in
+                    Task {
+                        await calendarVM.scrollToMonth(year: year, month: month)
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $showSheet) {
+            RecordSheetView(viewModel: recordVM, onChanged: {
+                Task { await calendarVM.refreshMonth(containing: recordVM.selectedDate) }
+            })
+            .presentationDetents([.fraction(0.7)])
+            .presentationDragIndicator(.visible)
+        }
+        .task {
+            await calendarVM.initialLoad()
+        }
+    }
+}
