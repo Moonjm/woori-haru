@@ -11,6 +11,20 @@
 		A10002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20002 /* ContentView.swift */; };
 		A10003 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20003 /* Assets.xcassets */; };
 		A10004 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20004 /* Preview Assets.xcassets */; };
+		C10001 /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20001 /* User.swift */; };
+		C10002 /* Category.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20002 /* Category.swift */; };
+		C10003 /* DailyRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20003 /* DailyRecord.swift */; };
+		C10004 /* OvereatLevel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20004 /* OvereatLevel.swift */; };
+		C10005 /* PairInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20005 /* PairInfo.swift */; };
+		C10006 /* PairEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20006 /* PairEvent.swift */; };
+		C10007 /* APIResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20007 /* APIResponse.swift */; };
+		D10001 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20001 /* APIClient.swift */; };
+		D10002 /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20002 /* AuthService.swift */; };
+		D10003 /* RecordService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20003 /* RecordService.swift */; };
+		D10004 /* CategoryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20004 /* CategoryService.swift */; };
+		D10005 /* PairService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20005 /* PairService.swift */; };
+		D10006 /* PairEventService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20006 /* PairEventService.swift */; };
+		D10007 /* HolidayService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20007 /* HolidayService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -20,6 +34,20 @@
 		A20003 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A20004 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		A20005 /* WooriHaru.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WooriHaru.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C20001 /* User.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = User.swift; sourceTree = "<group>"; };
+		C20002 /* Category.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Category.swift; sourceTree = "<group>"; };
+		C20003 /* DailyRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyRecord.swift; sourceTree = "<group>"; };
+		C20004 /* OvereatLevel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OvereatLevel.swift; sourceTree = "<group>"; };
+		C20005 /* PairInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairInfo.swift; sourceTree = "<group>"; };
+		C20006 /* PairEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairEvent.swift; sourceTree = "<group>"; };
+		C20007 /* APIResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIResponse.swift; sourceTree = "<group>"; };
+		D20001 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
+		D20002 /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
+		D20003 /* RecordService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordService.swift; sourceTree = "<group>"; };
+		D20004 /* CategoryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryService.swift; sourceTree = "<group>"; };
+		D20005 /* PairService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairService.swift; sourceTree = "<group>"; };
+		D20006 /* PairEventService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairEventService.swift; sourceTree = "<group>"; };
+		D20007 /* HolidayService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HolidayService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -47,6 +75,12 @@
 				88C2E2B22F557CCD001249F8 /* Info.plist */,
 				A20001 /* WooriHaruApp.swift */,
 				A20002 /* ContentView.swift */,
+				B40001 /* Models */,
+				B40002 /* Services */,
+				B40003 /* ViewModels */,
+				B40004 /* Views */,
+				B40013 /* Resources */,
+				B40015 /* Extensions */,
 				A20003 /* Assets.xcassets */,
 				A40004 /* Preview Content */,
 			);
@@ -67,6 +101,126 @@
 				A20004 /* Preview Assets.xcassets */,
 			);
 			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		B40001 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				C20007 /* APIResponse.swift */,
+				C20001 /* User.swift */,
+				C20002 /* Category.swift */,
+				C20003 /* DailyRecord.swift */,
+				C20004 /* OvereatLevel.swift */,
+				C20005 /* PairInfo.swift */,
+				C20006 /* PairEvent.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		B40002 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				D20001 /* APIClient.swift */,
+				D20002 /* AuthService.swift */,
+				D20003 /* RecordService.swift */,
+				D20004 /* CategoryService.swift */,
+				D20005 /* PairService.swift */,
+				D20006 /* PairEventService.swift */,
+				D20007 /* HolidayService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		B40003 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		B40004 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				B40005 /* Calendar */,
+				B40006 /* Record */,
+				B40007 /* Stats */,
+				B40008 /* Search */,
+				B40009 /* Pair */,
+				B40010 /* Category */,
+				B40011 /* Auth */,
+				B40012 /* Components */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		B40005 /* Calendar */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Calendar;
+			sourceTree = "<group>";
+		};
+		B40006 /* Record */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Record;
+			sourceTree = "<group>";
+		};
+		B40007 /* Stats */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Stats;
+			sourceTree = "<group>";
+		};
+		B40008 /* Search */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Search;
+			sourceTree = "<group>";
+		};
+		B40009 /* Pair */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Pair;
+			sourceTree = "<group>";
+		};
+		B40010 /* Category */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Category;
+			sourceTree = "<group>";
+		};
+		B40011 /* Auth */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Auth;
+			sourceTree = "<group>";
+		};
+		B40012 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		B40013 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		B40015 /* Extensions */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Extensions;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -144,6 +298,20 @@
 			files = (
 				A10002 /* ContentView.swift in Sources */,
 				A10001 /* WooriHaruApp.swift in Sources */,
+				C10001 /* User.swift in Sources */,
+				C10002 /* Category.swift in Sources */,
+				C10003 /* DailyRecord.swift in Sources */,
+				C10004 /* OvereatLevel.swift in Sources */,
+				C10005 /* PairInfo.swift in Sources */,
+				C10006 /* PairEvent.swift in Sources */,
+				C10007 /* APIResponse.swift in Sources */,
+				D10001 /* APIClient.swift in Sources */,
+				D10002 /* AuthService.swift in Sources */,
+				D10003 /* RecordService.swift in Sources */,
+				D10004 /* CategoryService.swift in Sources */,
+				D10005 /* PairService.swift in Sources */,
+				D10006 /* PairEventService.swift in Sources */,
+				D10007 /* HolidayService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
