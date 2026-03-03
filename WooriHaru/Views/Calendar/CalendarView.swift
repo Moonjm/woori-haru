@@ -47,10 +47,12 @@ struct CalendarView: View {
                                 }
                                 .onAppear {
                                     calendarVM.currentMonthLabel = monthData.startDate.monthDisplayText
-                                    if monthData.id == calendarVM.months.last?.id {
+                                    // 끝에서 2번째 월이 보이면 추가 로드 (무한루프 방지)
+                                    let count = calendarVM.months.count
+                                    if count >= 2, monthData.id == calendarVM.months[count - 2].id {
                                         Task { await calendarVM.loadLaterMonths() }
                                     }
-                                    if monthData.id == calendarVM.months.first?.id {
+                                    if count >= 2, monthData.id == calendarVM.months[1].id {
                                         Task { await calendarVM.loadEarlierMonths() }
                                     }
                                 }
