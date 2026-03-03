@@ -14,7 +14,7 @@ struct User: Codable, Identifiable {
     let id: Int
     let username: String
     let name: String?
-    let authority: String
+    let authority: Authority
     let gender: Gender?
     let birthDate: String?
 }

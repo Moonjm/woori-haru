@@ -1,10 +1,15 @@
 import Foundation
 
+struct LoginRequest: Encodable {
+    let username: String
+    let password: String
+}
+
 struct AuthService {
     private let api = APIClient.shared
 
     func login(username: String, password: String) async throws {
-        try await api.postVoid("/auth/login", body: ["username": username, "password": password])
+        try await api.postVoid("/auth/login", body: LoginRequest(username: username, password: password))
     }
 
     func logout() async throws {

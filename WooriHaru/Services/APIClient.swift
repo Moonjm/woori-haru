@@ -18,6 +18,7 @@ enum APIError: Error, LocalizedError {
     }
 }
 
+@MainActor
 final class APIClient {
     static let shared = APIClient()
 

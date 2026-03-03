@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 
+@MainActor
 @Observable
 final class AuthViewModel {
     var user: User?
@@ -40,7 +41,9 @@ final class AuthViewModel {
     func logout() async {
         do {
             try await authService.logout()
-        } catch {}
+        } catch {
+            print("Logout failed: \(error.localizedDescription)")
+        }
         user = nil
         isLoggedIn = false
     }

@@ -10,12 +10,14 @@ struct PairService {
 
     func createInvite() async throws -> PairInviteResponse {
         let response: DataResponse<PairInviteResponse> = try await api.post("/pair/invite")
-        return response.data!
+        guard let data = response.data else { throw APIError.decodingError(URLError(.cannotParseResponse)) }
+        return data
     }
 
     func acceptInvite(code: String) async throws -> PairInfo {
         let response: DataResponse<PairInfo> = try await api.post("/pair/accept", body: AcceptInviteRequest(inviteCode: code))
-        return response.data!
+        guard let data = response.data else { throw APIError.decodingError(URLError(.cannotParseResponse)) }
+        return data
     }
 
     func unpair() async throws {
