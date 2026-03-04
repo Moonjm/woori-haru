@@ -21,7 +21,7 @@ final class SearchViewModel {
         do {
             categories = try await categoryService.fetchCategories()
         } catch {
-            print("[SearchVM] Failed to load categories: \(error.localizedDescription)")
+            errorMessage = "카테고리 목록을 불러오지 못했습니다."
         }
         await search()
     }

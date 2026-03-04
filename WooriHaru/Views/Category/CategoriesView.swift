@@ -18,7 +18,7 @@ struct CategoriesView: View {
                         .frame(width: 50)
                         .textFieldStyle(.roundedBorder)
                         .onChange(of: viewModel.newEmoji) { _, newValue in
-                            if newValue.count > 2 { viewModel.newEmoji = String(newValue.prefix(2)) }
+                            if newValue.count > 1 { viewModel.newEmoji = String(newValue.prefix(1)) }
                         }
 
                     TextField("이름", text: $viewModel.newName)

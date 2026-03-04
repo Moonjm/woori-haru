@@ -103,6 +103,7 @@ final class CategoriesViewModel {
             do {
                 try await categoryService.reorderCategory(ReorderCategoryRequest(targetId: moved.id, beforeId: beforeId))
             } catch {
+                errorMessage = "카테고리 순서 변경에 실패했습니다."
                 await loadCategories()
             }
         }
