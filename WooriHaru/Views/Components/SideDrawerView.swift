@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SideDrawerView: View {
     @Binding var isOpen: Bool
+    @Binding var navPath: NavigationPath
     @Environment(AuthViewModel.self) private var authVM
 
     var body: some View {
@@ -24,8 +25,9 @@ struct SideDrawerView: View {
 
                 VStack(spacing: 0) {
                     drawerItem(icon: "person.2", label: "커플") { isOpen = false }
-                    drawerItem(icon: "chart.bar", label: "통계") { isOpen = false }
-                    drawerItem(icon: "magnifyingglass", label: "검색") { isOpen = false }
+                    drawerItem(icon: "chart.bar", label: "통계") { isOpen = false; navPath.append(AppDestination.stats) }
+                    drawerItem(icon: "magnifyingglass", label: "검색") { isOpen = false; navPath.append(AppDestination.search) }
+                    drawerItem(icon: "folder", label: "카테고리 관리") { isOpen = false; navPath.append(AppDestination.categories) }
                     drawerItem(icon: "person.circle", label: "내 정보") { isOpen = false }
                 }
 

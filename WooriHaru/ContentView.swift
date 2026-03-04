@@ -1,7 +1,24 @@
 import SwiftUI
 
+enum AppDestination: Hashable {
+    case stats
+    case search
+    case categories
+}
+
 struct ContentView: View {
+    @State private var path = NavigationPath()
+
     var body: some View {
-        CalendarView()
+        NavigationStack(path: $path) {
+            CalendarView(navPath: $path)
+                .navigationDestination(for: AppDestination.self) { dest in
+                    switch dest {
+                    case .stats: StatsView()
+                    case .search: SearchView()
+                    case .categories: CategoriesView()
+                    }
+                }
+        }
     }
 }
