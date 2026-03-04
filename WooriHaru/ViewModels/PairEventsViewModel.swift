@@ -46,6 +46,7 @@ final class PairEventsViewModel {
         }
 
         errorMessage = nil
+        successMessage = nil
 
         let dateStr = newDate.dateString
 
@@ -68,6 +69,7 @@ final class PairEventsViewModel {
 
     func deleteEvent(_ event: PairEvent) async {
         errorMessage = nil
+        successMessage = nil
         do {
             try await pairEventService.deleteEvent(id: event.id)
             events.removeAll { $0.id == event.id }
