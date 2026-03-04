@@ -255,9 +255,14 @@ final class CalendarViewModel {
         let toStr = endDate.dateString
         let yearStr = String(monthData.year)
 
-        // Fetch records
+        // Fetch records (clear first to prevent duplication on reload)
         do {
             let fetchedRecords = try await recordService.fetchRecords(from: fromStr, to: toStr)
+            for dayOffset in 0..<daysInMonth {
+                if let dayDate = calendar.date(byAdding: .day, value: dayOffset, to: startDate) {
+                    records[dayDate.dateString] = []
+                }
+            }
             for record in fetchedRecords {
                 records[record.date, default: []].append(record)
             }

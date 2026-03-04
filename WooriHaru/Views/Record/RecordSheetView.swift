@@ -41,7 +41,7 @@ struct RecordSheetView: View {
                     )
 
                     // Record form
-                    RecordFormView(viewModel: viewModel)
+                    RecordFormView(viewModel: viewModel, onSave: onChanged)
 
                     if let error = viewModel.errorMessage {
                         Text(error)
