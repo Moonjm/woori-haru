@@ -42,6 +42,9 @@
 		I10002 /* CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = I20002 /* CalendarView.swift */; };
 		I10003 /* YearMonthPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = I20003 /* YearMonthPickerView.swift */; };
 		I10004 /* SideDrawerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = I20004 /* SideDrawerView.swift */; };
+		J10001 /* StatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = J20001 /* StatsView.swift */; };
+		J10002 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = J20002 /* SearchView.swift */; };
+		J10003 /* CategoriesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = J20003 /* CategoriesView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -82,6 +85,9 @@
 		I20002 /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarView.swift; sourceTree = "<group>"; };
 		I20003 /* YearMonthPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YearMonthPickerView.swift; sourceTree = "<group>"; };
 		I20004 /* SideDrawerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SideDrawerView.swift; sourceTree = "<group>"; };
+		J20001 /* StatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsView.swift; sourceTree = "<group>"; };
+		J20002 /* SearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchView.swift; sourceTree = "<group>"; };
+		J20003 /* CategoriesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoriesView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -217,6 +223,7 @@
 		B40007 /* Stats */ = {
 			isa = PBXGroup;
 			children = (
+				J20001 /* StatsView.swift */,
 			);
 			path = Stats;
 			sourceTree = "<group>";
@@ -224,6 +231,7 @@
 		B40008 /* Search */ = {
 			isa = PBXGroup;
 			children = (
+				J20002 /* SearchView.swift */,
 			);
 			path = Search;
 			sourceTree = "<group>";
@@ -238,6 +246,7 @@
 		B40010 /* Category */ = {
 			isa = PBXGroup;
 			children = (
+				J20003 /* CategoriesView.swift */,
 			);
 			path = Category;
 			sourceTree = "<group>";
@@ -380,6 +389,9 @@
 				I10002 /* CalendarView.swift in Sources */,
 				I10003 /* YearMonthPickerView.swift in Sources */,
 				I10004 /* SideDrawerView.swift in Sources */,
+				J10001 /* StatsView.swift in Sources */,
+				J10002 /* SearchView.swift in Sources */,
+				J10003 /* CategoriesView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct CalendarView: View {
+    @Binding var navPath: NavigationPath
     @State private var calendarVM = CalendarViewModel()
     @State private var recordVM = RecordViewModel()
     @State private var showSheet = false
@@ -15,7 +16,7 @@ struct CalendarView: View {
                     monthLabel: calendarVM.currentMonthLabel,
                     onMenuTap: { withAnimation { calendarVM.isDrawerOpen = true } },
                     onMonthTap: { showPicker.toggle() },
-                    onSearchTap: { /* Phase 3 */ }
+                    onSearchTap: { navPath.append(AppDestination.search) }
                 )
 
                 WeekdayHeaderView()
@@ -80,7 +81,7 @@ struct CalendarView: View {
             }
 
             if calendarVM.isDrawerOpen {
-                SideDrawerView(isOpen: $calendarVM.isDrawerOpen)
+                SideDrawerView(isOpen: $calendarVM.isDrawerOpen, navPath: $navPath)
                     .transition(.move(edge: .leading))
             }
 
