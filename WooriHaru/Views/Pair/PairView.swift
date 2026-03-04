@@ -115,6 +115,11 @@ struct PairView: View {
                     .font(.subheadline)
                     .foregroundStyle(Color.blue500)
                 }
+            } else {
+                Text("초대 코드를 생성했습니다.\n파트너에게 코드를 공유해주세요.")
+                    .font(.subheadline)
+                    .foregroundStyle(Color.slate500)
+                    .multilineTextAlignment(.center)
             }
 
             Button {
