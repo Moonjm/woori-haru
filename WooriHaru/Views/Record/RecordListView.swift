@@ -13,7 +13,11 @@ struct RecordListView: View {
     }
 
     private var myRecords: [DailyRecord] {
-        records.filter { !$0.together }
+        if isPaired {
+            return records.filter { !$0.together }
+        } else {
+            return records
+        }
     }
 
     private var partnerSoloRecords: [DailyRecord] {

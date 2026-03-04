@@ -116,6 +116,7 @@ final class CalendarViewModel {
                 }
             }
         }
+        updateBirthdays(user: cachedUser, pairInfo: pairInfo)
     }
 
     /// Appends 3 months when the user scrolls toward later months.
@@ -143,6 +144,7 @@ final class CalendarViewModel {
                 }
             }
         }
+        updateBirthdays(user: cachedUser, pairInfo: pairInfo)
     }
 
     // MARK: - Navigation
@@ -246,8 +248,11 @@ final class CalendarViewModel {
         )
     }
 
+    private var cachedUser: User?
+
     /// 생일 맵 구축 (CalendarView에서 authVM.user 전달)
     func updateBirthdays(user: User?, pairInfo: PairInfo?) {
+        cachedUser = user
         birthdayMap.removeAll()
 
         let years = loadedMonthIds.compactMap { Int($0.prefix(4)) }
@@ -349,6 +354,12 @@ final class CalendarViewModel {
 
             do {
                 let events = try await pairEventService.fetchEvents(from: fromStr, to: toStr)
+                // Clear pair events for this month before repopulating
+                for dayOffset in 0..<daysInMonth {
+                    if let dayDate = calendar.date(byAdding: .day, value: dayOffset, to: startDate) {
+                        pairEvents[dayDate.dateString] = []
+                    }
+                }
                 for event in events {
                     pairEvents[event.eventDate, default: []].append(event)
                 }

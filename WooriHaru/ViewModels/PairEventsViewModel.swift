@@ -47,9 +47,7 @@ final class PairEventsViewModel {
 
         errorMessage = nil
 
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        let dateStr = formatter.string(from: newDate)
+        let dateStr = newDate.dateString
 
         let request = PairEventRequest(
             title: title,
