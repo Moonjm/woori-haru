@@ -34,6 +34,7 @@ final class RecordViewModel {
 
     func loadData() async {
         isLoading = true
+        defer { isLoading = false }
         errorMessage = nil
 
         let date = dateString
@@ -57,8 +58,17 @@ final class RecordViewModel {
         } catch {
             errorMessage = "데이터를 불러오지 못했습니다."
         }
+    }
 
-        isLoading = false
+    /// records만 다시 불러오기 (생성/수정/삭제 후 사용)
+    private func reloadRecords() async {
+        do {
+            records = try await recordService.fetchRecords(date: dateString)
+        } catch let error as APIError {
+            errorMessage = error.errorDescription
+        } catch {
+            errorMessage = "기록을 불러오지 못했습니다."
+        }
     }
 
     // MARK: - Record CRUD
@@ -78,7 +88,7 @@ final class RecordViewModel {
         do {
             try await recordService.createRecord(request)
             resetForm()
-            await loadData()
+            await reloadRecords()
         } catch let error as APIError {
             errorMessage = error.errorDescription
         } catch {
@@ -102,7 +112,7 @@ final class RecordViewModel {
         do {
             try await recordService.updateRecord(id: record.id, request)
             resetForm()
-            await loadData()
+            await reloadRecords()
         } catch let error as APIError {
             errorMessage = error.errorDescription
         } catch {
@@ -115,7 +125,7 @@ final class RecordViewModel {
 
         do {
             try await recordService.deleteRecord(id: record.id)
-            await loadData()
+            await reloadRecords()
         } catch let error as APIError {
             errorMessage = error.errorDescription
         } catch {
