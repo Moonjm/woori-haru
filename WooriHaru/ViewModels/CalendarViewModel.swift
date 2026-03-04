@@ -224,15 +224,14 @@ final class CalendarViewModel {
             cells.append(.init(id: dayDate.dateString, date: dayDate, day: day, isCurrentMonth: true))
         }
 
-        // 다음 월 날짜 (trailing)
-        let totalRows = (cells.count + 6) / 7
-        let totalCells = totalRows * 7
-        let trailing = totalCells - cells.count
-        let lastDay = calendar.date(byAdding: .day, value: daysInMonth - 1, to: startOfMonth)!
-        for i in 1...max(trailing, 1) {
-            guard cells.count < totalCells else { break }
-            let nextDate = calendar.date(byAdding: .day, value: i, to: lastDay)!
-            cells.append(.init(id: "\(id)-next-\(nextDate.dateString)", date: nextDate, day: nextDate.day, isCurrentMonth: false))
+        // 다음 월 날짜 (trailing) - 항상 42칸(6주) 고정
+        let trailingCount = 42 - cells.count
+        if trailingCount > 0 {
+            let lastDay = calendar.date(byAdding: .day, value: daysInMonth - 1, to: startOfMonth)!
+            for i in 1...trailingCount {
+                let nextDate = calendar.date(byAdding: .day, value: i, to: lastDay)!
+                cells.append(.init(id: "\(id)-next-\(nextDate.dateString)", date: nextDate, day: nextDate.day, isCurrentMonth: false))
+            }
         }
 
         return MonthData(
