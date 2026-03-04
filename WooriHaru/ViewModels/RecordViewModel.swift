@@ -73,8 +73,9 @@ final class RecordViewModel {
 
     // MARK: - Record CRUD
 
-    func createRecord() async {
-        guard let categoryId = selectedCategoryId else { return }
+    @discardableResult
+    func createRecord() async -> Bool {
+        guard let categoryId = selectedCategoryId else { return false }
 
         errorMessage = nil
 
@@ -89,16 +90,20 @@ final class RecordViewModel {
             try await recordService.createRecord(request)
             resetForm()
             await reloadRecords()
+            return true
         } catch let error as APIError {
             errorMessage = error.errorDescription
+            return false
         } catch {
             errorMessage = "기록 생성에 실패했습니다."
+            return false
         }
     }
 
-    func updateRecord() async {
+    @discardableResult
+    func updateRecord() async -> Bool {
         guard let record = editingRecord,
-              let categoryId = selectedCategoryId else { return }
+              let categoryId = selectedCategoryId else { return false }
 
         errorMessage = nil
 
@@ -113,10 +118,13 @@ final class RecordViewModel {
             try await recordService.updateRecord(id: record.id, request)
             resetForm()
             await reloadRecords()
+            return true
         } catch let error as APIError {
             errorMessage = error.errorDescription
+            return false
         } catch {
             errorMessage = "기록 수정에 실패했습니다."
+            return false
         }
     }
 
