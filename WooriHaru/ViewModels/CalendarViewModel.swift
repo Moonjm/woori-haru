@@ -174,22 +174,10 @@ final class CalendarViewModel {
 
     // MARK: - Refresh
 
-    /// Clears cached data for the month containing the given date and reloads it.
+    /// Reloads data for the month containing the given date.
+    /// Data clearing is handled by loadMonthData itself.
     func refreshMonth(containing date: Date) async {
-        let monthStart = date.startOfMonth()
-        let yearMonth = monthStart.yearMonth
-
-        // Clear cached data for every day in this month
-        let daysCount = monthStart.daysInMonth()
-        for dayOffset in 0..<daysCount {
-            if let dayDate = calendar.date(byAdding: .day, value: dayOffset, to: monthStart) {
-                let key = dayDate.dateString
-                records.removeValue(forKey: key)
-                overeats.removeValue(forKey: key)
-            }
-        }
-
-        // Reload data for this month
+        let yearMonth = date.startOfMonth().yearMonth
         if let monthData = months.first(where: { $0.id == yearMonth }) {
             await loadMonthData(monthData)
         }
@@ -269,9 +257,14 @@ final class CalendarViewModel {
             print("[CalendarVM] Failed to fetch records for \(monthData.id): \(error.localizedDescription)")
         }
 
-        // Fetch overeats
+        // Fetch overeats (clear first to prevent stale data)
         do {
             let fetchedOvereats = try await recordService.fetchOvereats(from: fromStr, to: toStr)
+            for dayOffset in 0..<daysInMonth {
+                if let dayDate = calendar.date(byAdding: .day, value: dayOffset, to: startDate) {
+                    overeats.removeValue(forKey: dayDate.dateString)
+                }
+            }
             for item in fetchedOvereats {
                 overeats[item.date] = item.overeatLevel
             }

@@ -7,7 +7,7 @@ struct YearMonthPickerView: View {
     @State private var selectedYear: Int = Calendar.current.component(.year, from: Date())
     @State private var selectedMonth: Int = Calendar.current.component(.month, from: Date())
 
-    private let years = Array(2018...2037)
+    private let years = Array(2018...(Calendar.current.component(.year, from: Date()) + 10))
     private let months = Array(1...12)
 
     var body: some View {
