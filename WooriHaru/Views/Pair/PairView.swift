@@ -116,7 +116,7 @@ struct PairView: View {
                     .foregroundStyle(Color.blue500)
                 }
             } else {
-                Text("초대 코드를 생성했습니다.\n파트너에게 코드를 공유해주세요.")
+                Text("초대가 발송되었습니다.\n파트너가 수락하기를 기다리는 중입니다.")
                     .font(.subheadline)
                     .foregroundStyle(Color.slate500)
                     .multilineTextAlignment(.center)
