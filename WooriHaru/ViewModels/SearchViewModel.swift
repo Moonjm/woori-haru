@@ -31,7 +31,7 @@ final class SearchViewModel {
         defer { isLoading = false }
         errorMessage = nil
 
-        let (fromStr, toStr) = dateRange(year: selectedYear, month: selectedMonth)
+        let (fromStr, toStr) = Date.monthRange(year: selectedYear, month: selectedMonth)
 
         do {
             allRecords = try await recordService.fetchRecords(from: fromStr, to: toStr)
@@ -58,14 +58,4 @@ final class SearchViewModel {
         results = filtered.sorted { $0.date < $1.date }
     }
 
-    private func dateRange(year: Int, month: Int) -> (String, String) {
-        if month == 0 { return ("\(year)-01-01", "\(year)-12-31") }
-        let from = String(format: "%04d-%02d-01", year, month)
-        let cal = Calendar.current
-        let comps = DateComponents(year: year, month: month)
-        let startDate = cal.date(from: comps)!
-        let range = cal.range(of: .day, in: .month, for: startDate)!
-        let to = String(format: "%04d-%02d-%02d", year, month, range.count)
-        return (from, to)
-    }
 }
