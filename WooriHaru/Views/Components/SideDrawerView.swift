@@ -24,7 +24,7 @@ struct SideDrawerView: View {
                 Divider()
 
                 VStack(spacing: 0) {
-                    drawerItem(icon: "person.2", label: "커플") { isOpen = false }
+                    drawerItem(icon: "person.2", label: "커플") { isOpen = false; navPath.append(AppDestination.pair) }
                     drawerItem(icon: "chart.bar", label: "통계") { isOpen = false; navPath.append(AppDestination.stats) }
                     drawerItem(icon: "magnifyingglass", label: "검색") { isOpen = false; navPath.append(AppDestination.search) }
                     drawerItem(icon: "folder", label: "카테고리 관리") { isOpen = false; navPath.append(AppDestination.categories) }
