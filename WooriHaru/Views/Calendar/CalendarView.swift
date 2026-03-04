@@ -29,8 +29,11 @@ struct CalendarView: View {
                                     MonthGridView(
                                         monthData: monthData,
                                         records: calendarVM.records,
+                                        partnerRecords: calendarVM.partnerRecords,
                                         overeats: calendarVM.overeats,
                                         holidays: calendarVM.holidays,
+                                        pairEvents: calendarVM.pairEvents,
+                                        birthdayMap: calendarVM.birthdayMap,
                                         onSelectDate: { date in
                                             recordVM.selectedDate = date
                                             showSheet = true
@@ -99,9 +102,14 @@ struct CalendarView: View {
             })
             .presentationDetents([.fraction(0.7)])
             .presentationDragIndicator(.visible)
+            .onAppear {
+                recordVM.isPaired = calendarVM.isPaired
+                recordVM.partnerName = calendarVM.pairInfo?.partnerName ?? "파트너"
+            }
         }
         .task {
             await calendarVM.initialLoad()
+            calendarVM.updateBirthdays(user: authVM.user, pairInfo: calendarVM.pairInfo)
         }
     }
 }

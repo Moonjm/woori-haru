@@ -3,8 +3,11 @@ import SwiftUI
 struct DayCellView: View {
     let date: Date
     let records: [DailyRecord]
+    let partnerRecords: [DailyRecord]
     let overeatLevel: OvereatLevel?
     let holidays: [String]
+    let pairEvents: [PairEvent]
+    let birthdays: [(emoji: String, label: String)]
     let isCurrentMonth: Bool
     let onTap: () -> Void
 
@@ -17,6 +20,7 @@ struct DayCellView: View {
             }
 
             if isCurrentMonth {
+                // 공휴일
                 ForEach(holidays.prefix(2), id: \.self) { name in
                     Text(name)
                         .font(.system(size: 8))
@@ -28,11 +32,43 @@ struct DayCellView: View {
                         .cornerRadius(2)
                 }
 
-                let emojis = records.map { $0.category.emoji }
-                if !emojis.isEmpty {
-                    Text(emojis.joined())
-                        .font(.system(size: 12))
-                        .lineLimit(2)
+                // 기념일 + 생일 이모지
+                let eventEmojis = pairEvents.map(\.emoji) + birthdays.map(\.emoji)
+                if !eventEmojis.isEmpty {
+                    Text(eventEmojis.joined())
+                        .font(.system(size: 10))
+                        .lineLimit(1)
+                }
+
+                // 같이 한 것 (together)
+                let togetherEmojis = records.filter(\.together).map { $0.category.emoji }
+                    + partnerRecords.filter(\.together).map { $0.category.emoji }
+                if !togetherEmojis.isEmpty {
+                    Text(togetherEmojis.joined())
+                        .font(.system(size: 10))
+                        .lineLimit(1)
+                        .padding(.horizontal, 2)
+                        .padding(.vertical, 1)
+                        .background(Color.blue50)
+                        .cornerRadius(2)
+                }
+
+                // 개별 기록: 내 것 + 파트너 (파트너는 opacity 낮게)
+                let myEmojis = records.filter { !$0.together }.map { $0.category.emoji }
+                let partnerEmojis = partnerRecords.filter { !$0.together }.map { $0.category.emoji }
+                if !myEmojis.isEmpty || !partnerEmojis.isEmpty {
+                    HStack(spacing: 1) {
+                        if !myEmojis.isEmpty {
+                            Text(myEmojis.joined())
+                                .font(.system(size: 10))
+                        }
+                        if !partnerEmojis.isEmpty {
+                            Text(partnerEmojis.joined())
+                                .font(.system(size: 10))
+                                .opacity(0.5)
+                        }
+                    }
+                    .lineLimit(1)
                 }
             }
 
