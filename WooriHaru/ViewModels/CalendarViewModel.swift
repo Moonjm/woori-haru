@@ -28,10 +28,15 @@ final class CalendarViewModel {
 
     var months: [MonthData] = []
     var records: [String: [DailyRecord]] = [:]
+    var partnerRecords: [String: [DailyRecord]] = [:]
     var overeats: [String: OvereatLevel] = [:]
     var holidays: [String: [String]] = [:]
+    var pairEvents: [String: [PairEvent]] = [:]
+    var birthdayMap: [String: [(emoji: String, label: String)]] = [:]
     var currentMonthLabel: String = ""
     var isDrawerOpen: Bool = false
+    var isPaired: Bool = false
+    var pairInfo: PairInfo?
     var pickerTargetYear: Int = Calendar.current.component(.year, from: Date())
     var pickerTargetMonth: Int = Calendar.current.component(.month, from: Date())
 
@@ -39,6 +44,8 @@ final class CalendarViewModel {
 
     private let recordService = RecordService()
     private let holidayService = HolidayService()
+    private let pairService = PairService()
+    private let pairEventService = PairEventService()
     private let calendar = Calendar.current
     private var isLoadingEarlier = false
     private var isLoadingLater = false
@@ -51,6 +58,14 @@ final class CalendarViewModel {
 
     /// Loads the current month +/- 2 months (5 months total) and fetches data for each.
     func initialLoad() async {
+        // 페어 상태 확인
+        do {
+            pairInfo = try await pairService.getStatus()
+            isPaired = pairInfo?.status == .connected
+        } catch {
+            isPaired = false
+        }
+
         let today = Date()
         let currentStart = today.startOfMonth()
 
@@ -231,6 +246,35 @@ final class CalendarViewModel {
         )
     }
 
+    /// 생일 맵 구축 (CalendarView에서 authVM.user 전달)
+    func updateBirthdays(user: User?, pairInfo: PairInfo?) {
+        birthdayMap.removeAll()
+
+        let years = loadedMonthIds.compactMap { Int($0.prefix(4)) }
+        let yearRange = Set(years)
+
+        // 내 생일
+        if let birthDate = user?.birthDate, birthDate.count >= 10 {
+            let mmdd = String(birthDate.suffix(5))
+            let genderEmoji = user?.gender == .male ? "👨" : user?.gender == .female ? "👩" : ""
+            for year in yearRange {
+                let key = "\(year)-\(mmdd)"
+                birthdayMap[key, default: []].append((emoji: "🎂\(genderEmoji)", label: "내 생일"))
+            }
+        }
+
+        // 파트너 생일
+        if let birthDate = pairInfo?.partnerBirthDate, birthDate.count >= 10 {
+            let mmdd = String(birthDate.suffix(5))
+            let name = pairInfo?.partnerName ?? "파트너"
+            let genderEmoji = pairInfo?.partnerGender == .male ? "👨" : pairInfo?.partnerGender == .female ? "👩" : ""
+            for year in yearRange {
+                let key = "\(year)-\(mmdd)"
+                birthdayMap[key, default: []].append((emoji: "🎂\(genderEmoji)", label: "\(name) 생일"))
+            }
+        }
+    }
+
     /// Fetches records, overeats, and holidays for a given month from the services.
     /// Errors are handled gracefully -- failures are logged and skipped.
     private func loadMonthData(_ monthData: MonthData) async {
@@ -284,6 +328,40 @@ final class CalendarViewModel {
                 // Remove from loaded set so it can be retried later
                 loadedHolidayYears.remove(monthData.year)
                 print("[CalendarVM] Failed to fetch holidays for \(yearStr): \(error.localizedDescription)")
+            }
+        }
+
+        // Fetch partner records (only when paired)
+        if isPaired {
+            do {
+                let partnerRecs = try await pairService.fetchPartnerRecords(from: fromStr, to: toStr)
+                for dayOffset in 0..<daysInMonth {
+                    if let dayDate = calendar.date(byAdding: .day, value: dayOffset, to: startDate) {
+                        partnerRecords[dayDate.dateString] = []
+                    }
+                }
+                for record in partnerRecs {
+                    partnerRecords[record.date, default: []].append(record)
+                }
+            } catch {
+                print("[CalendarVM] Failed to fetch partner records: \(error.localizedDescription)")
+            }
+
+            do {
+                let events = try await pairEventService.fetchEvents(from: fromStr, to: toStr)
+                for event in events {
+                    pairEvents[event.eventDate, default: []].append(event)
+                }
+                // recurring 이벤트: 현재 연도의 MM-DD에도 추가
+                for event in events where event.recurring {
+                    let mmdd = String(event.eventDate.suffix(5))
+                    let thisYearDate = "\(monthData.year)-\(mmdd)"
+                    if thisYearDate != event.eventDate {
+                        pairEvents[thisYearDate, default: []].append(event)
+                    }
+                }
+            } catch {
+                print("[CalendarVM] Failed to fetch pair events: \(error.localizedDescription)")
             }
         }
     }
