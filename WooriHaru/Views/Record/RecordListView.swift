@@ -49,6 +49,7 @@ struct RecordPill: View {
                     .font(.system(size: 10))
                     .foregroundStyle(Color.red400)
             }
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
@@ -79,7 +80,7 @@ struct FlowLayout: Layout {
     }
 
     private func arrange(proposal: ProposedViewSize, subviews: Subviews) -> (size: CGSize, positions: [CGPoint]) {
-        let maxWidth = proposal.width ?? .infinity
+        let maxWidth = proposal.width ?? 0
         var positions: [CGPoint] = []
         var x: CGFloat = 0
         var y: CGFloat = 0
@@ -97,6 +98,7 @@ struct FlowLayout: Layout {
             x += size.width + spacing
         }
 
-        return (CGSize(width: maxWidth, height: y + rowHeight), positions)
+        let resultWidth = maxWidth > 0 ? maxWidth : x - spacing
+        return (CGSize(width: resultWidth, height: y + rowHeight), positions)
     }
 }

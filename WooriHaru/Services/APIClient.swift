@@ -24,7 +24,7 @@ final class APIClient {
 
     let baseURL = "https://daily.eunji.shop/api"
     private let session: URLSession
-    private var isRefreshing = false
+    private var refreshTask: Task<Bool, Never>?
 
     private init() {
         let config = URLSessionConfiguration.default
@@ -148,20 +148,28 @@ final class APIClient {
     }
 
     private func refreshToken() async -> Bool {
-        guard !isRefreshing else { return false }
-        isRefreshing = true
-        defer { isRefreshing = false }
-
-        guard let url = URL(string: baseURL + "/auth/refresh") else { return false }
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-
-        do {
-            let (_, response) = try await session.data(for: request)
-            guard let http = response as? HTTPURLResponse else { return false }
-            return http.statusCode == 200
-        } catch {
-            return false
+        // 이미 refresh 진행 중이면 해당 task의 결과를 기다림
+        if let existing = refreshTask {
+            return await existing.value
         }
+
+        let task = Task<Bool, Never> {
+            guard let url = URL(string: baseURL + "/auth/refresh") else { return false }
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+
+            do {
+                let (_, response) = try await session.data(for: request)
+                guard let http = response as? HTTPURLResponse else { return false }
+                return http.statusCode == 200
+            } catch {
+                return false
+            }
+        }
+
+        refreshTask = task
+        let result = await task.value
+        refreshTask = nil
+        return result
     }
 }

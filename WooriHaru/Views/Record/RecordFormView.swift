@@ -45,12 +45,13 @@ struct RecordFormView: View {
 
                 Button {
                     Task {
+                        let success: Bool
                         if viewModel.editingRecord != nil {
-                            await viewModel.updateRecord()
+                            success = await viewModel.updateRecord()
                         } else {
-                            await viewModel.createRecord()
+                            success = await viewModel.createRecord()
                         }
-                        onSave?()
+                        if success { onSave?() }
                     }
                 } label: {
                     Text(viewModel.editingRecord != nil ? "수정" : "저장")
