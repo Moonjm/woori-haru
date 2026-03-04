@@ -187,6 +187,7 @@ final class CalendarViewModel {
                 }
             }
         }
+        updateBirthdays(user: cachedUser, pairInfo: pairInfo)
     }
 
     // MARK: - Refresh
@@ -363,7 +364,7 @@ final class CalendarViewModel {
                 for event in events {
                     pairEvents[event.eventDate, default: []].append(event)
                 }
-                // recurring 이벤트: 현재 연도의 MM-DD에도 추가
+                // recurring 이벤트: API가 원본 날짜만 반환할 경우 현재 연도로 투영
                 for event in events where event.recurring {
                     let mmdd = String(event.eventDate.suffix(5))
                     let thisYearDate = "\(monthData.year)-\(mmdd)"
