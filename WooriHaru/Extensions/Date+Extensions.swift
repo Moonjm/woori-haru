@@ -65,4 +65,19 @@ extension Date {
     static func from(_ string: String) -> Date? {
         dateStringFormatter.date(from: string)
     }
+
+    // MARK: - Date Range
+
+    /// 연/월 기반 날짜 범위 반환 (month=0이면 연간 전체)
+    static func monthRange(year: Int, month: Int) -> (from: String, to: String) {
+        if month == 0 { return ("\(year)-01-01", "\(year)-12-31") }
+        let from = String(format: "%04d-%02d-01", year, month)
+        let cal = Calendar.current
+        guard let startDate = cal.date(from: DateComponents(year: year, month: month)),
+              let range = cal.range(of: .day, in: .month, for: startDate) else {
+            return ("\(year)-01-01", "\(year)-12-31")
+        }
+        let to = String(format: "%04d-%02d-%02d", year, month, range.count)
+        return (from, to)
+    }
 }
