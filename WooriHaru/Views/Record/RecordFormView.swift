@@ -2,6 +2,7 @@ import SwiftUI
 
 struct RecordFormView: View {
     @Bindable var viewModel: RecordViewModel
+    var onSave: (() -> Void)?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -49,6 +50,7 @@ struct RecordFormView: View {
                         } else {
                             await viewModel.createRecord()
                         }
+                        onSave?()
                     }
                 } label: {
                     Text(viewModel.editingRecord != nil ? "수정" : "저장")
