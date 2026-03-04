@@ -29,6 +29,9 @@ struct RecordSheetView: View {
                     // Record list
                     RecordListView(
                         records: viewModel.records,
+                        partnerRecords: viewModel.partnerRecords,
+                        partnerName: viewModel.partnerName,
+                        isPaired: viewModel.isPaired,
                         onDelete: { record in
                             Task {
                                 await viewModel.deleteRecord(record)

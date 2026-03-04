@@ -34,6 +34,19 @@ struct RecordFormView: View {
                 }
             }
 
+            // Together toggle (only when paired)
+            if viewModel.isPaired {
+                Toggle(isOn: $viewModel.together) {
+                    HStack(spacing: 4) {
+                        Text("👫")
+                        Text("같이")
+                            .font(.caption)
+                    }
+                }
+                .toggleStyle(.button)
+                .tint(Color.blue500)
+            }
+
             // Memo + save
             HStack(spacing: 8) {
                 TextField("메모 (최대 20자)", text: $viewModel.memo)

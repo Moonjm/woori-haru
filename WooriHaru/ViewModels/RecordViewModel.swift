@@ -8,15 +8,19 @@ final class RecordViewModel {
 
     var selectedDate: Date = .now
     var records: [DailyRecord] = []
+    var partnerRecords: [DailyRecord] = []
     var overeatLevel: OvereatLevel = .none
     var categories: [Category] = []
     var isLoading = false
     var errorMessage: String?
+    var isPaired: Bool = false
+    var partnerName: String = ""
 
     // MARK: - Form State
 
     var selectedCategoryId: Int?
     var memo: String = ""
+    var together: Bool = false
     var editingRecord: DailyRecord?
 
     // MARK: - Computed
@@ -29,6 +33,7 @@ final class RecordViewModel {
 
     private let recordService = RecordService()
     private let categoryService = CategoryService()
+    private let pairService = PairService()
 
     // MARK: - Data Loading
 
@@ -53,6 +58,15 @@ final class RecordViewModel {
             records = loadedRecords
             categories = loadedCategories
             overeatLevel = loadedOvereats.first?.overeatLevel ?? .none
+
+            // 파트너 기록
+            if isPaired {
+                do {
+                    partnerRecords = try await pairService.fetchPartnerRecords(date: date)
+                } catch {
+                    partnerRecords = []
+                }
+            }
         } catch let error as APIError {
             errorMessage = error.errorDescription
         } catch {
@@ -83,7 +97,7 @@ final class RecordViewModel {
             date: dateString,
             categoryId: categoryId,
             memo: memo.isEmpty ? nil : memo,
-            together: false
+            together: together
         )
 
         do {
@@ -111,7 +125,7 @@ final class RecordViewModel {
             date: dateString,
             categoryId: categoryId,
             memo: memo.isEmpty ? nil : memo,
-            together: false
+            together: together
         )
 
         do {
@@ -167,11 +181,13 @@ final class RecordViewModel {
         editingRecord = record
         selectedCategoryId = record.category.id
         memo = record.memo ?? ""
+        together = record.together
     }
 
     func resetForm() {
         editingRecord = nil
         selectedCategoryId = nil
         memo = ""
+        together = false
     }
 }
