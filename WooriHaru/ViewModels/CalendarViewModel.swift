@@ -260,8 +260,8 @@ final class CalendarViewModel {
         let yearRange = Set(years)
 
         // 내 생일
-        if let birthDate = user?.birthDate, birthDate.count >= 10 {
-            let mmdd = String(birthDate.suffix(5))
+        if let birthDateStr = user?.birthDate, let birthDate = Date.from(birthDateStr) {
+            let mmdd = String(format: "%02d-%02d", birthDate.month, birthDate.day)
             let genderEmoji = user?.gender == .male ? "👨" : user?.gender == .female ? "👩" : ""
             for year in yearRange {
                 let key = "\(year)-\(mmdd)"
@@ -270,8 +270,8 @@ final class CalendarViewModel {
         }
 
         // 파트너 생일
-        if let birthDate = pairInfo?.partnerBirthDate, birthDate.count >= 10 {
-            let mmdd = String(birthDate.suffix(5))
+        if let birthDateStr = pairInfo?.partnerBirthDate, let birthDate = Date.from(birthDateStr) {
+            let mmdd = String(format: "%02d-%02d", birthDate.month, birthDate.day)
             let name = pairInfo?.partnerName ?? "파트너"
             let genderEmoji = pairInfo?.partnerGender == .male ? "👨" : pairInfo?.partnerGender == .female ? "👩" : ""
             for year in yearRange {
@@ -341,13 +341,11 @@ final class CalendarViewModel {
         if isPaired {
             do {
                 let partnerRecs = try await pairService.fetchPartnerRecords(from: fromStr, to: toStr)
+                let groupedPartner = Dictionary(grouping: partnerRecs, by: \.date)
                 for dayOffset in 0..<daysInMonth {
                     if let dayDate = calendar.date(byAdding: .day, value: dayOffset, to: startDate) {
-                        partnerRecords[dayDate.dateString] = []
+                        partnerRecords[dayDate.dateString] = groupedPartner[dayDate.dateString] ?? []
                     }
-                }
-                for record in partnerRecs {
-                    partnerRecords[record.date, default: []].append(record)
                 }
             } catch {
                 print("[CalendarVM] Failed to fetch partner records: \(error.localizedDescription)")
@@ -355,14 +353,11 @@ final class CalendarViewModel {
 
             do {
                 let events = try await pairEventService.fetchEvents(from: fromStr, to: toStr)
-                // Clear pair events for this month before repopulating
+                let groupedEvents = Dictionary(grouping: events, by: \.eventDate)
                 for dayOffset in 0..<daysInMonth {
                     if let dayDate = calendar.date(byAdding: .day, value: dayOffset, to: startDate) {
-                        pairEvents[dayDate.dateString] = []
+                        pairEvents[dayDate.dateString] = groupedEvents[dayDate.dateString] ?? []
                     }
-                }
-                for event in events {
-                    pairEvents[event.eventDate, default: []].append(event)
                 }
                 // recurring 이벤트: API가 원본 날짜만 반환할 경우 현재 연도로 투영
                 for event in events where event.recurring {

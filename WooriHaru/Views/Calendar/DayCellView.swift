@@ -65,7 +65,7 @@ struct DayCellView: View {
                         if !partnerEmojis.isEmpty {
                             Text(partnerEmojis.joined())
                                 .font(.system(size: 10))
-                                .opacity(0.5)
+                                .opacity(0.7)
                         }
                     }
                     .lineLimit(1)
