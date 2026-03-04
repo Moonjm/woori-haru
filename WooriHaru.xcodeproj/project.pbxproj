@@ -30,6 +30,7 @@
 		E10004 /* CalendarViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20004 /* CalendarViewModel.swift */; };
 		E10005 /* StatsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20005 /* StatsViewModel.swift */; };
 		E10006 /* SearchViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20006 /* SearchViewModel.swift */; };
+		E10007 /* CategoriesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20007 /* CategoriesViewModel.swift */; };
 		E10002 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20002 /* LoginView.swift */; };
 		F10001 /* Date+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20001 /* Date+Extensions.swift */; };
 		F10002 /* Color+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20002 /* Color+Extensions.swift */; };
@@ -75,6 +76,7 @@
 		E20004 /* CalendarViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarViewModel.swift; sourceTree = "<group>"; };
 		E20005 /* StatsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsViewModel.swift; sourceTree = "<group>"; };
 		E20006 /* SearchViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchViewModel.swift; sourceTree = "<group>"; };
+		E20007 /* CategoriesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoriesViewModel.swift; sourceTree = "<group>"; };
 		E20002 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 		F20001 /* Date+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Date+Extensions.swift"; sourceTree = "<group>"; };
 		F20002 /* Color+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Extensions.swift"; sourceTree = "<group>"; };
@@ -183,6 +185,7 @@
 				E20003 /* RecordViewModel.swift */,
 				E20005 /* StatsViewModel.swift */,
 				E20006 /* SearchViewModel.swift */,
+				E20007 /* CategoriesViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -383,6 +386,7 @@
 				E10004 /* CalendarViewModel.swift in Sources */,
 				E10005 /* StatsViewModel.swift in Sources */,
 				E10006 /* SearchViewModel.swift in Sources */,
+				E10007 /* CategoriesViewModel.swift in Sources */,
 				E10002 /* LoginView.swift in Sources */,
 				F10001 /* Date+Extensions.swift in Sources */,
 				F10002 /* Color+Extensions.swift in Sources */,
