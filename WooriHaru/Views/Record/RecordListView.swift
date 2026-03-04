@@ -2,26 +2,82 @@ import SwiftUI
 
 struct RecordListView: View {
     let records: [DailyRecord]
+    let partnerRecords: [DailyRecord]
+    let partnerName: String
+    let isPaired: Bool
     let onDelete: (DailyRecord) -> Void
     let onTap: (DailyRecord) -> Void
 
+    private var togetherRecords: [DailyRecord] {
+        records.filter(\.together) + partnerRecords.filter(\.together)
+    }
+
+    private var myRecords: [DailyRecord] {
+        records.filter { !$0.together }
+    }
+
+    private var partnerSoloRecords: [DailyRecord] {
+        partnerRecords.filter { !$0.together }
+    }
+
     var body: some View {
-        if records.isEmpty {
+        if records.isEmpty && partnerRecords.isEmpty {
             Text("기록이 없습니다")
                 .font(.subheadline)
                 .foregroundStyle(Color.slate400)
                 .padding(.vertical, 8)
         } else {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("나의 기록")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundStyle(Color.slate600)
+            VStack(alignment: .leading, spacing: 12) {
+                // Together section
+                if isPaired && !togetherRecords.isEmpty {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("👫 같이 한 것")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundStyle(Color.blue600)
 
-                FlowLayout(spacing: 6) {
-                    ForEach(records) { record in
-                        RecordPill(record: record, onDelete: { onDelete(record) })
-                            .onTapGesture { onTap(record) }
+                        FlowLayout(spacing: 6) {
+                            ForEach(togetherRecords) { record in
+                                let isMine = records.contains { $0.id == record.id }
+                                RecordPill(record: record, showDelete: isMine, onDelete: { onDelete(record) })
+                                    .onTapGesture { if isMine { onTap(record) } }
+                                    .opacity(isMine ? 1.0 : 0.7)
+                            }
+                        }
+                    }
+                }
+
+                // My records
+                if !myRecords.isEmpty {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("나의 기록")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundStyle(Color.slate600)
+
+                        FlowLayout(spacing: 6) {
+                            ForEach(myRecords) { record in
+                                RecordPill(record: record, showDelete: true, onDelete: { onDelete(record) })
+                                    .onTapGesture { onTap(record) }
+                            }
+                        }
+                    }
+                }
+
+                // Partner records (read-only)
+                if isPaired && !partnerSoloRecords.isEmpty {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("\(partnerName)의 기록")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundStyle(Color.slate500)
+
+                        FlowLayout(spacing: 6) {
+                            ForEach(partnerSoloRecords) { record in
+                                RecordPill(record: record, showDelete: false, onDelete: {})
+                                    .opacity(0.7)
+                            }
+                        }
                     }
                 }
             }
@@ -31,6 +87,7 @@ struct RecordListView: View {
 
 struct RecordPill: View {
     let record: DailyRecord
+    let showDelete: Bool
     let onDelete: () -> Void
 
     var body: some View {
@@ -44,12 +101,14 @@ struct RecordPill: View {
                     .font(.caption)
                     .foregroundStyle(Color.slate500)
             }
-            Button(action: onDelete) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 10))
-                    .foregroundStyle(Color.red400)
+            if showDelete {
+                Button(action: onDelete) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 10))
+                        .foregroundStyle(Color.red400)
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
