@@ -22,10 +22,10 @@ struct DayCellView: View {
             if isCurrentMonth {
                 // 공휴일
                 ForEach(holidays.prefix(2), id: \.self) { name in
-                    Text(name)
+                    Text(name.replacingOccurrences(of: "\\(.*\\)", with: "", options: .regularExpression))
                         .font(.system(size: 8))
                         .lineLimit(1)
-                        .padding(.horizontal, 2)
+                        .frame(maxWidth: .infinity)
                         .padding(.vertical, 1)
                         .background(Color.red.opacity(0.1))
                         .foregroundStyle(Color.red500)
@@ -35,69 +35,89 @@ struct DayCellView: View {
                 // 기념일 + 생일 이모지
                 let eventEmojis = pairEvents.map(\.emoji) + birthdays.map(\.emoji)
                 if !eventEmojis.isEmpty {
-                    Text(eventEmojis.joined())
-                        .font(.system(size: 10))
-                        .lineLimit(1)
+                    emojiRow(eventEmojis, size: 11)
                 }
 
-                // 같이 한 것 (together)
+                // 같이 한 것 (together) — 3개씩 줄바꿈
                 let togetherEmojis = records.filter(\.together).map { $0.category.emoji }
                     + partnerRecords.filter(\.together).map { $0.category.emoji }
                 if !togetherEmojis.isEmpty {
-                    Text(togetherEmojis.joined())
-                        .font(.system(size: 10))
-                        .lineLimit(1)
-                        .padding(.horizontal, 2)
-                        .padding(.vertical, 1)
-                        .background(Color.blue50)
-                        .cornerRadius(2)
-                }
-
-                // 개별 기록: 내 것 + 파트너 (파트너는 opacity 낮게)
-                let myEmojis = records.filter { !$0.together }.map { $0.category.emoji }
-                let partnerEmojis = partnerRecords.filter { !$0.together }.map { $0.category.emoji }
-                if !myEmojis.isEmpty || !partnerEmojis.isEmpty {
-                    HStack(spacing: 1) {
-                        if !myEmojis.isEmpty {
-                            Text(myEmojis.joined())
-                                .font(.system(size: 10))
-                        }
-                        if !partnerEmojis.isEmpty {
-                            Text(partnerEmojis.joined())
-                                .font(.system(size: 10))
-                                .opacity(0.7)
+                    let rows = stride(from: 0, to: togetherEmojis.count, by: 3).map {
+                        Array(togetherEmojis[$0..<min($0 + 3, togetherEmojis.count)])
+                    }
+                    VStack(spacing: 1) {
+                        ForEach(Array(rows.enumerated()), id: \.offset) { _, chunk in
+                            emojiRow(chunk, size: 11)
                         }
                     }
-                    .lineLimit(1)
+                    .padding(.horizontal, 2)
+                    .padding(.vertical, 1)
+                    .background(Color.blue50)
+                    .cornerRadius(2)
+                }
+
+                // 개별 기록: 내 것(왼쪽) | 점선 | 파트너(오른쪽), 1개씩 줄바꿈
+                let myEmojis = records.filter { !$0.together }.map { $0.category.emoji }
+                let partnerEmojis = partnerRecords.filter { !$0.together }.map { $0.category.emoji }
+                let maxCount = max(myEmojis.count, partnerEmojis.count)
+                if maxCount > 0 {
+                    HStack(spacing: 0) {
+                        // 내 이모지 (왼쪽)
+                        VStack(spacing: 1) {
+                            ForEach(0..<maxCount, id: \.self) { i in
+                                Text(i < myEmojis.count ? myEmojis[i] : " ")
+                                    .font(.system(size: 11))
+                            }
+                        }
+                        // 점선 구분 (이모지 줄 높이만큼만)
+                        if !myEmojis.isEmpty && !partnerEmojis.isEmpty {
+                            let lineHeight = CGFloat(maxCount) * 13 + CGFloat(maxCount - 1)
+                            DottedVLine()
+                                .stroke(style: StrokeStyle(lineWidth: 0.5, dash: [2, 2]))
+                                .foregroundStyle(Color.slate400)
+                                .frame(width: 1, height: lineHeight)
+                                .padding(.horizontal, 2)
+                        }
+                        // 파트너 이모지 (오른쪽)
+                        VStack(spacing: 1) {
+                            ForEach(0..<maxCount, id: \.self) { i in
+                                Text(i < partnerEmojis.count ? partnerEmojis[i] : " ")
+                                    .font(.system(size: 11))
+                                    .opacity(0.7)
+                            }
+                        }
+                    }
                 }
             }
 
             Spacer(minLength: 0)
         }
-        .frame(maxWidth: .infinity, minHeight: 80)
-        .padding(2)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .frame(height: 98, alignment: .topLeading)
+        .clipped()
+        .padding(.horizontal, 4)
+        .padding(.vertical, 4)
         .background(.white)
-        .opacity(isCurrentMonth ? 1.0 : 0.3)
         .contentShape(Rectangle())
         .onTapGesture { if isCurrentMonth { onTap() } }
     }
 
     @ViewBuilder
     private var dateNumber: some View {
-        let isToday = date.isToday
+        let isToday = date.isToday && isCurrentMonth
         Text("\(date.day)")
-            .font(.caption2)
-            .fontWeight(isToday ? .bold : .regular)
+            .font(.system(size: 12, weight: .semibold))
             .foregroundStyle(isToday ? .white : dateColor)
-            .padding(4)
+            .frame(width: 20, height: 20)
             .background {
                 if isToday {
-                    Circle().fill(Color.slate900)
+                    Circle().fill(Color.slate700)
                 }
             }
     }
 
     private var dateColor: Color {
+        if !isCurrentMonth { return Color.slate400.opacity(0.5) }
         if date.isSunday || !holidays.isEmpty { return Color.red500 }
         if date.isSaturday { return Color.blue500 }
         return .primary
@@ -122,6 +142,28 @@ struct DayCellView: View {
         case .moderate: return Color.orange300
         case .severe: return Color.red400
         case .extreme: return Color.purple400
+        }
+    }
+
+    @ViewBuilder
+    private func emojiRow(_ emojis: [String], size: CGFloat) -> some View {
+        HStack(spacing: 0) {
+            ForEach(Array(emojis.prefix(4).enumerated()), id: \.offset) { _, emoji in
+                Text(emoji.trimmingCharacters(in: .whitespacesAndNewlines))
+                    .font(.system(size: size))
+                    .lineLimit(1)
+            }
+        }
+    }
+}
+
+// MARK: - Dotted Vertical Line
+
+private struct DottedVLine: Shape {
+    func path(in rect: CGRect) -> Path {
+        Path { path in
+            path.move(to: CGPoint(x: rect.midX, y: rect.minY))
+            path.addLine(to: CGPoint(x: rect.midX, y: rect.maxY))
         }
     }
 }

@@ -47,18 +47,20 @@ final class CalendarViewModel {
     private let pairService = PairService()
     private let pairEventService = PairEventService()
     private let calendar = Calendar.current
-    private var isLoadingEarlier = false
     private var isLoadingLater = false
     private var loadedMonthIds: Set<String> = []
+
+    // Track which months have had their API data fetched
+    private var dataLoadedMonths: Set<String> = []
 
     // Track loaded year ranges to avoid duplicate holiday fetches
     private var loadedHolidayYears: Set<Int> = []
 
     // MARK: - Initial Load
 
-    /// Loads the current month +/- 2 months (5 months total) and fetches data for each.
+    /// 전체 범위(-120...+120)의 MonthData를 빌드하고,
+    /// API 데이터는 현재 월 ±2 만 초기 로드한다.
     func initialLoad() async {
-        // 페어 상태 확인
         do {
             pairInfo = try await pairService.getStatus()
             isPaired = pairInfo?.status == .connected
@@ -69,8 +71,11 @@ final class CalendarViewModel {
         let today = Date()
         let currentStart = today.startOfMonth()
 
+        loadedMonthIds.removeAll()
+        dataLoadedMonths.removeAll()
+
         var monthList: [MonthData] = []
-        for offset in -2...2 {
+        for offset in -120...120 {
             let date = currentStart.addingMonths(offset)
             let data = buildMonthData(date)
             monthList.append(data)
@@ -79,38 +84,30 @@ final class CalendarViewModel {
         months = monthList
         currentMonthLabel = currentStart.monthDisplayText
 
-        // Fetch data for all loaded months concurrently
-        await withTaskGroup(of: Void.self) { group in
-            for month in monthList {
-                group.addTask { [self] in
-                    await self.loadMonthData(month)
-                }
-            }
-        }
+        // API 데이터는 현재 월 ±2 만 로드
+        await ensureDataLoaded(around: currentStart.yearMonth)
     }
 
-    // MARK: - Infinite Scroll
+    // MARK: - Lazy Data Loading
 
-    /// Prepends 3 months when the user scrolls toward earlier months.
-    func loadEarlierMonths() async {
-        guard !isLoadingEarlier, let earliest = months.first else { return }
-        isLoadingEarlier = true
-        defer { isLoadingEarlier = false }
+    /// 현재 스크롤 위치 기준 ±2 월의 API 데이터를 lazy 로드
+    func ensureDataLoaded(around monthId: String) async {
+        guard let idx = months.firstIndex(where: { $0.id == monthId }) else { return }
+        let start = max(0, idx - 2)
+        let end = min(months.count - 1, idx + 2)
 
-        var newMonths: [MonthData] = []
-        for offset in stride(from: -3, through: -1, by: 1) {
-            let date = earliest.startDate.addingMonths(offset)
-            let data = buildMonthData(date)
-            guard !loadedMonthIds.contains(data.id) else { continue }
-            newMonths.append(data)
+        var toLoad: [MonthData] = []
+        for i in start...end {
+            let m = months[i]
+            if !dataLoadedMonths.contains(m.id) {
+                dataLoadedMonths.insert(m.id)
+                toLoad.append(m)
+            }
         }
-        guard !newMonths.isEmpty else { return }
-
-        for m in newMonths { loadedMonthIds.insert(m.id) }
-        months.insert(contentsOf: newMonths, at: 0)
+        guard !toLoad.isEmpty else { return }
 
         await withTaskGroup(of: Void.self) { group in
-            for month in newMonths {
+            for month in toLoad {
                 group.addTask { [self] in
                     await self.loadMonthData(month)
                 }
@@ -119,59 +116,56 @@ final class CalendarViewModel {
         updateBirthdays(user: cachedUser, pairInfo: pairInfo)
     }
 
-    /// Appends 3 months when the user scrolls toward later months.
+    // MARK: - Infinite Scroll (Forward Append Only)
+
+    /// Appends 12 months when the user scrolls toward later months.
     func loadLaterMonths() async {
         guard !isLoadingLater, let latest = months.last else { return }
         isLoadingLater = true
         defer { isLoadingLater = false }
 
         var newMonths: [MonthData] = []
-        for offset in 1...3 {
+        for offset in 1...12 {
             let date = latest.startDate.addingMonths(offset)
             let data = buildMonthData(date)
             guard !loadedMonthIds.contains(data.id) else { continue }
             newMonths.append(data)
+            loadedMonthIds.insert(data.id)
         }
         guard !newMonths.isEmpty else { return }
-
-        for m in newMonths { loadedMonthIds.insert(m.id) }
         months.append(contentsOf: newMonths)
-
-        await withTaskGroup(of: Void.self) { group in
-            for month in newMonths {
-                group.addTask { [self] in
-                    await self.loadMonthData(month)
-                }
-            }
-        }
-        updateBirthdays(user: cachedUser, pairInfo: pairInfo)
     }
 
     // MARK: - Navigation
 
-    /// Jumps to a specific month, loading it (and surrounding months) if needed.
+    /// Jumps to a specific month, extending the range if needed.
     func scrollToMonth(year: Int, month: Int) async {
         pickerTargetYear = year
         pickerTargetMonth = month
         let targetId = String(format: "%04d-%02d", year, month)
 
-        // If the month is already loaded, just update the label
+        // 이미 빌드된 범위 안에 있으면 라벨만 갱신
         if months.contains(where: { $0.id == targetId }) {
             let comps = DateComponents(year: year, month: month)
             if let date = calendar.date(from: comps) {
                 currentMonthLabel = date.monthDisplayText
             }
+            // 해당 월 근처 API 데이터 로드
+            await ensureDataLoaded(around: targetId)
             return
         }
 
-        // Otherwise, reload around the target month
+        // 범위 밖이면 해당 월 중심으로 재빌드
         let comps = DateComponents(year: year, month: month)
         guard let targetDate = calendar.date(from: comps) else { return }
 
         let targetStart = targetDate.startOfMonth()
         loadedMonthIds.removeAll()
+        dataLoadedMonths.removeAll()
+        loadedHolidayYears.removeAll()
+
         var monthList: [MonthData] = []
-        for offset in -2...2 {
+        for offset in -120...120 {
             let date = targetStart.addingMonths(offset)
             let data = buildMonthData(date)
             monthList.append(data)
@@ -180,38 +174,30 @@ final class CalendarViewModel {
         months = monthList
         currentMonthLabel = targetStart.monthDisplayText
 
-        await withTaskGroup(of: Void.self) { group in
-            for m in monthList {
-                group.addTask { [self] in
-                    await self.loadMonthData(m)
-                }
-            }
-        }
+        await ensureDataLoaded(around: targetId)
         updateBirthdays(user: cachedUser, pairInfo: pairInfo)
     }
 
     // MARK: - Refresh
 
     /// Reloads data for the month containing the given date.
-    /// Data clearing is handled by loadMonthData itself.
     func refreshMonth(containing date: Date) async {
         let yearMonth = date.startOfMonth().yearMonth
+        dataLoadedMonths.remove(yearMonth)
         if let monthData = months.first(where: { $0.id == yearMonth }) {
             await loadMonthData(monthData)
+            dataLoadedMonths.insert(yearMonth)
         }
     }
 
     // MARK: - Private Helpers
 
     /// Builds the grid of DayCells for a given month start date.
-    /// Generates leading empty cells (for weekday alignment), day cells, and trailing empty cells
-    /// to fill a complete 6-row x 7-column grid (42 cells).
     private func buildMonthData(_ startOfMonth: Date) -> MonthData {
         let year = startOfMonth.year
         let month = startOfMonth.month
         let id = startOfMonth.yearMonth
 
-        // Weekday of the first day (1 = Sunday, 7 = Saturday)
         let firstWeekday = startOfMonth.weekday
         let leadingEmpties = firstWeekday - 1
         let daysInMonth = startOfMonth.daysInMonth()
@@ -251,7 +237,7 @@ final class CalendarViewModel {
 
     private var cachedUser: User?
 
-    /// 생일 맵 구축 (CalendarView에서 authVM.user 전달)
+    /// 생일 맵 구축
     func updateBirthdays(user: User?, pairInfo: PairInfo?) {
         cachedUser = user
         birthdayMap.removeAll()
@@ -259,7 +245,6 @@ final class CalendarViewModel {
         let years = loadedMonthIds.compactMap { Int($0.prefix(4)) }
         let yearRange = Set(years)
 
-        // 내 생일
         if let birthDateStr = user?.birthDate, let birthDate = Date.from(birthDateStr) {
             let mmdd = String(format: "%02d-%02d", birthDate.month, birthDate.day)
             let genderEmoji = user?.gender == .male ? "👨" : user?.gender == .female ? "👩" : ""
@@ -269,7 +254,6 @@ final class CalendarViewModel {
             }
         }
 
-        // 파트너 생일
         if let birthDateStr = pairInfo?.partnerBirthDate, let birthDate = Date.from(birthDateStr) {
             let mmdd = String(format: "%02d-%02d", birthDate.month, birthDate.day)
             let name = pairInfo?.partnerName ?? "파트너"
@@ -282,7 +266,6 @@ final class CalendarViewModel {
     }
 
     /// Fetches records, overeats, and holidays for a given month from the services.
-    /// Errors are handled gracefully -- failures are logged and skipped.
     private func loadMonthData(_ monthData: MonthData) async {
         let startDate = monthData.startDate
         let daysInMonth = startDate.daysInMonth()
@@ -292,7 +275,6 @@ final class CalendarViewModel {
         let toStr = endDate.dateString
         let yearStr = String(monthData.year)
 
-        // Fetch records (clear first to prevent duplication on reload)
         do {
             let fetchedRecords = try await recordService.fetchRecords(from: fromStr, to: toStr)
             for dayOffset in 0..<daysInMonth {
@@ -307,7 +289,6 @@ final class CalendarViewModel {
             print("[CalendarVM] Failed to fetch records for \(monthData.id): \(error.localizedDescription)")
         }
 
-        // Fetch overeats (clear first to prevent stale data)
         do {
             let fetchedOvereats = try await recordService.fetchOvereats(from: fromStr, to: toStr)
             for dayOffset in 0..<daysInMonth {
@@ -322,7 +303,6 @@ final class CalendarViewModel {
             print("[CalendarVM] Failed to fetch overeats for \(monthData.id): \(error.localizedDescription)")
         }
 
-        // Fetch holidays (only if not already loaded for this year)
         if !loadedHolidayYears.contains(monthData.year) {
             loadedHolidayYears.insert(monthData.year)
             do {
@@ -331,13 +311,11 @@ final class CalendarViewModel {
                     holidays[date] = names
                 }
             } catch {
-                // Remove from loaded set so it can be retried later
                 loadedHolidayYears.remove(monthData.year)
                 print("[CalendarVM] Failed to fetch holidays for \(yearStr): \(error.localizedDescription)")
             }
         }
 
-        // Fetch partner records (only when paired)
         if isPaired {
             do {
                 let partnerRecs = try await pairService.fetchPartnerRecords(from: fromStr, to: toStr)
@@ -359,7 +337,6 @@ final class CalendarViewModel {
                         pairEvents[dayDate.dateString] = groupedEvents[dayDate.dateString] ?? []
                     }
                 }
-                // recurring 이벤트: API가 원본 날짜만 반환할 경우 현재 연도로 투영
                 for event in events where event.recurring {
                     let mmdd = String(event.eventDate.suffix(5))
                     let thisYearDate = "\(monthData.year)-\(mmdd)"

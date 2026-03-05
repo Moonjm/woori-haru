@@ -14,6 +14,7 @@ extension Color {
     // MARK: - Blue
     static let blue50 = Color(red: 0.937, green: 0.961, blue: 1.0)
     static let blue300 = Color(red: 0.573, green: 0.706, blue: 0.988)
+    static let blue400 = Color(red: 0.376, green: 0.612, blue: 0.976)
     static let blue500 = Color(red: 0.231, green: 0.510, blue: 0.965)
     static let blue600 = Color(red: 0.157, green: 0.400, blue: 0.910)
     static let blue700 = Color(red: 0.114, green: 0.306, blue: 0.847)

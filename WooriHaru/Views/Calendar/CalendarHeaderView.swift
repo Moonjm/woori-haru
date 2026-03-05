@@ -1,29 +1,31 @@
 import SwiftUI
 
+private let pickerDarkBg = Color(red: 0.15, green: 0.15, blue: 0.17)
+
 struct CalendarHeaderView: View {
     let monthLabel: String
+    let isPickerOpen: Bool
     let onMenuTap: () -> Void
     let onMonthTap: () -> Void
     let onSearchTap: () -> Void
 
     var body: some View {
-        HStack {
+        HStack(spacing: 12) {
             Button(action: onMenuTap) {
                 Image(systemName: "line.3.horizontal")
-                    .font(.title3)
-                    .foregroundStyle(Color.slate700)
+                    .font(.title2)
+                    .foregroundStyle(isPickerOpen ? .white.opacity(0.8) : Color.slate700)
             }
 
-            Spacer()
-
             Button(action: onMonthTap) {
-                HStack(spacing: 4) {
+                HStack(spacing: 6) {
                     Text(monthLabel)
-                        .font(.headline)
-                        .foregroundStyle(Color.slate900)
-                    Image(systemName: "chevron.down")
-                        .font(.caption)
-                        .foregroundStyle(Color.slate500)
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundStyle(isPickerOpen ? .white : Color.slate900)
+                    Image(systemName: isPickerOpen ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(isPickerOpen ? .white.opacity(0.6) : Color.slate400)
                 }
             }
 
@@ -31,12 +33,12 @@ struct CalendarHeaderView: View {
 
             Button(action: onSearchTap) {
                 Image(systemName: "magnifyingglass")
-                    .font(.title3)
-                    .foregroundStyle(Color.slate700)
+                    .font(.title2)
+                    .foregroundStyle(isPickerOpen ? .white.opacity(0.8) : Color.slate700)
             }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(.white)
+        .background(isPickerOpen ? pickerDarkBg : .white)
     }
 }
