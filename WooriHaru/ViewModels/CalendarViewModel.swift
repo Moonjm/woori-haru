@@ -100,16 +100,29 @@ final class CalendarViewModel {
         for i in start...end {
             let m = months[i]
             if !dataLoadedMonths.contains(m.id) {
-                dataLoadedMonths.insert(m.id)
                 toLoad.append(m)
             }
         }
         guard !toLoad.isEmpty else { return }
 
-        await withTaskGroup(of: Void.self) { group in
+        // 로드 시작 전에 마킹 (중복 호출 방지)
+        let loadingIds = Set(toLoad.map(\.id))
+        dataLoadedMonths.formUnion(loadingIds)
+
+        await withTaskGroup(of: String?.self) { group in
             for month in toLoad {
                 group.addTask { [self] in
-                    await self.loadMonthData(month)
+                    do {
+                        try await self.loadMonthData(month)
+                        return nil // 성공
+                    } catch {
+                        return month.id // 실패한 id 반환
+                    }
+                }
+            }
+            for await failedId in group {
+                if let failedId {
+                    dataLoadedMonths.remove(failedId)
                 }
             }
         }
@@ -185,7 +198,7 @@ final class CalendarViewModel {
         let yearMonth = date.startOfMonth().yearMonth
         dataLoadedMonths.remove(yearMonth)
         if let monthData = months.first(where: { $0.id == yearMonth }) {
-            await loadMonthData(monthData)
+            try? await loadMonthData(monthData)
             dataLoadedMonths.insert(yearMonth)
         }
     }
@@ -266,7 +279,8 @@ final class CalendarViewModel {
     }
 
     /// Fetches records, overeats, and holidays for a given month from the services.
-    private func loadMonthData(_ monthData: MonthData) async {
+    /// records 조회 실패 시 throw하여 재시도 가능하게 함.
+    private func loadMonthData(_ monthData: MonthData) async throws {
         let startDate = monthData.startDate
         let daysInMonth = startDate.daysInMonth()
         guard let endDate = calendar.date(byAdding: .day, value: daysInMonth - 1, to: startDate) else { return }
@@ -275,18 +289,15 @@ final class CalendarViewModel {
         let toStr = endDate.dateString
         let yearStr = String(monthData.year)
 
-        do {
-            let fetchedRecords = try await recordService.fetchRecords(from: fromStr, to: toStr)
-            for dayOffset in 0..<daysInMonth {
-                if let dayDate = calendar.date(byAdding: .day, value: dayOffset, to: startDate) {
-                    records[dayDate.dateString] = []
-                }
+        // records는 핵심 데이터 — 실패 시 throw
+        let fetchedRecords = try await recordService.fetchRecords(from: fromStr, to: toStr)
+        for dayOffset in 0..<daysInMonth {
+            if let dayDate = calendar.date(byAdding: .day, value: dayOffset, to: startDate) {
+                records[dayDate.dateString] = []
             }
-            for record in fetchedRecords {
-                records[record.date, default: []].append(record)
-            }
-        } catch {
-            print("[CalendarVM] Failed to fetch records for \(monthData.id): \(error.localizedDescription)")
+        }
+        for record in fetchedRecords {
+            records[record.date, default: []].append(record)
         }
 
         do {

@@ -38,7 +38,7 @@ private struct NaverStylePicker: UIViewRepresentable {
     @Binding var selectedYear: Int
     @Binding var selectedMonth: Int
 
-    private static let years = Array(2020...(Calendar.current.component(.year, from: Date()) + 10))
+    private static let years = Array((Calendar.current.component(.year, from: Date()) - 10)...(Calendar.current.component(.year, from: Date()) + 10))
     private static let months = Array(1...12)
 
     func makeCoordinator() -> Coordinator {
