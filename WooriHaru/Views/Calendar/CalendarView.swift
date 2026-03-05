@@ -7,78 +7,161 @@ struct CalendarView: View {
     @State private var showSheet = false
     @State private var showPicker = false
     @State private var initialScrollDone = false
+    @State private var scrolledMonthId: String?
+    @State private var suppressEdgeLoading = false
     @Environment(AuthViewModel.self) private var authVM
+
+    private let todayMonthId: String = CalendarView.makeTodayMonthId()
+
+    private static func makeTodayMonthId() -> String {
+        let today = Date()
+        return String(format: "%04d-%02d", today.year, today.month)
+    }
+
+    private var isViewingToday: Bool {
+        scrolledMonthId == todayMonthId
+    }
 
     var body: some View {
         ZStack {
             VStack(spacing: 0) {
                 CalendarHeaderView(
                     monthLabel: calendarVM.currentMonthLabel,
+                    isPickerOpen: showPicker,
                     onMenuTap: { withAnimation { calendarVM.isDrawerOpen = true } },
                     onMonthTap: { showPicker.toggle() },
                     onSearchTap: { navPath.append(AppDestination.search) }
                 )
 
-                WeekdayHeaderView()
+                ZStack(alignment: .top) {
+                    VStack(spacing: 0) {
+                        WeekdayHeaderView()
 
-                ScrollViewReader { proxy in
-                    ScrollView {
-                        LazyVStack(spacing: 0, pinnedViews: [.sectionHeaders]) {
-                            ForEach(calendarVM.months) { monthData in
-                                Section {
-                                    MonthGridView(
-                                        monthData: monthData,
-                                        records: calendarVM.records,
-                                        partnerRecords: calendarVM.partnerRecords,
-                                        overeats: calendarVM.overeats,
-                                        holidays: calendarVM.holidays,
-                                        pairEvents: calendarVM.pairEvents,
-                                        birthdayMap: calendarVM.birthdayMap,
-                                        onSelectDate: { date in
-                                            recordVM.selectedDate = date
-                                            showSheet = true
+                        ScrollView {
+                            LazyVStack(spacing: 0) {
+                                ForEach(calendarVM.months) { monthData in
+                                    VStack(spacing: 0) {
+                                        Text(verbatim: "\(monthData.year)년 \(monthData.month)월")
+                                            .font(.caption)
+                                            .fontWeight(.medium)
+                                            .foregroundStyle(Color.slate400)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                            .padding(.horizontal, 16)
+                                            .padding(.vertical, 6)
+                                            .background(.white.opacity(0.95))
+                                        MonthGridView(
+                                            monthData: monthData,
+                                            records: calendarVM.records,
+                                            partnerRecords: calendarVM.partnerRecords,
+                                            overeats: calendarVM.overeats,
+                                            holidays: calendarVM.holidays,
+                                            pairEvents: calendarVM.pairEvents,
+                                            birthdayMap: calendarVM.birthdayMap,
+                                            onSelectDate: { date in
+                                                recordVM.selectedDate = date
+                                                showSheet = true
+                                            }
+                                        )
+                                    }
+                                    .id(monthData.id)
+                                }
+                            }
+                            .scrollTargetLayout()
+                        }
+                        .scrollTargetBehavior(.viewAligned(limitBehavior: .always))
+                        .scrollPosition(id: $scrolledMonthId, anchor: .top)
+                        .onChange(of: scrolledMonthId) { _, id in
+                            guard let id else { return }
+                            if let month = calendarVM.months.first(where: { $0.id == id }) {
+                                calendarVM.currentMonthLabel = month.startDate.monthDisplayText
+                                calendarVM.pickerTargetYear = month.year
+                                calendarVM.pickerTargetMonth = month.month
+                            }
+                            guard initialScrollDone, !suppressEdgeLoading else { return }
+                            // Lazy load API data for nearby months
+                            Task { await calendarVM.ensureDataLoaded(around: id) }
+                            // Forward infinite scroll (append only)
+                            if let idx = calendarVM.months.firstIndex(where: { $0.id == id }) {
+                                if idx >= calendarVM.months.count - 3 {
+                                    Task { await calendarVM.loadLaterMonths() }
+                                }
+                            }
+                        }
+                        .overlay(alignment: .bottom) {
+                            if !isViewingToday && !showPicker && initialScrollDone {
+                                Button {
+                                    Task {
+                                        suppressEdgeLoading = true
+                                        let today = Date()
+                                        let targetId = String(format: "%04d-%02d", today.year, today.month)
+                                        if calendarVM.months.contains(where: { $0.id == targetId }) {
+                                            var tx = Transaction()
+                                            tx.animation = nil
+                                            withTransaction(tx) {
+                                                scrolledMonthId = targetId
+                                            }
+                                            calendarVM.currentMonthLabel = today.monthDisplayText
+                                            calendarVM.pickerTargetYear = today.year
+                                            calendarVM.pickerTargetMonth = today.month
+                                        } else {
+                                            await calendarVM.scrollToMonth(year: today.year, month: today.month)
+                                            var tx = Transaction()
+                                            tx.animation = nil
+                                            withTransaction(tx) {
+                                                scrolledMonthId = targetId
+                                            }
                                         }
+                                        await Task.yield()
+                                        suppressEdgeLoading = false
+                                    }
+                                } label: {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "chevron.left")
+                                            .font(.system(size: 12, weight: .semibold))
+                                        Text("오늘")
+                                            .font(.subheadline)
+                                            .fontWeight(.medium)
+                                    }
+                                    .foregroundStyle(Color.slate700)
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 10)
+                                    .background(
+                                        Capsule()
+                                            .fill(.white)
+                                            .shadow(color: .black.opacity(0.12), radius: 4, y: 2)
                                     )
-                                } header: {
-                                    Text(monthData.startDate.monthDisplayText)
-                                        .font(.subheadline)
-                                        .fontWeight(.semibold)
-                                        .foregroundStyle(Color.slate500)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                        .padding(.horizontal, 16)
-                                        .padding(.vertical, 8)
-                                        .background(.white.opacity(0.9))
-                                        .id(monthData.id)
                                 }
-                                .onAppear {
-                                    calendarVM.currentMonthLabel = monthData.startDate.monthDisplayText
-                                    // 끝에서 2번째 월이 보이면 추가 로드 (무한루프 방지)
-                                    let count = calendarVM.months.count
-                                    if count >= 2, monthData.id == calendarVM.months[count - 2].id {
-                                        Task { await calendarVM.loadLaterMonths() }
-                                    }
-                                    if count >= 2, monthData.id == calendarVM.months[1].id {
-                                        Task { await calendarVM.loadEarlierMonths() }
-                                    }
-                                }
+                                .padding(.bottom, 20)
+                                .transition(.opacity.combined(with: .move(edge: .bottom)))
                             }
                         }
+                        .animation(.easeInOut(duration: 0.2), value: isViewingToday)
                     }
-                    .onChange(of: showPicker) { _, show in
-                        if !show {
-                            let target = String(format: "%04d-%02d", calendarVM.pickerTargetYear, calendarVM.pickerTargetMonth)
-                            if calendarVM.months.contains(where: { $0.id == target }) {
-                                withAnimation { proxy.scrollTo(target, anchor: .top) }
-                            }
+                    .opacity(initialScrollDone ? 1 : 0)
+
+                    // Picker overlay
+                    if showPicker {
+                        VStack(spacing: 0) {
+                            YearMonthPickerView(
+                                isPresented: $showPicker,
+                                initialYear: calendarVM.pickerTargetYear,
+                                initialMonth: calendarVM.pickerTargetMonth,
+                                onSelect: { year, month in
+                                    calendarVM.pickerTargetYear = year
+                                    calendarVM.pickerTargetMonth = month
+                                    // 즉시 스크롤 (네트워크 없이)
+                                    let target = String(format: "%04d-%02d", year, month)
+                                    suppressEdgeLoading = true
+                                    scrolledMonthId = target
+                                    suppressEdgeLoading = false
+                                }
+                            )
+
+                            Color.clear
+                                .contentShape(Rectangle())
+                                .onTapGesture { showPicker = false }
                         }
-                    }
-                    .onChange(of: calendarVM.months.count) {
-                        if !initialScrollDone && !calendarVM.months.isEmpty {
-                            initialScrollDone = true
-                            let today = Date()
-                            let todayMonth = String(format: "%04d-%02d", today.year, today.month)
-                            proxy.scrollTo(todayMonth, anchor: .top)
-                        }
+                        .transaction { $0.animation = nil }
                     }
                 }
             }
@@ -87,13 +170,12 @@ struct CalendarView: View {
                 SideDrawerView(isOpen: $calendarVM.isDrawerOpen, navPath: $navPath)
                     .transition(.move(edge: .leading))
             }
-
-            if showPicker {
-                YearMonthPickerView(isPresented: $showPicker) { year, month in
-                    Task {
-                        await calendarVM.scrollToMonth(year: year, month: month)
-                    }
-                }
+        }
+        .onChange(of: showPicker) { _, show in
+            // 피커 닫힐 때 API 데이터 보장
+            if !show {
+                let target = String(format: "%04d-%02d", calendarVM.pickerTargetYear, calendarVM.pickerTargetMonth)
+                Task { await calendarVM.ensureDataLoaded(around: target) }
             }
         }
         .sheet(isPresented: $showSheet) {
@@ -110,6 +192,12 @@ struct CalendarView: View {
         .task {
             await calendarVM.initialLoad()
             calendarVM.updateBirthdays(user: authVM.user, pairInfo: calendarVM.pairInfo)
+
+            suppressEdgeLoading = true
+            scrolledMonthId = todayMonthId
+            await Task.yield()
+            suppressEdgeLoading = false
+            initialScrollDone = true
         }
     }
 }

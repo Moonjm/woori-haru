@@ -39,7 +39,7 @@ extension Date {
     // MARK: - Display Text
 
     var monthDisplayText: String {
-        "\(year)년 \(month)월"
+        "\(year). \(month)"
     }
 
     var sheetHeaderText: String {

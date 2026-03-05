@@ -48,6 +48,10 @@
 		J10001 /* StatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = J20001 /* StatsView.swift */; };
 		J10002 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = J20002 /* SearchView.swift */; };
 		J10003 /* CategoriesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = J20003 /* CategoriesView.swift */; };
+		K10001 /* PairViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = K20001 /* PairViewModel.swift */; };
+		K10002 /* PairEventsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = K20002 /* PairEventsViewModel.swift */; };
+		K10003 /* PairView.swift in Sources */ = {isa = PBXBuildFile; fileRef = K20003 /* PairView.swift */; };
+		K10004 /* PairEventsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = K20004 /* PairEventsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -94,6 +98,10 @@
 		J20001 /* StatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsView.swift; sourceTree = "<group>"; };
 		J20002 /* SearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchView.swift; sourceTree = "<group>"; };
 		J20003 /* CategoriesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoriesView.swift; sourceTree = "<group>"; };
+		K20001 /* PairViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairViewModel.swift; sourceTree = "<group>"; };
+		K20002 /* PairEventsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairEventsViewModel.swift; sourceTree = "<group>"; };
+		K20003 /* PairView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairView.swift; sourceTree = "<group>"; };
+		K20004 /* PairEventsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairEventsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -186,6 +194,8 @@
 				E20005 /* StatsViewModel.swift */,
 				E20006 /* SearchViewModel.swift */,
 				E20007 /* CategoriesViewModel.swift */,
+				K20001 /* PairViewModel.swift */,
+				K20002 /* PairEventsViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -248,6 +258,8 @@
 		B40009 /* Pair */ = {
 			isa = PBXGroup;
 			children = (
+				K20003 /* PairView.swift */,
+				K20004 /* PairEventsView.swift */,
 			);
 			path = Pair;
 			sourceTree = "<group>";
@@ -404,6 +416,10 @@
 				J10001 /* StatsView.swift in Sources */,
 				J10002 /* SearchView.swift in Sources */,
 				J10003 /* CategoriesView.swift in Sources */,
+				K10001 /* PairViewModel.swift in Sources */,
+				K10002 /* PairEventsViewModel.swift in Sources */,
+				K10003 /* PairView.swift in Sources */,
+				K10004 /* PairEventsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
