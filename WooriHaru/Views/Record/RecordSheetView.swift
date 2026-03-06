@@ -85,10 +85,7 @@ struct RecordSheetView: View {
             .navigationBarTitleDisplayMode(.inline)
         }
         .task {
-            // CalendarView에서 미리 로드하지만, 타임아웃 등으로 미완료 시 재로드
-            if viewModel.categories.isEmpty {
-                await viewModel.loadData()
-            }
+            await viewModel.loadData()
         }
         .onDisappear {
             viewModel.resetForm()

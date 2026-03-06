@@ -70,7 +70,7 @@ struct DayCellView: View {
                 // 개별 기록: 내 것(왼쪽) | 점선 | 파트너(오른쪽), 1개씩 줄바꿈
                 let maxCount = max(myEmojis.count, partnerEmojis.count)
                 if maxCount > 0 {
-                    HStack(spacing: 0) {
+                    HStack(alignment: .top, spacing: 0) {
                         // 내 이모지 (왼쪽)
                         VStack(spacing: 1) {
                             ForEach(0..<maxCount, id: \.self) { i in
@@ -134,7 +134,7 @@ struct DayCellView: View {
     @ViewBuilder
     private var overeatIndicator: some View {
         if let level = overeatLevel, level != .none {
-            Text("\u{1F437}")
+            Text("🐷")
                 .font(.system(size: 10))
                 .frame(width: 20, height: 20)
                 .background {

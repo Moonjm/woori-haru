@@ -62,15 +62,7 @@ struct CalendarView: View {
                                                 recordVM.holidayNames = calendarVM.holidays[date.dateString] ?? []
                                                 recordVM.isPaired = calendarVM.isPaired
                                                 recordVM.partnerName = calendarVM.pairInfo?.partnerName ?? "파트너"
-                                                Task {
-                                                    await withTaskGroup(of: Void.self) { group in
-                                                        group.addTask { await recordVM.loadData() }
-                                                        group.addTask { try? await Task.sleep(for: .seconds(1)) }
-                                                        await group.next()
-                                                        group.cancelAll()
-                                                    }
-                                                    showSheet = true
-                                                }
+                                                showSheet = true
                                             }
                                         )
                                     }
@@ -79,7 +71,6 @@ struct CalendarView: View {
                             }
                             .scrollTargetLayout()
                         }
-                        .scrollTargetBehavior(.viewAligned(limitBehavior: .always))
                         .scrollPosition(id: $scrolledMonthId, anchor: .top)
                         .onChange(of: scrolledMonthId) { _, id in
                             guard let id else { return }

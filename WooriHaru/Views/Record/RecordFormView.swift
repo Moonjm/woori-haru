@@ -54,7 +54,7 @@ struct RecordFormView: View {
                         viewModel.together.toggle()
                     } label: {
                         HStack(spacing: 4) {
-                            Text("\u{1F46B}")
+                            Text("👫")
                             Text("같이")
                                 .font(.caption)
                                 .fontWeight(.medium)
