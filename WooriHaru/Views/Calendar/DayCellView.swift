@@ -93,10 +93,10 @@ struct DayCellView: View {
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
-        .frame(height: 98, alignment: .topLeading)
-        .clipped()
         .padding(.horizontal, 4)
         .padding(.vertical, 4)
+        .frame(height: 106, alignment: .topLeading)
+        .clipped()
         .background(.white)
         .contentShape(Rectangle())
         .onTapGesture { if isCurrentMonth { onTap() } }
@@ -132,9 +132,8 @@ struct DayCellView: View {
                 .background {
                     Circle()
                         .fill(overeatColor(level).opacity(0.15))
-                        .overlay {
-                            Circle().stroke(overeatColor(level), lineWidth: 1.5)
-                        }
+                    Circle()
+                        .strokeBorder(overeatColor(level), lineWidth: 1.5)
                 }
         }
     }
