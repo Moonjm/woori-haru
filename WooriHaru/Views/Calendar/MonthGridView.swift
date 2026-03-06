@@ -10,7 +10,7 @@ struct MonthGridView: View {
     let birthdayMap: [String: [(emoji: String, label: String)]]
     let onSelectDate: (Date) -> Void
 
-    private static let cellHeight: CGFloat = 106
+    private static let cellHeight: CGFloat = 120
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 0), count: 7)
 
     var body: some View {
