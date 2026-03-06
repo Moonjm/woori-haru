@@ -95,7 +95,7 @@ struct DayCellView: View {
         .frame(maxWidth: .infinity, alignment: .topLeading)
         .padding(.horizontal, 4)
         .padding(.vertical, 4)
-        .frame(height: 106, alignment: .topLeading)
+        .frame(maxHeight: .infinity, alignment: .topLeading)
         .clipped()
         .background(.white)
         .contentShape(Rectangle())
