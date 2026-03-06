@@ -41,7 +41,7 @@ struct OvereatSelectorView: View {
         .padding(.vertical, 12)
         .background {
             RoundedRectangle(cornerRadius: 12)
-                .fill(.white)
+                .fill(Color.slate50)
         }
     }
 
