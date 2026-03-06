@@ -13,7 +13,6 @@ struct ProfileView: View {
     @State private var successMessage: String?
     @State private var errorMessage: String?
 
-    private let authService = AuthService()
 
     var body: some View {
         ScrollView {
@@ -180,14 +179,17 @@ struct ProfileView: View {
         if hasBirthDate {
             request.birthDate = birthDate.dateString
         }
-        if !currentPassword.isEmpty && !newPassword.isEmpty {
+        if !currentPassword.isEmpty || !newPassword.isEmpty {
+            guard !currentPassword.isEmpty && !newPassword.isEmpty else {
+                errorMessage = "비밀번호 변경 시 기존 비밀번호와 새 비밀번호 모두 입력해 주세요."
+                return
+            }
             request.currentPassword = currentPassword
             request.password = newPassword
         }
 
         do {
-            let updatedUser = try await authService.updateMe(request)
-            authVM.user = updatedUser
+            try await authVM.updateProfile(request)
             successMessage = "저장되었습니다."
             currentPassword = ""
             newPassword = ""

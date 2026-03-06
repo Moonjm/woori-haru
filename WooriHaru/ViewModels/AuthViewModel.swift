@@ -38,6 +38,11 @@ final class AuthViewModel {
         isLoading = false
     }
 
+    func updateProfile(_ request: UpdateMeRequest) async throws {
+        let updatedUser = try await authService.updateMe(request)
+        user = updatedUser
+    }
+
     func logout() async {
         do {
             try await authService.logout()
