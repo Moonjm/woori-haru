@@ -51,6 +51,7 @@ struct RecordListView: View {
                                     showDelete: isMine,
                                     isFirst: index == 0,
                                     isLast: index == togetherRecords.count - 1,
+                                    isTogether: true,
                                     onDelete: { onDelete(record) }
                                 )
                                 .onTapGesture { if isMine { onTap(record) } }
@@ -120,6 +121,7 @@ struct RecordRow: View {
     let showDelete: Bool
     var isFirst: Bool = true
     var isLast: Bool = true
+    var isTogether: Bool = false
     let onDelete: () -> Void
 
     var body: some View {
@@ -131,12 +133,12 @@ struct RecordRow: View {
                 Text(record.category.name)
                     .font(.subheadline)
                     .fontWeight(.semibold)
-                    .foregroundStyle(Color.slate700)
+                    .foregroundStyle(isTogether ? Color.blue700 : Color.slate700)
 
                 if let memo = record.memo, !memo.isEmpty {
                     Text(memo)
                         .font(.subheadline)
-                        .foregroundStyle(Color.slate500)
+                        .foregroundStyle(isTogether ? Color.blue500 : Color.slate500)
                         .lineLimit(1)
                 }
 
@@ -153,7 +155,7 @@ struct RecordRow: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 13)
-            .background(Color.slate50)
+            .background(isTogether ? Color.blue50 : Color.slate50)
 
             if !isLast {
                 Divider()
