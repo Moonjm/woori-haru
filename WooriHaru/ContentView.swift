@@ -7,6 +7,8 @@ enum AppDestination: Hashable {
     case pair
     case pairEvents
     case profile
+    case admin
+    case userManagement
 }
 
 struct ContentView: View {
@@ -23,6 +25,8 @@ struct ContentView: View {
                     case .pair: PairView(navPath: $path)
                     case .pairEvents: PairEventsView()
                     case .profile: ProfileView()
+                    case .admin: AdminView(navPath: $path)
+                    case .userManagement: UserManagementView()
                     }
                 }
         }
