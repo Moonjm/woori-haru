@@ -58,7 +58,7 @@ final class CalendarViewModel {
 
     // MARK: - Initial Load
 
-    /// 전체 범위(-120...+120)의 MonthData를 빌드하고,
+    /// 전체 범위(-36...+36)의 MonthData를 빌드하고,
     /// API 데이터는 현재 월 ±2 만 초기 로드한다.
     func initialLoad() async {
         do {
@@ -75,7 +75,7 @@ final class CalendarViewModel {
         dataLoadedMonths.removeAll()
 
         var monthList: [MonthData] = []
-        for offset in -120...120 {
+        for offset in -36...36 {
             let date = currentStart.addingMonths(offset)
             let data = buildMonthData(date)
             monthList.append(data)
@@ -178,7 +178,7 @@ final class CalendarViewModel {
         loadedHolidayYears.removeAll()
 
         var monthList: [MonthData] = []
-        for offset in -120...120 {
+        for offset in -36...36 {
             let date = targetStart.addingMonths(offset)
             let data = buildMonthData(date)
             monthList.append(data)
@@ -291,25 +291,30 @@ final class CalendarViewModel {
 
         // records는 핵심 데이터 — 실패 시 throw
         let fetchedRecords = try await recordService.fetchRecords(from: fromStr, to: toStr)
+        var recordBatch: [String: [DailyRecord]] = [:]
         for dayOffset in 0..<daysInMonth {
             if let dayDate = calendar.date(byAdding: .day, value: dayOffset, to: startDate) {
-                records[dayDate.dateString] = []
+                recordBatch[dayDate.dateString] = []
             }
         }
         for record in fetchedRecords {
-            records[record.date, default: []].append(record)
+            recordBatch[record.date, default: []].append(record)
         }
+        records.merge(recordBatch) { _, new in new }
 
         do {
             let fetchedOvereats = try await recordService.fetchOvereats(from: fromStr, to: toStr)
+            var overeatBatch: [String: OvereatLevel] = [:]
+            for item in fetchedOvereats {
+                overeatBatch[item.date] = item.overeatLevel
+            }
+            // 기존 키 클리어 후 일괄 머지
             for dayOffset in 0..<daysInMonth {
                 if let dayDate = calendar.date(byAdding: .day, value: dayOffset, to: startDate) {
                     overeats.removeValue(forKey: dayDate.dateString)
                 }
             }
-            for item in fetchedOvereats {
-                overeats[item.date] = item.overeatLevel
-            }
+            overeats.merge(overeatBatch) { _, new in new }
         } catch {
             print("[CalendarVM] Failed to fetch overeats for \(monthData.id): \(error.localizedDescription)")
         }
@@ -331,11 +336,13 @@ final class CalendarViewModel {
             do {
                 let partnerRecs = try await pairService.fetchPartnerRecords(from: fromStr, to: toStr)
                 let groupedPartner = Dictionary(grouping: partnerRecs, by: \.date)
+                var partnerBatch: [String: [DailyRecord]] = [:]
                 for dayOffset in 0..<daysInMonth {
                     if let dayDate = calendar.date(byAdding: .day, value: dayOffset, to: startDate) {
-                        partnerRecords[dayDate.dateString] = groupedPartner[dayDate.dateString] ?? []
+                        partnerBatch[dayDate.dateString] = groupedPartner[dayDate.dateString] ?? []
                     }
                 }
+                partnerRecords.merge(partnerBatch) { _, new in new }
             } catch {
                 print("[CalendarVM] Failed to fetch partner records: \(error.localizedDescription)")
             }
@@ -343,18 +350,20 @@ final class CalendarViewModel {
             do {
                 let events = try await pairEventService.fetchEvents(from: fromStr, to: toStr)
                 let groupedEvents = Dictionary(grouping: events, by: \.eventDate)
+                var eventBatch: [String: [PairEvent]] = [:]
                 for dayOffset in 0..<daysInMonth {
                     if let dayDate = calendar.date(byAdding: .day, value: dayOffset, to: startDate) {
-                        pairEvents[dayDate.dateString] = groupedEvents[dayDate.dateString] ?? []
+                        eventBatch[dayDate.dateString] = groupedEvents[dayDate.dateString] ?? []
                     }
                 }
                 for event in events where event.recurring {
                     let mmdd = String(event.eventDate.suffix(5))
                     let thisYearDate = "\(monthData.year)-\(mmdd)"
                     if thisYearDate != event.eventDate {
-                        pairEvents[thisYearDate, default: []].append(event)
+                        eventBatch[thisYearDate, default: []].append(event)
                     }
                 }
+                pairEvents.merge(eventBatch) { _, new in new }
             } catch {
                 print("[CalendarVM] Failed to fetch pair events: \(error.localizedDescription)")
             }
