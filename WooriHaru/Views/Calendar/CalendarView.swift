@@ -13,6 +13,8 @@ struct CalendarView: View {
     @Environment(AuthViewModel.self) private var authVM
 
     private let todayMonthId: String = CalendarView.makeTodayMonthId()
+    private static let sheetHeightRatio: CGFloat = 0.7
+    private static let sheetAnimationDuration: Double = 0.25
 
     private static func makeTodayMonthId() -> String {
         let today = Date()
@@ -24,7 +26,9 @@ struct CalendarView: View {
     }
 
     private func dismissSheet() {
-        showSheet = false
+        withAnimation(.easeInOut(duration: Self.sheetAnimationDuration)) {
+            showSheet = false
+        }
         recordVM.resetForm()
     }
 
@@ -65,15 +69,14 @@ struct CalendarView: View {
                                             pairEvents: calendarVM.pairEvents,
                                             birthdayMap: calendarVM.birthdayMap,
                                             onSelectDate: { date in
-                                                recordVM.resetForm()
-                                                recordVM.records = []
-                                                recordVM.partnerRecords = []
-                                                recordVM.overeatLevel = .none
+                                                recordVM.prepareForNewDate()
                                                 recordVM.selectedDate = date
                                                 recordVM.holidayNames = calendarVM.holidays[date.dateString] ?? []
                                                 recordVM.isPaired = calendarVM.isPaired
                                                 recordVM.partnerName = calendarVM.pairInfo?.partnerName ?? "파트너"
-                                                showSheet = true
+                                                withAnimation(.easeInOut(duration: Self.sheetAnimationDuration)) {
+                                                    showSheet = true
+                                                }
                                             }
                                         )
                                     }
@@ -114,6 +117,7 @@ struct CalendarView: View {
                                             await calendarVM.scrollToMonth(year: today.year, month: today.month)
                                         }
                                         scrollProxy?.scrollTo(targetId, anchor: .top)
+                                        scrolledMonthId = targetId
                                         calendarVM.currentMonthLabel = today.monthDisplayText
                                         calendarVM.pickerTargetYear = today.year
                                         calendarVM.pickerTargetMonth = today.month
@@ -194,14 +198,13 @@ struct CalendarView: View {
                             },
                             onDismiss: { dismissSheet() }
                         )
-                        .frame(height: geo.size.height * 0.7)
+                        .frame(height: geo.size.height * Self.sheetHeightRatio)
                     }
                 }
                 .ignoresSafeArea(.container, edges: .bottom)
                 .transition(.move(edge: .bottom))
             }
         }
-        .animation(.easeInOut(duration: 0.25), value: showSheet)
         .onChange(of: showPicker) { _, show in
             // 피커 닫힐 때 API 데이터 보장
             if !show {
