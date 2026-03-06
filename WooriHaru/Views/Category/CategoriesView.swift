@@ -144,13 +144,14 @@ struct CategoriesView: View {
             editRow(category)
         } else {
             categoryRow(category)
-                .draggable(category.id) {
+                .draggable(String(category.id)) {
                     categoryRow(category)
                         .frame(width: 300)
                         .opacity(0.8)
                 }
-                .dropDestination(for: Int.self) { items, _ in
-                    guard let sourceId = items.first,
+                .dropDestination(for: String.self) { items, _ in
+                    guard let sourceIdStr = items.first,
+                          let sourceId = Int(sourceIdStr),
                           let fromIndex = viewModel.categories.firstIndex(where: { $0.id == sourceId }),
                           let toIndex = viewModel.categories.firstIndex(where: { $0.id == category.id }) else { return false }
                     viewModel.moveCategory(from: IndexSet(integer: fromIndex), to: toIndex > fromIndex ? toIndex + 1 : toIndex)
