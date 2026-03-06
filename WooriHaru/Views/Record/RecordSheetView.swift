@@ -12,7 +12,7 @@ struct RecordSheetView: View {
                 // Fixed header
                 VStack(spacing: 8) {
                     Text(viewModel.selectedDate.sheetHeaderText)
-                        .font(.title3)
+                        .font(.headline)
                         .fontWeight(.bold)
                         .foregroundStyle(Color.slate900)
 
@@ -30,7 +30,7 @@ struct RecordSheetView: View {
                     }
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.top, 20)
+                .padding(.top, 24)
                 .padding(.bottom, 14)
 
                 // Scrollable content
