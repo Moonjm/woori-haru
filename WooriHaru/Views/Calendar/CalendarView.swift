@@ -178,7 +178,6 @@ struct CalendarView: View {
 
             if calendarVM.isDrawerOpen {
                 SideDrawerView(isOpen: $calendarVM.isDrawerOpen, navPath: $navPath)
-                    .transition(.move(edge: .leading))
             }
 
             // Bottom sheet overlay

@@ -10,6 +10,7 @@ struct SideDrawerView: View {
             Color.black.opacity(0.3)
                 .ignoresSafeArea()
                 .onTapGesture { withAnimation { isOpen = false } }
+                .transition(.opacity)
 
             VStack(alignment: .leading, spacing: 0) {
                 VStack(alignment: .leading, spacing: 4) {
@@ -27,8 +28,7 @@ struct SideDrawerView: View {
                     drawerItem(icon: "person.2", label: "커플") { isOpen = false; navPath.append(AppDestination.pair) }
                     drawerItem(icon: "chart.bar", label: "통계") { isOpen = false; navPath.append(AppDestination.stats) }
                     drawerItem(icon: "magnifyingglass", label: "검색") { isOpen = false; navPath.append(AppDestination.search) }
-                    drawerItem(icon: "folder", label: "카테고리 관리") { isOpen = false; navPath.append(AppDestination.categories) }
-                    drawerItem(icon: "person.circle", label: "내 정보") { isOpen = false }
+                    drawerItem(icon: "person.circle", label: "내 정보") { isOpen = false; navPath.append(AppDestination.profile) }
                 }
 
                 Spacer()
@@ -50,6 +50,7 @@ struct SideDrawerView: View {
             }
             .frame(width: 260)
             .background(.white)
+            .transition(.move(edge: .leading))
         }
     }
 
