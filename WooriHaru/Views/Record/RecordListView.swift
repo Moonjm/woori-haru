@@ -133,12 +133,12 @@ struct RecordRow: View {
                 Text(record.category.name)
                     .font(.subheadline)
                     .fontWeight(.semibold)
-                    .foregroundStyle(isTogether ? Color.blue700 : Color.slate700)
+                    .foregroundStyle(Color.slate700)
 
                 if let memo = record.memo, !memo.isEmpty {
                     Text(memo)
                         .font(.subheadline)
-                        .foregroundStyle(isTogether ? Color.blue500 : Color.slate500)
+                        .foregroundStyle(Color.slate500)
                         .lineLimit(1)
                 }
 
