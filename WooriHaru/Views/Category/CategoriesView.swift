@@ -3,6 +3,7 @@ import SwiftUI
 struct CategoriesView: View {
     @State private var viewModel = CategoriesViewModel()
     @State private var deleteTarget: Category?
+    @State private var draggingId: Int?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -101,24 +102,31 @@ struct CategoriesView: View {
                 .padding(.horizontal, 20)
                 .padding(.vertical, 10)
 
-                List {
-                    ForEach(viewModel.categories) { category in
-                        if viewModel.editingId == category.id {
-                            editRow(category)
-                                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-                                .listRowSeparator(.hidden)
-                        } else {
-                            categoryRow(category)
-                                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-                                .listRowSeparator(.hidden)
+                ScrollView {
+                    VStack(spacing: 8) {
+                        ForEach(viewModel.categories) { category in
+                            if viewModel.editingId == category.id {
+                                editRow(category)
+                            } else {
+                                categoryRow(category)
+                                    .draggable(category.id) {
+                                        categoryRow(category)
+                                            .frame(width: 300)
+                                            .opacity(0.8)
+                                    }
+                                    .dropDestination(for: Int.self) { items, _ in
+                                        guard let sourceId = items.first,
+                                              let fromIndex = viewModel.categories.firstIndex(where: { $0.id == sourceId }),
+                                              let toIndex = viewModel.categories.firstIndex(where: { $0.id == category.id }) else { return false }
+                                        viewModel.moveCategory(from: IndexSet(integer: fromIndex), to: toIndex > fromIndex ? toIndex + 1 : toIndex)
+                                        return true
+                                    }
+                            }
                         }
                     }
-                    .onMove { source, destination in
-                        viewModel.moveCategory(from: source, to: destination)
-                    }
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 16)
                 }
-                .listStyle(.plain)
-                .environment(\.editMode, .constant(.active))
             }
             .background(.white)
         }
@@ -151,6 +159,10 @@ struct CategoriesView: View {
 
     private func categoryRow(_ category: Category) -> some View {
         HStack(spacing: 10) {
+            Image(systemName: "line.3.horizontal")
+                .font(.caption)
+                .foregroundStyle(Color.slate400)
+
             Text(category.emoji).font(.title3)
             Text(category.name).font(.subheadline)
 
@@ -183,7 +195,9 @@ struct CategoriesView: View {
             }
             .buttonStyle(.plain)
         }
-        .padding(.vertical, 4)
+        .padding(12)
+        .background(Color.slate50)
+        .cornerRadius(8)
     }
 
     // MARK: - Edit Row
