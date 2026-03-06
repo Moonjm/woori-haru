@@ -11,9 +11,19 @@ struct RecordSheetView: View {
             ScrollView {
                 VStack(spacing: 16) {
                     // Header
-                    Text(viewModel.selectedDate.sheetHeaderText)
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
+                    VStack(spacing: 4) {
+                        Text(viewModel.selectedDate.sheetHeaderText)
+                            .font(.headline)
+                            .fontWeight(.bold)
+
+                        if !viewModel.holidayNames.isEmpty {
+                            Text(viewModel.holidayNames.joined(separator: ", "))
+                                .font(.caption)
+                                .fontWeight(.medium)
+                                .foregroundStyle(Color.red500)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
 
                     // Overeat selector
                     OvereatSelectorView(
