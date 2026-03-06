@@ -5,6 +5,8 @@ struct RecordSheetView: View {
     let onChanged: () -> Void
     let onDismiss: () -> Void
 
+    @State private var dragOffset: CGFloat = 0
+
     var body: some View {
         VStack(spacing: 0) {
             // Drag indicator
@@ -34,7 +36,7 @@ struct RecordSheetView: View {
                 }
             }
             .frame(maxWidth: .infinity)
-            .padding(.top, 16)
+            .padding(.top, 12)
             .padding(.bottom, 14)
 
             // Scrollable content
@@ -83,7 +85,7 @@ struct RecordSheetView: View {
                                 .padding(.top, 8)
                         }
                     }
-                    .padding(.bottom, 16)
+                    .padding(.bottom, 34)
                 }
             }
         }
@@ -93,6 +95,23 @@ struct RecordSheetView: View {
                 .shadow(color: .black.opacity(0.15), radius: 10, y: -2)
         )
         .clipShape(RoundedRectangle(cornerRadius: 20))
+        .offset(y: dragOffset)
+        .gesture(
+            DragGesture()
+                .onChanged { value in
+                    if value.translation.height > 0 {
+                        dragOffset = value.translation.height
+                    }
+                }
+                .onEnded { value in
+                    if value.translation.height > 120 {
+                        onDismiss()
+                    }
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        dragOffset = 0
+                    }
+                }
+        )
         .task {
             await viewModel.loadData()
         }

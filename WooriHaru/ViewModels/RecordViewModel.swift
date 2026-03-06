@@ -194,4 +194,12 @@ final class RecordViewModel {
         memo = ""
         together = false
     }
+
+    func prepareForNewDate() {
+        resetForm()
+        records = []
+        partnerRecords = []
+        overeatLevel = .none
+        errorMessage = nil
+    }
 }
