@@ -3,132 +3,11 @@ import SwiftUI
 struct CategoriesView: View {
     @State private var viewModel = CategoriesViewModel()
     @State private var deleteTarget: Category?
-    @State private var draggingId: Int?
 
     var body: some View {
         VStack(spacing: 0) {
-            ScrollView {
-                VStack(spacing: 16) {
-                    // 생성 폼
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Text("새 카테고리")
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                            Spacer()
-                            Text("CREATE")
-                                .font(.caption2)
-                                .fontWeight(.bold)
-                                .foregroundStyle(Color.blue500)
-                        }
-
-                        formField("이모지", placeholder: "예: 🏊") {
-                            TextField("예: 🏊", text: $viewModel.newEmoji)
-                                .font(.subheadline)
-                                .onChange(of: viewModel.newEmoji) { _, newValue in
-                                    if newValue.count > 1 { viewModel.newEmoji = String(newValue.prefix(1)) }
-                                }
-                        }
-
-                        formField("이름", placeholder: "예: 헬스") {
-                            TextField("예: 헬스", text: $viewModel.newName)
-                                .font(.subheadline)
-                        }
-
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("활성 여부")
-                                .font(.caption)
-                                .foregroundStyle(Color.slate500)
-                            HStack(spacing: 12) {
-                                activeButton("Active", isSelected: viewModel.newIsActive, selectedBg: Color.green100, selectedFg: Color.green700) {
-                                    viewModel.newIsActive = true
-                                }
-                                activeButton("Inactive", isSelected: !viewModel.newIsActive, selectedBg: Color.orange200, selectedFg: Color.orange700) {
-                                    viewModel.newIsActive = false
-                                }
-                            }
-                        }
-
-                        Button {
-                            Task { await viewModel.createCategory() }
-                        } label: {
-                            Text("추가하기")
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                                .foregroundStyle(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 12)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .fill(Color.orange300)
-                                )
-                        }
-                    }
-                    .padding(16)
-                    .background(.white)
-                    .cornerRadius(12)
-                    .shadow(color: .black.opacity(0.04), radius: 4, y: 1)
-
-                    // 메시지
-                    if let success = viewModel.successMessage {
-                        Text(success)
-                            .font(.caption)
-                            .foregroundStyle(Color.green700)
-                    }
-                    if let error = viewModel.errorMessage {
-                        Text(error)
-                            .font(.caption)
-                            .foregroundStyle(Color.red500)
-                    }
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
-                .padding(.bottom, 8)
-            }
-            .frame(maxHeight: .infinity, alignment: .top)
-            .layoutPriority(0)
-
-            // 카테고리 목록 (드래그 정렬 지원)
-            VStack(alignment: .leading, spacing: 0) {
-                HStack {
-                    Text("카테고리 목록")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                    Spacer()
-                    Text("\(viewModel.categories.count) items")
-                        .font(.caption)
-                        .foregroundStyle(Color.blue500)
-                }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 10)
-
-                ScrollView {
-                    VStack(spacing: 8) {
-                        ForEach(viewModel.categories) { category in
-                            if viewModel.editingId == category.id {
-                                editRow(category)
-                            } else {
-                                categoryRow(category)
-                                    .draggable(category.id) {
-                                        categoryRow(category)
-                                            .frame(width: 300)
-                                            .opacity(0.8)
-                                    }
-                                    .dropDestination(for: Int.self) { items, _ in
-                                        guard let sourceId = items.first,
-                                              let fromIndex = viewModel.categories.firstIndex(where: { $0.id == sourceId }),
-                                              let toIndex = viewModel.categories.firstIndex(where: { $0.id == category.id }) else { return false }
-                                        viewModel.moveCategory(from: IndexSet(integer: fromIndex), to: toIndex > fromIndex ? toIndex + 1 : toIndex)
-                                        return true
-                                    }
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 16)
-                }
-            }
-            .background(.white)
+            createFormSection
+            categoryListSection
         }
         .background(Color.slate50)
         .navigationTitle("카테고리 관리")
@@ -152,6 +31,131 @@ struct CategoriesView: View {
             if let target = deleteTarget {
                 Text("\(target.emoji) \(target.name)을(를) 삭제할까요?")
             }
+        }
+    }
+
+    // MARK: - Create Form
+
+    private var createFormSection: some View {
+        ScrollView {
+            VStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text("새 카테고리")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                        Spacer()
+                        Text("CREATE")
+                            .font(.caption2)
+                            .fontWeight(.bold)
+                            .foregroundStyle(Color.blue500)
+                    }
+
+                    formField("이모지") {
+                        TextField("예: 🏊", text: $viewModel.newEmoji)
+                            .font(.subheadline)
+                            .onChange(of: viewModel.newEmoji) { _, newValue in
+                                if newValue.count > 1 { viewModel.newEmoji = String(newValue.prefix(1)) }
+                            }
+                    }
+
+                    formField("이름") {
+                        TextField("예: 헬스", text: $viewModel.newName)
+                            .font(.subheadline)
+                    }
+
+                    activeToggleSection(isActive: $viewModel.newIsActive)
+
+                    Button {
+                        Task { await viewModel.createCategory() }
+                    } label: {
+                        Text("추가하기")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(RoundedRectangle(cornerRadius: 8).fill(Color.orange300))
+                    }
+                }
+                .padding(16)
+                .background(.white)
+                .cornerRadius(12)
+                .shadow(color: .black.opacity(0.04), radius: 4, y: 1)
+
+                messageSection
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+            .padding(.bottom, 8)
+        }
+        .frame(maxHeight: .infinity, alignment: .top)
+        .layoutPriority(0)
+    }
+
+    // MARK: - Messages
+
+    @ViewBuilder
+    private var messageSection: some View {
+        if let success = viewModel.successMessage {
+            Text(success)
+                .font(.caption)
+                .foregroundStyle(Color.green700)
+        }
+        if let error = viewModel.errorMessage {
+            Text(error)
+                .font(.caption)
+                .foregroundStyle(Color.red500)
+        }
+    }
+
+    // MARK: - Category List
+
+    private var categoryListSection: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("카테고리 목록")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                Spacer()
+                Text("\(viewModel.categories.count) items")
+                    .font(.caption)
+                    .foregroundStyle(Color.blue500)
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 10)
+
+            ScrollView {
+                VStack(spacing: 8) {
+                    ForEach(viewModel.categories) { category in
+                        categoryListItem(category)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 16)
+            }
+        }
+        .background(.white)
+    }
+
+    @ViewBuilder
+    private func categoryListItem(_ category: Category) -> some View {
+        if viewModel.editingId == category.id {
+            editRow(category)
+        } else {
+            categoryRow(category)
+                .draggable(category.id) {
+                    categoryRow(category)
+                        .frame(width: 300)
+                        .opacity(0.8)
+                }
+                .dropDestination(for: Int.self) { items, _ in
+                    guard let sourceId = items.first,
+                          let fromIndex = viewModel.categories.firstIndex(where: { $0.id == sourceId }),
+                          let toIndex = viewModel.categories.firstIndex(where: { $0.id == category.id }) else { return false }
+                    viewModel.moveCategory(from: IndexSet(integer: fromIndex), to: toIndex > fromIndex ? toIndex + 1 : toIndex)
+                    return true
+                }
         }
     }
 
@@ -204,29 +208,17 @@ struct CategoriesView: View {
 
     private func editRow(_ category: Category) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            formField("이모지", placeholder: "") {
+            formField("이모지") {
                 TextField("", text: $viewModel.editEmoji)
                     .font(.subheadline)
             }
 
-            formField("이름", placeholder: "") {
+            formField("이름") {
                 TextField("", text: $viewModel.editName)
                     .font(.subheadline)
             }
 
-            VStack(alignment: .leading, spacing: 6) {
-                Text("활성 여부")
-                    .font(.caption)
-                    .foregroundStyle(Color.slate500)
-                HStack(spacing: 12) {
-                    activeButton("Active", isSelected: viewModel.editIsActive, selectedBg: Color.green100, selectedFg: Color.green700) {
-                        viewModel.editIsActive = true
-                    }
-                    activeButton("Inactive", isSelected: !viewModel.editIsActive, selectedBg: Color.orange200, selectedFg: Color.orange700) {
-                        viewModel.editIsActive = false
-                    }
-                }
-            }
+            activeToggleSection(isActive: $viewModel.editIsActive)
 
             HStack(spacing: 8) {
                 Button {
@@ -256,9 +248,9 @@ struct CategoriesView: View {
         )
     }
 
-    // MARK: - Helpers
+    // MARK: - Shared Helpers
 
-    private func formField<Content: View>(_ label: String, placeholder: String, @ViewBuilder content: () -> Content) -> some View {
+    private func formField<Content: View>(_ label: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(label)
                 .font(.caption)
@@ -271,6 +263,22 @@ struct CategoriesView: View {
                     RoundedRectangle(cornerRadius: 8)
                         .strokeBorder(Color.slate200, lineWidth: 1)
                 )
+        }
+    }
+
+    private func activeToggleSection(isActive: Binding<Bool>) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("활성 여부")
+                .font(.caption)
+                .foregroundStyle(Color.slate500)
+            HStack(spacing: 12) {
+                activeButton("Active", isSelected: isActive.wrappedValue, selectedBg: Color.green100, selectedFg: Color.green700) {
+                    isActive.wrappedValue = true
+                }
+                activeButton("Inactive", isSelected: !isActive.wrappedValue, selectedBg: Color.orange200, selectedFg: Color.orange700) {
+                    isActive.wrappedValue = false
+                }
+            }
         }
     }
 
