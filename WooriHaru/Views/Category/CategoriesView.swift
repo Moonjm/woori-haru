@@ -3,6 +3,7 @@ import SwiftUI
 struct CategoriesView: View {
     @State private var viewModel = CategoriesViewModel()
     @State private var deleteTarget: Category?
+    @State private var draggingCategoryId: Int?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -131,16 +132,24 @@ struct CategoriesView: View {
                         editRow(category)
                     } else {
                         categoryRow(category)
+                            .onDrag {
+                                draggingCategoryId = category.id
+                                return NSItemProvider(object: String(category.id) as NSString)
+                            }
+                            .onDrop(of: [.text], delegate: CategoryRowDropDelegate(
+                                targetItem: category,
+                                categories: $viewModel.categories,
+                                draggingId: $draggingCategoryId,
+                                onDone: { movedId in
+                                    viewModel.syncCategoryOrder(movedId: movedId)
+                                }
+                            ))
                     }
-                }
-                .onMove { source, destination in
-                    viewModel.moveCategory(from: source, to: destination)
                 }
                 .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
                 .listRowSeparator(.hidden)
             }
             .listStyle(.plain)
-            .environment(\.editMode, .constant(.active))
         }
         .background(.white)
     }
@@ -281,5 +290,37 @@ struct CategoriesView: View {
                 )
                 .foregroundStyle(isSelected ? selectedFg : Color.slate500)
         }
+    }
+}
+
+// MARK: - Drop Delegate
+
+private struct CategoryRowDropDelegate: DropDelegate {
+    let targetItem: Category
+    @Binding var categories: [Category]
+    @Binding var draggingId: Int?
+    let onDone: (Int) -> Void
+
+    func dropEntered(info: DropInfo) {
+        guard let draggingId,
+              draggingId != targetItem.id,
+              let fromIndex = categories.firstIndex(where: { $0.id == draggingId }),
+              let toIndex = categories.firstIndex(where: { $0.id == targetItem.id }) else { return }
+
+        withAnimation(.easeInOut(duration: 0.2)) {
+            categories.move(fromOffsets: IndexSet(integer: fromIndex), toOffset: toIndex > fromIndex ? toIndex + 1 : toIndex)
+        }
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        DropProposal(operation: .move)
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        if let draggingId {
+            onDone(draggingId)
+        }
+        draggingId = nil
+        return true
     }
 }
