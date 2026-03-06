@@ -42,6 +42,9 @@ final class RecordViewModel {
         isLoading = true
         defer { isLoading = false }
         errorMessage = nil
+        records = []
+        partnerRecords = []
+        overeatLevel = .none
 
         let date = dateString
 
