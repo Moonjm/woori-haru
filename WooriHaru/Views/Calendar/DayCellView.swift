@@ -128,9 +128,13 @@ struct DayCellView: View {
         if let level = overeatLevel, level != .none {
             Text("\u{1F437}")
                 .font(.system(size: 10))
-                .padding(2)
+                .frame(width: 20, height: 20)
                 .background {
-                    Circle().fill(overeatColor(level).opacity(0.3))
+                    Circle()
+                        .fill(overeatColor(level).opacity(0.15))
+                        .overlay {
+                            Circle().stroke(overeatColor(level), lineWidth: 1.5)
+                        }
                 }
         }
     }
