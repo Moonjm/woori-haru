@@ -3,40 +3,46 @@ import SwiftUI
 struct RecordSheetView: View {
     @Bindable var viewModel: RecordViewModel
     let onChanged: () -> Void
-
-    @Environment(\.dismiss) private var dismiss
+    let onDismiss: () -> Void
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                // Fixed header
-                VStack(spacing: 8) {
-                    Text(viewModel.selectedDate.sheetHeaderText)
-                        .font(.headline)
-                        .fontWeight(.bold)
-                        .foregroundStyle(Color.slate900)
+        VStack(spacing: 0) {
+            // Drag indicator
+            Capsule()
+                .fill(Color.slate400)
+                .frame(width: 36, height: 5)
+                .padding(.top, 8)
 
-                    if !viewModel.holidayNames.isEmpty {
-                        Text(viewModel.holidayNames.joined(separator: ", "))
-                            .font(.caption)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(Color.red500)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 5)
-                            .background(
-                                Capsule()
-                                    .fill(Color.red500.opacity(0.08))
-                            )
-                    }
+            // Fixed header
+            VStack(spacing: 8) {
+                Text(viewModel.selectedDate.sheetHeaderText)
+                    .font(.headline)
+                    .fontWeight(.bold)
+                    .foregroundStyle(Color.slate900)
+
+                if !viewModel.holidayNames.isEmpty {
+                    Text(viewModel.holidayNames.joined(separator: ", "))
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(Color.red500)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 5)
+                        .background(
+                            Capsule()
+                                .fill(Color.red500.opacity(0.08))
+                        )
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.top, 24)
-                .padding(.bottom, 14)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.top, 16)
+            .padding(.bottom, 14)
 
-                // Scrollable content
+            // Scrollable content
+            if viewModel.isLoading {
+                Spacer()
+            } else {
                 ScrollView {
                     VStack(spacing: 0) {
-                        // Overeat selector
                         OvereatSelectorView(
                             currentLevel: viewModel.overeatLevel,
                             onSelect: { level in
@@ -48,7 +54,6 @@ struct RecordSheetView: View {
                         )
                         .padding(.horizontal, 16)
 
-                        // Record list
                         RecordListView(
                             records: viewModel.records,
                             partnerRecords: viewModel.partnerRecords,
@@ -67,7 +72,6 @@ struct RecordSheetView: View {
                         .padding(.horizontal, 16)
                         .padding(.top, 14)
 
-                        // Record form
                         RecordFormView(viewModel: viewModel, onSave: onChanged)
                             .padding(.horizontal, 16)
                             .padding(.top, 12)
@@ -82,13 +86,15 @@ struct RecordSheetView: View {
                     .padding(.bottom, 16)
                 }
             }
-            .navigationBarTitleDisplayMode(.inline)
         }
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(.white)
+                .shadow(color: .black.opacity(0.15), radius: 10, y: -2)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20))
         .task {
             await viewModel.loadData()
-        }
-        .onDisappear {
-            viewModel.resetForm()
         }
     }
 }
