@@ -25,18 +25,13 @@ struct RecordListView: View {
     }
 
     var body: some View {
-        if records.isEmpty && partnerRecords.isEmpty {
-            Text("기록이 없습니다")
-                .font(.subheadline)
-                .foregroundStyle(Color.slate400)
-                .padding(.vertical, 12)
-        } else {
+        if !records.isEmpty || !partnerRecords.isEmpty {
             VStack(alignment: .leading, spacing: 20) {
                 // Together section
                 if isPaired && !togetherRecords.isEmpty {
                     VStack(alignment: .leading, spacing: 10) {
                         HStack(spacing: 4) {
-                            Text("\u{1F46B}")
+                            Text("👫")
                             Text("같이 한 것")
                                 .font(.subheadline)
                                 .fontWeight(.semibold)

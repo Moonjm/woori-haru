@@ -19,6 +19,8 @@ struct YearMonthPickerView: View {
         _selectedMonth = State(initialValue: initialMonth)
     }
 
+    private static let pickerBackground = Color(red: 0.15, green: 0.15, blue: 0.17)
+
     var body: some View {
         NaverStylePicker(
             selectedYear: $selectedYear,
@@ -26,7 +28,7 @@ struct YearMonthPickerView: View {
         )
         .frame(height: 200)
         .frame(maxWidth: .infinity)
-        .background(Color(red: 0.15, green: 0.15, blue: 0.17))
+        .background(Self.pickerBackground)
         .onChange(of: selectedYear) { _, val in onSelect(val, selectedMonth) }
         .onChange(of: selectedMonth) { _, val in onSelect(selectedYear, val) }
     }
@@ -38,7 +40,10 @@ private struct NaverStylePicker: UIViewRepresentable {
     @Binding var selectedYear: Int
     @Binding var selectedMonth: Int
 
-    private static let years = Array((Calendar.current.component(.year, from: Date()) - 10)...(Calendar.current.component(.year, from: Date()) + 10))
+    private static var years: [Int] {
+        let currentYear = Calendar.current.component(.year, from: Date())
+        return Array((currentYear - 10)...(currentYear + 10))
+    }
     private static let months = Array(1...12)
 
     func makeCoordinator() -> Coordinator {

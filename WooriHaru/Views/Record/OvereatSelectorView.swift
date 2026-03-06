@@ -10,7 +10,7 @@ struct OvereatSelectorView: View {
 
     var body: some View {
         HStack {
-            Text("\u{1F437} 과식")
+            Text("🐷 과식")
                 .font(.subheadline)
                 .fontWeight(.medium)
                 .foregroundStyle(Color.slate600)
