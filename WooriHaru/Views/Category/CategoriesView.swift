@@ -5,106 +5,122 @@ struct CategoriesView: View {
     @State private var deleteTarget: Category?
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 16) {
-                // 생성 폼
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        Text("새 카테고리")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                        Spacer()
-                        Text("CREATE")
-                            .font(.caption2)
-                            .fontWeight(.bold)
-                            .foregroundStyle(Color.blue500)
-                    }
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(spacing: 16) {
+                    // 생성 폼
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Text("새 카테고리")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                            Spacer()
+                            Text("CREATE")
+                                .font(.caption2)
+                                .fontWeight(.bold)
+                                .foregroundStyle(Color.blue500)
+                        }
 
-                    formField("이모지", placeholder: "예: 🏊") {
-                        TextField("예: 🏊", text: $viewModel.newEmoji)
-                            .font(.subheadline)
-                            .onChange(of: viewModel.newEmoji) { _, newValue in
-                                if newValue.count > 1 { viewModel.newEmoji = String(newValue.prefix(1)) }
-                            }
-                    }
+                        formField("이모지", placeholder: "예: 🏊") {
+                            TextField("예: 🏊", text: $viewModel.newEmoji)
+                                .font(.subheadline)
+                                .onChange(of: viewModel.newEmoji) { _, newValue in
+                                    if newValue.count > 1 { viewModel.newEmoji = String(newValue.prefix(1)) }
+                                }
+                        }
 
-                    formField("이름", placeholder: "예: 헬스") {
-                        TextField("예: 헬스", text: $viewModel.newName)
-                            .font(.subheadline)
-                    }
+                        formField("이름", placeholder: "예: 헬스") {
+                            TextField("예: 헬스", text: $viewModel.newName)
+                                .font(.subheadline)
+                        }
 
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("활성 여부")
-                            .font(.caption)
-                            .foregroundStyle(Color.slate500)
-                        HStack(spacing: 12) {
-                            activeButton("Active", isSelected: viewModel.newIsActive, selectedBg: Color.green100, selectedFg: Color.green700) {
-                                viewModel.newIsActive = true
-                            }
-                            activeButton("Inactive", isSelected: !viewModel.newIsActive, selectedBg: Color.orange200, selectedFg: Color.orange700) {
-                                viewModel.newIsActive = false
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("활성 여부")
+                                .font(.caption)
+                                .foregroundStyle(Color.slate500)
+                            HStack(spacing: 12) {
+                                activeButton("Active", isSelected: viewModel.newIsActive, selectedBg: Color.green100, selectedFg: Color.green700) {
+                                    viewModel.newIsActive = true
+                                }
+                                activeButton("Inactive", isSelected: !viewModel.newIsActive, selectedBg: Color.orange200, selectedFg: Color.orange700) {
+                                    viewModel.newIsActive = false
+                                }
                             }
                         }
+
+                        Button {
+                            Task { await viewModel.createCategory() }
+                        } label: {
+                            Text("추가하기")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(Color.orange300)
+                                )
+                        }
                     }
+                    .padding(16)
+                    .background(.white)
+                    .cornerRadius(12)
+                    .shadow(color: .black.opacity(0.04), radius: 4, y: 1)
 
-                    Button {
-                        Task { await viewModel.createCategory() }
-                    } label: {
-                        Text("추가하기")
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(Color.orange300)
-                            )
-                    }
-                }
-                .padding(16)
-                .background(.white)
-                .cornerRadius(12)
-                .shadow(color: .black.opacity(0.04), radius: 4, y: 1)
-
-                // 메시지
-                if let success = viewModel.successMessage {
-                    Text(success)
-                        .font(.caption)
-                        .foregroundStyle(Color.green700)
-                }
-                if let error = viewModel.errorMessage {
-                    Text(error)
-                        .font(.caption)
-                        .foregroundStyle(Color.red500)
-                }
-
-                // 카테고리 목록
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        Text("카테고리 목록")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                        Spacer()
-                        Text("\(viewModel.categories.count) items")
+                    // 메시지
+                    if let success = viewModel.successMessage {
+                        Text(success)
                             .font(.caption)
-                            .foregroundStyle(Color.blue500)
+                            .foregroundStyle(Color.green700)
                     }
+                    if let error = viewModel.errorMessage {
+                        Text(error)
+                            .font(.caption)
+                            .foregroundStyle(Color.red500)
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
+                .padding(.bottom, 8)
+            }
+            .frame(maxHeight: .infinity, alignment: .top)
+            .layoutPriority(0)
 
+            // 카테고리 목록 (드래그 정렬 지원)
+            VStack(alignment: .leading, spacing: 0) {
+                HStack {
+                    Text("카테고리 목록")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                    Spacer()
+                    Text("\(viewModel.categories.count) items")
+                        .font(.caption)
+                        .foregroundStyle(Color.blue500)
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 10)
+
+                List {
                     ForEach(viewModel.categories) { category in
                         if viewModel.editingId == category.id {
                             editRow(category)
+                                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                                .listRowSeparator(.hidden)
                         } else {
                             categoryRow(category)
+                                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                                .listRowSeparator(.hidden)
                         }
                     }
+                    .onMove { source, destination in
+                        viewModel.moveCategory(from: source, to: destination)
+                    }
                 }
-                .padding(16)
-                .background(.white)
-                .cornerRadius(12)
-                .shadow(color: .black.opacity(0.04), radius: 4, y: 1)
+                .listStyle(.plain)
+                .environment(\.editMode, .constant(.active))
             }
-            .padding(20)
+            .background(.white)
         }
         .background(Color.slate50)
         .navigationTitle("카테고리 관리")
@@ -167,9 +183,7 @@ struct CategoriesView: View {
             }
             .buttonStyle(.plain)
         }
-        .padding(12)
-        .background(Color.slate50)
-        .cornerRadius(8)
+        .padding(.vertical, 4)
     }
 
     // MARK: - Edit Row
