@@ -12,6 +12,7 @@ struct ProfileView: View {
     @State private var isSaving = false
     @State private var successMessage: String?
     @State private var errorMessage: String?
+    @State private var hideSuccessTask: Task<Void, Never>?
 
 
     var body: some View {
@@ -153,6 +154,7 @@ struct ProfileView: View {
         .navigationTitle("내 정보")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { loadUserData() }
+        .onDisappear { hideSuccessTask?.cancel() }
     }
 
     // MARK: - Helpers
@@ -193,9 +195,10 @@ struct ProfileView: View {
             successMessage = "저장되었습니다."
             currentPassword = ""
             newPassword = ""
-            Task {
+            hideSuccessTask?.cancel()
+            hideSuccessTask = Task {
                 try? await Task.sleep(for: .seconds(2))
-                successMessage = nil
+                if !Task.isCancelled { successMessage = nil }
             }
         } catch let error as APIError {
             errorMessage = error.errorDescription
