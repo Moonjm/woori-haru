@@ -60,7 +60,17 @@ struct CalendarView: View {
                                             onSelectDate: { date in
                                                 recordVM.selectedDate = date
                                                 recordVM.holidayNames = calendarVM.holidays[date.dateString] ?? []
-                                                showSheet = true
+                                                recordVM.isPaired = calendarVM.isPaired
+                                                recordVM.partnerName = calendarVM.pairInfo?.partnerName ?? "파트너"
+                                                Task {
+                                                    await withTaskGroup(of: Void.self) { group in
+                                                        group.addTask { await recordVM.loadData() }
+                                                        group.addTask { try? await Task.sleep(for: .seconds(1)) }
+                                                        await group.next()
+                                                        group.cancelAll()
+                                                    }
+                                                    showSheet = true
+                                                }
                                             }
                                         )
                                     }
@@ -186,10 +196,6 @@ struct CalendarView: View {
             })
             .presentationDetents([.fraction(0.7)])
             .presentationDragIndicator(.visible)
-            .onAppear {
-                recordVM.isPaired = calendarVM.isPaired
-                recordVM.partnerName = calendarVM.pairInfo?.partnerName ?? "파트너"
-            }
         }
         .task {
             await calendarVM.initialLoad()
