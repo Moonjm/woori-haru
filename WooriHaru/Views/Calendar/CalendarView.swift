@@ -7,7 +7,7 @@ struct CalendarView: View {
     @State private var showSheet = false
     @State private var showPicker = false
     @State private var initialScrollDone = false
-    @State private var scrolledMonthId: String?
+    @State private var scrolledMonthId: String? = CalendarView.makeTodayMonthId()
     @State private var suppressEdgeLoading = false
     @Environment(AuthViewModel.self) private var authVM
 
@@ -193,10 +193,9 @@ struct CalendarView: View {
             await calendarVM.initialLoad()
             calendarVM.updateBirthdays(user: authVM.user, pairInfo: calendarVM.pairInfo)
 
-            suppressEdgeLoading = true
-            scrolledMonthId = todayMonthId
-            await Task.yield()
-            suppressEdgeLoading = false
+            // scrolledMonthId는 이미 todayMonthId로 초기화됨
+            // 레이아웃이 안정화될 시간을 확보한 뒤 표시
+            try? await Task.sleep(for: .milliseconds(50))
             initialScrollDone = true
         }
     }
