@@ -8,7 +8,7 @@ struct CalendarView: View {
     @State private var showPicker = false
     @State private var initialScrollDone = false
     @State private var scrolledMonthId: String? = CalendarView.makeTodayMonthId()
-    @State private var suppressEdgeLoading = false
+    @State private var suppressEdgeLoadingCount = 0
     @Environment(AuthViewModel.self) private var authVM
 
     private let todayMonthId: String = CalendarView.makeTodayMonthId()
@@ -78,7 +78,7 @@ struct CalendarView: View {
                                 calendarVM.pickerTargetYear = month.year
                                 calendarVM.pickerTargetMonth = month.month
                             }
-                            guard initialScrollDone, !suppressEdgeLoading else { return }
+                            guard initialScrollDone, suppressEdgeLoadingCount == 0 else { return }
                             // Lazy load API data for nearby months
                             Task { await calendarVM.ensureDataLoaded(around: id) }
                             // Forward infinite scroll (append only)
@@ -92,7 +92,8 @@ struct CalendarView: View {
                             if !isViewingToday && !showPicker && initialScrollDone {
                                 Button {
                                     Task {
-                                        suppressEdgeLoading = true
+                                        suppressEdgeLoadingCount += 1
+                                        defer { suppressEdgeLoadingCount -= 1 }
                                         let today = Date()
                                         let targetId = String(format: "%04d-%02d", today.year, today.month)
                                         if calendarVM.months.contains(where: { $0.id == targetId }) {
@@ -113,7 +114,6 @@ struct CalendarView: View {
                                             }
                                         }
                                         await Task.yield()
-                                        suppressEdgeLoading = false
                                     }
                                 } label: {
                                     HStack(spacing: 4) {
@@ -134,6 +134,7 @@ struct CalendarView: View {
                                 }
                                 .padding(.bottom, 20)
                                 .transition(.opacity.combined(with: .move(edge: .bottom)))
+                                .accessibilityLabel("오늘로 이동")
                             }
                         }
                         .animation(.easeInOut(duration: 0.2), value: isViewingToday)
@@ -152,9 +153,9 @@ struct CalendarView: View {
                                     calendarVM.pickerTargetMonth = month
                                     // 즉시 스크롤 (네트워크 없이)
                                     let target = String(format: "%04d-%02d", year, month)
-                                    suppressEdgeLoading = true
+                                    suppressEdgeLoadingCount += 1
                                     scrolledMonthId = target
-                                    suppressEdgeLoading = false
+                                    suppressEdgeLoadingCount -= 1
                                 }
                             )
 

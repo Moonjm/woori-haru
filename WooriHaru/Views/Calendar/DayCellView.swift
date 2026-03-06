@@ -78,13 +78,12 @@ struct DayCellView: View {
                                     .font(.system(size: 11))
                             }
                         }
-                        // 점선 구분 (이모지 줄 높이만큼만)
+                        // 점선 구분 (실측 높이)
                         if !myEmojis.isEmpty && !partnerEmojis.isEmpty {
-                            let lineHeight = CGFloat(maxCount) * 13 + CGFloat(maxCount - 1)
                             DottedVLine()
                                 .stroke(style: StrokeStyle(lineWidth: 0.5, dash: [2, 2]))
                                 .foregroundStyle(Color.slate400)
-                                .frame(width: 1, height: lineHeight)
+                                .frame(width: 1)
                                 .padding(.horizontal, 2)
                         }
                         // 파트너 이모지 (오른쪽)
