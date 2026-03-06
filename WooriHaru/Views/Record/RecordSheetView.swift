@@ -9,21 +9,30 @@ struct RecordSheetView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 16) {
+                VStack(spacing: 0) {
                     // Header
-                    VStack(spacing: 4) {
+                    VStack(spacing: 8) {
                         Text(viewModel.selectedDate.sheetHeaderText)
-                            .font(.headline)
+                            .font(.title3)
                             .fontWeight(.bold)
+                            .foregroundStyle(Color.slate900)
 
                         if !viewModel.holidayNames.isEmpty {
                             Text(viewModel.holidayNames.joined(separator: ", "))
                                 .font(.caption)
-                                .fontWeight(.medium)
+                                .fontWeight(.semibold)
                                 .foregroundStyle(Color.red500)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 5)
+                                .background(
+                                    Capsule()
+                                        .fill(Color.red500.opacity(0.1))
+                                )
                         }
                     }
                     .frame(maxWidth: .infinity)
+                    .padding(.top, 20)
+                    .padding(.bottom, 16)
 
                     // Overeat selector
                     OvereatSelectorView(
@@ -35,6 +44,7 @@ struct RecordSheetView: View {
                             }
                         }
                     )
+                    .padding(.horizontal, 16)
 
                     // Record list
                     RecordListView(
@@ -52,18 +62,24 @@ struct RecordSheetView: View {
                             viewModel.startEditing(record)
                         }
                     )
+                    .padding(.horizontal, 16)
+                    .padding(.top, 16)
 
                     // Record form
                     RecordFormView(viewModel: viewModel, onSave: onChanged)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 12)
 
                     if let error = viewModel.errorMessage {
                         Text(error)
                             .font(.caption)
                             .foregroundStyle(Color.red500)
+                            .padding(.top, 8)
                     }
                 }
-                .padding(16)
+                .padding(.bottom, 16)
             }
+            .background(Color.slate50)
             .navigationBarTitleDisplayMode(.inline)
         }
         .task {

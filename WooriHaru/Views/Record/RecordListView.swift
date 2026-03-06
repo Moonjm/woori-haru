@@ -29,64 +29,85 @@ struct RecordListView: View {
             Text("기록이 없습니다")
                 .font(.subheadline)
                 .foregroundStyle(Color.slate400)
-                .padding(.vertical, 8)
+                .padding(.vertical, 12)
         } else {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 20) {
                 // Together section
                 if isPaired && !togetherRecords.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 10) {
                         HStack(spacing: 4) {
                             Text("\u{1F46B}")
                             Text("같이 한 것")
                                 .font(.subheadline)
-                                .fontWeight(.medium)
+                                .fontWeight(.semibold)
                                 .foregroundStyle(Color.blue600)
                         }
 
-                        VStack(spacing: 6) {
-                            ForEach(togetherRecords) { record in
+                        VStack(spacing: 0) {
+                            ForEach(Array(togetherRecords.enumerated()), id: \.element.id) { index, record in
                                 let isMine = records.contains { $0.id == record.id }
-                                RecordRow(record: record, showDelete: isMine, onDelete: { onDelete(record) })
-                                    .onTapGesture { if isMine { onTap(record) } }
-                                    .opacity(isMine ? 1.0 : 0.7)
+                                RecordRow(
+                                    record: record,
+                                    showDelete: isMine,
+                                    isFirst: index == 0,
+                                    isLast: index == togetherRecords.count - 1,
+                                    onDelete: { onDelete(record) }
+                                )
+                                .onTapGesture { if isMine { onTap(record) } }
+                                .opacity(isMine ? 1.0 : 0.7)
                             }
                         }
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
                 }
 
                 // My records
                 if !myRecords.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 10) {
                         if isPaired {
                             Text("나의 기록")
                                 .font(.subheadline)
-                                .fontWeight(.medium)
+                                .fontWeight(.semibold)
                                 .foregroundStyle(Color.slate600)
                         }
 
-                        VStack(spacing: 6) {
-                            ForEach(myRecords) { record in
-                                RecordRow(record: record, showDelete: true, onDelete: { onDelete(record) })
-                                    .onTapGesture { onTap(record) }
+                        VStack(spacing: 0) {
+                            ForEach(Array(myRecords.enumerated()), id: \.element.id) { index, record in
+                                RecordRow(
+                                    record: record,
+                                    showDelete: true,
+                                    isFirst: index == 0,
+                                    isLast: index == myRecords.count - 1,
+                                    onDelete: { onDelete(record) }
+                                )
+                                .onTapGesture { onTap(record) }
                             }
                         }
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
                 }
 
                 // Partner records (read-only)
                 if isPaired && !partnerSoloRecords.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 10) {
                         Text("\(partnerName)의 기록")
                             .font(.subheadline)
-                            .fontWeight(.medium)
+                            .fontWeight(.semibold)
                             .foregroundStyle(Color.slate500)
 
-                        VStack(spacing: 6) {
-                            ForEach(partnerSoloRecords) { record in
-                                RecordRow(record: record, showDelete: false, onDelete: {})
-                                    .opacity(0.7)
+                        VStack(spacing: 0) {
+                            ForEach(Array(partnerSoloRecords.enumerated()), id: \.element.id) { index, record in
+                                RecordRow(
+                                    record: record,
+                                    showDelete: false,
+                                    isFirst: index == 0,
+                                    isLast: index == partnerSoloRecords.count - 1,
+                                    onDelete: {}
+                                )
+                                .opacity(0.7)
                             }
                         }
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
                 }
             }
@@ -97,42 +118,47 @@ struct RecordListView: View {
 struct RecordRow: View {
     let record: DailyRecord
     let showDelete: Bool
+    var isFirst: Bool = true
+    var isLast: Bool = true
     let onDelete: () -> Void
 
     var body: some View {
-        HStack(spacing: 8) {
-            Text(record.category.emoji)
-                .font(.subheadline)
+        VStack(spacing: 0) {
+            HStack(spacing: 10) {
+                Text(record.category.emoji)
+                    .font(.body)
 
-            HStack(spacing: 6) {
                 Text(record.category.name)
                     .font(.subheadline)
-                    .fontWeight(.medium)
+                    .fontWeight(.semibold)
                     .foregroundStyle(Color.slate700)
 
                 if let memo = record.memo, !memo.isEmpty {
                     Text(memo)
                         .font(.subheadline)
                         .foregroundStyle(Color.slate500)
+                        .lineLimit(1)
+                }
+
+                Spacer()
+
+                if showDelete {
+                    Button(action: onDelete) {
+                        Image(systemName: "trash")
+                            .font(.system(size: 14))
+                            .foregroundStyle(Color.red400)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 13)
+            .background(.white)
 
-            Spacer()
-
-            if showDelete {
-                Button(action: onDelete) {
-                    Image(systemName: "trash")
-                        .font(.system(size: 14))
-                        .foregroundStyle(Color.red400)
-                }
-                .buttonStyle(.plain)
+            if !isLast {
+                Divider()
+                    .padding(.leading, 16)
             }
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background {
-            RoundedRectangle(cornerRadius: 10)
-                .fill(.white)
         }
     }
 }
