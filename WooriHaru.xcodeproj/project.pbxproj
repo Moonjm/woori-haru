@@ -7,6 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		8825C7532F5B148A00E46B14 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8825C7512F5B148A00E46B14 /* ProfileView.swift */; };
+		8825C7572F5B1A1E00E46B14 /* UserManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8825C7552F5B1A1E00E46B14 /* UserManagementView.swift */; };
+		8825C7582F5B1A1E00E46B14 /* AdminView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8825C7542F5B1A1E00E46B14 /* AdminView.swift */; };
+		8825C75A2F5B1A4400E46B14 /* UserManagementViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8825C7592F5B1A4400E46B14 /* UserManagementViewModel.swift */; };
+		8825C75C2F5B1A4C00E46B14 /* UserService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8825C75B2F5B1A4C00E46B14 /* UserService.swift */; };
 		A10001 /* WooriHaruApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20001 /* WooriHaruApp.swift */; };
 		A10002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20002 /* ContentView.swift */; };
 		A10003 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20003 /* Assets.xcassets */; };
@@ -26,12 +31,12 @@
 		D10006 /* PairEventService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20006 /* PairEventService.swift */; };
 		D10007 /* HolidayService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20007 /* HolidayService.swift */; };
 		E10001 /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20001 /* AuthViewModel.swift */; };
+		E10002 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20002 /* LoginView.swift */; };
 		E10003 /* RecordViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20003 /* RecordViewModel.swift */; };
 		E10004 /* CalendarViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20004 /* CalendarViewModel.swift */; };
 		E10005 /* StatsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20005 /* StatsViewModel.swift */; };
 		E10006 /* SearchViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20006 /* SearchViewModel.swift */; };
 		E10007 /* CategoriesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20007 /* CategoriesViewModel.swift */; };
-		E10002 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20002 /* LoginView.swift */; };
 		F10001 /* Date+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20001 /* Date+Extensions.swift */; };
 		F10002 /* Color+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20002 /* Color+Extensions.swift */; };
 		G10001 /* WeekdayHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = G20001 /* WeekdayHeaderView.swift */; };
@@ -55,6 +60,11 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		8825C7512F5B148A00E46B14 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
+		8825C7542F5B1A1E00E46B14 /* AdminView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminView.swift; sourceTree = "<group>"; };
+		8825C7552F5B1A1E00E46B14 /* UserManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserManagementView.swift; sourceTree = "<group>"; };
+		8825C7592F5B1A4400E46B14 /* UserManagementViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserManagementViewModel.swift; sourceTree = "<group>"; };
+		8825C75B2F5B1A4C00E46B14 /* UserService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserService.swift; sourceTree = "<group>"; };
 		88C2E2B22F557CCD001249F8 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		A20001 /* WooriHaruApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WooriHaruApp.swift; sourceTree = "<group>"; };
 		A20002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -76,12 +86,12 @@
 		D20006 /* PairEventService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairEventService.swift; sourceTree = "<group>"; };
 		D20007 /* HolidayService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HolidayService.swift; sourceTree = "<group>"; };
 		E20001 /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
+		E20002 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 		E20003 /* RecordViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordViewModel.swift; sourceTree = "<group>"; };
 		E20004 /* CalendarViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarViewModel.swift; sourceTree = "<group>"; };
 		E20005 /* StatsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsViewModel.swift; sourceTree = "<group>"; };
 		E20006 /* SearchViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchViewModel.swift; sourceTree = "<group>"; };
 		E20007 /* CategoriesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoriesViewModel.swift; sourceTree = "<group>"; };
-		E20002 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 		F20001 /* Date+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Date+Extensions.swift"; sourceTree = "<group>"; };
 		F20002 /* Color+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Extensions.swift"; sourceTree = "<group>"; };
 		G20001 /* WeekdayHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekdayHeaderView.swift; sourceTree = "<group>"; };
@@ -115,6 +125,23 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		8825C7522F5B148A00E46B14 /* Profile */ = {
+			isa = PBXGroup;
+			children = (
+				8825C7512F5B148A00E46B14 /* ProfileView.swift */,
+			);
+			path = Profile;
+			sourceTree = "<group>";
+		};
+		8825C7562F5B1A1E00E46B14 /* Admin */ = {
+			isa = PBXGroup;
+			children = (
+				8825C7542F5B1A1E00E46B14 /* AdminView.swift */,
+				8825C7552F5B1A1E00E46B14 /* UserManagementView.swift */,
+			);
+			path = Admin;
+			sourceTree = "<group>";
+		};
 		A40001 = {
 			isa = PBXGroup;
 			children = (
@@ -174,6 +201,7 @@
 		B40002 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				8825C75B2F5B1A4C00E46B14 /* UserService.swift */,
 				D20001 /* APIClient.swift */,
 				D20002 /* AuthService.swift */,
 				D20003 /* RecordService.swift */,
@@ -188,6 +216,7 @@
 		B40003 /* ViewModels */ = {
 			isa = PBXGroup;
 			children = (
+				8825C7592F5B1A4400E46B14 /* UserManagementViewModel.swift */,
 				E20001 /* AuthViewModel.swift */,
 				E20004 /* CalendarViewModel.swift */,
 				E20003 /* RecordViewModel.swift */,
@@ -203,6 +232,8 @@
 		B40004 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				8825C7562F5B1A1E00E46B14 /* Admin */,
+				8825C7522F5B148A00E46B14 /* Profile */,
 				B40005 /* Calendar */,
 				B40006 /* Record */,
 				B40007 /* Stats */,
@@ -382,6 +413,8 @@
 				C10001 /* User.swift in Sources */,
 				C10002 /* Category.swift in Sources */,
 				C10003 /* DailyRecord.swift in Sources */,
+				8825C7572F5B1A1E00E46B14 /* UserManagementView.swift in Sources */,
+				8825C7582F5B1A1E00E46B14 /* AdminView.swift in Sources */,
 				C10004 /* OvereatLevel.swift in Sources */,
 				C10005 /* PairInfo.swift in Sources */,
 				C10006 /* PairEvent.swift in Sources */,
@@ -389,6 +422,7 @@
 				D10001 /* APIClient.swift in Sources */,
 				D10002 /* AuthService.swift in Sources */,
 				D10003 /* RecordService.swift in Sources */,
+				8825C75A2F5B1A4400E46B14 /* UserManagementViewModel.swift in Sources */,
 				D10004 /* CategoryService.swift in Sources */,
 				D10005 /* PairService.swift in Sources */,
 				D10006 /* PairEventService.swift in Sources */,
@@ -397,6 +431,7 @@
 				E10003 /* RecordViewModel.swift in Sources */,
 				E10004 /* CalendarViewModel.swift in Sources */,
 				E10005 /* StatsViewModel.swift in Sources */,
+				8825C7532F5B148A00E46B14 /* ProfileView.swift in Sources */,
 				E10006 /* SearchViewModel.swift in Sources */,
 				E10007 /* CategoriesViewModel.swift in Sources */,
 				E10002 /* LoginView.swift in Sources */,
@@ -417,6 +452,7 @@
 				J10002 /* SearchView.swift in Sources */,
 				J10003 /* CategoriesView.swift in Sources */,
 				K10001 /* PairViewModel.swift in Sources */,
+				8825C75C2F5B1A4C00E46B14 /* UserService.swift in Sources */,
 				K10002 /* PairEventsViewModel.swift in Sources */,
 				K10003 /* PairView.swift in Sources */,
 				K10004 /* PairEventsView.swift in Sources */,
