@@ -56,9 +56,18 @@ struct DayCellView: View {
                     .cornerRadius(2)
                 }
 
-                // 개별 기록: 내 것(왼쪽) | 점선 | 파트너(오른쪽), 1개씩 줄바꿈
+                // 같이/개별 구분 점선
                 let myEmojis = records.filter { !$0.together }.map { $0.category.emoji }
                 let partnerEmojis = partnerRecords.filter { !$0.together }.map { $0.category.emoji }
+                if !togetherEmojis.isEmpty && (!myEmojis.isEmpty || !partnerEmojis.isEmpty) {
+                    DottedHLine()
+                        .stroke(style: StrokeStyle(lineWidth: 0.5, dash: [2, 2]))
+                        .foregroundStyle(Color.slate400)
+                        .frame(height: 1)
+                        .padding(.vertical, 1)
+                }
+
+                // 개별 기록: 내 것(왼쪽) | 점선 | 파트너(오른쪽), 1개씩 줄바꿈
                 let maxCount = max(myEmojis.count, partnerEmojis.count)
                 if maxCount > 0 {
                     HStack(spacing: 0) {
@@ -160,13 +169,22 @@ struct DayCellView: View {
     }
 }
 
-// MARK: - Dotted Vertical Line
+// MARK: - Dotted Lines
 
 private struct DottedVLine: Shape {
     func path(in rect: CGRect) -> Path {
         Path { path in
             path.move(to: CGPoint(x: rect.midX, y: rect.minY))
             path.addLine(to: CGPoint(x: rect.midX, y: rect.maxY))
+        }
+    }
+}
+
+private struct DottedHLine: Shape {
+    func path(in rect: CGRect) -> Path {
+        Path { path in
+            path.move(to: CGPoint(x: rect.minX, y: rect.midY))
+            path.addLine(to: CGPoint(x: rect.maxX, y: rect.midY))
         }
     }
 }
