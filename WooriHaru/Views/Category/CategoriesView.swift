@@ -125,39 +125,24 @@ struct CategoriesView: View {
             .padding(.horizontal, 20)
             .padding(.vertical, 10)
 
-            ScrollView {
-                VStack(spacing: 8) {
-                    ForEach(viewModel.categories) { category in
-                        categoryListItem(category)
+            List {
+                ForEach(viewModel.categories) { category in
+                    if viewModel.editingId == category.id {
+                        editRow(category)
+                    } else {
+                        categoryRow(category)
                     }
                 }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 16)
+                .onMove { source, destination in
+                    viewModel.moveCategory(from: source, to: destination)
+                }
+                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                .listRowSeparator(.hidden)
             }
+            .listStyle(.plain)
+            .environment(\.editMode, .constant(.active))
         }
         .background(.white)
-    }
-
-    @ViewBuilder
-    private func categoryListItem(_ category: Category) -> some View {
-        if viewModel.editingId == category.id {
-            editRow(category)
-        } else {
-            categoryRow(category)
-                .draggable(String(category.id)) {
-                    categoryRow(category)
-                        .frame(width: 300)
-                        .opacity(0.8)
-                }
-                .dropDestination(for: String.self) { items, _ in
-                    guard let sourceIdStr = items.first,
-                          let sourceId = Int(sourceIdStr),
-                          let fromIndex = viewModel.categories.firstIndex(where: { $0.id == sourceId }),
-                          let toIndex = viewModel.categories.firstIndex(where: { $0.id == category.id }) else { return false }
-                    viewModel.moveCategory(from: IndexSet(integer: fromIndex), to: toIndex > fromIndex ? toIndex + 1 : toIndex)
-                    return true
-                }
-        }
     }
 
     // MARK: - Category Row
