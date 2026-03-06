@@ -109,6 +109,20 @@ final class CategoriesViewModel {
         }
     }
 
+    func syncCategoryOrder(movedId: Int) {
+        guard let movedIndex = categories.firstIndex(where: { $0.id == movedId }) else { return }
+        let beforeId: Int? = (movedIndex + 1 < categories.count) ? categories[movedIndex + 1].id : nil
+
+        Task {
+            do {
+                try await categoryService.reorderCategory(ReorderCategoryRequest(targetId: movedId, beforeId: beforeId))
+            } catch {
+                errorMessage = "카테고리 순서 변경에 실패했습니다."
+                await loadCategories()
+            }
+        }
+    }
+
     func startEditing(_ category: Category) {
         editingId = category.id
         editEmoji = category.emoji
