@@ -29,6 +29,11 @@ struct SideDrawerView: View {
                     drawerItem(icon: "chart.bar", label: "통계") { isOpen = false; navPath.append(AppDestination.stats) }
                     drawerItem(icon: "magnifyingglass", label: "검색") { isOpen = false; navPath.append(AppDestination.search) }
                     drawerItem(icon: "person.circle", label: "내 정보") { isOpen = false; navPath.append(AppDestination.profile) }
+
+                    if authVM.user?.authority == .admin {
+                        Divider().padding(.vertical, 4)
+                        drawerItem(icon: "gearshape", label: "관리") { isOpen = false; navPath.append(AppDestination.admin) }
+                    }
                 }
 
                 Spacer()

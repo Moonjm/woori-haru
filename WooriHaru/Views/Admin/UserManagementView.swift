@@ -1,16 +1,16 @@
 import SwiftUI
 
-struct CategoriesView: View {
-    @State private var viewModel = CategoriesViewModel()
-    @State private var deleteTarget: Category?
+struct UserManagementView: View {
+    @State private var viewModel = UserManagementViewModel()
+    @State private var deleteTarget: User?
 
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
-                // 생성 폼
+                // Create form
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
-                        Text("새 카테고리")
+                        Text("새 사용자")
                             .font(.subheadline)
                             .fontWeight(.medium)
                         Spacer()
@@ -20,37 +20,14 @@ struct CategoriesView: View {
                             .foregroundStyle(Color.blue500)
                     }
 
-                    formField("이모지", placeholder: "예: 🏊") {
-                        TextField("예: 🏊", text: $viewModel.newEmoji)
-                            .font(.subheadline)
-                            .onChange(of: viewModel.newEmoji) { _, newValue in
-                                if newValue.count > 1 { viewModel.newEmoji = String(newValue.prefix(1)) }
-                            }
-                    }
-
-                    formField("이름", placeholder: "예: 헬스") {
-                        TextField("예: 헬스", text: $viewModel.newName)
-                            .font(.subheadline)
-                    }
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("활성 여부")
-                            .font(.caption)
-                            .foregroundStyle(Color.slate500)
-                        HStack(spacing: 12) {
-                            activeButton("Active", isSelected: viewModel.newIsActive) {
-                                viewModel.newIsActive = true
-                            }
-                            activeButton("Inactive", isSelected: !viewModel.newIsActive) {
-                                viewModel.newIsActive = false
-                            }
-                        }
-                    }
+                    formField("아이디", placeholder: "예: user1", text: $viewModel.newUsername)
+                    formField("이름", placeholder: "예: 홍길동", text: $viewModel.newName)
+                    secureFormField("비밀번호", placeholder: "초기 비밀번호", text: $viewModel.newPassword)
 
                     Button {
-                        Task { await viewModel.createCategory() }
+                        Task { await viewModel.createUser() }
                     } label: {
-                        Text("추가하기")
+                        Text("사용자 추가")
                             .font(.subheadline)
                             .fontWeight(.semibold)
                             .foregroundStyle(.white)
@@ -58,16 +35,20 @@ struct CategoriesView: View {
                             .padding(.vertical, 12)
                             .background(
                                 RoundedRectangle(cornerRadius: 8)
-                                    .fill(Color.orange300)
+                                    .fill(Color.slate700)
                             )
                     }
+
+                    Text("생성된 계정은 기본 권한이 USER이며, 권한은 오른쪽에서 수정할 수 있어요.")
+                        .font(.caption2)
+                        .foregroundStyle(Color.slate400)
                 }
                 .padding(16)
                 .background(.white)
                 .cornerRadius(12)
                 .shadow(color: .black.opacity(0.04), radius: 4, y: 1)
 
-                // 메시지
+                // Messages
                 if let success = viewModel.successMessage {
                     Text(success)
                         .font(.caption)
@@ -79,23 +60,23 @@ struct CategoriesView: View {
                         .foregroundStyle(Color.red500)
                 }
 
-                // 카테고리 목록
+                // User list
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
-                        Text("카테고리 목록")
+                        Text("사용자 목록")
                             .font(.subheadline)
                             .fontWeight(.medium)
                         Spacer()
-                        Text("\(viewModel.categories.count) items")
+                        Text("\(viewModel.users.count) users")
                             .font(.caption)
                             .foregroundStyle(Color.blue500)
                     }
 
-                    ForEach(viewModel.categories) { category in
-                        if viewModel.editingId == category.id {
-                            editRow(category)
+                    ForEach(viewModel.users) { user in
+                        if viewModel.editingId == user.id {
+                            editUserRow(user)
                         } else {
-                            categoryRow(category)
+                            userRow(user)
                         }
                     }
                 }
@@ -107,11 +88,11 @@ struct CategoriesView: View {
             .padding(20)
         }
         .background(Color.slate50)
-        .navigationTitle("카테고리 관리")
+        .navigationTitle("사용자 관리")
         .navigationBarTitleDisplayMode(.inline)
-        .task { await viewModel.loadCategories() }
+        .task { await viewModel.loadUsers() }
         .alert(
-            "카테고리 삭제",
+            "사용자 삭제",
             isPresented: .init(
                 get: { deleteTarget != nil },
                 set: { if !$0 { deleteTarget = nil } }
@@ -120,53 +101,53 @@ struct CategoriesView: View {
             Button("취소", role: .cancel) { deleteTarget = nil }
             Button("삭제", role: .destructive) {
                 if let target = deleteTarget {
-                    Task { await viewModel.deleteCategory(target) }
+                    Task { await viewModel.deleteUser(target) }
                     deleteTarget = nil
                 }
             }
         } message: {
             if let target = deleteTarget {
-                Text("\(target.emoji) \(target.name)을(를) 삭제할까요?")
+                Text("\(target.name ?? target.username)을(를) 삭제할까요?")
             }
         }
     }
 
-    // MARK: - Category Row
+    // MARK: - User Row
 
-    private func categoryRow(_ category: Category) -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: "line.3.horizontal")
-                .font(.caption)
-                .foregroundStyle(Color.slate400)
-
-            Text(category.emoji).font(.title3)
-            Text(category.name).font(.subheadline)
+    private func userRow(_ user: User) -> some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(user.name ?? user.username)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                Text(user.username)
+                    .font(.caption)
+                    .foregroundStyle(Color.slate400)
+            }
 
             Spacer()
 
-            Text(category.isActive ? "ACTIVE" : "INACTIVE")
+            Text(user.authority.rawValue)
                 .font(.caption2)
                 .fontWeight(.medium)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 3)
-                .background(category.isActive ? Color.green100 : Color.slate100)
-                .foregroundStyle(category.isActive ? Color.green700 : Color.slate500)
+                .background(user.authority == .admin ? Color.blue50 : Color.slate100)
+                .foregroundStyle(user.authority == .admin ? Color.blue600 : Color.slate500)
                 .cornerRadius(10)
 
             Button {
-                viewModel.startEditing(category)
+                viewModel.startEditing(user)
             } label: {
-                Image(systemName: "pencil")
-                    .font(.caption)
-                    .foregroundStyle(Color.slate500)
+                Image(systemName: "pencil.circle")
+                    .foregroundStyle(Color.slate400)
             }
             .buttonStyle(.plain)
 
             Button {
-                deleteTarget = category
+                deleteTarget = user
             } label: {
-                Image(systemName: "trash")
-                    .font(.caption)
+                Image(systemName: "trash.circle")
                     .foregroundStyle(Color.red400)
             }
             .buttonStyle(.plain)
@@ -178,35 +159,52 @@ struct CategoriesView: View {
 
     // MARK: - Edit Row
 
-    private func editRow(_ category: Category) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            formField("이모지", placeholder: "") {
-                TextField("", text: $viewModel.editEmoji)
-                    .font(.subheadline)
+    private func editUserRow(_ user: User) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(user.name ?? user.username)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                    Text(user.username)
+                        .font(.caption)
+                        .foregroundStyle(Color.slate400)
+                }
+                Spacer()
             }
 
-            formField("이름", placeholder: "") {
-                TextField("", text: $viewModel.editName)
-                    .font(.subheadline)
-            }
+            formField("이름", placeholder: "", text: $viewModel.editName)
+            secureFormField("비밀번호 변경", placeholder: "새 비밀번호", text: $viewModel.editPassword)
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("활성 여부")
+                Text("권한")
                     .font(.caption)
                     .foregroundStyle(Color.slate500)
-                HStack(spacing: 12) {
-                    activeButton("Active", isSelected: viewModel.editIsActive) {
-                        viewModel.editIsActive = true
+                Menu {
+                    Button("USER") { viewModel.editAuthority = .user }
+                    Button("ADMIN") { viewModel.editAuthority = .admin }
+                } label: {
+                    HStack {
+                        Text(viewModel.editAuthority.rawValue)
+                            .font(.subheadline)
+                        Spacer()
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.caption)
                     }
-                    activeButton("Inactive", isSelected: !viewModel.editIsActive) {
-                        viewModel.editIsActive = false
-                    }
+                    .foregroundStyle(Color.slate700)
+                    .padding(12)
+                    .background(.white)
+                    .cornerRadius(8)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .strokeBorder(Color.slate200, lineWidth: 1)
+                    )
                 }
             }
 
             HStack(spacing: 8) {
                 Button {
-                    Task { await viewModel.updateCategory() }
+                    Task { await viewModel.updateUser() }
                 } label: {
                     Text("저장")
                         .font(.caption)
@@ -232,14 +230,15 @@ struct CategoriesView: View {
         )
     }
 
-    // MARK: - Helpers
+    // MARK: - Form Fields
 
-    private func formField<Content: View>(_ label: String, placeholder: String, @ViewBuilder content: () -> Content) -> some View {
+    private func formField(_ label: String, placeholder: String, text: Binding<String>) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(label)
                 .font(.caption)
                 .foregroundStyle(Color.slate500)
-            content()
+            TextField(placeholder, text: text)
+                .font(.subheadline)
                 .padding(12)
                 .background(.white)
                 .cornerRadius(8)
@@ -250,18 +249,20 @@ struct CategoriesView: View {
         }
     }
 
-    private func activeButton(_ label: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
+    private func secureFormField(_ label: String, placeholder: String, text: Binding<String>) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
             Text(label)
+                .font(.caption)
+                .foregroundStyle(Color.slate500)
+            SecureField(placeholder, text: text)
                 .font(.subheadline)
-                .fontWeight(.medium)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
-                .background(
+                .padding(12)
+                .background(.white)
+                .cornerRadius(8)
+                .overlay(
                     RoundedRectangle(cornerRadius: 8)
-                        .fill(isSelected ? (label == "Active" ? Color.green100 : Color.orange200) : Color.slate50)
+                        .strokeBorder(Color.slate200, lineWidth: 1)
                 )
-                .foregroundStyle(isSelected ? (label == "Active" ? Color.green700 : Color.orange700) : Color.slate500)
         }
     }
 }

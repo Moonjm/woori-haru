@@ -26,3 +26,15 @@ struct UpdateMeRequest: Encodable {
     var currentPassword: String?
     var password: String?
 }
+
+struct CreateUserRequest: Encodable {
+    let username: String
+    let name: String
+    let password: String
+}
+
+struct AdminUpdateUserRequest: Encodable {
+    var name: String?
+    var password: String?
+    var authority: Authority?
+}
