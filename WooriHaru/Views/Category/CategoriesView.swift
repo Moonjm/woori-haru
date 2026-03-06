@@ -3,6 +3,7 @@ import SwiftUI
 struct CategoriesView: View {
     @State private var viewModel = CategoriesViewModel()
     @State private var deleteTarget: Category?
+    @State private var draggingId: Int?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -125,22 +126,31 @@ struct CategoriesView: View {
             .padding(.horizontal, 20)
             .padding(.vertical, 10)
 
-            List {
-                ForEach(viewModel.categories) { category in
-                    if viewModel.editingId == category.id {
-                        editRow(category)
-                    } else {
-                        categoryRow(category)
+            ScrollView {
+                LazyVStack(spacing: 8) {
+                    ForEach(viewModel.categories) { category in
+                        if viewModel.editingId == category.id {
+                            editRow(category)
+                        } else {
+                            categoryRow(category)
+                                .opacity(draggingId == category.id ? 0.5 : 1)
+                                .onDrag {
+                                    draggingId = category.id
+                                    return NSItemProvider(object: String(category.id) as NSString)
+                                }
+                                .onDrop(of: [.text], delegate: CategoryRowDrop(
+                                    targetId: category.id,
+                                    categories: $viewModel.categories,
+                                    draggingId: $draggingId,
+                                    onDone: { viewModel.syncCategoryOrder(movedId: $0) }
+                                ))
+                        }
                     }
                 }
-                .onMove { source, destination in
-                    viewModel.moveCategory(from: source, to: destination)
-                }
-                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-                .listRowSeparator(.hidden)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 16)
+                .animation(.easeInOut(duration: 0.2), value: viewModel.categories.map(\.id))
             }
-            .listStyle(.plain)
-            .environment(\.editMode, .constant(.active))
         }
         .background(.white)
     }
@@ -149,6 +159,10 @@ struct CategoriesView: View {
 
     private func categoryRow(_ category: Category) -> some View {
         HStack(spacing: 10) {
+            Image(systemName: "line.3.horizontal")
+                .font(.caption)
+                .foregroundStyle(Color.slate400)
+
             Text(category.emoji).font(.title3)
             Text(category.name).font(.subheadline)
 
@@ -181,7 +195,9 @@ struct CategoriesView: View {
             }
             .buttonStyle(.plain)
         }
-        .padding(.vertical, 4)
+        .padding(12)
+        .background(Color.slate50)
+        .cornerRadius(8)
     }
 
     // MARK: - Edit Row
@@ -275,5 +291,29 @@ struct CategoriesView: View {
                 )
                 .foregroundStyle(isSelected ? selectedFg : Color.slate500)
         }
+    }
+}
+
+private struct CategoryRowDrop: DropDelegate {
+    let targetId: Int
+    @Binding var categories: [Category]
+    @Binding var draggingId: Int?
+    let onDone: (Int) -> Void
+
+    func dropEntered(info: DropInfo) {
+        guard let draggingId, draggingId != targetId,
+              let from = categories.firstIndex(where: { $0.id == draggingId }),
+              let to = categories.firstIndex(where: { $0.id == targetId }) else { return }
+        categories.move(fromOffsets: IndexSet(integer: from), toOffset: to > from ? to + 1 : to)
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        DropProposal(operation: .move)
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        if let draggingId { onDone(draggingId) }
+        draggingId = nil
+        return true
     }
 }
