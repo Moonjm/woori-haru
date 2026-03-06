@@ -63,10 +63,11 @@ final class UserManagementViewModel {
         errorMessage = nil
         successMessage = nil
 
-        var request = AdminUpdateUserRequest()
-        request.name = editName.isEmpty ? nil : editName
-        request.password = editPassword.isEmpty ? nil : editPassword
-        request.authority = editAuthority
+        let request = AdminUpdateUserRequest(
+            name: editName.isEmpty ? nil : editName,
+            password: editPassword.isEmpty ? nil : editPassword,
+            authority: editAuthority
+        )
 
         do {
             try await userService.updateUser(id: id, request)

@@ -20,9 +20,9 @@ struct UserManagementView: View {
                             .foregroundStyle(Color.blue500)
                     }
 
-                    formField("아이디", placeholder: "예: user1", text: $viewModel.newUsername)
-                    formField("이름", placeholder: "예: 홍길동", text: $viewModel.newName)
-                    secureFormField("비밀번호", placeholder: "초기 비밀번호", text: $viewModel.newPassword)
+                    formField("아이디") { TextField("예: user1", text: $viewModel.newUsername).textInputAutocapitalization(.never).autocorrectionDisabled() }
+                    formField("이름") { TextField("예: 홍길동", text: $viewModel.newName) }
+                    formField("비밀번호") { SecureField("초기 비밀번호", text: $viewModel.newPassword) }
 
                     Button {
                         Task { await viewModel.createUser() }
@@ -173,8 +173,8 @@ struct UserManagementView: View {
                 Spacer()
             }
 
-            formField("이름", placeholder: "", text: $viewModel.editName)
-            secureFormField("비밀번호 변경", placeholder: "새 비밀번호", text: $viewModel.editPassword)
+            formField("이름") { TextField("", text: $viewModel.editName) }
+            formField("비밀번호 변경") { SecureField("새 비밀번호", text: $viewModel.editPassword) }
 
             VStack(alignment: .leading, spacing: 6) {
                 Text("권한")
@@ -232,29 +232,12 @@ struct UserManagementView: View {
 
     // MARK: - Form Fields
 
-    private func formField(_ label: String, placeholder: String, text: Binding<String>) -> some View {
+    private func formField<Content: View>(_ label: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(label)
                 .font(.caption)
                 .foregroundStyle(Color.slate500)
-            TextField(placeholder, text: text)
-                .font(.subheadline)
-                .padding(12)
-                .background(.white)
-                .cornerRadius(8)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .strokeBorder(Color.slate200, lineWidth: 1)
-                )
-        }
-    }
-
-    private func secureFormField(_ label: String, placeholder: String, text: Binding<String>) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(label)
-                .font(.caption)
-                .foregroundStyle(Color.slate500)
-            SecureField(placeholder, text: text)
+            content()
                 .font(.subheadline)
                 .padding(12)
                 .background(.white)
