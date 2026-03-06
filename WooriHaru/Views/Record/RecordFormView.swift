@@ -34,50 +34,65 @@ struct RecordFormView: View {
                 }
             }
 
-            // Together toggle (only when paired)
-            if viewModel.isPaired {
-                Toggle(isOn: $viewModel.together) {
-                    HStack(spacing: 4) {
-                        Text("👫")
-                        Text("같이")
-                            .font(.caption)
-                    }
-                }
-                .toggleStyle(.button)
-                .tint(Color.blue500)
-            }
-
-            // Memo + save
+            // Memo + together toggle
             HStack(spacing: 8) {
                 TextField("메모 (최대 20자)", text: $viewModel.memo)
                     .font(.subheadline)
-                    .textFieldStyle(.roundedBorder)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                    .background {
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(.white)
+                            .stroke(Color.slate200, lineWidth: 1)
+                    }
                     .onChange(of: viewModel.memo) { _, newValue in
                         if newValue.count > 20 { viewModel.memo = String(newValue.prefix(20)) }
                     }
 
-                Button {
-                    Task {
-                        let success: Bool
-                        if viewModel.editingRecord != nil {
-                            success = await viewModel.updateRecord()
-                        } else {
-                            success = await viewModel.createRecord()
+                if viewModel.isPaired {
+                    Button {
+                        viewModel.together.toggle()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Text("\u{1F46B}")
+                            Text("같이")
+                                .font(.caption)
+                                .fontWeight(.medium)
                         }
-                        if success { onSave() }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                        .background {
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(viewModel.together ? Color.blue50 : .white)
+                                .stroke(viewModel.together ? Color.blue300 : Color.slate200, lineWidth: 1)
+                        }
+                        .foregroundStyle(viewModel.together ? Color.blue700 : Color.slate500)
                     }
-                } label: {
-                    Text(viewModel.editingRecord != nil ? "수정" : "저장")
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(viewModel.selectedCategoryId != nil ? Color.blue500 : Color.slate400)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
-                .disabled(viewModel.selectedCategoryId == nil)
             }
+
+            // Save button (full width)
+            Button {
+                Task {
+                    let success: Bool
+                    if viewModel.editingRecord != nil {
+                        success = await viewModel.updateRecord()
+                    } else {
+                        success = await viewModel.createRecord()
+                    }
+                    if success { onSave() }
+                }
+            } label: {
+                Text(viewModel.editingRecord != nil ? "수정" : "저장")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(viewModel.selectedCategoryId != nil ? Color.blue500 : Color.slate400)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+            .disabled(viewModel.selectedCategoryId == nil)
 
             // Cancel editing
             if viewModel.editingRecord != nil {
@@ -86,13 +101,13 @@ struct RecordFormView: View {
                 }
                 .font(.caption)
                 .foregroundStyle(Color.slate500)
+                .frame(maxWidth: .infinity)
             }
         }
         .padding(16)
         .background {
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color.slate50)
-                .stroke(Color.slate200, lineWidth: 1)
         }
     }
 }

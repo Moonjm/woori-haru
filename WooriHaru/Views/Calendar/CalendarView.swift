@@ -59,6 +59,7 @@ struct CalendarView: View {
                                             birthdayMap: calendarVM.birthdayMap,
                                             onSelectDate: { date in
                                                 recordVM.selectedDate = date
+                                                recordVM.holidayNames = calendarVM.holidays[date.dateString] ?? []
                                                 showSheet = true
                                             }
                                         )

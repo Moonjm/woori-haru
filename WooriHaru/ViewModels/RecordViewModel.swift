@@ -15,6 +15,7 @@ final class RecordViewModel {
     var errorMessage: String?
     var isPaired: Bool = false
     var partnerName: String = ""
+    var holidayNames: [String] = []
 
     // MARK: - Form State
 
