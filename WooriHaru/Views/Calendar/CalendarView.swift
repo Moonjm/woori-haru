@@ -23,6 +23,11 @@ struct CalendarView: View {
         scrolledMonthId == todayMonthId
     }
 
+    private func dismissSheet() {
+        showSheet = false
+        recordVM.resetForm()
+    }
+
     var body: some View {
         ZStack {
             VStack(spacing: 0) {
@@ -60,6 +65,10 @@ struct CalendarView: View {
                                             pairEvents: calendarVM.pairEvents,
                                             birthdayMap: calendarVM.birthdayMap,
                                             onSelectDate: { date in
+                                                recordVM.resetForm()
+                                                recordVM.records = []
+                                                recordVM.partnerRecords = []
+                                                recordVM.overeatLevel = .none
                                                 recordVM.selectedDate = date
                                                 recordVM.holidayNames = calendarVM.holidays[date.dateString] ?? []
                                                 recordVM.isPaired = calendarVM.isPaired
@@ -167,20 +176,38 @@ struct CalendarView: View {
                 SideDrawerView(isOpen: $calendarVM.isDrawerOpen, navPath: $navPath)
                     .transition(.move(edge: .leading))
             }
+
+            // Bottom sheet overlay
+            if showSheet {
+                Color.black.opacity(0.3)
+                    .ignoresSafeArea()
+                    .onTapGesture { dismissSheet() }
+                    .transition(.opacity)
+
+                GeometryReader { geo in
+                    VStack {
+                        Spacer()
+                        RecordSheetView(
+                            viewModel: recordVM,
+                            onChanged: {
+                                Task { await calendarVM.refreshMonth(containing: recordVM.selectedDate) }
+                            },
+                            onDismiss: { dismissSheet() }
+                        )
+                        .frame(height: geo.size.height * 0.7)
+                    }
+                }
+                .ignoresSafeArea(.container, edges: .bottom)
+                .transition(.move(edge: .bottom))
+            }
         }
+        .animation(.easeInOut(duration: 0.25), value: showSheet)
         .onChange(of: showPicker) { _, show in
             // 피커 닫힐 때 API 데이터 보장
             if !show {
                 let target = String(format: "%04d-%02d", calendarVM.pickerTargetYear, calendarVM.pickerTargetMonth)
                 Task { await calendarVM.ensureDataLoaded(around: target) }
             }
-        }
-        .sheet(isPresented: $showSheet) {
-            RecordSheetView(viewModel: recordVM, onChanged: {
-                Task { await calendarVM.refreshMonth(containing: recordVM.selectedDate) }
-            })
-            .presentationDetents([.fraction(0.7)])
-            .presentationDragIndicator(.visible)
         }
         .task {
             await calendarVM.initialLoad()
