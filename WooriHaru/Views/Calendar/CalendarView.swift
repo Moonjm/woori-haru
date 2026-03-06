@@ -9,6 +9,7 @@ struct CalendarView: View {
     @State private var initialScrollDone = false
     @State private var scrolledMonthId: String? = CalendarView.makeTodayMonthId()
     @State private var suppressEdgeLoadingCount = 0
+    @State private var scrollProxy: ScrollViewProxy?
     @Environment(AuthViewModel.self) private var authVM
 
     private let todayMonthId: String = CalendarView.makeTodayMonthId()
@@ -37,6 +38,7 @@ struct CalendarView: View {
                     VStack(spacing: 0) {
                         WeekdayHeaderView()
 
+                        ScrollViewReader { proxy in
                         ScrollView {
                             LazyVStack(spacing: 0) {
                                 ForEach(calendarVM.months) { monthData in
@@ -72,6 +74,8 @@ struct CalendarView: View {
                             .scrollTargetLayout()
                         }
                         .scrollPosition(id: $scrolledMonthId, anchor: .top)
+                        .onAppear { scrollProxy = proxy }
+                        }
                         .onChange(of: scrolledMonthId) { _, id in
                             guard let id else { return }
                             if let month = calendarVM.months.first(where: { $0.id == id }) {
@@ -97,23 +101,13 @@ struct CalendarView: View {
                                         defer { suppressEdgeLoadingCount -= 1 }
                                         let today = Date()
                                         let targetId = String(format: "%04d-%02d", today.year, today.month)
-                                        if calendarVM.months.contains(where: { $0.id == targetId }) {
-                                            var tx = Transaction()
-                                            tx.animation = nil
-                                            withTransaction(tx) {
-                                                scrolledMonthId = targetId
-                                            }
-                                            calendarVM.currentMonthLabel = today.monthDisplayText
-                                            calendarVM.pickerTargetYear = today.year
-                                            calendarVM.pickerTargetMonth = today.month
-                                        } else {
+                                        if !calendarVM.months.contains(where: { $0.id == targetId }) {
                                             await calendarVM.scrollToMonth(year: today.year, month: today.month)
-                                            var tx = Transaction()
-                                            tx.animation = nil
-                                            withTransaction(tx) {
-                                                scrolledMonthId = targetId
-                                            }
                                         }
+                                        scrollProxy?.scrollTo(targetId, anchor: .top)
+                                        calendarVM.currentMonthLabel = today.monthDisplayText
+                                        calendarVM.pickerTargetYear = today.year
+                                        calendarVM.pickerTargetMonth = today.month
                                         await Task.yield()
                                     }
                                 } label: {
@@ -155,7 +149,7 @@ struct CalendarView: View {
                                     // 즉시 스크롤 (네트워크 없이)
                                     let target = String(format: "%04d-%02d", year, month)
                                     suppressEdgeLoadingCount += 1
-                                    scrolledMonthId = target
+                                    scrollProxy?.scrollTo(target, anchor: .top)
                                     suppressEdgeLoadingCount -= 1
                                 }
                             )
@@ -192,8 +186,9 @@ struct CalendarView: View {
             await calendarVM.initialLoad()
             calendarVM.updateBirthdays(user: authVM.user, pairInfo: calendarVM.pairInfo)
 
-            // scrolledMonthId는 이미 todayMonthId로 초기화됨
-            // 레이아웃이 안정화될 시간을 확보한 뒤 표시
+            // months 배열 세팅 후 ScrollViewReader로 강제 스크롤
+            try? await Task.sleep(for: .milliseconds(100))
+            scrollProxy?.scrollTo(todayMonthId, anchor: .top)
             try? await Task.sleep(for: .milliseconds(50))
             initialScrollDone = true
         }
