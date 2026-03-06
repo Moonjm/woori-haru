@@ -42,7 +42,7 @@ struct RecordFormView: View {
                     .padding(.vertical, 10)
                     .background {
                         RoundedRectangle(cornerRadius: 10)
-                            .fill(.white)
+                            .fill(Color.slate50)
                             .stroke(Color.slate200, lineWidth: 1)
                     }
                     .onChange(of: viewModel.memo) { _, newValue in
@@ -107,7 +107,7 @@ struct RecordFormView: View {
         .padding(16)
         .background {
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color.slate50)
+                .fill(.white)
         }
     }
 }
