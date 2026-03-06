@@ -38,10 +38,10 @@ struct CategoriesView: View {
                             .font(.caption)
                             .foregroundStyle(Color.slate500)
                         HStack(spacing: 12) {
-                            activeButton("Active", isSelected: viewModel.newIsActive) {
+                            activeButton("Active", isSelected: viewModel.newIsActive, selectedBg: Color.green100, selectedFg: Color.green700) {
                                 viewModel.newIsActive = true
                             }
-                            activeButton("Inactive", isSelected: !viewModel.newIsActive) {
+                            activeButton("Inactive", isSelected: !viewModel.newIsActive, selectedBg: Color.orange200, selectedFg: Color.orange700) {
                                 viewModel.newIsActive = false
                             }
                         }
@@ -135,10 +135,6 @@ struct CategoriesView: View {
 
     private func categoryRow(_ category: Category) -> some View {
         HStack(spacing: 10) {
-            Image(systemName: "line.3.horizontal")
-                .font(.caption)
-                .foregroundStyle(Color.slate400)
-
             Text(category.emoji).font(.title3)
             Text(category.name).font(.subheadline)
 
@@ -195,10 +191,10 @@ struct CategoriesView: View {
                     .font(.caption)
                     .foregroundStyle(Color.slate500)
                 HStack(spacing: 12) {
-                    activeButton("Active", isSelected: viewModel.editIsActive) {
+                    activeButton("Active", isSelected: viewModel.editIsActive, selectedBg: Color.green100, selectedFg: Color.green700) {
                         viewModel.editIsActive = true
                     }
-                    activeButton("Inactive", isSelected: !viewModel.editIsActive) {
+                    activeButton("Inactive", isSelected: !viewModel.editIsActive, selectedBg: Color.orange200, selectedFg: Color.orange700) {
                         viewModel.editIsActive = false
                     }
                 }
@@ -250,7 +246,7 @@ struct CategoriesView: View {
         }
     }
 
-    private func activeButton(_ label: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
+    private func activeButton(_ label: String, isSelected: Bool, selectedBg: Color, selectedFg: Color, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(label)
                 .font(.subheadline)
@@ -259,9 +255,9 @@ struct CategoriesView: View {
                 .padding(.vertical, 10)
                 .background(
                     RoundedRectangle(cornerRadius: 8)
-                        .fill(isSelected ? (label == "Active" ? Color.green100 : Color.orange200) : Color.slate50)
+                        .fill(isSelected ? selectedBg : Color.slate50)
                 )
-                .foregroundStyle(isSelected ? (label == "Active" ? Color.green700 : Color.orange700) : Color.slate500)
+                .foregroundStyle(isSelected ? selectedFg : Color.slate500)
         }
     }
 }
