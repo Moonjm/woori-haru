@@ -229,9 +229,10 @@ final class CalendarViewModel {
             cells.append(.init(id: dayDate.dateString, date: dayDate, day: day, isCurrentMonth: true))
         }
 
-        // 다음 월 날짜 (trailing) - 항상 42칸(6주) 고정
-        let trailingCount = 42 - cells.count
-        if trailingCount > 0 {
+        // 다음 월 날짜 (trailing) - 마지막 주만 채움 (7의 배수)
+        let remainder = cells.count % 7
+        if remainder > 0 {
+            let trailingCount = 7 - remainder
             let lastDay = calendar.date(byAdding: .day, value: daysInMonth - 1, to: startOfMonth)!
             for i in 1...trailingCount {
                 let nextDate = calendar.date(byAdding: .day, value: i, to: lastDay)!
