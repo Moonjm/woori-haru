@@ -31,7 +31,9 @@ final class StudyTimerViewModel {
     // MARK: - Private
     private let service = StudyService()
     private var activeSessionId: Int?
-    private var timer: Timer?
+    nonisolated(unsafe) private var timer: Timer? {
+        willSet { timer?.invalidate() }
+    }
     private var lastAlarmSeconds: Int = 0
 
     // MARK: - Computed
@@ -82,7 +84,8 @@ final class StudyTimerViewModel {
             activeSessionId = sessionId
             timerState = .running
             elapsedSeconds = 0
-            lastAlarmSeconds = 0
+            let intervalSeconds = alarmIntervalMinutes * 60
+            lastAlarmSeconds = intervalSeconds > 0 ? (todayTotalSeconds / intervalSeconds) * intervalSeconds : 0
             startTimer()
             await requestNotificationPermission()
         } catch {
@@ -182,7 +185,6 @@ final class StudyTimerViewModel {
     }
 
     private func stopTimer() {
-        timer?.invalidate()
         timer = nil
     }
 
@@ -217,9 +219,13 @@ final class StudyTimerViewModel {
     }
 
     private func removeAlarmNotifications() {
-        UNUserNotificationCenter.current().removeDeliveredNotifications(
-            withIdentifiers: []
-        )
+        let center = UNUserNotificationCenter.current()
+        center.getDeliveredNotifications { notifications in
+            let ids = notifications
+                .filter { $0.request.identifier.hasPrefix("study-alarm-") }
+                .map { $0.request.identifier }
+            center.removeDeliveredNotifications(withIdentifiers: ids)
+        }
     }
 
     private func requestNotificationPermission() async {

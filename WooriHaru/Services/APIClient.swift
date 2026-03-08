@@ -118,51 +118,7 @@ final class APIClient {
         body: (any Encodable)? = nil,
         isRetry: Bool = false
     ) async throws -> Data {
-        guard var components = URLComponents(string: baseURL + path) else {
-            throw APIError.invalidURL
-        }
-
-        if !query.isEmpty {
-            components.queryItems = query.map { URLQueryItem(name: $0.key, value: $0.value) }
-        }
-
-        guard let url = components.url else {
-            throw APIError.invalidURL
-        }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = method
-
-        if let body {
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.httpBody = try JSONEncoder().encode(body)
-        }
-
-        let (data, response): (Data, URLResponse)
-        do {
-            (data, response) = try await session.data(for: request)
-        } catch {
-            throw APIError.networkError(error)
-        }
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw APIError.networkError(URLError(.badServerResponse))
-        }
-
-        if httpResponse.statusCode == 401 && !isRetry {
-            let refreshed = await refreshToken()
-            if refreshed {
-                return try await rawFetch(method, path: path, query: query, body: body, isRetry: true)
-            }
-            NotificationCenter.default.post(name: .sessionExpired, object: nil)
-            throw APIError.unauthorized
-        }
-
-        guard (200...299).contains(httpResponse.statusCode) else {
-            let message = String(data: data, encoding: .utf8)
-            throw APIError.serverError(statusCode: httpResponse.statusCode, message: message)
-        }
-
+        let (data, _) = try await rawFetchWithResponse(method, path: path, query: query, body: body, isRetry: isRetry)
         return data
     }
 

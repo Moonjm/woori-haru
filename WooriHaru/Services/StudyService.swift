@@ -47,6 +47,7 @@ struct StudyService {
 
     func endSession(id: Int) async throws -> StudySession {
         let response: DataResponse<StudySession> = try await api.patch("/study/sessions/\(id)/end")
-        return response.data!
+        guard let data = response.data else { throw APIError.serverError(statusCode: 200, message: "세션 종료 응답 데이터 없음") }
+        return data
     }
 }

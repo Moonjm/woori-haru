@@ -98,18 +98,7 @@ struct StudyTimerView: View {
                         .background(Color.orange200)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
-
-                Button {
-                    Task { await vm.end() }
-                } label: {
-                    Label("종료", systemImage: "stop.fill")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color.red500)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(Color.red400.opacity(0.2))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
+                endButton
             }
 
         case .paused:
@@ -125,19 +114,22 @@ struct StudyTimerView: View {
                         .background(Color.green100)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
-
-                Button {
-                    Task { await vm.end() }
-                } label: {
-                    Label("종료", systemImage: "stop.fill")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color.red500)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(Color.red400.opacity(0.2))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
+                endButton
             }
+        }
+    }
+
+    private var endButton: some View {
+        Button {
+            Task { await vm.end() }
+        } label: {
+            Label("종료", systemImage: "stop.fill")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Color.red500)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(Color.red400.opacity(0.2))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
         }
     }
 
