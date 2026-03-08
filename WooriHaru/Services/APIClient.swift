@@ -1,5 +1,9 @@
 import Foundation
 
+extension Notification.Name {
+    static let sessionExpired = Notification.Name("sessionExpired")
+}
+
 enum APIError: Error, LocalizedError {
     case invalidURL
     case unauthorized
@@ -132,10 +136,14 @@ final class APIClient {
         }
 
         if httpResponse.statusCode == 401 && !isRetry {
+            print("[APIClient] 401 on \(method) \(path) → attempting token refresh")
             let refreshed = await refreshToken()
             if refreshed {
+                print("[APIClient] token refresh succeeded → retrying \(method) \(path)")
                 return try await rawFetch(method, path: path, query: query, body: body, isRetry: true)
             }
+            print("[APIClient] token refresh failed → session expired")
+            NotificationCenter.default.post(name: .sessionExpired, object: nil)
             throw APIError.unauthorized
         }
 
@@ -154,15 +162,36 @@ final class APIClient {
         }
 
         let task = Task<Bool, Never> {
-            guard let url = URL(string: baseURL + "/auth/refresh") else { return false }
+            guard let url = URL(string: baseURL + "/auth/refresh") else {
+                print("[APIClient] refreshToken: invalid URL")
+                return false
+            }
             var request = URLRequest(url: url)
             request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+            // 디버깅: 현재 쿠키 확인
+            if let cookies = HTTPCookieStorage.shared.cookies(for: url) {
+                print("[APIClient] refreshToken: cookies = \(cookies.map { "\($0.name)=\($0.value.prefix(10))..." })")
+            } else {
+                print("[APIClient] refreshToken: no cookies for \(url)")
+            }
 
             do {
-                let (_, response) = try await session.data(for: request)
-                guard let http = response as? HTTPURLResponse else { return false }
-                return http.statusCode == 200
+                let (data, response) = try await session.data(for: request)
+                guard let http = response as? HTTPURLResponse else {
+                    print("[APIClient] refreshToken: not HTTP response")
+                    return false
+                }
+                let success = (200...299).contains(http.statusCode)
+                print("[APIClient] refreshToken: status=\(http.statusCode) success=\(success)")
+                if !success {
+                    let body = String(data: data, encoding: .utf8) ?? ""
+                    print("[APIClient] refreshToken failed: \(body)")
+                }
+                return success
             } catch {
+                print("[APIClient] refreshToken error: \(error)")
                 return false
             }
         }
