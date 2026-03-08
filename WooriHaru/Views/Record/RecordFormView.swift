@@ -86,7 +86,6 @@ struct RecordFormView: View {
                             .background(Color.slate200)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
-                    .frame(maxWidth: .infinity)
                 }
 
                 Button {
@@ -110,7 +109,6 @@ struct RecordFormView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
                 .disabled(viewModel.selectedCategoryId == nil)
-                .frame(maxWidth: .infinity)
             }
         }
         .padding(16)
