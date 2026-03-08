@@ -64,6 +64,10 @@ final class APIClient {
         return try await request("PATCH", path: path, body: body)
     }
 
+    func patchVoid(_ path: String, body: (any Encodable)? = nil) async throws {
+        try await requestVoid("PATCH", path: path, body: body)
+    }
+
     func deleteVoid(_ path: String) async throws {
         try await requestVoid("DELETE", path: path)
     }

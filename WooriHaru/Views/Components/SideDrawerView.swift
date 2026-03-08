@@ -28,6 +28,7 @@ struct SideDrawerView: View {
                     drawerItem(icon: "person.2", label: "커플") { isOpen = false; navPath.append(AppDestination.pair) }
                     drawerItem(icon: "chart.bar", label: "통계") { isOpen = false; navPath.append(AppDestination.stats) }
                     drawerItem(icon: "magnifyingglass", label: "검색") { isOpen = false; navPath.append(AppDestination.search) }
+                    drawerItem(icon: "timer", label: "공부 타이머") { isOpen = false; navPath.append(AppDestination.studyTimer) }
                     drawerItem(icon: "person.circle", label: "내 정보") { isOpen = false; navPath.append(AppDestination.profile) }
 
                     if authVM.user?.authority == .admin {
