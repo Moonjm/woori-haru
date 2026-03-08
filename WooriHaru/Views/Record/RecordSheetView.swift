@@ -6,6 +6,7 @@ struct RecordSheetView: View {
     let onDismiss: () -> Void
 
     @State private var dragOffset: CGFloat = 0
+    @State private var keyboardVisible = false
 
     private func hideKeyboard() {
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
@@ -49,52 +50,64 @@ struct RecordSheetView: View {
             if viewModel.isLoading {
                 Spacer()
             } else {
-                ScrollView {
-                    VStack(spacing: 0) {
-                        OvereatSelectorView(
-                            currentLevel: viewModel.overeatLevel,
-                            onSelect: { level in
-                                Task {
-                                    await viewModel.updateOvereat(level)
-                                    onChanged()
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        VStack(spacing: 0) {
+                            OvereatSelectorView(
+                                currentLevel: viewModel.overeatLevel,
+                                onSelect: { level in
+                                    Task {
+                                        await viewModel.updateOvereat(level)
+                                        onChanged()
+                                    }
                                 }
-                            }
-                        )
-                        .padding(.horizontal, 16)
-
-                        RecordListView(
-                            records: viewModel.records,
-                            partnerRecords: viewModel.partnerRecords,
-                            partnerName: viewModel.partnerName,
-                            isPaired: viewModel.isPaired,
-                            onDelete: { record in
-                                Task {
-                                    await viewModel.deleteRecord(record)
-                                    onChanged()
-                                }
-                            },
-                            onTap: { record in
-                                viewModel.startEditing(record)
-                            }
-                        )
-                        .padding(.horizontal, 16)
-                        .padding(.top, 14)
-
-                        RecordFormView(viewModel: viewModel, onSave: onChanged)
+                            )
                             .padding(.horizontal, 16)
-                            .padding(.top, 12)
 
-                        if let error = viewModel.errorMessage {
-                            Text(error)
-                                .font(.caption)
-                                .foregroundStyle(Color.red500)
-                                .padding(.top, 8)
+                            RecordListView(
+                                records: viewModel.records,
+                                partnerRecords: viewModel.partnerRecords,
+                                partnerName: viewModel.partnerName,
+                                isPaired: viewModel.isPaired,
+                                onDelete: { record in
+                                    Task {
+                                        await viewModel.deleteRecord(record)
+                                        onChanged()
+                                    }
+                                },
+                                onTap: { record in
+                                    viewModel.startEditing(record)
+                                }
+                            )
+                            .padding(.horizontal, 16)
+                            .padding(.top, 14)
+
+                            RecordFormView(viewModel: viewModel, onSave: onChanged)
+                                .padding(.horizontal, 16)
+                                .padding(.top, 12)
+                                .id("recordForm")
+
+                            if let error = viewModel.errorMessage {
+                                Text(error)
+                                    .font(.caption)
+                                    .foregroundStyle(Color.red500)
+                                    .padding(.top, 8)
+                            }
+                        }
+                        .padding(.bottom, 34)
+                        .background {
+                            Color.white.opacity(0.001)
+                                .onTapGesture { hideKeyboard() }
                         }
                     }
-                    .padding(.bottom, 34)
-                    .background {
-                        Color.white.opacity(0.001)
-                            .onTapGesture { hideKeyboard() }
+                    .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+                        keyboardVisible = true
+                        withAnimation(.easeOut(duration: 0.25)) {
+                            proxy.scrollTo("recordForm", anchor: .bottom)
+                        }
+                    }
+                    .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+                        keyboardVisible = false
                     }
                 }
             }
