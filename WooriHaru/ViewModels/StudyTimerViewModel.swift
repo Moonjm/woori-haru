@@ -26,7 +26,8 @@ final class StudyTimerViewModel {
     var editSubjectName = ""
 
     // MARK: - Alarm
-    var alarmIntervalMinutes: Int = 60
+    var alarmIntervalMinutes: Int = 0 // 테스트: 10초
+    var alarmIntervalSeconds: Int = 10
 
     // MARK: - Private
     private let service = StudyService()
@@ -58,6 +59,48 @@ final class StudyTimerViewModel {
 
     // MARK: - Load
 
+    func restoreActiveSession() async {
+        do {
+            guard let session = try await service.fetchActiveSession() else { return }
+            activeSessionId = session.id
+            selectedSubject = subjects.first { $0.id == session.subject.id }
+
+            let isPaused = session.pauses.contains { $0.resumedAt == nil }
+            let elapsed = calculateElapsed(session: session)
+            elapsedSeconds = elapsed
+
+            if isPaused {
+                timerState = .paused
+            } else {
+                timerState = .running
+                lastAlarmSeconds = 0
+                startTimer()
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func calculateElapsed(session: StudySession) -> Int {
+        guard let startDate = parseISO(session.startedAt) else { return 0 }
+        let now = Date()
+        let totalDuration = Int(now.timeIntervalSince(startDate))
+        let pausedDuration = session.pauses.reduce(0) { total, pause in
+            guard let pauseStart = parseISO(pause.pausedAt) else { return total }
+            let pauseEnd = pause.resumedAt.flatMap { parseISO($0) } ?? now
+            return total + Int(pauseEnd.timeIntervalSince(pauseStart))
+        }
+        return max(0, totalDuration - pausedDuration)
+    }
+
+    private func parseISO(_ string: String) -> Date? {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+        formatter.timeZone = .current
+        return formatter.date(from: string)
+    }
+
     func loadSubjects() async {
         do {
             subjects = try await service.fetchSubjects()
@@ -84,8 +127,7 @@ final class StudyTimerViewModel {
             activeSessionId = sessionId
             timerState = .running
             elapsedSeconds = 0
-            let intervalSeconds = alarmIntervalMinutes * 60
-            lastAlarmSeconds = intervalSeconds > 0 ? (todayTotalSeconds / intervalSeconds) * intervalSeconds : 0
+            lastAlarmSeconds = 0
             startTimer()
             await requestNotificationPermission()
         } catch {
@@ -191,9 +233,9 @@ final class StudyTimerViewModel {
     // MARK: - Alarm
 
     private func checkAlarm() {
-        let intervalSeconds = alarmIntervalMinutes * 60
+        let intervalSeconds = alarmIntervalMinutes > 0 ? alarmIntervalMinutes * 60 : alarmIntervalSeconds
         guard intervalSeconds > 0 else { return }
-        let cumulativeTotal = todayTotalSeconds + elapsedSeconds
+        let cumulativeTotal = elapsedSeconds
         let nextAlarmAt = lastAlarmSeconds + intervalSeconds
         if cumulativeTotal >= nextAlarmAt {
             lastAlarmSeconds = (cumulativeTotal / intervalSeconds) * intervalSeconds

@@ -28,6 +28,11 @@ struct StudyService {
 
     // MARK: - Sessions
 
+    func fetchActiveSession() async throws -> StudySession? {
+        let response: DataResponse<StudySession?> = try await api.get("/study/sessions/active")
+        return response.data ?? nil
+    }
+
     func fetchSessions(from: String, to: String) async throws -> [StudySession] {
         let response: DataResponse<[StudySession]> = try await api.get("/study/sessions", query: ["from": from, "to": to])
         return response.data ?? []
