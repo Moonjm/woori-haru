@@ -6,11 +6,12 @@ struct StudyService {
     // MARK: - Subjects
 
     func fetchSubjects() async throws -> [StudySubject] {
-        try await api.get("/study/subjects")
+        let response: DataResponse<[StudySubject]> = try await api.get("/study/subjects")
+        return response.data ?? []
     }
 
     func createSubject(name: String) async throws -> Int {
-        try await api.post("/study/subjects", body: StudySubjectRequest(name: name))
+        try await api.postCreated("/study/subjects", body: StudySubjectRequest(name: name))
     }
 
     func updateSubject(id: Int, name: String) async throws {
@@ -33,7 +34,7 @@ struct StudyService {
     }
 
     func startSession(subjectId: Int) async throws -> Int {
-        try await api.post("/study/sessions", body: StudySessionStartRequest(subjectId: subjectId))
+        try await api.postCreated("/study/sessions", body: StudySessionStartRequest(subjectId: subjectId))
     }
 
     func pauseSession(id: Int) async throws {
@@ -45,6 +46,7 @@ struct StudyService {
     }
 
     func endSession(id: Int) async throws -> StudySession {
-        try await api.patch("/study/sessions/\(id)/end")
+        let response: DataResponse<StudySession> = try await api.patch("/study/sessions/\(id)/end")
+        return response.data!
     }
 }

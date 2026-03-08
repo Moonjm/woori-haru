@@ -3,7 +3,6 @@ import Foundation
 struct StudySubject: Codable, Identifiable {
     let id: Int
     let name: String
-    let sortOrder: Int
 }
 
 struct StudyPause: Codable, Identifiable {

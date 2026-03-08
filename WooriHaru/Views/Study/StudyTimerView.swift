@@ -32,6 +32,14 @@ struct StudyTimerView: View {
             Button("수정") { Task { await vm.updateSubject() } }
             Button("취소", role: .cancel) { vm.editingSubject = nil }
         }
+        .alert("오류", isPresented: .init(
+            get: { vm.errorMessage != nil },
+            set: { if !$0 { vm.errorMessage = nil } }
+        )) {
+            Button("확인", role: .cancel) {}
+        } message: {
+            Text(vm.errorMessage ?? "")
+        }
     }
 
     // MARK: - Timer Section

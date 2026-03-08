@@ -46,13 +46,6 @@ struct LoginView: View {
                         field: .password
                     )
 
-                    if let error = authVM.errorMessage {
-                        Text(error)
-                            .font(.system(size: 13, weight: .regular))
-                            .foregroundStyle(Color.red500)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-
                     Button {
                         login()
                     } label: {
@@ -90,6 +83,14 @@ struct LoginView: View {
                 Spacer(minLength: 0)
             }
             .padding(.vertical, 24)
+        }
+        .alert("로그인 실패", isPresented: .init(
+            get: { authVM.errorMessage != nil },
+            set: { if !$0 { authVM.errorMessage = nil } }
+        )) {
+            Button("확인", role: .cancel) {}
+        } message: {
+            Text(authVM.errorMessage ?? "")
         }
         .onSubmit {
             switch focusedField {

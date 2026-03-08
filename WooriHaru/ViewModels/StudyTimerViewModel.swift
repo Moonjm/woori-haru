@@ -1,5 +1,4 @@
-import Foundation
-import Observation
+import SwiftUI
 import UserNotifications
 
 enum TimerState {
@@ -228,10 +227,3 @@ final class StudyTimerViewModel {
     }
 }
 
-private extension Date {
-    var dateString: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter.string(from: self)
-    }
-}

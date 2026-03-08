@@ -52,6 +52,16 @@ final class APIClient {
         try await requestVoid("POST", path: path, body: body)
     }
 
+    func postCreated(_ path: String, body: (any Encodable)? = nil) async throws -> Int {
+        let (_, response) = try await rawFetchWithResponse("POST", path: path, body: body)
+        guard let location = response.value(forHTTPHeaderField: "Location"),
+              let idString = location.split(separator: "/").last,
+              let id = Int(idString) else {
+            throw APIError.serverError(statusCode: response.statusCode, message: "Location 헤더에서 ID를 찾을 수 없습니다")
+        }
+        return id
+    }
+
     func put<T: Decodable>(_ path: String, body: (any Encodable)? = nil) async throws -> T {
         return try await request("PUT", path: path, body: body)
     }
@@ -154,6 +164,56 @@ final class APIClient {
         }
 
         return data
+    }
+
+    private func rawFetchWithResponse(
+        _ method: String,
+        path: String,
+        query: [String: String] = [:],
+        body: (any Encodable)? = nil,
+        isRetry: Bool = false
+    ) async throws -> (Data, HTTPURLResponse) {
+        guard var components = URLComponents(string: baseURL + path) else {
+            throw APIError.invalidURL
+        }
+        if !query.isEmpty {
+            components.queryItems = query.map { URLQueryItem(name: $0.key, value: $0.value) }
+        }
+        guard let url = components.url else { throw APIError.invalidURL }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = method
+        if let body {
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = try JSONEncoder().encode(body)
+        }
+
+        let (data, response): (Data, URLResponse)
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch {
+            throw APIError.networkError(error)
+        }
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.networkError(URLError(.badServerResponse))
+        }
+
+        if httpResponse.statusCode == 401 && !isRetry {
+            let refreshed = await refreshToken()
+            if refreshed {
+                return try await rawFetchWithResponse(method, path: path, query: query, body: body, isRetry: true)
+            }
+            NotificationCenter.default.post(name: .sessionExpired, object: nil)
+            throw APIError.unauthorized
+        }
+
+        guard (200...299).contains(httpResponse.statusCode) else {
+            let message = String(data: data, encoding: .utf8)
+            throw APIError.serverError(statusCode: httpResponse.statusCode, message: message)
+        }
+
+        return (data, httpResponse)
     }
 
     private func refreshToken() async -> Bool {
