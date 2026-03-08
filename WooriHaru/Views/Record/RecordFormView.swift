@@ -71,36 +71,45 @@ struct RecordFormView: View {
                 }
             }
 
-            // Save button (full width)
-            Button {
-                Task {
-                    let success: Bool
-                    if viewModel.editingRecord != nil {
-                        success = await viewModel.updateRecord()
-                    } else {
-                        success = await viewModel.createRecord()
+            // Save / Cancel buttons
+            HStack(spacing: 8) {
+                if viewModel.editingRecord != nil {
+                    Button {
+                        viewModel.resetForm()
+                    } label: {
+                        Text("취소")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundStyle(Color.slate700)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color.slate200)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
-                    if success { onSave() }
-                }
-            } label: {
-                Text(viewModel.editingRecord != nil ? "수정" : "저장")
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(viewModel.selectedCategoryId != nil ? Color.blue500 : Color.slate400)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-            }
-            .disabled(viewModel.selectedCategoryId == nil)
-
-            // Cancel editing
-            if viewModel.editingRecord != nil {
-                Button("취소") {
-                    viewModel.resetForm()
                 }
-                .font(.caption)
-                .foregroundStyle(Color.slate500)
+
+                Button {
+                    Task {
+                        let success: Bool
+                        if viewModel.editingRecord != nil {
+                            success = await viewModel.updateRecord()
+                        } else {
+                            success = await viewModel.createRecord()
+                        }
+                        if success { onSave() }
+                    }
+                } label: {
+                    Text(viewModel.editingRecord != nil ? "수정" : "저장")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(viewModel.selectedCategoryId != nil ? Color.blue500 : Color.slate400)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .disabled(viewModel.selectedCategoryId == nil)
                 .frame(maxWidth: .infinity)
             }
         }

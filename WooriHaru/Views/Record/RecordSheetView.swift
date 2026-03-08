@@ -7,6 +7,10 @@ struct RecordSheetView: View {
 
     @State private var dragOffset: CGFloat = 0
 
+    private func hideKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             // Drag indicator
@@ -38,6 +42,8 @@ struct RecordSheetView: View {
             .frame(maxWidth: .infinity)
             .padding(.top, 12)
             .padding(.bottom, 14)
+            .contentShape(Rectangle())
+            .onTapGesture { hideKeyboard() }
 
             // Scrollable content
             if viewModel.isLoading {
@@ -86,6 +92,10 @@ struct RecordSheetView: View {
                         }
                     }
                     .padding(.bottom, 34)
+                    .background {
+                        Color.white.opacity(0.001)
+                            .onTapGesture { hideKeyboard() }
+                    }
                 }
             }
         }

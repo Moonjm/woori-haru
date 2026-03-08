@@ -201,9 +201,11 @@ struct CalendarView: View {
                     }
                 }
                 .ignoresSafeArea(.container, edges: .bottom)
+                .ignoresSafeArea(.keyboard)
                 .transition(.move(edge: .bottom))
             }
         }
+        .ignoresSafeArea(.keyboard)
         .onChange(of: showPicker) { _, show in
             // 피커 닫힐 때 API 데이터 보장
             if !show {

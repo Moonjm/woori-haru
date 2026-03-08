@@ -11,6 +11,20 @@ final class AuthViewModel {
 
     private let authService = AuthService()
 
+    init() {
+        NotificationCenter.default.addObserver(
+            forName: .sessionExpired,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self else { return }
+            Task { @MainActor in
+                self.user = nil
+                self.isLoggedIn = false
+            }
+        }
+    }
+
     func checkSession() async {
         isLoading = true
         do {
