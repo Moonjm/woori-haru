@@ -95,7 +95,7 @@ final class StudyTimerViewModel {
 
             // Live Activity 복원
             if let subjectName = selectedSubject?.name {
-                startLiveActivity(subjectName: subjectName)
+                await startLiveActivity(subjectName: subjectName)
             }
         } catch {
             errorMessage = error.localizedDescription
@@ -151,7 +151,7 @@ final class StudyTimerViewModel {
             lastAlarmSeconds = 0
             timerStartDate = Date()
             startTimer()
-            startLiveActivity(subjectName: subject.name)
+            await startLiveActivity(subjectName: subject.name)
             await requestNotificationPermission()
         } catch {
             errorMessage = error.localizedDescription
@@ -192,7 +192,7 @@ final class StudyTimerViewModel {
             elapsedSeconds = 0
             timerStartDate = nil
             stopTimer()
-            endLiveActivity()
+            await endLiveActivity()
             removeAlarmNotifications()
             await loadTodaySessions()
         } catch {
@@ -260,11 +260,11 @@ final class StudyTimerViewModel {
 
     // MARK: - Live Activity
 
-    private func startLiveActivity(subjectName: String) {
+    private func startLiveActivity(subjectName: String) async {
         guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
 
-        // 기존 Live Activity 종료
-        endLiveActivity()
+        // 기존 Live Activity 모두 종료 (고아 포함)
+        await cleanupLiveActivities()
 
         let attributes = StudyTimerAttributes(subjectName: subjectName)
         let state = makeContentState()
@@ -287,11 +287,16 @@ final class StudyTimerViewModel {
         }
     }
 
-    private func endLiveActivity() {
+    private func endLiveActivity() async {
         guard let activity = liveActivity else { return }
         let state = makeContentState()
-        Task {
-            await activity.end(.init(state: state, staleDate: nil), dismissalPolicy: .immediate)
+        await activity.end(.init(state: state, staleDate: nil), dismissalPolicy: .immediate)
+        liveActivity = nil
+    }
+
+    private func cleanupLiveActivities() async {
+        for activity in Activity<StudyTimerAttributes>.activities {
+            await activity.end(nil, dismissalPolicy: .immediate)
         }
         liveActivity = nil
     }
@@ -300,19 +305,19 @@ final class StudyTimerViewModel {
         switch timerState {
         case .running:
             return .init(
-                timerState: "running",
+                timerState: .running,
                 startDate: timerStartDate ?? Date(),
                 pausedElapsed: 0
             )
         case .paused:
             return .init(
-                timerState: "paused",
+                timerState: .paused,
                 startDate: Date(),
                 pausedElapsed: elapsedSeconds
             )
         case .idle:
             return .init(
-                timerState: "idle",
+                timerState: .idle,
                 startDate: Date(),
                 pausedElapsed: 0
             )
