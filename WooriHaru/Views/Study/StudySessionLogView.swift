@@ -200,6 +200,11 @@ struct StudySessionLogView: View {
                 Text(sessionTimeRange(session))
                     .font(.caption)
                     .foregroundStyle(Color.slate500)
+                if !session.pauses.isEmpty {
+                    Text(pauseSummary(session.pauses))
+                        .font(.caption2)
+                        .foregroundStyle(Color.orange700)
+                }
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
@@ -279,6 +284,20 @@ struct StudySessionLogView: View {
         let start = Date.fromISO(session.startedAt).map { Self.timeFormatter.string(from: $0) } ?? "??:??"
         let end = session.endedAt.flatMap { Date.fromISO($0) }.map { Self.timeFormatter.string(from: $0) } ?? "진행중"
         return "\(start) - \(end)"
+    }
+
+    private func pauseSummary(_ pauses: [StudyPause]) -> String {
+        let count = pauses.count
+        let totalPauseSeconds = pauses.reduce(0) { total, pause in
+            guard let start = Date.fromISO(pause.pausedAt) else { return total }
+            let end = pause.resumedAt.flatMap { Date.fromISO($0) } ?? Date()
+            return total + Int(end.timeIntervalSince(start))
+        }
+        let m = totalPauseSeconds / 60
+        if m > 0 {
+            return "일시정지 \(count)회, \(m)분"
+        }
+        return "일시정지 \(count)회"
     }
 
     private func formatDuration(_ seconds: Int) -> String {
