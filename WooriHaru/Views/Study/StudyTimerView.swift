@@ -300,15 +300,34 @@ struct StudyTimerView: View {
         return "\(start) - \(end)"
     }
 
+    private static let isoFormatter: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f
+    }()
+
+    private static let timeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "HH:mm"
+        return f
+    }()
+
     private func formatTime(_ isoString: String) -> String {
-        let parts = isoString.split(separator: "T")
-        guard parts.count == 2 else { return isoString }
-        let timeParts = parts[1].split(separator: ":")
-        guard timeParts.count >= 2 else { return String(parts[1]) }
-        return "\(timeParts[0]):\(timeParts[1])"
+        if let date = Self.isoFormatter.date(from: isoString) {
+            return Self.timeFormatter.string(from: date)
+        }
+        // fractionalSeconds 없는 경우 fallback
+        let plain = ISO8601DateFormatter()
+        if let date = plain.date(from: isoString) {
+            return Self.timeFormatter.string(from: date)
+        }
+        return "??:??"
     }
 
     private func formatSeconds(_ seconds: Int) -> String {
+        if seconds < 60 {
+            return "1분 미만"
+        }
         let h = seconds / 3600
         let m = (seconds % 3600) / 60
         if h > 0 {
