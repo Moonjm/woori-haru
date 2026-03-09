@@ -4,6 +4,7 @@ import SwiftUI
 import UserNotifications
 
 private let alarmIntervalKey = "alarmIntervalMinutes"
+private let maxScheduledAlarms = 20
 
 enum TimerState {
     case idle
@@ -117,24 +118,8 @@ final class StudyTimerViewModel {
         return max(0, totalDuration - pausedDuration)
     }
 
-    private static let isoParserWithFraction: DateFormatter = {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "en_US_POSIX")
-        f.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS"
-        f.timeZone = .current
-        return f
-    }()
-
-    private static let isoParser: DateFormatter = {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "en_US_POSIX")
-        f.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
-        f.timeZone = .current
-        return f
-    }()
-
     private func parseISO(_ string: String) -> Date? {
-        Self.isoParserWithFraction.date(from: string) ?? Self.isoParser.date(from: string)
+        Date.fromISO(string)
     }
 
     func loadSubjects() async {
@@ -181,7 +166,7 @@ final class StudyTimerViewModel {
             timerState = .paused
             stopTimer()
             removeScheduledAlarms()
-            updateLiveActivity()
+            await updateLiveActivity()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -195,7 +180,7 @@ final class StudyTimerViewModel {
             timerStartDate = Date().addingTimeInterval(TimeInterval(-elapsedSeconds))
             startTimer()
             scheduleAlarmNotifications()
-            updateLiveActivity()
+            await updateLiveActivity()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -297,12 +282,10 @@ final class StudyTimerViewModel {
         }
     }
 
-    private func updateLiveActivity() {
+    private func updateLiveActivity() async {
         guard let activity = liveActivity else { return }
         let state = makeContentState()
-        Task {
-            await activity.update(.init(state: state, staleDate: nil))
-        }
+        await activity.update(.init(state: state, staleDate: nil))
     }
 
     private func endLiveActivity() async {
@@ -327,17 +310,11 @@ final class StudyTimerViewModel {
                 startDate: timerStartDate ?? Date(),
                 pausedElapsed: 0
             )
-        case .paused:
+        case .paused, .idle:
             return .init(
                 timerState: .paused,
                 startDate: Date(),
                 pausedElapsed: elapsedSeconds
-            )
-        case .idle:
-            return .init(
-                timerState: .idle,
-                startDate: Date(),
-                pausedElapsed: 0
             )
         }
     }
@@ -361,7 +338,6 @@ final class StudyTimerViewModel {
         if cumulativeTotal >= nextAlarmAt {
             lastAlarmSeconds = (cumulativeTotal / intervalSeconds) * intervalSeconds
             sendAlarmNotification(elapsedSeconds: elapsedSeconds)
-            scheduleAlarmNotifications()
         }
     }
 
@@ -389,7 +365,7 @@ final class StudyTimerViewModel {
         guard intervalSeconds > 0 else { return }
 
         let subjectName = selectedSubject?.name ?? "공부"
-        let maxSchedule = 20 // iOS 최대 64개 제한 고려, 넉넉히 20개
+        let maxSchedule = maxScheduledAlarms
         let baseElapsed = elapsedSeconds
 
         for i in 1...maxSchedule {
@@ -417,7 +393,7 @@ final class StudyTimerViewModel {
     }
 
     private func removeScheduledAlarms() {
-        let ids = (1...20).map { "study-scheduled-\($0)" }
+        let ids = (1...maxScheduledAlarms).map { "study-scheduled-\($0)" }
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ids)
     }
 
