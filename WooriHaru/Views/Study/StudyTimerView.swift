@@ -1,10 +1,11 @@
 import SwiftUI
 
 struct StudyTimerView: View {
-    @State private var vm = StudyTimerViewModel()
+    @Environment(StudyTimerViewModel.self) private var vm
     @FocusState private var isAlarmFieldFocused: Bool
 
     var body: some View {
+        @Bindable var vm = vm
         ScrollView {
             VStack(spacing: 24) {
                 timerSection
