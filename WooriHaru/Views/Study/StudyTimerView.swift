@@ -302,13 +302,21 @@ struct StudyTimerView: View {
         return "\(start) - \(end)"
     }
 
-    private static let isoFormatter: ISO8601DateFormatter = {
-        let f = ISO8601DateFormatter()
-        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    private static let dateParserWithFraction: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS"
+        f.timeZone = .current
         return f
     }()
 
-    private static let isoPlainFormatter = ISO8601DateFormatter()
+    private static let dateParser: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+        f.timeZone = .current
+        return f
+    }()
 
     private static let timeFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -317,7 +325,7 @@ struct StudyTimerView: View {
     }()
 
     private func formatTime(_ isoString: String) -> String {
-        if let date = Self.isoFormatter.date(from: isoString) ?? Self.isoPlainFormatter.date(from: isoString) {
+        if let date = Self.dateParserWithFraction.date(from: isoString) ?? Self.dateParser.date(from: isoString) {
             return Self.timeFormatter.string(from: date)
         }
         return "??:??"
