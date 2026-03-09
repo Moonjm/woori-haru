@@ -5,49 +5,32 @@ struct StudySessionLogView: View {
     @State private var hasScrolledToToday = false
     @State private var showDatePicker = false
     @State private var selectedDate = Date()
-    @State private var scrollProxy: ScrollViewProxy?
+    @State private var pendingScrollDate: Date?
 
     var body: some View {
         ScrollViewReader { proxy in
-            ScrollView {
-                LazyVStack(spacing: 0) {
-                    // 과거 로딩 트리거
-                    Color.clear
-                        .frame(height: 1)
-                        .onAppear {
-                            Task { await vm.loadPastIfNeeded() }
-                        }
-
-                    ForEach(Array(vm.dayEntries.enumerated()), id: \.element.id) { index, entry in
-                        // 월 헤더
-                        if isFirstOfMonth(index: index, entry: entry) {
-                            monthHeader(entry.date)
-                        }
-
-                        dayRow(entry)
-                            .id(entry.id)
-                            .onAppear {
-                                vm.currentVisibleDate = entry.date
-                            }
-                    }
-
-                    // 미래 로딩 트리거
-                    Color.clear
-                        .frame(height: 1)
-                        .onAppear {
-                            Task { await vm.loadFutureIfNeeded() }
-                        }
+            ZStack {
+                if vm.dayEntries.isEmpty {
+                    ProgressView()
+                } else {
+                    scrollContent(proxy: proxy)
                 }
             }
             .background(Color.white)
             .task {
                 await vm.loadInitial()
-                scrollProxy = proxy
                 scrollToToday(proxy: proxy)
             }
             .onChange(of: vm.dayEntries.count) {
                 if !hasScrolledToToday {
                     scrollToToday(proxy: proxy)
+                }
+                if let date = pendingScrollDate {
+                    let id = vm.entryId(for: date)
+                    withAnimation {
+                        proxy.scrollTo(id, anchor: .top)
+                    }
+                    pendingScrollDate = nil
                 }
             }
         }
@@ -59,7 +42,7 @@ struct StudySessionLogView: View {
                     showDatePicker = true
                 } label: {
                     HStack(spacing: 4) {
-                        Text(headerMonthText(vm.currentVisibleDate))
+                        Text(Self.headerMonthFormatter.string(from: vm.currentVisibleDate))
                             .font(.headline)
                             .foregroundStyle(Color.slate900)
                         Image(systemName: "chevron.down")
@@ -70,8 +53,9 @@ struct StudySessionLogView: View {
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
-                    if let proxy = scrollProxy {
-                        scrollToToday(proxy: proxy)
+                    let todayKey = vm.entryId(for: Date())
+                    withAnimation {
+                        proxy.scrollTo(todayKey, anchor: .center)
                     }
                 } label: {
                     Text("오늘")
@@ -90,6 +74,44 @@ struct StudySessionLogView: View {
             Button("확인", role: .cancel) {}
         } message: {
             Text(vm.errorMessage ?? "")
+        }
+    }
+
+    // MARK: - Scroll Content
+
+    private func scrollContent(proxy: ScrollViewProxy) -> some View {
+        ScrollView {
+            LazyVStack(spacing: 0) {
+                // 과거 로딩 트리거
+                Color.clear
+                    .frame(height: 1)
+                    .onAppear {
+                        Task { await vm.loadPastIfNeeded() }
+                    }
+
+                ForEach(Array(vm.dayEntries.enumerated()), id: \.element.id) { index, entry in
+                    if isFirstOfMonth(index: index, entry: entry) {
+                        monthHeader(entry.date)
+                    }
+
+                    dayRow(entry)
+                        .id(entry.id)
+                        .onAppear {
+                            // 월이 바뀔 때만 헤더 업데이트
+                            if entry.date.month != vm.currentVisibleDate.month
+                                || entry.date.year != vm.currentVisibleDate.year {
+                                vm.currentVisibleDate = entry.date
+                            }
+                        }
+                }
+
+                // 미래 로딩 트리거
+                Color.clear
+                    .frame(height: 1)
+                    .onAppear {
+                        Task { await vm.loadFutureIfNeeded() }
+                    }
+            }
         }
     }
 
@@ -114,8 +136,9 @@ struct StudySessionLogView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("이동") {
                         showDatePicker = false
+                        pendingScrollDate = selectedDate
                         Task {
-                            await navigateToDate(selectedDate)
+                            await vm.ensureMonthLoaded(for: selectedDate)
                         }
                     }
                 }
@@ -128,7 +151,7 @@ struct StudySessionLogView: View {
 
     private func monthHeader(_ date: Date) -> some View {
         HStack {
-            Text(monthYearText(date))
+            Text(Self.monthYearFormatter.string(from: date))
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(Color.slate700)
             Spacer()
@@ -146,7 +169,6 @@ struct StudySessionLogView: View {
         let isSaturday = entry.date.isSaturday
 
         return HStack(alignment: .top, spacing: 0) {
-            // 왼쪽: 날짜 + 요일
             VStack(spacing: 2) {
                 ZStack {
                     if isToday {
@@ -167,7 +189,6 @@ struct StudySessionLogView: View {
             .frame(width: 48)
             .padding(.top, 2)
 
-            // 오른쪽: 세션 블록들
             VStack(spacing: 4) {
                 if entry.sessions.isEmpty {
                     Divider()
@@ -220,18 +241,6 @@ struct StudySessionLogView: View {
         .clipShape(RoundedRectangle(cornerRadius: 6))
     }
 
-    // MARK: - Navigation
-
-    private func navigateToDate(_ date: Date) async {
-        await vm.ensureMonthLoaded(for: date)
-        let id = vm.entryId(for: date)
-        if let proxy = scrollProxy {
-            withAnimation {
-                proxy.scrollTo(id, anchor: .top)
-            }
-        }
-    }
-
     // MARK: - Helpers
 
     private func isFirstOfMonth(index: Int, entry: DayEntry) -> Bool {
@@ -240,19 +249,19 @@ struct StudySessionLogView: View {
         return entry.date.month != prev.date.month || entry.date.year != prev.date.year
     }
 
-    private func headerMonthText(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "ko_KR")
-        formatter.dateFormat = "M월 yyyy"
-        return formatter.string(from: date)
-    }
+    private static let headerMonthFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "ko_KR")
+        f.dateFormat = "M월 yyyy"
+        return f
+    }()
 
-    private func monthYearText(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "ko_KR")
-        formatter.dateFormat = "yyyy년 M월"
-        return formatter.string(from: date)
-    }
+    private static let monthYearFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "ko_KR")
+        f.dateFormat = "yyyy년 M월"
+        return f
+    }()
 
     private func dayNumberColor(isToday: Bool, isSunday: Bool, isSaturday: Bool) -> Color {
         if isToday { return .white }
