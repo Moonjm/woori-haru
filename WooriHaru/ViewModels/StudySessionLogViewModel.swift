@@ -16,7 +16,6 @@ final class StudySessionLogViewModel {
 
     private let service = StudyService()
     private var loadedMonths: Set<String> = [] // "yyyy-MM"
-    private var todayIndex: Int?
 
     // MARK: - Initial Load
 
@@ -117,11 +116,6 @@ final class StudySessionLogViewModel {
         if !loadedMonths.contains(key) {
             await loadMonth(date)
         }
-    }
-
-    /// 현재 보이는 첫 번째 항목 기준 월 텍스트
-    var visibleMonth: String {
-        currentVisibleDate.yearMonth
     }
 
     var currentVisibleDate: Date = Date()
