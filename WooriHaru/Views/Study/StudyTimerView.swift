@@ -253,9 +253,21 @@ struct StudyTimerView: View {
 
     private var todaySessionsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("오늘 기록")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Color.slate700)
+            HStack {
+                Text("오늘 기록")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.slate700)
+                Spacer()
+                NavigationLink(value: AppDestination.studySessionLog) {
+                    HStack(spacing: 4) {
+                        Text("전체 기록")
+                            .font(.caption)
+                        Image(systemName: "chevron.right")
+                            .font(.caption2)
+                    }
+                    .foregroundStyle(Color.blue500)
+                }
+            }
 
             if vm.todaySessions.isEmpty && vm.timerState == .idle {
                 Text("아직 기록이 없습니다")
@@ -267,16 +279,6 @@ struct StudyTimerView: View {
                 ForEach(vm.todaySessions) { session in
                     sessionRow(session)
                 }
-            }
-
-            NavigationLink(value: AppDestination.studySessionLog) {
-                Text("전체 기록 보기")
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(Color.blue500)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
-                    .background(Color.blue500.opacity(0.08))
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
             }
         }
         .padding(16)
