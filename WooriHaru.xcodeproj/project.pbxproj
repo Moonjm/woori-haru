@@ -3,10 +3,14 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
+		880AD4692F5F071200777742 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 880AD4682F5F071100777742 /* WidgetKit.framework */; };
+		880AD46B2F5F071200777742 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 880AD46A2F5F071200777742 /* SwiftUI.framework */; };
+		880AD47C2F5F071300777742 /* StudyTimerWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 880AD4662F5F071100777742 /* StudyTimerWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		880AD4842F5F088400777742 /* StudyTimerAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = L20005 /* StudyTimerAttributes.swift */; };
 		8825C7532F5B148A00E46B14 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8825C7512F5B148A00E46B14 /* ProfileView.swift */; };
 		8825C7572F5B1A1E00E46B14 /* UserManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8825C7552F5B1A1E00E46B14 /* UserManagementView.swift */; };
 		8825C7582F5B1A1E00E46B14 /* AdminView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8825C7542F5B1A1E00E46B14 /* AdminView.swift */; };
@@ -64,7 +68,34 @@
 		L10005 /* StudyTimerAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = L20005 /* StudyTimerAttributes.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		880AD47A2F5F071300777742 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A80001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 880AD4652F5F071100777742;
+			remoteInfo = StudyTimerWidgetExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		880AD47D2F5F071300777742 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				880AD47C2F5F071300777742 /* StudyTimerWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		880AD4662F5F071100777742 /* StudyTimerWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = StudyTimerWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		880AD4682F5F071100777742 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		880AD46A2F5F071200777742 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		8825C7512F5B148A00E46B14 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		8825C7542F5B1A1E00E46B14 /* AdminView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminView.swift; sourceTree = "<group>"; };
 		8825C7552F5B1A1E00E46B14 /* UserManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserManagementView.swift; sourceTree = "<group>"; };
@@ -124,7 +155,30 @@
 		L20005 /* StudyTimerAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyTimerAttributes.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		880AD4802F5F071300777742 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 880AD4652F5F071100777742 /* StudyTimerWidgetExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		880AD46C2F5F071200777742 /* StudyTimerWidget */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (880AD4802F5F071300777742 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = StudyTimerWidget; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
+
 /* Begin PBXFrameworksBuildPhase section */
+		880AD4632F5F071100777742 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				880AD46B2F5F071200777742 /* SwiftUI.framework in Frameworks */,
+				880AD4692F5F071200777742 /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A30001 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -135,6 +189,15 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		880AD4672F5F071100777742 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				880AD4682F5F071100777742 /* WidgetKit.framework */,
+				880AD46A2F5F071200777742 /* SwiftUI.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		8825C7522F5B148A00E46B14 /* Profile */ = {
 			isa = PBXGroup;
 			children = (
@@ -156,6 +219,8 @@
 			isa = PBXGroup;
 			children = (
 				A40002 /* WooriHaru */,
+				880AD46C2F5F071200777742 /* StudyTimerWidget */,
+				880AD4672F5F071100777742 /* Frameworks */,
 				A40003 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -182,6 +247,7 @@
 			isa = PBXGroup;
 			children = (
 				A20005 /* WooriHaru.app */,
+				880AD4662F5F071100777742 /* StudyTimerWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -205,7 +271,7 @@
 				C20005 /* PairInfo.swift */,
 				C20006 /* PairEvent.swift */,
 				L20001 /* StudyModels.swift */,
-			L20005 /* StudyTimerAttributes.swift */,
+				L20005 /* StudyTimerAttributes.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -361,6 +427,28 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		880AD4652F5F071100777742 /* StudyTimerWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 880AD4812F5F071300777742 /* Build configuration list for PBXNativeTarget "StudyTimerWidgetExtension" */;
+			buildPhases = (
+				880AD4622F5F071100777742 /* Sources */,
+				880AD4632F5F071100777742 /* Frameworks */,
+				880AD4642F5F071100777742 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				880AD46C2F5F071200777742 /* StudyTimerWidget */,
+			);
+			name = StudyTimerWidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = StudyTimerWidgetExtension;
+			productReference = 880AD4662F5F071100777742 /* StudyTimerWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		A50001 /* WooriHaru */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = A70001 /* Build configuration list for PBXNativeTarget "WooriHaru" */;
@@ -368,10 +456,12 @@
 				A60001 /* Sources */,
 				A30001 /* Frameworks */,
 				A60002 /* Resources */,
+				880AD47D2F5F071300777742 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				880AD47B2F5F071300777742 /* PBXTargetDependency */,
 			);
 			name = WooriHaru;
 			productName = WooriHaru;
@@ -385,9 +475,12 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1600;
+				LastSwiftUpdateCheck = 2630;
 				LastUpgradeCheck = 1600;
 				TargetAttributes = {
+					880AD4652F5F071100777742 = {
+						CreatedOnToolsVersion = 26.3;
+					};
 					A50001 = {
 						CreatedOnToolsVersion = 16.0;
 					};
@@ -410,11 +503,19 @@
 			projectRoot = "";
 			targets = (
 				A50001 /* WooriHaru */,
+				880AD4652F5F071100777742 /* StudyTimerWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		880AD4642F5F071100777742 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A60002 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -427,6 +528,14 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		880AD4622F5F071100777742 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				880AD4842F5F088400777742 /* StudyTimerAttributes.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A60001 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -489,7 +598,77 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		880AD47B2F5F071300777742 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 880AD4652F5F071100777742 /* StudyTimerWidgetExtension */;
+			targetProxy = 880AD47A2F5F071300777742 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		880AD47E2F5F071300777742 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4L7RX6VCB2;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = StudyTimerWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = StudyTimerWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.woori.haru.StudyTimerWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		880AD47F2F5F071300777742 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4L7RX6VCB2;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = StudyTimerWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = StudyTimerWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.woori.haru.StudyTimerWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		A90001 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -674,6 +853,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		880AD4812F5F071300777742 /* Build configuration list for PBXNativeTarget "StudyTimerWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				880AD47E2F5F071300777742 /* Debug */,
+				880AD47F2F5F071300777742 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		A70001 /* Build configuration list for PBXNativeTarget "WooriHaru" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
