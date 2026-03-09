@@ -306,6 +306,8 @@ struct StudyTimerView: View {
         return f
     }()
 
+    private static let isoPlainFormatter = ISO8601DateFormatter()
+
     private static let timeFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "HH:mm"
@@ -317,8 +319,7 @@ struct StudyTimerView: View {
             return Self.timeFormatter.string(from: date)
         }
         // fractionalSeconds 없는 경우 fallback
-        let plain = ISO8601DateFormatter()
-        if let date = plain.date(from: isoString) {
+        if let date = Self.isoPlainFormatter.date(from: isoString) {
             return Self.timeFormatter.string(from: date)
         }
         return "??:??"
