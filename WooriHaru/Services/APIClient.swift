@@ -52,6 +52,16 @@ final class APIClient {
         try await requestVoid("POST", path: path, body: body)
     }
 
+    func postCreated(_ path: String, body: (any Encodable)? = nil) async throws -> Int {
+        let (_, response) = try await rawFetchWithResponse("POST", path: path, body: body)
+        guard let location = response.value(forHTTPHeaderField: "Location"),
+              let idString = location.split(separator: "/").last,
+              let id = Int(idString) else {
+            throw APIError.serverError(statusCode: response.statusCode, message: "Location 헤더에서 ID를 찾을 수 없습니다")
+        }
+        return id
+    }
+
     func put<T: Decodable>(_ path: String, body: (any Encodable)? = nil) async throws -> T {
         return try await request("PUT", path: path, body: body)
     }
@@ -62,6 +72,10 @@ final class APIClient {
 
     func patch<T: Decodable>(_ path: String, body: (any Encodable)? = nil) async throws -> T {
         return try await request("PATCH", path: path, body: body)
+    }
+
+    func patchVoid(_ path: String, body: (any Encodable)? = nil) async throws {
+        try await requestVoid("PATCH", path: path, body: body)
     }
 
     func deleteVoid(_ path: String) async throws {
@@ -104,21 +118,27 @@ final class APIClient {
         body: (any Encodable)? = nil,
         isRetry: Bool = false
     ) async throws -> Data {
+        let (data, _) = try await rawFetchWithResponse(method, path: path, query: query, body: body, isRetry: isRetry)
+        return data
+    }
+
+    private func rawFetchWithResponse(
+        _ method: String,
+        path: String,
+        query: [String: String] = [:],
+        body: (any Encodable)? = nil,
+        isRetry: Bool = false
+    ) async throws -> (Data, HTTPURLResponse) {
         guard var components = URLComponents(string: baseURL + path) else {
             throw APIError.invalidURL
         }
-
         if !query.isEmpty {
             components.queryItems = query.map { URLQueryItem(name: $0.key, value: $0.value) }
         }
-
-        guard let url = components.url else {
-            throw APIError.invalidURL
-        }
+        guard let url = components.url else { throw APIError.invalidURL }
 
         var request = URLRequest(url: url)
         request.httpMethod = method
-
         if let body {
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             request.httpBody = try JSONEncoder().encode(body)
@@ -138,7 +158,7 @@ final class APIClient {
         if httpResponse.statusCode == 401 && !isRetry {
             let refreshed = await refreshToken()
             if refreshed {
-                return try await rawFetch(method, path: path, query: query, body: body, isRetry: true)
+                return try await rawFetchWithResponse(method, path: path, query: query, body: body, isRetry: true)
             }
             NotificationCenter.default.post(name: .sessionExpired, object: nil)
             throw APIError.unauthorized
@@ -149,7 +169,7 @@ final class APIClient {
             throw APIError.serverError(statusCode: httpResponse.statusCode, message: message)
         }
 
-        return data
+        return (data, httpResponse)
     }
 
     private func refreshToken() async -> Bool {

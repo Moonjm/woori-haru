@@ -57,6 +57,10 @@
 		K10002 /* PairEventsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = K20002 /* PairEventsViewModel.swift */; };
 		K10003 /* PairView.swift in Sources */ = {isa = PBXBuildFile; fileRef = K20003 /* PairView.swift */; };
 		K10004 /* PairEventsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = K20004 /* PairEventsView.swift */; };
+		L10001 /* StudyModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = L20001 /* StudyModels.swift */; };
+		L10002 /* StudyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = L20002 /* StudyService.swift */; };
+		L10003 /* StudyTimerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = L20003 /* StudyTimerViewModel.swift */; };
+		L10004 /* StudyTimerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = L20004 /* StudyTimerView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -112,6 +116,10 @@
 		K20002 /* PairEventsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairEventsViewModel.swift; sourceTree = "<group>"; };
 		K20003 /* PairView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairView.swift; sourceTree = "<group>"; };
 		K20004 /* PairEventsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairEventsView.swift; sourceTree = "<group>"; };
+		L20001 /* StudyModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyModels.swift; sourceTree = "<group>"; };
+		L20002 /* StudyService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyService.swift; sourceTree = "<group>"; };
+		L20003 /* StudyTimerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyTimerViewModel.swift; sourceTree = "<group>"; };
+		L20004 /* StudyTimerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyTimerView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -194,6 +202,7 @@
 				C20004 /* OvereatLevel.swift */,
 				C20005 /* PairInfo.swift */,
 				C20006 /* PairEvent.swift */,
+				L20001 /* StudyModels.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -209,6 +218,7 @@
 				D20005 /* PairService.swift */,
 				D20006 /* PairEventService.swift */,
 				D20007 /* HolidayService.swift */,
+				L20002 /* StudyService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -225,6 +235,7 @@
 				E20007 /* CategoriesViewModel.swift */,
 				K20001 /* PairViewModel.swift */,
 				K20002 /* PairEventsViewModel.swift */,
+				L20003 /* StudyTimerViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -242,6 +253,7 @@
 				B40010 /* Category */,
 				B40011 /* Auth */,
 				B40012 /* Components */,
+				L40001 /* Study */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -333,6 +345,14 @@
 				F20002 /* Color+Extensions.swift */,
 			);
 			path = Extensions;
+			sourceTree = "<group>";
+		};
+		L40001 /* Study */ = {
+			isa = PBXGroup;
+			children = (
+				L20004 /* StudyTimerView.swift */,
+			);
+			path = Study;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -456,6 +476,10 @@
 				K10002 /* PairEventsViewModel.swift in Sources */,
 				K10003 /* PairView.swift in Sources */,
 				K10004 /* PairEventsView.swift in Sources */,
+				L10001 /* StudyModels.swift in Sources */,
+				L10002 /* StudyService.swift in Sources */,
+				L10003 /* StudyTimerViewModel.swift in Sources */,
+				L10004 /* StudyTimerView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

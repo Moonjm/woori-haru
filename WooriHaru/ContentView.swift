@@ -9,6 +9,7 @@ enum AppDestination: Hashable {
     case profile
     case admin
     case userManagement
+    case studyTimer
 }
 
 struct ContentView: View {
@@ -27,6 +28,7 @@ struct ContentView: View {
                     case .profile: ProfileView()
                     case .admin: AdminView(navPath: $path)
                     case .userManagement: UserManagementView()
+                    case .studyTimer: StudyTimerView()
                     }
                 }
         }
