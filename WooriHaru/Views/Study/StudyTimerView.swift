@@ -315,11 +315,7 @@ struct StudyTimerView: View {
     }()
 
     private func formatTime(_ isoString: String) -> String {
-        if let date = Self.isoFormatter.date(from: isoString) {
-            return Self.timeFormatter.string(from: date)
-        }
-        // fractionalSeconds 없는 경우 fallback
-        if let date = Self.isoPlainFormatter.date(from: isoString) {
+        if let date = Self.isoFormatter.date(from: isoString) ?? Self.isoPlainFormatter.date(from: isoString) {
             return Self.timeFormatter.string(from: date)
         }
         return "??:??"
