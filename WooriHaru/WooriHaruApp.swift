@@ -43,16 +43,12 @@ struct WooriHaruApp: App {
     }
 
     private func handleDeepLink(_ url: URL) {
-        guard url.scheme == "wooriharu",
-              url.host == "study" else { return }
-
-        let action = url.lastPathComponent
+        guard let deepLink = StudyDeepLink(url: url) else { return }
         Task {
-            switch action {
-            case "pause": await studyTimerVM.pause()
-            case "resume": await studyTimerVM.resume()
-            case "end": await studyTimerVM.end()
-            default: break
+            switch deepLink {
+            case .pause: await studyTimerVM.pause()
+            case .resume: await studyTimerVM.resume()
+            case .end: await studyTimerVM.end()
             }
         }
     }

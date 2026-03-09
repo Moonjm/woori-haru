@@ -21,33 +21,8 @@ struct StudyTimerLiveActivity: Widget {
                         }
                         Spacer()
                         HStack(spacing: 8) {
-                            if context.state.timerState == .running {
-                                Link(destination: URL(string: "wooriharu://study/pause")!) {
-                                    Image(systemName: "pause.fill")
-                                        .font(.caption)
-                                        .foregroundStyle(.orange)
-                                        .frame(width: 32, height: 32)
-                                        .background(.orange.opacity(0.2))
-                                        .clipShape(Circle())
-                                }
-                            } else {
-                                Link(destination: URL(string: "wooriharu://study/resume")!) {
-                                    Image(systemName: "play.fill")
-                                        .font(.caption)
-                                        .foregroundStyle(.green)
-                                        .frame(width: 32, height: 32)
-                                        .background(.green.opacity(0.2))
-                                        .clipShape(Circle())
-                                }
-                            }
-                            Link(destination: URL(string: "wooriharu://study/end")!) {
-                                Image(systemName: "stop.fill")
-                                    .font(.caption)
-                                    .foregroundStyle(.red)
-                                    .frame(width: 32, height: 32)
-                                    .background(.red.opacity(0.2))
-                                    .clipShape(Circle())
-                            }
+                            toggleButton(isRunning: context.state.timerState == .running)
+                            circleButton(deepLink: .end, icon: "stop.fill", color: .red)
                         }
                     }
                 }
@@ -63,6 +38,40 @@ struct StudyTimerLiveActivity: Widget {
                 Image(systemName: "book.fill")
                     .foregroundStyle(.blue)
             }
+        }
+    }
+
+    // MARK: - Buttons
+
+    @ViewBuilder
+    private func toggleButton(isRunning: Bool) -> some View {
+        if isRunning {
+            circleButton(deepLink: .pause, icon: "pause.fill", color: .orange)
+        } else {
+            circleButton(deepLink: .resume, icon: "play.fill", color: .green)
+        }
+    }
+
+    private func circleButton(deepLink: StudyDeepLink, icon: String, color: Color) -> some View {
+        Link(destination: deepLink.url) {
+            Image(systemName: icon)
+                .font(.caption)
+                .foregroundStyle(color)
+                .frame(width: 32, height: 32)
+                .background(color.opacity(0.2))
+                .clipShape(Circle())
+        }
+    }
+
+    private func pillButton(deepLink: StudyDeepLink, title: String, icon: String, color: Color) -> some View {
+        Link(destination: deepLink.url) {
+            Label(title, systemImage: icon)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(color)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+                .background(color.opacity(0.2))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
         }
     }
 
@@ -92,36 +101,11 @@ struct StudyTimerLiveActivity: Widget {
 
             HStack(spacing: 12) {
                 if context.state.timerState == .running {
-                    Link(destination: URL(string: "wooriharu://study/pause")!) {
-                        Label("일시정지", systemImage: "pause.fill")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.orange)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 8)
-                            .background(.orange.opacity(0.2))
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                    }
+                    pillButton(deepLink: .pause, title: "일시정지", icon: "pause.fill", color: .orange)
                 } else {
-                    Link(destination: URL(string: "wooriharu://study/resume")!) {
-                        Label("재개", systemImage: "play.fill")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.green)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 8)
-                            .background(.green.opacity(0.2))
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                    }
+                    pillButton(deepLink: .resume, title: "재개", icon: "play.fill", color: .green)
                 }
-
-                Link(destination: URL(string: "wooriharu://study/end")!) {
-                    Label("종료", systemImage: "stop.fill")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.red)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                        .background(.red.opacity(0.2))
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                }
+                pillButton(deepLink: .end, title: "종료", icon: "stop.fill", color: .red)
             }
         }
         .padding(16)

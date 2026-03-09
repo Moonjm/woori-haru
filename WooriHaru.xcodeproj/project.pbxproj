@@ -11,6 +11,8 @@
 		880AD46B2F5F071200777742 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 880AD46A2F5F071200777742 /* SwiftUI.framework */; };
 		880AD47C2F5F071300777742 /* StudyTimerWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 880AD4662F5F071100777742 /* StudyTimerWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		880AD4842F5F088400777742 /* StudyTimerAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = L20005 /* StudyTimerAttributes.swift */; };
+		880AD4862F5F0C6100777742 /* StudyDeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 880AD4852F5F0C6100777742 /* StudyDeepLink.swift */; };
+		880AD4872F5F0C6100777742 /* StudyDeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 880AD4852F5F0C6100777742 /* StudyDeepLink.swift */; };
 		8825C7532F5B148A00E46B14 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8825C7512F5B148A00E46B14 /* ProfileView.swift */; };
 		8825C7572F5B1A1E00E46B14 /* UserManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8825C7552F5B1A1E00E46B14 /* UserManagementView.swift */; };
 		8825C7582F5B1A1E00E46B14 /* AdminView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8825C7542F5B1A1E00E46B14 /* AdminView.swift */; };
@@ -96,6 +98,7 @@
 		880AD4662F5F071100777742 /* StudyTimerWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = StudyTimerWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		880AD4682F5F071100777742 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		880AD46A2F5F071200777742 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		880AD4852F5F0C6100777742 /* StudyDeepLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyDeepLink.swift; sourceTree = "<group>"; };
 		8825C7512F5B148A00E46B14 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		8825C7542F5B1A1E00E46B14 /* AdminView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminView.swift; sourceTree = "<group>"; };
 		8825C7552F5B1A1E00E46B14 /* UserManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserManagementView.swift; sourceTree = "<group>"; };
@@ -263,6 +266,7 @@
 		B40001 /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				880AD4852F5F0C6100777742 /* StudyDeepLink.swift */,
 				C20007 /* APIResponse.swift */,
 				C20001 /* User.swift */,
 				C20002 /* Category.swift */,
@@ -533,6 +537,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				880AD4842F5F088400777742 /* StudyTimerAttributes.swift in Sources */,
+				880AD4862F5F0C6100777742 /* StudyDeepLink.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -561,6 +566,7 @@
 				D10007 /* HolidayService.swift in Sources */,
 				E10001 /* AuthViewModel.swift in Sources */,
 				E10003 /* RecordViewModel.swift in Sources */,
+				880AD4872F5F0C6100777742 /* StudyDeepLink.swift in Sources */,
 				E10004 /* CalendarViewModel.swift in Sources */,
 				E10005 /* StatsViewModel.swift in Sources */,
 				8825C7532F5B148A00E46B14 /* ProfileView.swift in Sources */,
