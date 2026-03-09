@@ -14,7 +14,7 @@ enum StudyDeepLink {
     }
 
     init?(url: URL) {
-        guard url.scheme == "wooriharu", url.host == "study" else { return nil }
+        guard url.scheme == "wooriharu", url.host() == "study" else { return nil }
         switch url.lastPathComponent {
         case "pause": self = .pause
         case "resume": self = .resume

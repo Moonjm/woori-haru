@@ -66,6 +66,27 @@ extension Date {
         dateStringFormatter.date(from: string)
     }
 
+    private static let isoParserWithFraction: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS"
+        f.timeZone = .current
+        return f
+    }()
+
+    private static let isoParser: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+        f.timeZone = .current
+        return f
+    }()
+
+    /// 서버 ISO 날짜 문자열 파싱 (마이크로초 포함/미포함 모두 지원)
+    static func fromISO(_ string: String) -> Date? {
+        isoParserWithFraction.date(from: string) ?? isoParser.date(from: string)
+    }
+
     // MARK: - Date Range
 
     /// 연/월 기반 날짜 범위 반환 (month=0이면 연간 전체)

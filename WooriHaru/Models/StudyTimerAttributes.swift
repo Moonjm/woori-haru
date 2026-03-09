@@ -4,7 +4,6 @@ import Foundation
 enum TimerDisplayState: String, Codable, Hashable {
     case running
     case paused
-    case idle
 }
 
 struct StudyTimerAttributes: ActivityAttributes {
