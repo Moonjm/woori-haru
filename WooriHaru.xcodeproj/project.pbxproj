@@ -14,7 +14,7 @@
 		880AD4862F5F0C6100777742 /* StudyDeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 880AD4852F5F0C6100777742 /* StudyDeepLink.swift */; };
 		880AD4872F5F0C6100777742 /* StudyDeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 880AD4852F5F0C6100777742 /* StudyDeepLink.swift */; };
 		880AD4912F5F136900777742 /* StudySessionLogViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 880AD4902F5F136900777742 /* StudySessionLogViewModel.swift */; };
-		880AD4932F5F137700777742 /* StudySessionLogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 880AD4922F5F137700777742 /* StudySessionLogView.swift */; };
+		880AD4952F5F15A900777742 /* StudySessionLogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 880AD4942F5F15A900777742 /* StudySessionLogView.swift */; };
 		8825C7532F5B148A00E46B14 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8825C7512F5B148A00E46B14 /* ProfileView.swift */; };
 		8825C7572F5B1A1E00E46B14 /* UserManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8825C7552F5B1A1E00E46B14 /* UserManagementView.swift */; };
 		8825C7582F5B1A1E00E46B14 /* AdminView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8825C7542F5B1A1E00E46B14 /* AdminView.swift */; };
@@ -102,7 +102,7 @@
 		880AD46A2F5F071200777742 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		880AD4852F5F0C6100777742 /* StudyDeepLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyDeepLink.swift; sourceTree = "<group>"; };
 		880AD4902F5F136900777742 /* StudySessionLogViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudySessionLogViewModel.swift; sourceTree = "<group>"; };
-		880AD4922F5F137700777742 /* StudySessionLogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudySessionLogView.swift; sourceTree = "<group>"; };
+		880AD4942F5F15A900777742 /* StudySessionLogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudySessionLogView.swift; sourceTree = "<group>"; };
 		8825C7512F5B148A00E46B14 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		8825C7542F5B1A1E00E46B14 /* AdminView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminView.swift; sourceTree = "<group>"; };
 		8825C7552F5B1A1E00E46B14 /* UserManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserManagementView.swift; sourceTree = "<group>"; };
@@ -321,7 +321,6 @@
 		B40004 /* Views */ = {
 			isa = PBXGroup;
 			children = (
-				880AD4922F5F137700777742 /* StudySessionLogView.swift */,
 				8825C7562F5B1A1E00E46B14 /* Admin */,
 				8825C7522F5B148A00E46B14 /* Profile */,
 				B40005 /* Calendar */,
@@ -429,6 +428,7 @@
 		L40001 /* Study */ = {
 			isa = PBXGroup;
 			children = (
+				880AD4942F5F15A900777742 /* StudySessionLogView.swift */,
 				L20004 /* StudyTimerView.swift */,
 			);
 			path = Study;
@@ -581,7 +581,7 @@
 				E10007 /* CategoriesViewModel.swift in Sources */,
 				E10002 /* LoginView.swift in Sources */,
 				F10001 /* Date+Extensions.swift in Sources */,
-				880AD4932F5F137700777742 /* StudySessionLogView.swift in Sources */,
+				880AD4952F5F15A900777742 /* StudySessionLogView.swift in Sources */,
 				F10002 /* Color+Extensions.swift in Sources */,
 				G10001 /* WeekdayHeaderView.swift in Sources */,
 				G10002 /* DayCellView.swift in Sources */,
