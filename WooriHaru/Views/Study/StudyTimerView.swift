@@ -144,7 +144,8 @@ struct StudyTimerView: View {
     // MARK: - Alarm Interval
 
     private var alarmIntervalSection: some View {
-        HStack(spacing: 8) {
+        @Bindable var vm = vm
+        return HStack(spacing: 8) {
             Image(systemName: "bell.fill")
                 .foregroundStyle(Color.blue500)
                 .font(.caption)
