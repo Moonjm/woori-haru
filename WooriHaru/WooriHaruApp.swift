@@ -13,6 +13,7 @@ class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
 @main
 struct WooriHaruApp: App {
     @State private var authVM = AuthViewModel()
+    @State private var studyTimerVM = StudyTimerViewModel()
     private let notificationDelegate = NotificationDelegate()
 
     init() {
@@ -31,8 +32,27 @@ struct WooriHaruApp: App {
                 }
             }
             .environment(authVM)
+            .environment(studyTimerVM)
             .task {
                 await authVM.checkSession()
+            }
+            .onOpenURL { url in
+                handleDeepLink(url)
+            }
+        }
+    }
+
+    private func handleDeepLink(_ url: URL) {
+        guard url.scheme == "wooriharu",
+              url.host == "study" else { return }
+
+        let action = url.lastPathComponent
+        Task {
+            switch action {
+            case "pause": await studyTimerVM.pause()
+            case "resume": await studyTimerVM.resume()
+            case "end": await studyTimerVM.end()
+            default: break
             }
         }
     }

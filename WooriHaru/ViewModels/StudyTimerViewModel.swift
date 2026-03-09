@@ -1,3 +1,4 @@
+import ActivityKit
 import SwiftUI
 import UserNotifications
 
@@ -44,6 +45,8 @@ final class StudyTimerViewModel {
         willSet { timer?.invalidate() }
     }
     private var lastAlarmSeconds: Int = 0
+    private var liveActivity: Activity<StudyTimerAttributes>?
+    private var timerStartDate: Date?
 
     // MARK: - Computed
 
@@ -86,7 +89,13 @@ final class StudyTimerViewModel {
                 timerState = .paused
             } else {
                 timerState = .running
+                timerStartDate = Date().addingTimeInterval(TimeInterval(-elapsed))
                 startTimer()
+            }
+
+            // Live Activity 복원
+            if let subjectName = selectedSubject?.name {
+                startLiveActivity(subjectName: subjectName)
             }
         } catch {
             errorMessage = error.localizedDescription
@@ -140,7 +149,9 @@ final class StudyTimerViewModel {
             timerState = .running
             elapsedSeconds = 0
             lastAlarmSeconds = 0
+            timerStartDate = Date()
             startTimer()
+            startLiveActivity(subjectName: subject.name)
             await requestNotificationPermission()
         } catch {
             errorMessage = error.localizedDescription
@@ -153,6 +164,7 @@ final class StudyTimerViewModel {
             try await service.pauseSession(id: id)
             timerState = .paused
             stopTimer()
+            updateLiveActivity()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -163,7 +175,9 @@ final class StudyTimerViewModel {
         do {
             try await service.resumeSession(id: id)
             timerState = .running
+            timerStartDate = Date().addingTimeInterval(TimeInterval(-elapsedSeconds))
             startTimer()
+            updateLiveActivity()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -176,7 +190,9 @@ final class StudyTimerViewModel {
             timerState = .idle
             activeSessionId = nil
             elapsedSeconds = 0
+            timerStartDate = nil
             stopTimer()
+            endLiveActivity()
             removeAlarmNotifications()
             await loadTodaySessions()
         } catch {
@@ -240,6 +256,67 @@ final class StudyTimerViewModel {
 
     private func stopTimer() {
         timer = nil
+    }
+
+    // MARK: - Live Activity
+
+    private func startLiveActivity(subjectName: String) {
+        guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
+
+        // 기존 Live Activity 종료
+        endLiveActivity()
+
+        let attributes = StudyTimerAttributes(subjectName: subjectName)
+        let state = makeContentState()
+
+        do {
+            liveActivity = try Activity.request(
+                attributes: attributes,
+                content: .init(state: state, staleDate: nil)
+            )
+        } catch {
+            print("Live Activity 시작 실패: \(error)")
+        }
+    }
+
+    private func updateLiveActivity() {
+        guard let activity = liveActivity else { return }
+        let state = makeContentState()
+        Task {
+            await activity.update(.init(state: state, staleDate: nil))
+        }
+    }
+
+    private func endLiveActivity() {
+        guard let activity = liveActivity else { return }
+        let state = makeContentState()
+        Task {
+            await activity.end(.init(state: state, staleDate: nil), dismissalPolicy: .immediate)
+        }
+        liveActivity = nil
+    }
+
+    private func makeContentState() -> StudyTimerAttributes.ContentState {
+        switch timerState {
+        case .running:
+            return .init(
+                timerState: "running",
+                startDate: timerStartDate ?? Date(),
+                pausedElapsed: 0
+            )
+        case .paused:
+            return .init(
+                timerState: "paused",
+                startDate: Date(),
+                pausedElapsed: elapsedSeconds
+            )
+        case .idle:
+            return .init(
+                timerState: "idle",
+                startDate: Date(),
+                pausedElapsed: 0
+            )
+        }
     }
 
     // MARK: - Alarm
