@@ -27,15 +27,16 @@ final class StudyTimerViewModel {
 
     // MARK: - Alarm
     var alarmIntervalMinutes: Int {
-        get { UserDefaults.standard.integer(forKey: "alarmIntervalMinutes") }
-        set { UserDefaults.standard.set(newValue, forKey: "alarmIntervalMinutes") }
+        get { UserDefaults.standard.integer(forKey: Self.alarmIntervalKey) }
+        set { UserDefaults.standard.set(newValue, forKey: Self.alarmIntervalKey) }
     }
     var alarmIntervalText: String = {
-        let saved = UserDefaults.standard.integer(forKey: "alarmIntervalMinutes")
+        let saved = UserDefaults.standard.integer(forKey: Self.alarmIntervalKey)
         return saved > 0 ? "\(saved)" : ""
     }()
 
     // MARK: - Private
+    private static let alarmIntervalKey = "alarmIntervalMinutes"
     private let service = StudyService()
     private var activeSessionId: Int?
     nonisolated(unsafe) private var timer: Timer? {

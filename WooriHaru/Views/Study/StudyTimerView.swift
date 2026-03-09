@@ -158,8 +158,10 @@ struct StudyTimerView: View {
                 .background(Color.white)
                 .clipShape(RoundedRectangle(cornerRadius: 6))
                 .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.slate200, lineWidth: 1))
-                .onChange(of: vm.alarmIntervalText) {
-                    vm.saveAlarmInterval()
+                .onChange(of: isAlarmFieldFocused) {
+                    if !isAlarmFieldFocused {
+                        vm.saveAlarmInterval()
+                    }
                 }
                 .disabled(vm.timerState != .idle)
 
