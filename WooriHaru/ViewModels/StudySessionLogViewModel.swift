@@ -106,4 +106,23 @@ final class StudySessionLogViewModel {
         let todayKey = Date().dateString
         return dayEntries.firstIndex { $0.id == todayKey }
     }
+
+    func entryId(for date: Date) -> String {
+        date.dateString
+    }
+
+    /// 특정 날짜로 이동 시 해당 월 데이터가 없으면 로드
+    func ensureMonthLoaded(for date: Date) async {
+        let key = date.yearMonth
+        if !loadedMonths.contains(key) {
+            await loadMonth(date)
+        }
+    }
+
+    /// 현재 보이는 첫 번째 항목 기준 월 텍스트
+    var visibleMonth: String {
+        currentVisibleDate.yearMonth
+    }
+
+    var currentVisibleDate: Date = Date()
 }
