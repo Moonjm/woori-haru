@@ -75,11 +75,15 @@ final class StudyTimerViewModel {
             let elapsed = calculateElapsed(session: session)
             elapsedSeconds = elapsed
 
+            let intervalSeconds = alarmIntervalMinutes * 60
+            if intervalSeconds > 0 {
+                lastAlarmSeconds = (elapsed / intervalSeconds) * intervalSeconds
+            }
+
             if isPaused {
                 timerState = .paused
             } else {
                 timerState = .running
-                lastAlarmSeconds = 0
                 startTimer()
             }
         } catch {
@@ -239,7 +243,11 @@ final class StudyTimerViewModel {
     // MARK: - Alarm
 
     func saveAlarmInterval() {
-        let value = Int(alarmIntervalText.trimmingCharacters(in: .whitespaces)) ?? 0
+        let filtered = alarmIntervalText.filter { $0.isNumber }
+        if alarmIntervalText != filtered {
+            alarmIntervalText = filtered
+        }
+        let value = Int(filtered) ?? 0
         alarmIntervalMinutes = max(0, value)
     }
 
