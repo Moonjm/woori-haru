@@ -102,3 +102,16 @@ extension Date {
         return (from, to)
     }
 }
+
+// MARK: - Duration Formatting
+
+extension Int {
+    /// 초를 "X시간 Y분" / "Y분" / "1분 미만"으로 변환
+    var durationText: String {
+        if self < 60 { return "1분 미만" }
+        let h = self / 3600
+        let m = (self % 3600) / 60
+        if h > 0 { return String(format: "%d시간 %d분", h, m) }
+        return String(format: "%d분", m)
+    }
+}

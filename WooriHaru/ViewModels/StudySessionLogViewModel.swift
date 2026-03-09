@@ -39,8 +39,8 @@ final class StudySessionLogViewModel {
         guard !loadedMonths.contains(key) else { return }
 
         isLoadingPast = true
+        defer { isLoadingPast = false }
         await loadMonth(prevMonth)
-        isLoadingPast = false
     }
 
     func loadFutureIfNeeded() async {
@@ -51,8 +51,8 @@ final class StudySessionLogViewModel {
         guard !loadedMonths.contains(key) else { return }
 
         isLoadingFuture = true
+        defer { isLoadingFuture = false }
         await loadMonth(nextMonth)
-        isLoadingFuture = false
     }
 
     // MARK: - Private
@@ -93,12 +93,11 @@ final class StudySessionLogViewModel {
     }
 
     private func mergeDays(_ newDays: [DayEntry]) {
-        var all = dayEntries + newDays
-        // 중복 제거 후 날짜 정렬
-        var seen = Set<String>()
-        all = all.filter { seen.insert($0.id).inserted }
-        all.sort { $0.date < $1.date }
-        dayEntries = all
+        var entriesById = Dictionary(uniqueKeysWithValues: dayEntries.map { ($0.id, $0) })
+        for day in newDays {
+            entriesById[day.id] = day
+        }
+        dayEntries = entriesById.values.sorted { $0.date < $1.date }
     }
 
     func todayEntryIndex() -> Int? {

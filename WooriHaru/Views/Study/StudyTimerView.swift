@@ -328,14 +328,6 @@ struct StudyTimerView: View {
     }
 
     private func formatSeconds(_ seconds: Int) -> String {
-        if seconds < 60 {
-            return "1분 미만"
-        }
-        let h = seconds / 3600
-        let m = (seconds % 3600) / 60
-        if h > 0 {
-            return String(format: "%d시간 %d분", h, m)
-        }
-        return String(format: "%d분", m)
+        seconds.durationText
     }
 }
