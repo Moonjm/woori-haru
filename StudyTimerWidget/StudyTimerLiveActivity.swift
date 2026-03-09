@@ -21,7 +21,7 @@ struct StudyTimerLiveActivity: Widget {
                         }
                         Spacer()
                         HStack(spacing: 8) {
-                            if context.state.timerState == "running" {
+                            if context.state.timerState == .running {
                                 Link(destination: URL(string: "wooriharu://study/pause")!) {
                                     Image(systemName: "pause.fill")
                                         .font(.caption)
@@ -76,7 +76,7 @@ struct StudyTimerLiveActivity: Widget {
                         .font(.headline)
                         .foregroundStyle(.white)
 
-                    if context.state.timerState == "paused" {
+                    if context.state.timerState == .paused {
                         Text("일시정지")
                             .font(.caption)
                             .foregroundStyle(.orange)
@@ -91,7 +91,7 @@ struct StudyTimerLiveActivity: Widget {
             }
 
             HStack(spacing: 12) {
-                if context.state.timerState == "running" {
+                if context.state.timerState == .running {
                     Link(destination: URL(string: "wooriharu://study/pause")!) {
                         Label("일시정지", systemImage: "pause.fill")
                             .font(.caption.weight(.semibold))
@@ -133,7 +133,7 @@ struct StudyTimerLiveActivity: Widget {
 
     @ViewBuilder
     private func timerText(context: ActivityViewContext<StudyTimerAttributes>) -> some View {
-        if context.state.timerState == "running" {
+        if context.state.timerState == .running {
             Text(context.state.startDate, style: .timer)
         } else {
             let h = context.state.pausedElapsed / 3600
