@@ -79,6 +79,7 @@ struct StudyTimerView: View {
         case .idle:
             Button {
                 isAlarmFieldFocused = false
+                vm.saveAlarmInterval()
                 Task { await vm.start() }
             } label: {
                 Label("시작", systemImage: "play.fill")
