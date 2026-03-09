@@ -310,11 +310,7 @@ struct StudySessionLogView: View {
     }
 
     private func formatDuration(_ seconds: Int) -> String {
-        let h = seconds / 3600
-        let m = (seconds % 3600) / 60
-        if h > 0 { return String(format: "%d시간 %d분", h, m) }
-        if m > 0 { return String(format: "%d분", m) }
-        return "1분 미만"
+        seconds.durationText
     }
 
     private func scrollToToday(proxy: ScrollViewProxy) {
