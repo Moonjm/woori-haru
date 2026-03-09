@@ -31,7 +31,7 @@ final class StudyTimerViewModel {
         set { UserDefaults.standard.set(newValue, forKey: Self.alarmIntervalKey) }
     }
     var alarmIntervalText: String = {
-        let saved = UserDefaults.standard.integer(forKey: Self.alarmIntervalKey)
+        let saved = UserDefaults.standard.integer(forKey: "alarmIntervalMinutes")
         return saved > 0 ? "\(saved)" : ""
     }()
 
