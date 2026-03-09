@@ -268,6 +268,16 @@ struct StudyTimerView: View {
                     sessionRow(session)
                 }
             }
+
+            NavigationLink(value: AppDestination.studySessionLog) {
+                Text("전체 기록 보기")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(Color.blue500)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(Color.blue500.opacity(0.08))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
         }
         .padding(16)
         .background(.white)
