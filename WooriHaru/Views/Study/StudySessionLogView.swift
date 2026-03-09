@@ -3,6 +3,9 @@ import SwiftUI
 struct StudySessionLogView: View {
     @State private var vm = StudySessionLogViewModel()
     @State private var hasScrolledToToday = false
+    @State private var showDatePicker = false
+    @State private var selectedDate = Date()
+    @State private var scrollProxy: ScrollViewProxy?
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -16,13 +19,16 @@ struct StudySessionLogView: View {
                         }
 
                     ForEach(Array(vm.dayEntries.enumerated()), id: \.element.id) { index, entry in
-                        // 월 헤더: 해당 월의 첫 번째 날이거나 이전 항목과 월이 다를 때
+                        // 월 헤더
                         if isFirstOfMonth(index: index, entry: entry) {
                             monthHeader(entry.date)
                         }
 
                         dayRow(entry)
                             .id(entry.id)
+                            .onAppear {
+                                vm.currentVisibleDate = entry.date
+                            }
                     }
 
                     // 미래 로딩 트리거
@@ -36,6 +42,7 @@ struct StudySessionLogView: View {
             .background(Color.white)
             .task {
                 await vm.loadInitial()
+                scrollProxy = proxy
                 scrollToToday(proxy: proxy)
             }
             .onChange(of: vm.dayEntries.count) {
@@ -44,8 +51,38 @@ struct StudySessionLogView: View {
                 }
             }
         }
-        .navigationTitle("공부 기록")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Button {
+                    selectedDate = vm.currentVisibleDate
+                    showDatePicker = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Text(headerMonthText(vm.currentVisibleDate))
+                            .font(.headline)
+                            .foregroundStyle(Color.slate900)
+                        Image(systemName: "chevron.down")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(Color.slate400)
+                    }
+                }
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    if let proxy = scrollProxy {
+                        scrollToToday(proxy: proxy)
+                    }
+                } label: {
+                    Text("오늘")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(Color.blue500)
+                }
+            }
+        }
+        .sheet(isPresented: $showDatePicker) {
+            datePickerSheet
+        }
         .alert("오류", isPresented: .init(
             get: { vm.errorMessage != nil },
             set: { if !$0 { vm.errorMessage = nil } }
@@ -54,6 +91,37 @@ struct StudySessionLogView: View {
         } message: {
             Text(vm.errorMessage ?? "")
         }
+    }
+
+    // MARK: - Date Picker Sheet
+
+    private var datePickerSheet: some View {
+        NavigationStack {
+            DatePicker(
+                "날짜 선택",
+                selection: $selectedDate,
+                displayedComponents: .date
+            )
+            .datePickerStyle(.graphical)
+            .environment(\.locale, Locale(identifier: "ko_KR"))
+            .padding()
+            .navigationTitle("날짜 이동")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("취소") { showDatePicker = false }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("이동") {
+                        showDatePicker = false
+                        Task {
+                            await navigateToDate(selectedDate)
+                        }
+                    }
+                }
+            }
+        }
+        .presentationDetents([.medium])
     }
 
     // MARK: - Month Header
@@ -117,11 +185,10 @@ struct StudySessionLogView: View {
         .padding(.vertical, 2)
     }
 
-    // MARK: - Session Block (구글 캘린더 스타일)
+    // MARK: - Session Block
 
     private func sessionBlock(_ session: StudySession) -> some View {
         HStack(spacing: 0) {
-            // 왼쪽 컬러 바
             RoundedRectangle(cornerRadius: 2)
                 .fill(Color.blue500)
                 .frame(width: 4)
@@ -139,7 +206,6 @@ struct StudySessionLogView: View {
 
             Spacer()
 
-            // 소요 시간
             Text(formatDuration(session.totalSeconds))
                 .font(.caption)
                 .foregroundStyle(Color.slate400)
@@ -149,12 +215,31 @@ struct StudySessionLogView: View {
         .clipShape(RoundedRectangle(cornerRadius: 6))
     }
 
+    // MARK: - Navigation
+
+    private func navigateToDate(_ date: Date) async {
+        await vm.ensureMonthLoaded(for: date)
+        let id = vm.entryId(for: date)
+        if let proxy = scrollProxy {
+            withAnimation {
+                proxy.scrollTo(id, anchor: .top)
+            }
+        }
+    }
+
     // MARK: - Helpers
 
     private func isFirstOfMonth(index: Int, entry: DayEntry) -> Bool {
         if index == 0 { return true }
         let prev = vm.dayEntries[index - 1]
         return entry.date.month != prev.date.month || entry.date.year != prev.date.year
+    }
+
+    private func headerMonthText(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ko_KR")
+        formatter.dateFormat = "M월 yyyy"
+        return formatter.string(from: date)
     }
 
     private func monthYearText(_ date: Date) -> String {
