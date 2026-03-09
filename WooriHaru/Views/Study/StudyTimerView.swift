@@ -2,6 +2,7 @@ import SwiftUI
 
 struct StudyTimerView: View {
     @State private var vm = StudyTimerViewModel()
+    @FocusState private var isAlarmFieldFocused: Bool
 
     var body: some View {
         ScrollView {
@@ -13,6 +14,7 @@ struct StudyTimerView: View {
             .padding(20)
         }
         .background(Color.slate50)
+        .onTapGesture { isAlarmFieldFocused = false }
         .navigationTitle("공부 타이머")
         .navigationBarTitleDisplayMode(.inline)
         .task {
@@ -61,6 +63,8 @@ struct StudyTimerView: View {
                 .font(.caption)
                 .foregroundStyle(Color.slate400)
 
+            alarmIntervalSection
+
             timerButtons
         }
         .frame(maxWidth: .infinity)
@@ -74,6 +78,7 @@ struct StudyTimerView: View {
         switch vm.timerState {
         case .idle:
             Button {
+                isAlarmFieldFocused = false
                 Task { await vm.start() }
             } label: {
                 Label("시작", systemImage: "play.fill")
@@ -132,6 +137,39 @@ struct StudyTimerView: View {
                 .background(Color.red400.opacity(0.2))
                 .clipShape(RoundedRectangle(cornerRadius: 12))
         }
+    }
+
+    // MARK: - Alarm Interval
+
+    private var alarmIntervalSection: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "bell.fill")
+                .foregroundStyle(Color.blue500)
+                .font(.caption)
+
+            TextField("분", text: $vm.alarmIntervalText)
+                .keyboardType(.numberPad)
+                .focused($isAlarmFieldFocused)
+                .font(.caption)
+                .frame(width: 40)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 4)
+                .background(Color.white)
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.slate200, lineWidth: 1))
+                .onChange(of: vm.alarmIntervalText) {
+                    vm.saveAlarmInterval()
+                }
+                .disabled(vm.timerState != .idle)
+
+            Text("분마다 알림")
+                .font(.caption)
+                .foregroundStyle(Color.slate500)
+        }
+        .padding(12)
+        .background(Color.slate50)
+        .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 
     // MARK: - Subject Section
