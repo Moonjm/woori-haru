@@ -337,6 +337,8 @@ final class StudyTimerViewModel {
         let nextAlarmAt = lastAlarmSeconds + intervalSeconds
         if cumulativeTotal >= nextAlarmAt {
             lastAlarmSeconds = (cumulativeTotal / intervalSeconds) * intervalSeconds
+            // 예약 알림 갱신 후 즉시 알림 (예약과 중복 방지)
+            scheduleAlarmNotifications()
             sendAlarmNotification(elapsedSeconds: elapsedSeconds)
         }
     }
