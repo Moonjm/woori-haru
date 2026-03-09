@@ -26,8 +26,14 @@ final class StudyTimerViewModel {
     var editSubjectName = ""
 
     // MARK: - Alarm
-    var alarmIntervalMinutes: Int = 0 // 테스트: 10초
-    var alarmIntervalSeconds: Int = 10
+    var alarmIntervalMinutes: Int {
+        get { UserDefaults.standard.integer(forKey: "alarmIntervalMinutes") }
+        set { UserDefaults.standard.set(newValue, forKey: "alarmIntervalMinutes") }
+    }
+    var alarmIntervalText: String = {
+        let saved = UserDefaults.standard.integer(forKey: "alarmIntervalMinutes")
+        return saved > 0 ? "\(saved)" : ""
+    }()
 
     // MARK: - Private
     private let service = StudyService()
@@ -232,8 +238,13 @@ final class StudyTimerViewModel {
 
     // MARK: - Alarm
 
+    func saveAlarmInterval() {
+        let value = Int(alarmIntervalText.trimmingCharacters(in: .whitespaces)) ?? 0
+        alarmIntervalMinutes = max(0, value)
+    }
+
     private func checkAlarm() {
-        let intervalSeconds = alarmIntervalMinutes > 0 ? alarmIntervalMinutes * 60 : alarmIntervalSeconds
+        let intervalSeconds = alarmIntervalMinutes * 60
         guard intervalSeconds > 0 else { return }
         let cumulativeTotal = elapsedSeconds
         let nextAlarmAt = lastAlarmSeconds + intervalSeconds
@@ -245,11 +256,11 @@ final class StudyTimerViewModel {
 
     private func sendAlarmNotification() {
         let content = UNMutableNotificationContent()
-        let totalMinutes = (todayTotalSeconds + elapsedSeconds) / 60
-        let h = totalMinutes / 60
-        let m = totalMinutes % 60
-        content.title = "공부 타이머"
-        content.body = "누적 공부시간 \(h)시간 \(m)분 경과"
+        let h = elapsedSeconds / 3600
+        let m = (elapsedSeconds % 3600) / 60
+        let subjectName = selectedSubject?.name ?? "공부"
+        content.title = subjectName
+        content.body = "\(h)시간 \(m)분 경과"
         content.sound = .default
 
         let request = UNNotificationRequest(
