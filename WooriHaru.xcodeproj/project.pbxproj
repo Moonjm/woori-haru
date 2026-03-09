@@ -61,6 +61,7 @@
 		L10002 /* StudyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = L20002 /* StudyService.swift */; };
 		L10003 /* StudyTimerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = L20003 /* StudyTimerViewModel.swift */; };
 		L10004 /* StudyTimerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = L20004 /* StudyTimerView.swift */; };
+		L10005 /* StudyTimerAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = L20005 /* StudyTimerAttributes.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -120,6 +121,7 @@
 		L20002 /* StudyService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyService.swift; sourceTree = "<group>"; };
 		L20003 /* StudyTimerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyTimerViewModel.swift; sourceTree = "<group>"; };
 		L20004 /* StudyTimerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyTimerView.swift; sourceTree = "<group>"; };
+		L20005 /* StudyTimerAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyTimerAttributes.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -203,6 +205,7 @@
 				C20005 /* PairInfo.swift */,
 				C20006 /* PairEvent.swift */,
 				L20001 /* StudyModels.swift */,
+			L20005 /* StudyTimerAttributes.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -480,6 +483,7 @@
 				L10002 /* StudyService.swift in Sources */,
 				L10003 /* StudyTimerViewModel.swift in Sources */,
 				L10004 /* StudyTimerView.swift in Sources */,
+				L10005 /* StudyTimerAttributes.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
