@@ -31,3 +31,17 @@ struct StudySubjectRequest: Encodable {
 struct StudySubjectReorderRequest: Encodable {
     let subjectIds: [Int]
 }
+
+// MARK: - Daily Goal
+
+struct StudyDailyGoal: Codable {
+    let date: String
+    let goalMinutes: Int
+    let totalStudiedSeconds: Int
+    let achievementRate: Double
+}
+
+struct StudyDailyGoalRequest: Encodable {
+    let date: String
+    let goalMinutes: Int
+}

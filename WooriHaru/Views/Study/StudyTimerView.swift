@@ -10,6 +10,7 @@ struct StudyTimerView: View {
         ScrollView {
             VStack(spacing: 24) {
                 timerSection
+                dailyGoalSection
                 subjectSection
                 todaySessionsSection
             }
@@ -22,6 +23,7 @@ struct StudyTimerView: View {
         .task {
             await vm.loadSubjects()
             await vm.loadTodaySessions()
+            await vm.loadDailyGoal()
             await vm.restoreActiveSession()
         }
         .alert("과목 추가", isPresented: $vm.showAddSubject) {
@@ -36,6 +38,14 @@ struct StudyTimerView: View {
             TextField("과목명", text: $vm.editSubjectName)
             Button("수정") { Task { await vm.updateSubject() } }
             Button("취소", role: .cancel) { vm.editingSubject = nil }
+        }
+        .alert("목표 시간 설정", isPresented: $vm.showGoalEdit) {
+            TextField("분", text: $vm.dailyGoalText)
+                .keyboardType(.numberPad)
+            Button("저장") { Task { await vm.saveDailyGoal() } }
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text("오늘 목표 공부 시간(분)을 입력해 주세요")
         }
         .alert("오류", isPresented: .init(
             get: { vm.errorMessage != nil },
@@ -181,6 +191,69 @@ struct StudyTimerView: View {
         .padding(12)
         .background(Color.slate50)
         .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+
+    // MARK: - Daily Goal Section
+
+    private var dailyGoalSection: some View {
+        VStack(spacing: 12) {
+            HStack {
+                Text("오늘 목표")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.slate700)
+                Spacer()
+                if vm.dailyGoalMinutes > 0 {
+                    Text(vm.goalPercentText)
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(vm.goalProgress >= 1.0 ? Color.green700 : Color.blue500)
+                }
+                Button {
+                    vm.dailyGoalText = vm.dailyGoalMinutes > 0 ? "\(vm.dailyGoalMinutes)" : ""
+                    vm.showGoalEdit = true
+                } label: {
+                    Image(systemName: "pencil.circle.fill")
+                        .foregroundStyle(Color.blue500)
+                }
+            }
+
+            if vm.dailyGoalMinutes > 0 {
+                VStack(spacing: 6) {
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(Color.slate100)
+                                .frame(height: 12)
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(vm.goalProgress >= 1.0 ? Color.green300 : Color.blue500)
+                                .frame(width: geo.size.width * vm.goalProgressClamped, height: 12)
+                                .animation(.easeInOut(duration: 0.3), value: vm.goalProgressClamped)
+                        }
+                    }
+                    .frame(height: 12)
+
+                    HStack {
+                        Text(vm.todayTotalFormatted)
+                            .font(.caption)
+                            .foregroundStyle(Color.slate500)
+                        Spacer()
+                        let h = vm.dailyGoalMinutes / 60
+                        let m = vm.dailyGoalMinutes % 60
+                        Text(h > 0 ? "\(h)시간 \(m)분" : "\(m)분")
+                            .font(.caption)
+                            .foregroundStyle(Color.slate400)
+                    }
+                }
+            } else {
+                Text("목표 시간을 설정해 주세요")
+                    .font(.caption)
+                    .foregroundStyle(Color.slate400)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, 8)
+            }
+        }
+        .padding(16)
+        .background(.white)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 
     // MARK: - Subject Section
