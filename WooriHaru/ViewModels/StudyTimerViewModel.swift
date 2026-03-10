@@ -143,9 +143,8 @@ final class StudyTimerViewModel {
     // MARK: - Daily Goal
 
     func loadDailyGoal() async {
-        let today = Date().dateString
         do {
-            if let goal = try await service.fetchDailyGoal(date: today) {
+            if let goal = try await service.fetchDailyGoal() {
                 dailyGoalMinutes = goal.goalMinutes
                 dailyGoalText = goalMinutesToHoursText(goal.goalMinutes)
             }
@@ -161,9 +160,8 @@ final class StudyTimerViewModel {
             errorMessage = "올바른 시간을 입력해 주세요"
             return
         }
-        let today = Date().dateString
         do {
-            try await service.setDailyGoal(date: today, goalMinutes: minutes)
+            try await service.setDailyGoal(goalMinutes: minutes)
             dailyGoalMinutes = minutes
             dailyGoalText = goalMinutesToHoursText(minutes)
         } catch {
