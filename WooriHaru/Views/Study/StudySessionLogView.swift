@@ -33,47 +33,47 @@ struct StudySessionLogView: View {
                     pendingScrollDate = nil
                 }
             }
-        }
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .principal) {
-                Button {
-                    selectedDate = vm.currentVisibleDate
-                    showDatePicker = true
-                } label: {
-                    HStack(spacing: 4) {
-                        Text(Self.headerMonthFormatter.string(from: vm.currentVisibleDate))
-                            .font(.headline)
-                            .foregroundStyle(Color.slate900)
-                        Image(systemName: "chevron.down")
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(Color.slate400)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Button {
+                        selectedDate = vm.currentVisibleDate
+                        showDatePicker = true
+                    } label: {
+                        HStack(spacing: 4) {
+                            Text(Self.headerMonthFormatter.string(from: vm.currentVisibleDate))
+                                .font(.headline)
+                                .foregroundStyle(Color.slate900)
+                            Image(systemName: "chevron.down")
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(Color.slate400)
+                        }
+                    }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        let todayKey = vm.entryId(for: Date())
+                        withAnimation {
+                            proxy.scrollTo(todayKey, anchor: .center)
+                        }
+                    } label: {
+                        Text("오늘")
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(Color.blue500)
                     }
                 }
             }
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    let todayKey = vm.entryId(for: Date())
-                    withAnimation {
-                        proxy.scrollTo(todayKey, anchor: .center)
-                    }
-                } label: {
-                    Text("오늘")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(Color.blue500)
-                }
+            .sheet(isPresented: $showDatePicker) {
+                datePickerSheet
             }
-        }
-        .sheet(isPresented: $showDatePicker) {
-            datePickerSheet
-        }
-        .alert("오류", isPresented: .init(
-            get: { vm.errorMessage != nil },
-            set: { if !$0 { vm.errorMessage = nil } }
-        )) {
-            Button("확인", role: .cancel) {}
-        } message: {
-            Text(vm.errorMessage ?? "")
+            .alert("오류", isPresented: .init(
+                get: { vm.errorMessage != nil },
+                set: { if !$0 { vm.errorMessage = nil } }
+            )) {
+                Button("확인", role: .cancel) {}
+            } message: {
+                Text(vm.errorMessage ?? "")
+            }
         }
     }
 
