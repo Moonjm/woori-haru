@@ -31,10 +31,8 @@ struct StudyTimerLiveActivity: Widget {
                     .foregroundStyle(.blue)
             } compactTrailing: {
                 timerText(context: context)
-                    .font(.caption2.monospacedDigit())
+                    .font(.caption.monospacedDigit())
                     .foregroundStyle(.white)
-                    .minimumScaleFactor(0.8)
-                    .frame(minWidth: 36)
             } minimal: {
                 Image(systemName: "book.fill")
                     .foregroundStyle(.blue)
@@ -128,21 +126,4 @@ struct StudyTimerLiveActivity: Widget {
         }
     }
 
-    /// compact trailing 전용 — 1시간 이상이면 H:MM, 미만이면 MM:SS
-    @ViewBuilder
-    private func compactTimerText(context: ActivityViewContext<StudyTimerAttributes>) -> some View {
-        if context.state.timerState == .running {
-            Text(context.state.startDate, style: .timer)
-        } else {
-            let total = context.state.pausedElapsed
-            let h = total / 3600
-            let m = (total % 3600) / 60
-            let s = total % 60
-            if h > 0 {
-                Text(String(format: "%d:%02d", h, m))
-            } else {
-                Text(String(format: "%02d:%02d", m, s))
-            }
-        }
-    }
 }
