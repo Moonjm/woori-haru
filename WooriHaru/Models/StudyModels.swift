@@ -35,13 +35,9 @@ struct StudySubjectReorderRequest: Encodable {
 // MARK: - Daily Goal
 
 struct StudyDailyGoal: Codable {
-    let date: String
     let goalMinutes: Int
-    let totalStudiedSeconds: Int
-    let achievementRate: Double
 }
 
 struct StudyDailyGoalRequest: Encodable {
-    let date: String
     let goalMinutes: Int
 }
