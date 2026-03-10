@@ -234,7 +234,7 @@ struct StudyTimerView: View {
                         .frame(height: 28)
                     RoundedRectangle(cornerRadius: 12)
                         .fill(vm.goalProgress >= 1.0 ? Color.green300 : Color.blue400)
-                        .frame(width: max(geo.size.width * vm.goalProgressClamped, vm.dailyGoalMinutes > 0 ? 50 : 0), height: 28)
+                        .frame(width: geo.size.width * vm.goalProgressClamped, height: 28)
                         .animation(.easeInOut(duration: 0.3), value: vm.goalProgressClamped)
                     Text(vm.goalPercentText)
                         .font(.caption.weight(.bold))
