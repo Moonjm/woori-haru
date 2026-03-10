@@ -148,9 +148,7 @@ final class StudyTimerViewModel {
         do {
             if let goal = try await service.fetchDailyGoal(date: today) {
                 dailyGoalMinutes = goal.goalMinutes
-                let hours = Double(goal.goalMinutes) / 60.0
-                dailyGoalText = hours.truncatingRemainder(dividingBy: 1) == 0
-                    ? "\(Int(hours))" : String(format: "%.1f", hours)
+                dailyGoalText = goalMinutesToHoursText(goal.goalMinutes)
             }
         } catch {
             errorMessage = error.localizedDescription
@@ -160,15 +158,24 @@ final class StudyTimerViewModel {
     func saveDailyGoal() async {
         let hours = Double(dailyGoalText) ?? 0
         let minutes = Int(hours * 60)
-        guard minutes > 0 else { return }
+        guard minutes > 0 else {
+            errorMessage = "올바른 시간을 입력해 주세요"
+            return
+        }
+        showGoalEdit = false
         let today = Date().dateString
         do {
             try await service.setDailyGoal(date: today, goalMinutes: minutes)
             dailyGoalMinutes = minutes
-            showGoalEdit = false
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    func goalMinutesToHoursText(_ minutes: Int) -> String {
+        let hours = Double(minutes) / 60.0
+        return hours.truncatingRemainder(dividingBy: 1) == 0
+            ? "\(Int(hours))" : String(format: "%.1f", hours)
     }
 
     func loadSubjects() async {
