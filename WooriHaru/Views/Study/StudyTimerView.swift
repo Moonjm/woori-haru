@@ -229,7 +229,7 @@ struct StudyTimerView: View {
 
             GeometryReader { geo in
                 let barWidth = geo.size.width * vm.goalProgressClamped
-                let isNarrow = vm.goalProgressClamped < 0.2
+                let isNarrow = vm.goalProgressClamped < 0.11
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 12)
                         .fill(Color.slate100)
