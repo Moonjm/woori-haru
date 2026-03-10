@@ -30,10 +30,11 @@ struct StudyTimerLiveActivity: Widget {
                 Image(systemName: "book.fill")
                     .foregroundStyle(.blue)
             } compactTrailing: {
-                compactTimerText(context: context)
-                    .font(.caption.monospacedDigit())
+                timerText(context: context)
+                    .font(.caption2.monospacedDigit())
                     .foregroundStyle(.white)
-                    .frame(width: 45)
+                    .minimumScaleFactor(0.8)
+                    .frame(minWidth: 36)
             } minimal: {
                 Image(systemName: "book.fill")
                     .foregroundStyle(.blue)
