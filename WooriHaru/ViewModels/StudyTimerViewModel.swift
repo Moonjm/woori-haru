@@ -272,13 +272,15 @@ final class StudyTimerViewModel {
     }
 
     private func restoreLiveActivityIfNeeded() {
-        guard liveActivity == nil, activeSessionId != nil else { return }
-        // iOS가 아직 관리 중인 기존 Live Activity가 있으면 참조 복원
-        if let existing = Activity<StudyTimerAttributes>.activities.first {
+        guard liveActivity == nil, activeSessionId != nil,
+              let subjectName = selectedSubject?.name else { return }
+        // iOS가 아직 관리 중인 기존 Live Activity 중 현재 과목과 일치하는 것 복원
+        if let existing = Activity<StudyTimerAttributes>.activities.first(where: {
+            $0.attributes.subjectName == subjectName
+        }) {
             liveActivity = existing
             Task { await updateLiveActivity() }
-        } else if let subjectName = selectedSubject?.name {
-            // Live Activity가 완전히 사라진 경우 재생성
+        } else {
             Task { await startLiveActivity(subjectName: subjectName) }
         }
     }
