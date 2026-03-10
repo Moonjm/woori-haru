@@ -2,6 +2,7 @@ import SwiftUI
 
 struct StudyTimerView: View {
     @Environment(StudyTimerViewModel.self) private var vm
+    @Environment(\.scenePhase) private var scenePhase
     @FocusState private var isAlarmFieldFocused: Bool
 
     var body: some View {
@@ -43,6 +44,11 @@ struct StudyTimerView: View {
             Button("확인", role: .cancel) {}
         } message: {
             Text(vm.errorMessage ?? "")
+        }
+        .onChange(of: scenePhase) {
+            if scenePhase == .active {
+                vm.syncOnForeground()
+            }
         }
     }
 

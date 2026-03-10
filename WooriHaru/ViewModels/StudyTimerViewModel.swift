@@ -250,8 +250,8 @@ final class StudyTimerViewModel {
         stopTimer()
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             Task { @MainActor in
-                guard let self else { return }
-                self.elapsedSeconds += 1
+                guard let self, let start = self.timerStartDate else { return }
+                self.elapsedSeconds = Int(Date().timeIntervalSince(start))
                 self.checkAlarm()
             }
         }
@@ -259,6 +259,12 @@ final class StudyTimerViewModel {
 
     private func stopTimer() {
         timer = nil
+    }
+
+    /// 포그라운드 복귀 시 경과 시간 동기화
+    func syncOnForeground() {
+        guard timerState == .running, let start = timerStartDate else { return }
+        elapsedSeconds = Int(Date().timeIntervalSince(start))
     }
 
     // MARK: - Live Activity
