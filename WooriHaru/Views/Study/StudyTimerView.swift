@@ -216,15 +216,22 @@ struct StudyTimerView: View {
                     .background(Color.white)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                     .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.slate200, lineWidth: 1))
-                    .onChange(of: isGoalFieldFocused) {
-                        if !isGoalFieldFocused {
-                            Task { await vm.saveDailyGoal() }
-                        }
-                    }
-
                 Text("시간")
                     .font(.subheadline)
                     .foregroundStyle(Color.slate500)
+
+                Button {
+                    isGoalFieldFocused = false
+                    Task { await vm.saveDailyGoal() }
+                } label: {
+                    Text("저장")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color.blue500)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                }
             }
 
             if vm.dailyGoalMinutes > 0 {
