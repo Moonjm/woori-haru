@@ -202,7 +202,7 @@ struct StudyTimerView: View {
                         .keyboardType(.decimalPad)
                         .focused($isGoalFieldFocused)
                         .font(.caption)
-                        .frame(width: 36)
+                        .frame(width: 44)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 4)
                         .padding(.vertical, 4)
