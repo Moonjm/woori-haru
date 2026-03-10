@@ -30,6 +30,11 @@ final class StudyTimerViewModel {
     var editingSubject: StudySubject?
     var editSubjectName = ""
 
+    // MARK: - Daily Goal
+    var dailyGoalMinutes: Int = 0
+    var dailyGoalText: String = ""
+    var showGoalEdit = false
+
     // MARK: - Alarm
     var alarmIntervalMinutes: Int {
         get { UserDefaults.standard.integer(forKey: alarmIntervalKey) }
@@ -69,6 +74,20 @@ final class StudyTimerViewModel {
         let h = total / 3600
         let m = (total % 3600) / 60
         return String(format: "%d시간 %d분", h, m)
+    }
+
+    var goalProgress: Double {
+        guard dailyGoalMinutes > 0 else { return 0 }
+        let totalSeconds = todayTotalSeconds + (timerState != .idle ? elapsedSeconds : 0)
+        return Double(totalSeconds) / Double(dailyGoalMinutes * 60)
+    }
+
+    var goalProgressClamped: Double {
+        min(goalProgress, 1.0)
+    }
+
+    var goalPercentText: String {
+        "\(Int(goalProgress * 100))%"
     }
 
     // MARK: - Load
@@ -120,6 +139,33 @@ final class StudyTimerViewModel {
 
     private func parseISO(_ string: String) -> Date? {
         Date.fromISO(string)
+    }
+
+    // MARK: - Daily Goal
+
+    func loadDailyGoal() async {
+        let today = Date().dateString
+        do {
+            if let goal = try await service.fetchDailyGoal(date: today) {
+                dailyGoalMinutes = goal.goalMinutes
+                dailyGoalText = "\(goal.goalMinutes)"
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func saveDailyGoal() async {
+        let minutes = Int(dailyGoalText) ?? 0
+        guard minutes > 0 else { return }
+        let today = Date().dateString
+        do {
+            try await service.setDailyGoal(date: today, goalMinutes: minutes)
+            dailyGoalMinutes = minutes
+            showGoalEdit = false
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 
     func loadSubjects() async {

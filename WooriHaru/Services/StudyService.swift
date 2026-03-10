@@ -50,6 +50,17 @@ struct StudyService {
         try await api.patchVoid("/study/sessions/\(id)/resume")
     }
 
+    // MARK: - Daily Goal
+
+    func fetchDailyGoal(date: String) async throws -> StudyDailyGoal? {
+        let response: DataResponse<StudyDailyGoal?> = try await api.get("/study/daily-goals", query: ["date": date])
+        return response.data ?? nil
+    }
+
+    func setDailyGoal(date: String, goalMinutes: Int) async throws {
+        try await api.putVoid("/study/daily-goals", body: StudyDailyGoalRequest(date: date, goalMinutes: goalMinutes))
+    }
+
     func endSession(id: Int) async throws -> StudySession {
         let response: DataResponse<StudySession> = try await api.patch("/study/sessions/\(id)/end")
         guard let data = response.data else { throw APIError.serverError(statusCode: 200, message: "세션 종료 응답 데이터 없음") }
