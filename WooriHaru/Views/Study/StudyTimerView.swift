@@ -236,10 +236,11 @@ struct StudyTimerView: View {
                         .fill(vm.goalProgress >= 1.0 ? Color.green300 : Color.blue400)
                         .frame(width: geo.size.width * vm.goalProgressClamped, height: 28)
                         .animation(.easeInOut(duration: 0.3), value: vm.goalProgressClamped)
+                    let textOffset = min(geo.size.width * vm.goalProgressClamped, geo.size.width * 0.5)
                     Text(vm.goalPercentText)
                         .font(.caption.weight(.bold))
                         .foregroundStyle(vm.goalProgressClamped > 0.15 ? .white : Color.slate500)
-                        .padding(.leading, 12)
+                        .position(x: max(textOffset, 24), y: 14)
                 }
             }
             .frame(height: 28)
