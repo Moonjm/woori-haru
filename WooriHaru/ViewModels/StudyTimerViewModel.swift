@@ -155,7 +155,7 @@ final class StudyTimerViewModel {
 
     func saveDailyGoal() async {
         let hours = Double(dailyGoalText) ?? 0
-        let minutes = Int(hours * 60)
+        let minutes = Int((hours * 60).rounded())
         guard minutes > 0 else {
             errorMessage = "올바른 시간을 입력해 주세요"
             return
@@ -169,7 +169,7 @@ final class StudyTimerViewModel {
         }
     }
 
-    func goalMinutesToHoursText(_ minutes: Int) -> String {
+    private func goalMinutesToHoursText(_ minutes: Int) -> String {
         if minutes % 60 == 0 {
             return "\(minutes / 60)"
         }
