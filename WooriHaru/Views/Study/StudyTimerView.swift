@@ -227,21 +227,23 @@ struct StudyTimerView: View {
                 }
             }
 
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.slate100)
-                        .frame(height: 28)
+            ZStack(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.slate100)
+                    .frame(height: 28)
+                GeometryReader { geo in
                     RoundedRectangle(cornerRadius: 12)
                         .fill(vm.goalProgress >= 1.0 ? Color.green300 : Color.blue400)
                         .frame(width: geo.size.width * vm.goalProgressClamped, height: 28)
+                        .overlay(alignment: .trailing) {
+                            Text(vm.goalPercentText)
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(.white)
+                                .padding(.trailing, 8)
+                        }
                         .animation(.easeInOut(duration: 0.3), value: vm.goalProgressClamped)
-                    let textOffset = min(geo.size.width * vm.goalProgressClamped, geo.size.width * 0.5)
-                    Text(vm.goalPercentText)
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(vm.goalProgressClamped > 0.15 ? .white : Color.slate500)
-                        .position(x: max(textOffset, 24), y: 14)
                 }
+                .frame(height: 28)
             }
             .frame(height: 28)
 
