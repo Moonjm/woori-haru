@@ -165,15 +165,17 @@ final class StudyTimerViewModel {
         do {
             try await service.setDailyGoal(date: today, goalMinutes: minutes)
             dailyGoalMinutes = minutes
+            dailyGoalText = goalMinutesToHoursText(minutes)
         } catch {
             errorMessage = error.localizedDescription
         }
     }
 
     func goalMinutesToHoursText(_ minutes: Int) -> String {
-        let hours = Double(minutes) / 60.0
-        return hours.truncatingRemainder(dividingBy: 1) == 0
-            ? "\(Int(hours))" : String(format: "%.1f", hours)
+        if minutes % 60 == 0 {
+            return "\(minutes / 60)"
+        }
+        return String(format: "%.1f", Double(minutes) / 60.0)
     }
 
     func loadSubjects() async {
