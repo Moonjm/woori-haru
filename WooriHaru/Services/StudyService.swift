@@ -53,12 +53,12 @@ struct StudyService {
     // MARK: - Daily Goal
 
     func fetchDailyGoal() async throws -> StudyDailyGoal? {
-        let response: DataResponse<StudyDailyGoal?> = try await api.get("/study/daily-goals")
+        let response: DataResponse<StudyDailyGoal?> = try await api.get("/study/daily-goals/today")
         return response.data ?? nil
     }
 
     func setDailyGoal(goalMinutes: Int) async throws {
-        try await api.putVoid("/study/daily-goals", body: StudyDailyGoalRequest(goalMinutes: goalMinutes))
+        try await api.putVoid("/study/daily-goals/today", body: StudyDailyGoalRequest(goalMinutes: goalMinutes))
     }
 
     func endSession(id: Int) async throws -> StudySession {
