@@ -17,7 +17,7 @@ struct StudyTimerView: View {
             .padding(20)
         }
         .background(Color.slate50)
-        .onTapGesture { isAlarmFieldFocused = false }
+        .onTapGesture { isAlarmFieldFocused = false; isGoalFieldFocused = false }
         .navigationTitle("공부 타이머")
         .navigationBarTitleDisplayMode(.inline)
         .task {
@@ -38,14 +38,6 @@ struct StudyTimerView: View {
             TextField("과목명", text: $vm.editSubjectName)
             Button("수정") { Task { await vm.updateSubject() } }
             Button("취소", role: .cancel) { vm.editingSubject = nil }
-        }
-        .alert("목표 시간 설정", isPresented: $vm.showGoalEdit) {
-            TextField("시간", text: $vm.dailyGoalText)
-                .keyboardType(.decimalPad)
-            Button("저장") { Task { await vm.saveDailyGoal() } }
-            Button("취소", role: .cancel) {}
-        } message: {
-            Text("오늘 목표 공부 시간을 입력해 주세요")
         }
         .alert("오류", isPresented: .init(
             get: { vm.errorMessage != nil },
@@ -195,8 +187,11 @@ struct StudyTimerView: View {
 
     // MARK: - Daily Goal Section
 
+    @FocusState private var isGoalFieldFocused: Bool
+
     private var dailyGoalSection: some View {
-        VStack(spacing: 12) {
+        @Bindable var vm = vm
+        return VStack(spacing: 12) {
             HStack {
                 Text("오늘 목표")
                     .font(.subheadline.weight(.semibold))
@@ -207,14 +202,29 @@ struct StudyTimerView: View {
                         .font(.subheadline.weight(.bold))
                         .foregroundStyle(vm.goalProgress >= 1.0 ? Color.green700 : Color.blue500)
                 }
-                Button {
-                    vm.dailyGoalText = vm.dailyGoalMinutes > 0
-                        ? vm.goalMinutesToHoursText(vm.dailyGoalMinutes) : ""
-                    vm.showGoalEdit = true
-                } label: {
-                    Image(systemName: "pencil.circle.fill")
-                        .foregroundStyle(Color.blue500)
-                }
+            }
+
+            HStack(spacing: 8) {
+                TextField("0", text: $vm.dailyGoalText)
+                    .keyboardType(.decimalPad)
+                    .focused($isGoalFieldFocused)
+                    .font(.subheadline)
+                    .frame(width: 50)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 6)
+                    .background(Color.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.slate200, lineWidth: 1))
+                    .onChange(of: isGoalFieldFocused) {
+                        if !isGoalFieldFocused {
+                            Task { await vm.saveDailyGoal() }
+                        }
+                    }
+
+                Text("시간")
+                    .font(.subheadline)
+                    .foregroundStyle(Color.slate500)
             }
 
             if vm.dailyGoalMinutes > 0 {
@@ -244,12 +254,6 @@ struct StudyTimerView: View {
                             .foregroundStyle(Color.slate400)
                     }
                 }
-            } else {
-                Text("목표 시간을 설정해 주세요")
-                    .font(.caption)
-                    .foregroundStyle(Color.slate400)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.vertical, 8)
             }
         }
         .padding(16)

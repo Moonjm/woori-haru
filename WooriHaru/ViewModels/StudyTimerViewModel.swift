@@ -33,7 +33,6 @@ final class StudyTimerViewModel {
     // MARK: - Daily Goal
     var dailyGoalMinutes: Int = 0
     var dailyGoalText: String = ""
-    var showGoalEdit = false
 
     // MARK: - Alarm
     var alarmIntervalMinutes: Int {
@@ -162,7 +161,6 @@ final class StudyTimerViewModel {
             errorMessage = "올바른 시간을 입력해 주세요"
             return
         }
-        showGoalEdit = false
         let today = Date().dateString
         do {
             try await service.setDailyGoal(date: today, goalMinutes: minutes)
