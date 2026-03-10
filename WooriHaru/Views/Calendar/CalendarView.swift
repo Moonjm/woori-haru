@@ -11,6 +11,8 @@ struct CalendarView: View {
     @State private var suppressEdgeLoadingCount = 0
     @State private var scrollProxy: ScrollViewProxy?
     @Environment(AuthViewModel.self) private var authVM
+    @State private var drawerDragOffset: CGFloat = 0
+    @State private var isDraggingDrawer = false
 
     private let todayMonthId: String = CalendarView.makeTodayMonthId()
     private static let sheetHeightRatio: CGFloat = 0.7
@@ -176,10 +178,42 @@ struct CalendarView: View {
                 }
             }
             .ignoresSafeArea(.keyboard)
+            .simultaneousGesture(
+                calendarVM.isDrawerOpen ? nil :
+                DragGesture()
+                    .onChanged { value in
+                        let horizontal = abs(value.translation.width)
+                        let vertical = abs(value.translation.height)
+                        if !isDraggingDrawer && horizontal > 15 && horizontal > vertical * 1.5 {
+                            isDraggingDrawer = true
+                        }
+                        if isDraggingDrawer && value.translation.width > 0 {
+                            drawerDragOffset = min(value.translation.width, drawerWidth)
+                        }
+                    }
+                    .onEnded { value in
+                        if isDraggingDrawer,
+                           value.translation.width > drawerWidth * 0.35
+                            || value.predictedEndTranslation.width > drawerWidth * 0.5 {
+                            withAnimation(.easeOut(duration: 0.25)) {
+                                calendarVM.isDrawerOpen = true
+                                drawerDragOffset = 0
+                            }
+                        } else {
+                            withAnimation(.easeOut(duration: 0.25)) {
+                                drawerDragOffset = 0
+                            }
+                        }
+                        isDraggingDrawer = false
+                    }
+            )
+            .scrollDisabled(isDraggingDrawer)
 
-            if calendarVM.isDrawerOpen {
-                SideDrawerView(isOpen: $calendarVM.isDrawerOpen, navPath: $navPath)
-            }
+            SideDrawerView(
+                isOpen: $calendarVM.isDrawerOpen,
+                navPath: $navPath,
+                dragOffset: drawerDragOffset
+            )
 
             // Bottom sheet overlay
             if showSheet {

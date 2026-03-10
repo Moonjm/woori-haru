@@ -19,11 +19,12 @@ struct StudySessionLogView: View {
             .background(Color.white)
             .task {
                 await vm.loadInitial()
-                scrollToToday(proxy: proxy)
             }
             .onChange(of: vm.dayEntries.count) {
                 if !hasScrolledToToday {
-                    scrollToToday(proxy: proxy)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                        scrollToToday(proxy: proxy)
+                    }
                 }
                 if let date = pendingScrollDate {
                     let id = vm.entryId(for: date)
@@ -189,14 +190,12 @@ struct StudySessionLogView: View {
             .frame(width: 48)
             .padding(.top, 2)
 
-            VStack(spacing: 4) {
+            VStack(spacing: 0) {
                 if entry.sessions.isEmpty {
                     Divider()
                         .padding(.top, 18)
                 } else {
-                    ForEach(entry.sessions) { session in
-                        sessionBlock(session)
-                    }
+                    dayTimeline(entry.sessions, date: entry.date)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -206,40 +205,145 @@ struct StudySessionLogView: View {
         .padding(.vertical, 2)
     }
 
-    // MARK: - Session Block
+    // MARK: - Day Timeline
 
-    private func sessionBlock(_ session: StudySession) -> some View {
-        HStack(spacing: 0) {
-            RoundedRectangle(cornerRadius: 2)
-                .fill(Color.blue500)
-                .frame(width: 4)
+    private enum SegmentType {
+        case study(subjectName: String)
+        case rest
+    }
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(session.subject.name)
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(Color.slate900)
-                Text(sessionTimeRange(session))
-                    .font(.caption)
-                    .foregroundStyle(Color.slate500)
-                if !session.pauses.isEmpty {
-                    Text(pauseSummary(session.pauses))
-                        .font(.caption2)
-                        .foregroundStyle(Color.orange700)
+    private struct TimelineSegment {
+        let startDate: Date
+        let endDate: Date
+        let type: SegmentType
+
+        var durationMinutes: Double {
+            endDate.timeIntervalSince(startDate) / 60.0
+        }
+
+        var isStudy: Bool {
+            if case .study = type { return true }
+            return false
+        }
+
+        var label: String {
+            switch type {
+            case .study(let name): return name
+            case .rest: return "휴식"
+            }
+        }
+    }
+
+    private func dayTimeline(_ sessions: [StudySession], date: Date) -> some View {
+        let segments = buildDaySegments(sessions, date: date)
+        let pointsPerMinute: CGFloat = 1.2
+
+        return HStack(alignment: .top, spacing: 6) {
+            // Time labels
+            VStack(alignment: .trailing, spacing: 0) {
+                ForEach(Array(segments.enumerated()), id: \.offset) { _, segment in
+                    Text(Self.shortTimeFormatter.string(from: segment.startDate))
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundStyle(Color.slate400)
+                        .frame(
+                            height: max(CGFloat(segment.durationMinutes) * pointsPerMinute, 20),
+                            alignment: .top
+                        )
+                }
+                if let last = segments.last {
+                    Text(Self.shortTimeFormatter.string(from: last.endDate))
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundStyle(Color.slate400)
                 }
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
+            .frame(width: 40)
 
-            Spacer()
-
-            Text(formatDuration(session.totalSeconds))
-                .font(.caption)
-                .foregroundStyle(Color.slate400)
-                .padding(.trailing, 10)
+            // Blocks
+            VStack(spacing: 1) {
+                ForEach(Array(segments.enumerated()), id: \.offset) { _, segment in
+                    let height = max(CGFloat(segment.durationMinutes) * pointsPerMinute, 20)
+                    HStack(spacing: 0) {
+                        RoundedRectangle(cornerRadius: 1.5)
+                            .fill(segment.isStudy ? Color.blue500 : Color.orange300)
+                            .frame(width: 3)
+                        Text(segment.label)
+                            .font(.system(size: 11))
+                            .foregroundStyle(segment.isStudy ? Color.blue700 : Color.orange700)
+                            .padding(.leading, 6)
+                        Spacer()
+                    }
+                    .frame(height: height)
+                    .background(segment.isStudy ? Color.blue500.opacity(0.08) : Color.orange200.opacity(0.3))
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                }
+            }
+            .frame(maxWidth: .infinity)
         }
-        .background(Color.blue500.opacity(0.06))
-        .clipShape(RoundedRectangle(cornerRadius: 6))
+        .padding(.vertical, 4)
     }
+
+    private func buildDaySegments(_ sessions: [StudySession], date: Date) -> [TimelineSegment] {
+        let cal = Calendar.current
+        let dayStart = cal.startOfDay(for: date)
+        let dayEnd = dayStart.addingTimeInterval(86400)
+
+        // 시간 오름차순 정렬, 해당 날짜 범위로 클리핑
+        let sorted = sessions
+            .compactMap { session -> (session: StudySession, start: Date, end: Date)? in
+                guard let start = Date.fromISO(session.startedAt) else { return nil }
+                let end = session.endedAt.flatMap { Date.fromISO($0) } ?? Date()
+                let clippedStart = max(start, dayStart)
+                let clippedEnd = min(end, dayEnd)
+                guard clippedStart < clippedEnd else { return nil }
+                return (session, clippedStart, clippedEnd)
+            }
+            .sorted { $0.start < $1.start }
+
+        var segments: [TimelineSegment] = []
+
+        for item in sorted {
+            // 세션 내부: 공부/휴식 구간 분리 (날짜 범위로 클리핑)
+            let pauses = item.session.pauses
+                .compactMap { pause -> (start: Date, end: Date)? in
+                    guard let s = Date.fromISO(pause.pausedAt) else { return nil }
+                    let e = pause.resumedAt.flatMap { Date.fromISO($0) } ?? item.end
+                    let cs = max(s, item.start)
+                    let ce = min(e, item.end)
+                    guard cs < ce else { return nil }
+                    return (cs, ce)
+                }
+                .sorted { $0.start < $1.start }
+
+            var cursor = item.start
+            for pause in pauses {
+                if cursor < pause.start {
+                    segments.append(TimelineSegment(
+                        startDate: cursor, endDate: pause.start,
+                        type: .study(subjectName: item.session.subject.name)
+                    ))
+                }
+                segments.append(TimelineSegment(
+                    startDate: pause.start, endDate: pause.end, type: .rest
+                ))
+                cursor = pause.end
+            }
+            if cursor < item.end {
+                segments.append(TimelineSegment(
+                    startDate: cursor, endDate: item.end,
+                    type: .study(subjectName: item.session.subject.name)
+                ))
+            }
+        }
+
+        return segments
+    }
+
+    private static let shortTimeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "HH:mm"
+        f.locale = Locale(identifier: "ko_KR")
+        return f
+    }()
 
     // MARK: - Helpers
 
@@ -280,33 +384,6 @@ struct StudySessionLogView: View {
     private func weekdayShort(_ date: Date) -> String {
         let symbols = ["일", "월", "화", "수", "목", "금", "토"]
         return symbols[date.weekday - 1]
-    }
-
-    private static let timeFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "a h:mm"
-        f.locale = Locale(identifier: "ko_KR")
-        return f
-    }()
-
-    private func sessionTimeRange(_ session: StudySession) -> String {
-        let start = Date.fromISO(session.startedAt).map { Self.timeFormatter.string(from: $0) } ?? "??:??"
-        let end = session.endedAt.flatMap { Date.fromISO($0) }.map { Self.timeFormatter.string(from: $0) } ?? "진행중"
-        return "\(start) - \(end)"
-    }
-
-    private func pauseSummary(_ pauses: [StudyPause]) -> String {
-        let count = pauses.count
-        let totalPauseSeconds = pauses.reduce(0) { total, pause in
-            guard let start = Date.fromISO(pause.pausedAt) else { return total }
-            let end = pause.resumedAt.flatMap { Date.fromISO($0) } ?? Date()
-            return total + Int(end.timeIntervalSince(start))
-        }
-        let m = totalPauseSeconds / 60
-        if m > 0 {
-            return "일시정지 \(count)회, \(m)분"
-        }
-        return "일시정지 \(count)회"
     }
 
     private func formatDuration(_ seconds: Int) -> String {

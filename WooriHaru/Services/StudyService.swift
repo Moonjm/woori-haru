@@ -58,7 +58,8 @@ struct StudyService {
     }
 
     func setDailyGoal(goalMinutes: Int) async throws {
-        try await api.putVoid("/study/daily-goals/today", body: StudyDailyGoalRequest(goalMinutes: goalMinutes))
+        let today = Date().dateString
+        try await api.putVoid("/study/daily-goals", body: StudyDailyGoalRequest(date: today, goalMinutes: goalMinutes))
     }
 
     func endSession(id: Int) async throws -> StudySession {

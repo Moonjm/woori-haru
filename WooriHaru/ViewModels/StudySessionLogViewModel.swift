@@ -22,11 +22,9 @@ final class StudySessionLogViewModel {
     func loadInitial() async {
         let today = Date()
         let prevMonth = today.addingMonths(-1)
-        let nextMonth = today.addingMonths(1)
 
         await loadMonth(prevMonth)
         await loadMonth(today)
-        await loadMonth(nextMonth)
     }
 
     // MARK: - Load More
@@ -65,7 +63,12 @@ final class StudySessionLogViewModel {
         let (from, to) = Date.monthRange(year: date.year, month: date.month)
         do {
             let sessions = try await service.fetchSessions(from: from, to: to)
-            let grouped = Dictionary(grouping: sessions) { sessionDateKey($0) }
+            var grouped: [String: [StudySession]] = [:]
+            for session in sessions {
+                for key in sessionDateKeys(session) {
+                    grouped[key, default: []].append(session)
+                }
+            }
             let days = generateDays(for: date, sessions: grouped)
             mergeDays(days)
         } catch {
@@ -73,11 +76,29 @@ final class StudySessionLogViewModel {
         }
     }
 
-    private func sessionDateKey(_ session: StudySession) -> String {
-        guard let date = Date.fromISO(session.startedAt) else {
-            return String(session.startedAt.prefix(10))
+    /// 세션이 속하는 날짜 키 목록 반환 (자정을 넘기면 양일 모두 포함)
+    private func sessionDateKeys(_ session: StudySession) -> [String] {
+        guard let start = Date.fromISO(session.startedAt) else {
+            return [String(session.startedAt.prefix(10))]
         }
-        return date.dateString
+        let startKey = start.dateString
+        guard let endStr = session.endedAt,
+              let end = Date.fromISO(endStr) else {
+            return [startKey]
+        }
+        let endKey = end.dateString
+        if startKey == endKey {
+            return [startKey]
+        }
+        // 자정을 넘긴 경우 양일 포함
+        var keys = [startKey]
+        let cal = Calendar.current
+        var cursor = cal.startOfDay(for: start).addingTimeInterval(86400)
+        while cursor.dateString <= endKey {
+            keys.append(cursor.dateString)
+            cursor = cursor.addingTimeInterval(86400)
+        }
+        return keys
     }
 
     private func generateDays(for monthDate: Date, sessions: [String: [StudySession]]) -> [DayEntry] {
