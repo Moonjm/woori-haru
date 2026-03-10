@@ -208,13 +208,8 @@ struct StudyTimerView: View {
                         .foregroundStyle(vm.goalProgress >= 1.0 ? Color.green700 : Color.blue500)
                 }
                 Button {
-                    if vm.dailyGoalMinutes > 0 {
-                        let hours = Double(vm.dailyGoalMinutes) / 60.0
-                        vm.dailyGoalText = hours.truncatingRemainder(dividingBy: 1) == 0
-                            ? "\(Int(hours))" : String(format: "%.1f", hours)
-                    } else {
-                        vm.dailyGoalText = ""
-                    }
+                    vm.dailyGoalText = vm.dailyGoalMinutes > 0
+                        ? vm.goalMinutesToHoursText(vm.dailyGoalMinutes) : ""
                     vm.showGoalEdit = true
                 } label: {
                     Image(systemName: "pencil.circle.fill")
@@ -244,7 +239,7 @@ struct StudyTimerView: View {
                         Spacer()
                         let h = vm.dailyGoalMinutes / 60
                         let m = vm.dailyGoalMinutes % 60
-                        Text(h > 0 ? "\(h)시간 \(m)분" : "\(m)분")
+                        Text(h > 0 ? (m > 0 ? "\(h)시간 \(m)분" : "\(h)시간") : "\(m)분")
                             .font(.caption)
                             .foregroundStyle(Color.slate400)
                     }
