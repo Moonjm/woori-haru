@@ -33,6 +33,7 @@ struct StudyTimerLiveActivity: Widget {
                 timerText(context: context)
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.white)
+                    .minimumScaleFactor(0.8)
             } minimal: {
                 Image(systemName: "book.fill")
                     .foregroundStyle(.blue)
