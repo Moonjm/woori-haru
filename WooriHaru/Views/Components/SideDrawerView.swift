@@ -4,6 +4,7 @@ struct SideDrawerView: View {
     @Binding var isOpen: Bool
     @Binding var navPath: NavigationPath
     @Environment(AuthViewModel.self) private var authVM
+    @State private var showLogoutConfirm = false
 
     var body: some View {
         ZStack(alignment: .leading) {
@@ -40,10 +41,7 @@ struct SideDrawerView: View {
                 Spacer()
 
                 Button {
-                    Task {
-                        await authVM.logout()
-                        isOpen = false
-                    }
+                    showLogoutConfirm = true
                 } label: {
                     HStack {
                         Image(systemName: "rectangle.portrait.and.arrow.right")
@@ -52,6 +50,17 @@ struct SideDrawerView: View {
                     .font(.subheadline)
                     .foregroundStyle(Color.red500)
                     .padding(20)
+                }
+                .alert("로그아웃", isPresented: $showLogoutConfirm) {
+                    Button("로그아웃", role: .destructive) {
+                        Task {
+                            await authVM.logout()
+                            isOpen = false
+                        }
+                    }
+                    Button("취소", role: .cancel) {}
+                } message: {
+                    Text("로그아웃 하시겠습니까?")
                 }
             }
             .frame(width: 260)
