@@ -261,10 +261,26 @@ final class StudyTimerViewModel {
         timer = nil
     }
 
-    /// 포그라운드 복귀 시 경과 시간 동기화
+    /// 포그라운드 복귀 시 경과 시간 및 Live Activity 동기화
     func syncOnForeground() {
-        guard timerState == .running, let start = timerStartDate else { return }
-        elapsedSeconds = Int(Date().timeIntervalSince(start))
+        guard timerState != .idle else { return }
+        if timerState == .running, let start = timerStartDate {
+            elapsedSeconds = Int(Date().timeIntervalSince(start))
+        }
+        // Live Activity 참조가 사라진 경우 기존 활동 복원 또는 재생성
+        restoreLiveActivityIfNeeded()
+    }
+
+    private func restoreLiveActivityIfNeeded() {
+        guard liveActivity == nil, activeSessionId != nil else { return }
+        // iOS가 아직 관리 중인 기존 Live Activity가 있으면 참조 복원
+        if let existing = Activity<StudyTimerAttributes>.activities.first {
+            liveActivity = existing
+            Task { await updateLiveActivity() }
+        } else if let subjectName = selectedSubject?.name {
+            // Live Activity가 완전히 사라진 경우 재생성
+            Task { await startLiveActivity(subjectName: subjectName) }
+        }
     }
 
     // MARK: - Live Activity
