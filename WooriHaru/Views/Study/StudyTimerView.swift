@@ -197,69 +197,64 @@ struct StudyTimerView: View {
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Color.slate700)
                 Spacer()
-                if vm.dailyGoalMinutes > 0 {
+                HStack(spacing: 6) {
+                    TextField("0", text: $vm.dailyGoalText)
+                        .keyboardType(.decimalPad)
+                        .focused($isGoalFieldFocused)
+                        .font(.caption)
+                        .frame(width: 36)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 4)
+                        .background(Color.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                        .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.slate200, lineWidth: 1))
+                    Text("시간")
+                        .font(.caption)
+                        .foregroundStyle(Color.slate500)
+                    Button {
+                        isGoalFieldFocused = false
+                        Task { await vm.saveDailyGoal() }
+                    } label: {
+                        Text("저장")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.blue500)
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                    }
+                }
+            }
+
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.slate100)
+                        .frame(height: 28)
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(vm.goalProgress >= 1.0 ? Color.green300 : Color.blue400)
+                        .frame(width: max(geo.size.width * vm.goalProgressClamped, vm.dailyGoalMinutes > 0 ? 50 : 0), height: 28)
+                        .animation(.easeInOut(duration: 0.3), value: vm.goalProgressClamped)
                     Text(vm.goalPercentText)
-                        .font(.subheadline.weight(.bold))
-                        .foregroundStyle(vm.goalProgress >= 1.0 ? Color.green700 : Color.blue500)
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(vm.goalProgressClamped > 0.15 ? .white : Color.slate500)
+                        .padding(.leading, 12)
                 }
             }
+            .frame(height: 28)
 
-            HStack(spacing: 8) {
-                TextField("0", text: $vm.dailyGoalText)
-                    .keyboardType(.decimalPad)
-                    .focused($isGoalFieldFocused)
-                    .font(.subheadline)
-                    .frame(width: 50)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 6)
-                    .background(Color.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.slate200, lineWidth: 1))
-                Text("시간")
-                    .font(.subheadline)
+            HStack {
+                Text(vm.todayTotalFormatted)
+                    .font(.caption)
                     .foregroundStyle(Color.slate500)
-
-                Button {
-                    isGoalFieldFocused = false
-                    Task { await vm.saveDailyGoal() }
-                } label: {
-                    Text("저장")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(Color.blue500)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                }
-            }
-
-            if vm.dailyGoalMinutes > 0 {
-                VStack(spacing: 6) {
-                    GeometryReader { geo in
-                        ZStack(alignment: .leading) {
-                            RoundedRectangle(cornerRadius: 6)
-                                .fill(Color.slate100)
-                                .frame(height: 12)
-                            RoundedRectangle(cornerRadius: 6)
-                                .fill(vm.goalProgress >= 1.0 ? Color.green300 : Color.blue500)
-                                .frame(width: geo.size.width * vm.goalProgressClamped, height: 12)
-                                .animation(.easeInOut(duration: 0.3), value: vm.goalProgressClamped)
-                        }
-                    }
-                    .frame(height: 12)
-
-                    HStack {
-                        Text(vm.todayTotalFormatted)
-                            .font(.caption)
-                            .foregroundStyle(Color.slate500)
-                        Spacer()
-                        let h = vm.dailyGoalMinutes / 60
-                        let m = vm.dailyGoalMinutes % 60
-                        Text(h > 0 ? (m > 0 ? "\(h)시간 \(m)분" : "\(h)시간") : "\(m)분")
-                            .font(.caption)
-                            .foregroundStyle(Color.slate400)
-                    }
+                Spacer()
+                if vm.dailyGoalMinutes > 0 {
+                    let h = vm.dailyGoalMinutes / 60
+                    let m = vm.dailyGoalMinutes % 60
+                    Text("목표 " + (h > 0 ? (m > 0 ? "\(h)시간 \(m)분" : "\(h)시간") : "\(m)분"))
+                        .font(.caption)
+                        .foregroundStyle(Color.slate400)
                 }
             }
         }
