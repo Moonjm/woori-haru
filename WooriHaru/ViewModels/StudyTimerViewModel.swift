@@ -144,9 +144,10 @@ final class StudyTimerViewModel {
 
     func loadDailyGoal() async {
         do {
-            if let goal = try await service.fetchDailyGoal() {
-                dailyGoalMinutes = goal.goalMinutes
-                dailyGoalText = goalMinutesToHoursText(goal.goalMinutes)
+            if let goal = try await service.fetchDailyGoal(),
+               let minutes = goal.goalMinutes {
+                dailyGoalMinutes = minutes
+                dailyGoalText = goalMinutesToHoursText(minutes)
             }
         } catch {
             errorMessage = error.localizedDescription

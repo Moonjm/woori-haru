@@ -199,7 +199,7 @@ struct StudyTimerView: View {
                 Spacer()
                 HStack(spacing: 6) {
                     TextField("0", text: $vm.dailyGoalText)
-                        .keyboardType(.decimalPad)
+                        .keyboardType(.numberPad)
                         .focused($isGoalFieldFocused)
                         .font(.caption)
                         .frame(width: 44)
