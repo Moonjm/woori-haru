@@ -40,12 +40,12 @@ struct StudyTimerView: View {
             Button("취소", role: .cancel) { vm.editingSubject = nil }
         }
         .alert("목표 시간 설정", isPresented: $vm.showGoalEdit) {
-            TextField("분", text: $vm.dailyGoalText)
-                .keyboardType(.numberPad)
+            TextField("시간", text: $vm.dailyGoalText)
+                .keyboardType(.decimalPad)
             Button("저장") { Task { await vm.saveDailyGoal() } }
             Button("취소", role: .cancel) {}
         } message: {
-            Text("오늘 목표 공부 시간(분)을 입력해 주세요")
+            Text("오늘 목표 공부 시간을 입력해 주세요")
         }
         .alert("오류", isPresented: .init(
             get: { vm.errorMessage != nil },
@@ -208,7 +208,13 @@ struct StudyTimerView: View {
                         .foregroundStyle(vm.goalProgress >= 1.0 ? Color.green700 : Color.blue500)
                 }
                 Button {
-                    vm.dailyGoalText = vm.dailyGoalMinutes > 0 ? "\(vm.dailyGoalMinutes)" : ""
+                    if vm.dailyGoalMinutes > 0 {
+                        let hours = Double(vm.dailyGoalMinutes) / 60.0
+                        vm.dailyGoalText = hours.truncatingRemainder(dividingBy: 1) == 0
+                            ? "\(Int(hours))" : String(format: "%.1f", hours)
+                    } else {
+                        vm.dailyGoalText = ""
+                    }
                     vm.showGoalEdit = true
                 } label: {
                     Image(systemName: "pencil.circle.fill")
