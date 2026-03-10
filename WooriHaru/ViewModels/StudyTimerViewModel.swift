@@ -317,6 +317,10 @@ final class StudyTimerViewModel {
 
     /// 포그라운드 복귀 시 경과 시간 및 Live Activity 동기화
     func syncOnForeground() {
+        Task {
+            await loadTodaySessions()
+            await loadDailyGoal()
+        }
         guard timerState != .idle else { return }
         if timerState == .running, let start = timerStartDate {
             elapsedSeconds = Int(Date().timeIntervalSince(start))
