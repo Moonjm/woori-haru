@@ -228,18 +228,29 @@ struct StudyTimerView: View {
             }
 
             GeometryReader { geo in
+                let barWidth = geo.size.width * vm.goalProgressClamped
+                let isNarrow = vm.goalProgressClamped < 0.2
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 12)
                         .fill(Color.slate100)
                         .frame(height: 28)
                     RoundedRectangle(cornerRadius: 12)
                         .fill(vm.goalProgress >= 1.0 ? Color.green300 : Color.blue400)
-                        .frame(width: geo.size.width * vm.goalProgressClamped, height: 28)
+                        .frame(width: barWidth, height: 28)
+                        .overlay {
+                            if !isNarrow {
+                                Text(vm.goalPercentText)
+                                    .font(.caption.weight(.bold))
+                                    .foregroundStyle(.white)
+                            }
+                        }
                         .animation(.easeInOut(duration: 0.3), value: vm.goalProgressClamped)
-                    Text(vm.goalPercentText)
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(vm.goalProgressClamped > 0.12 ? .white : Color.slate500)
-                        .padding(.leading, 12)
+                    if isNarrow {
+                        Text(vm.goalPercentText)
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(Color.slate400)
+                            .offset(x: barWidth + 8)
+                    }
                 }
             }
             .frame(height: 28)
