@@ -49,7 +49,6 @@ final class StudyRecordViewModel {
     var errorMessage: String?
 
     private let service = StudyService()
-    private var loadedMonths: Set<String> = []
 
     // MARK: - Month Label
 
@@ -177,29 +176,17 @@ final class StudyRecordViewModel {
         dailyRecords.map(\.totalSeconds).max() ?? 1
     }
 
-    // MARK: - Selected Date Records
-
-    var selectedDayRecords: DailyStudyRecord? {
-        guard let date = selectedDate else { return nil }
-        let key = date.dateString
-        return dailyRecords.first { $0.id == key }
-    }
-
     // MARK: - Load
 
     func loadMonth() async {
-        let key = String(format: "%04d-%02d", currentYear, currentMonth)
-        guard !loadedMonths.contains(key) else { return }
-
+        guard !isLoading else { return }
         isLoading = true
         defer { isLoading = false }
 
         let (from, to) = Date.monthRange(year: currentYear, month: currentMonth)
         do {
             let sessions = try await service.fetchSessions(from: from, to: to)
-            let records = buildDailyRecords(sessions: sessions)
-            dailyRecords = records
-            loadedMonths.insert(key)
+            dailyRecords = buildDailyRecords(sessions: sessions)
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -212,7 +199,6 @@ final class StudyRecordViewModel {
         } else {
             currentMonth -= 1
         }
-        loadedMonths.removeAll()
         dailyRecords = []
         selectedDate = nil
         Task { await loadMonth() }
@@ -225,7 +211,6 @@ final class StudyRecordViewModel {
         } else {
             currentMonth += 1
         }
-        loadedMonths.removeAll()
         dailyRecords = []
         selectedDate = nil
         Task { await loadMonth() }
@@ -235,7 +220,6 @@ final class StudyRecordViewModel {
         let today = Date()
         currentYear = today.year
         currentMonth = today.month
-        loadedMonths.removeAll()
         dailyRecords = []
         selectedDate = nil
         Task { await loadMonth() }

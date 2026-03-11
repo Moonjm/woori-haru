@@ -413,7 +413,7 @@ struct StudyTimerView: View {
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Color.slate700)
                 Spacer()
-                NavigationLink(value: AppDestination.studySessionLog) {
+                NavigationLink(value: AppDestination.studyRecord) {
                     HStack(spacing: 4) {
                         Text("전체 기록")
                             .font(.caption)
