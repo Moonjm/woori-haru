@@ -1,0 +1,314 @@
+import SwiftUI
+
+// MARK: - Supporting Types
+
+struct DailyStudyRecord: Identifiable {
+    let id: String // "yyyy-MM-dd"
+    let date: Date
+    let totalSeconds: Int
+    let sessions: [StudySession]
+
+    var totalMinutes: Double { Double(totalSeconds) / 60.0 }
+    var totalHours: Double { Double(totalSeconds) / 3600.0 }
+}
+
+struct SubjectStudyRecord: Identifiable {
+    let id: Int
+    let name: String
+    let totalSeconds: Int
+    let ratio: Double // 0.0 ~ 1.0
+}
+
+struct MonthlySummary {
+    let totalSeconds: Int
+    let studyDays: Int
+    let averageSecondsPerStudyDay: Int
+    let maxDaySeconds: Int
+    let maxDayDate: Date?
+
+    var totalFormatted: String { totalSeconds.durationText }
+    var averageFormatted: String { averageSecondsPerStudyDay.durationText }
+    var maxFormatted: String { maxDaySeconds.durationText }
+
+    static let empty = MonthlySummary(
+        totalSeconds: 0, studyDays: 0,
+        averageSecondsPerStudyDay: 0, maxDaySeconds: 0, maxDayDate: nil
+    )
+}
+
+// MARK: - ViewModel
+
+@MainActor
+@Observable
+final class StudyRecordViewModel {
+    var currentYear: Int = Date().year
+    var currentMonth: Int = Date().month
+    var dailyRecords: [DailyStudyRecord] = []
+    var selectedDate: Date?
+    var isLoading = false
+    var errorMessage: String?
+
+    private let service = StudyService()
+    private var loadedMonths: Set<String> = []
+
+    // MARK: - Month Label
+
+    var monthLabel: String {
+        String(format: "%d년 %d월", currentYear, currentMonth)
+    }
+
+    var isCurrentMonth: Bool {
+        let today = Date()
+        return currentYear == today.year && currentMonth == today.month
+    }
+
+    // MARK: - Monthly Summary
+
+    var summary: MonthlySummary {
+        guard !dailyRecords.isEmpty else { return .empty }
+        let total = dailyRecords.reduce(0) { $0 + $1.totalSeconds }
+        let studyDays = dailyRecords.filter { $0.totalSeconds > 0 }
+        let avg = studyDays.isEmpty ? 0 : total / studyDays.count
+        let maxDay = dailyRecords.max(by: { $0.totalSeconds < $1.totalSeconds })
+        return MonthlySummary(
+            totalSeconds: total,
+            studyDays: studyDays.count,
+            averageSecondsPerStudyDay: avg,
+            maxDaySeconds: maxDay?.totalSeconds ?? 0,
+            maxDayDate: maxDay?.date
+        )
+    }
+
+    // MARK: - Heatmap
+
+    /// 히트맵 색상 레벨 (0~4)
+    func heatmapLevel(for seconds: Int) -> Int {
+        let hours = Double(seconds) / 3600.0
+        if hours < 0.01 { return 0 }
+        if hours < 1 { return 1 }
+        if hours < 3 { return 2 }
+        if hours < 6 { return 3 }
+        return 4
+    }
+
+    // MARK: - Subject Breakdown
+
+    var subjectRecords: [SubjectStudyRecord] {
+        var totals: [Int: (name: String, seconds: Int)] = [:]
+        for record in dailyRecords {
+            for session in record.sessions {
+                let existing = totals[session.subject.id]
+                totals[session.subject.id] = (
+                    name: session.subject.name,
+                    seconds: (existing?.seconds ?? 0) + session.totalSeconds
+                )
+            }
+        }
+        let grandTotal = max(totals.values.reduce(0) { $0 + $1.seconds }, 1)
+        return totals.map { id, val in
+            SubjectStudyRecord(
+                id: id, name: val.name,
+                totalSeconds: val.seconds,
+                ratio: Double(val.seconds) / Double(grandTotal)
+            )
+        }
+        .sorted { $0.totalSeconds > $1.totalSeconds }
+    }
+
+    // MARK: - Hourly Pattern
+
+    /// 0~23시 각 시간대별 총 공부 초
+    var hourlyPattern: [Int] {
+        var hours = [Int](repeating: 0, count: 24)
+        for record in dailyRecords {
+            for session in record.sessions {
+                distributeSessionToHours(session, into: &hours)
+            }
+        }
+        return hours
+    }
+
+    var peakHourRange: String? {
+        let pattern = hourlyPattern
+        guard let maxVal = pattern.max(), maxVal > 0 else { return nil }
+        let peakHour = pattern.firstIndex(of: maxVal) ?? 0
+        return String(format: "%02d:00~%02d:00", peakHour, (peakHour + 1) % 24)
+    }
+
+    private func distributeSessionToHours(_ session: StudySession, into hours: inout [Int]) {
+        guard let start = Date.fromISO(session.startedAt) else { return }
+        let end = session.endedAt.flatMap { Date.fromISO($0) } ?? Date()
+        let cal = Calendar.current
+
+        // 일시정지 구간 제외를 위해 공부 구간만 추출
+        let pauses = session.pauses.compactMap { pause -> (start: Date, end: Date)? in
+            guard let ps = Date.fromISO(pause.pausedAt) else { return nil }
+            let pe = pause.resumedAt.flatMap { Date.fromISO($0) } ?? end
+            return (ps, pe)
+        }
+
+        var studyRanges: [(start: Date, end: Date)] = []
+        var cursor = start
+        for pause in pauses.sorted(by: { $0.start < $1.start }) {
+            if cursor < pause.start {
+                studyRanges.append((cursor, pause.start))
+            }
+            cursor = pause.end
+        }
+        if cursor < end {
+            studyRanges.append((cursor, end))
+        }
+
+        for range in studyRanges {
+            var t = range.start
+            while t < range.end {
+                let hour = cal.component(.hour, from: t)
+                let nextHour = cal.date(byAdding: .hour, value: 1, to: cal.date(from: cal.dateComponents([.year, .month, .day, .hour], from: t))!)!
+                let segmentEnd = min(nextHour, range.end)
+                hours[hour] += Int(segmentEnd.timeIntervalSince(t))
+                t = segmentEnd
+            }
+        }
+    }
+
+    // MARK: - Daily Bar Chart
+
+    var maxDailySeconds: Int {
+        dailyRecords.map(\.totalSeconds).max() ?? 1
+    }
+
+    // MARK: - Selected Date Records
+
+    var selectedDayRecords: DailyStudyRecord? {
+        guard let date = selectedDate else { return nil }
+        let key = date.dateString
+        return dailyRecords.first { $0.id == key }
+    }
+
+    // MARK: - Load
+
+    func loadMonth() async {
+        let key = String(format: "%04d-%02d", currentYear, currentMonth)
+        guard !loadedMonths.contains(key) else { return }
+
+        isLoading = true
+        defer { isLoading = false }
+
+        let (from, to) = Date.monthRange(year: currentYear, month: currentMonth)
+        do {
+            let sessions = try await service.fetchSessions(from: from, to: to)
+            let records = buildDailyRecords(sessions: sessions)
+            dailyRecords = records
+            loadedMonths.insert(key)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func goToPreviousMonth() {
+        if currentMonth == 1 {
+            currentYear -= 1
+            currentMonth = 12
+        } else {
+            currentMonth -= 1
+        }
+        loadedMonths.removeAll()
+        dailyRecords = []
+        selectedDate = nil
+        Task { await loadMonth() }
+    }
+
+    func goToNextMonth() {
+        if currentMonth == 12 {
+            currentYear += 1
+            currentMonth = 1
+        } else {
+            currentMonth += 1
+        }
+        loadedMonths.removeAll()
+        dailyRecords = []
+        selectedDate = nil
+        Task { await loadMonth() }
+    }
+
+    func goToToday() {
+        let today = Date()
+        currentYear = today.year
+        currentMonth = today.month
+        loadedMonths.removeAll()
+        dailyRecords = []
+        selectedDate = nil
+        Task { await loadMonth() }
+    }
+
+    // MARK: - Private
+
+    private func buildDailyRecords(sessions: [StudySession]) -> [DailyStudyRecord] {
+        let cal = Calendar.current
+        guard let monthStart = cal.date(from: DateComponents(year: currentYear, month: currentMonth)) else { return [] }
+        let daysCount = monthStart.daysInMonth()
+
+        // 세션을 날짜별로 그룹화
+        var grouped: [String: [StudySession]] = [:]
+        for session in sessions {
+            for key in sessionDateKeys(session) {
+                grouped[key, default: []].append(session)
+            }
+        }
+
+        return (0..<daysCount).compactMap { offset in
+            guard let date = cal.date(byAdding: .day, value: offset, to: monthStart) else { return nil }
+            let key = date.dateString
+            let daySessions = grouped[key] ?? []
+            let totalSeconds = computeDayTotal(sessions: daySessions, date: date)
+            return DailyStudyRecord(id: key, date: date, totalSeconds: totalSeconds, sessions: daySessions)
+        }
+    }
+
+    /// 세션의 해당 날짜 범위 내 실제 공부 시간 계산
+    private func computeDayTotal(sessions: [StudySession], date: Date) -> Int {
+        let cal = Calendar.current
+        let dayStart = cal.startOfDay(for: date)
+        let dayEnd = cal.date(byAdding: .day, value: 1, to: dayStart)!
+
+        return sessions.reduce(0) { total, session in
+            guard let start = Date.fromISO(session.startedAt) else { return total }
+            let end = session.endedAt.flatMap { Date.fromISO($0) } ?? Date()
+            let clippedStart = max(start, dayStart)
+            let clippedEnd = min(end, dayEnd)
+            guard clippedStart < clippedEnd else { return total }
+
+            // 일시정지 시간 제외
+            let pausedSeconds = session.pauses.reduce(0) { sum, pause in
+                guard let ps = Date.fromISO(pause.pausedAt) else { return sum }
+                let pe = pause.resumedAt.flatMap { Date.fromISO($0) } ?? end
+                let cps = max(ps, clippedStart)
+                let cpe = min(pe, clippedEnd)
+                guard cps < cpe else { return sum }
+                return sum + Int(cpe.timeIntervalSince(cps))
+            }
+
+            return total + Int(clippedEnd.timeIntervalSince(clippedStart)) - pausedSeconds
+        }
+    }
+
+    private func sessionDateKeys(_ session: StudySession) -> [String] {
+        guard let start = Date.fromISO(session.startedAt) else {
+            return [String(session.startedAt.prefix(10))]
+        }
+        let startKey = start.dateString
+        guard let endStr = session.endedAt, let end = Date.fromISO(endStr) else {
+            return [startKey]
+        }
+        let endKey = end.dateString
+        if startKey == endKey { return [startKey] }
+        var keys = [startKey]
+        let cal = Calendar.current
+        var cursor = cal.date(byAdding: .day, value: 1, to: cal.startOfDay(for: start))!
+        while cursor.dateString <= endKey {
+            keys.append(cursor.dateString)
+            cursor = cal.date(byAdding: .day, value: 1, to: cursor)!
+        }
+        return keys
+    }
+}

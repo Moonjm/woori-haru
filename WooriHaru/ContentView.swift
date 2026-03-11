@@ -30,7 +30,7 @@ struct ContentView: View {
                     case .admin: AdminView(navPath: $path)
                     case .userManagement: UserManagementView()
                     case .studyTimer: StudyTimerView()
-                    case .studySessionLog: StudySessionLogView()
+                    case .studySessionLog: StudyRecordView()
                     }
                 }
         }
