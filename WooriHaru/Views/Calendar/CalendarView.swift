@@ -188,13 +188,13 @@ struct CalendarView: View {
                             isDraggingDrawer = true
                         }
                         if isDraggingDrawer && value.translation.width > 0 {
-                            drawerDragOffset = min(value.translation.width, drawerWidth)
+                            drawerDragOffset = min(value.translation.width, SideDrawerView.width)
                         }
                     }
                     .onEnded { value in
                         if isDraggingDrawer,
-                           value.translation.width > drawerWidth * 0.35
-                            || value.predictedEndTranslation.width > drawerWidth * 0.5 {
+                           value.translation.width > SideDrawerView.width * 0.35
+                            || value.predictedEndTranslation.width > SideDrawerView.width * 0.5 {
                             withAnimation(.easeOut(duration: 0.25)) {
                                 calendarVM.isDrawerOpen = true
                                 drawerDragOffset = 0

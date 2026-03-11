@@ -1,8 +1,7 @@
 import SwiftUI
 
-let drawerWidth: CGFloat = 260
-
 struct SideDrawerView: View {
+    static let width: CGFloat = 260
     @Binding var isOpen: Bool
     @Binding var navPath: NavigationPath
     var dragOffset: CGFloat = 0
@@ -10,12 +9,12 @@ struct SideDrawerView: View {
     @State private var showLogoutConfirm = false
 
     private var revealedWidth: CGFloat {
-        if isOpen { return drawerWidth }
+        if isOpen { return Self.width }
         return max(0, dragOffset)
     }
 
     private var overlayOpacity: Double {
-        Double(min(revealedWidth / drawerWidth, 1)) * 0.3
+        Double(min(revealedWidth / Self.width, 1)) * 0.3
     }
 
     var body: some View {
@@ -26,9 +25,9 @@ struct SideDrawerView: View {
                 .onTapGesture { withAnimation(.easeOut(duration: 0.25)) { isOpen = false } }
 
             drawerContent
-                .frame(width: drawerWidth)
+                .frame(width: Self.width)
                 .background(.white)
-                .offset(x: revealedWidth - drawerWidth)
+                .offset(x: revealedWidth - Self.width)
         }
         .allowsHitTesting(isOpen || dragOffset > 0)
     }

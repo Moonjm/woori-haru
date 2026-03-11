@@ -93,10 +93,10 @@ final class StudySessionLogViewModel {
         // 자정을 넘긴 경우 양일 포함
         var keys = [startKey]
         let cal = Calendar.current
-        var cursor = cal.startOfDay(for: start).addingTimeInterval(86400)
+        var cursor = cal.date(byAdding: .day, value: 1, to: cal.startOfDay(for: start))!
         while cursor.dateString <= endKey {
             keys.append(cursor.dateString)
-            cursor = cursor.addingTimeInterval(86400)
+            cursor = cal.date(byAdding: .day, value: 1, to: cursor)!
         }
         return keys
     }
