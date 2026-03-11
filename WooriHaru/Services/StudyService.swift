@@ -50,6 +50,10 @@ struct StudyService {
         try await api.patchVoid("/study/sessions/\(id)/resume")
     }
 
+    func endSession(id: Int) async throws {
+        try await api.patchVoid("/study/sessions/\(id)/end")
+    }
+
     // MARK: - Daily Goal
 
     func fetchDailyGoal() async throws -> StudyDailyGoal? {
@@ -67,9 +71,5 @@ struct StudyService {
     func fetchWeeklySummary() async throws -> StudyWeeklySummary {
         let response: DataResponse<StudyWeeklySummary> = try await api.get("/study/weekly-summary")
         return response.data ?? StudyWeeklySummary(totalGoalMinutes: 0, totalActualMinutes: 0)
-    }
-
-    func endSession(id: Int) async throws {
-        try await api.patchVoid("/study/sessions/\(id)/end")
     }
 }
