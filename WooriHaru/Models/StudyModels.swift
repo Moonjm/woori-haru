@@ -42,3 +42,10 @@ struct StudyDailyGoalRequest: Encodable {
     let date: String
     let goalMinutes: Int
 }
+
+// MARK: - Weekly Summary
+
+struct StudyWeeklySummary: Codable {
+    let totalGoalMinutes: Int
+    let totalActualMinutes: Int
+}

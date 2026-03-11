@@ -13,6 +13,7 @@ struct StudyTimerView: View {
             VStack(spacing: 24) {
                 timerSection
                 dailyGoalSection
+                weeklyGoalSection
                 subjectSection
                 todaySessionsSection
             }
@@ -26,6 +27,7 @@ struct StudyTimerView: View {
             await vm.loadSubjects()
             await vm.loadTodaySessions()
             await vm.loadDailyGoal()
+            await vm.loadWeeklySummary()
             await vm.restoreActiveSession()
         }
         .alert("과목 추가", isPresented: $vm.showAddSubject) {
@@ -266,6 +268,62 @@ struct StudyTimerView: View {
                     .foregroundStyle(Color.slate500)
                 Spacer()
                 if let goalText = vm.dailyGoalFormatted {
+                    Text(goalText)
+                        .font(.caption)
+                        .foregroundStyle(Color.slate400)
+                }
+            }
+        }
+        .padding(16)
+        .background(.white)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+
+    // MARK: - Weekly Goal Section
+
+    private var weeklyGoalSection: some View {
+        VStack(spacing: 12) {
+            HStack {
+                Text("이번 주 목표")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.slate700)
+                Spacer()
+            }
+
+            GeometryReader { geo in
+                let barWidth = geo.size.width * vm.weeklyGoalProgressClamped
+                let isNarrow = vm.weeklyGoalProgressClamped < narrowProgressThreshold
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.slate100)
+                        .frame(height: 28)
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(vm.weeklyGoalProgress >= 1.0 ? Color.green300 : Color.blue400)
+                        .frame(width: barWidth, height: 28)
+                        .overlay {
+                            if !isNarrow {
+                                Text(vm.weeklyGoalPercentText)
+                                    .font(.caption.weight(.bold))
+                                    .foregroundStyle(.white)
+                            }
+                        }
+                        .animation(.easeInOut(duration: 0.3), value: vm.weeklyGoalProgressClamped)
+                    if isNarrow {
+                        Text(vm.weeklyGoalPercentText)
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(Color.slate400)
+                            .offset(x: barWidth + 8)
+                    }
+                }
+            }
+            .frame(height: 28)
+
+            HStack {
+                Text(vm.weeklyTotalActualFormatted)
+                    .font(.caption)
+                    .foregroundStyle(Color.slate500)
+                Spacer()
+                if let goalText = vm.weeklyGoalFormatted {
                     Text(goalText)
                         .font(.caption)
                         .foregroundStyle(Color.slate400)

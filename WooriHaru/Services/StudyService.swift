@@ -62,9 +62,14 @@ struct StudyService {
         try await api.putVoid("/study/daily-goals", body: StudyDailyGoalRequest(date: today, goalMinutes: goalMinutes))
     }
 
-    func endSession(id: Int) async throws -> StudySession {
-        let response: DataResponse<StudySession> = try await api.patch("/study/sessions/\(id)/end")
-        guard let data = response.data else { throw APIError.serverError(statusCode: 200, message: "세션 종료 응답 데이터 없음") }
-        return data
+    // MARK: - Weekly Summary
+
+    func fetchWeeklySummary() async throws -> StudyWeeklySummary {
+        let response: DataResponse<StudyWeeklySummary> = try await api.get("/study/weekly-summary")
+        return response.data ?? StudyWeeklySummary(totalGoalMinutes: 0, totalActualMinutes: 0)
+    }
+
+    func endSession(id: Int) async throws {
+        try await api.patchVoid("/study/sessions/\(id)/end")
     }
 }
