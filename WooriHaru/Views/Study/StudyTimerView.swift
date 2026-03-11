@@ -99,7 +99,7 @@ struct StudyTimerView: View {
                     .background(vm.selectedSubject != nil ? Color.blue500 : Color.slate200)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
             }
-            .disabled(vm.selectedSubject == nil)
+            .disabled(vm.selectedSubject == nil || vm.isLoading)
 
         case .running:
             HStack(spacing: 12) {
@@ -114,6 +114,7 @@ struct StudyTimerView: View {
                         .background(Color.orange200)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
+                .disabled(vm.isLoading)
                 endButton
             }
 
@@ -130,6 +131,7 @@ struct StudyTimerView: View {
                         .background(Color.green100)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
+                .disabled(vm.isLoading)
                 endButton
             }
         }
@@ -147,6 +149,7 @@ struct StudyTimerView: View {
                 .background(Color.red400.opacity(0.2))
                 .clipShape(RoundedRectangle(cornerRadius: 12))
         }
+        .disabled(vm.isLoading)
     }
 
     // MARK: - Alarm Interval
