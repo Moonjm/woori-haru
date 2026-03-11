@@ -197,7 +197,9 @@ final class StudyTimerViewModel {
     // MARK: - Timer Actions
 
     func start() async {
-        guard let subject = selectedSubject else { return }
+        guard !isLoading, let subject = selectedSubject else { return }
+        isLoading = true
+        defer { isLoading = false }
         do {
             let sessionId = try await service.startSession(subjectId: subject.id)
             activeSessionId = sessionId
@@ -215,20 +217,25 @@ final class StudyTimerViewModel {
     }
 
     func pause() async {
-        guard let id = activeSessionId else { return }
+        guard !isLoading, let id = activeSessionId else { return }
+        isLoading = true
+        defer { isLoading = false }
+        // API 결과와 관계없이 즉시 타이머/알림 정리
+        stopTimer()
+        removeScheduledAlarms()
+        timerState = .paused
         do {
             try await service.pauseSession(id: id)
-            timerState = .paused
-            stopTimer()
-            removeScheduledAlarms()
-            await updateLiveActivity()
         } catch {
             errorMessage = error.localizedDescription
         }
+        await updateLiveActivity()
     }
 
     func resume() async {
-        guard let id = activeSessionId else { return }
+        guard !isLoading, let id = activeSessionId else { return }
+        isLoading = true
+        defer { isLoading = false }
         do {
             try await service.resumeSession(id: id)
             timerState = .running
@@ -242,20 +249,23 @@ final class StudyTimerViewModel {
     }
 
     func end() async {
-        guard let id = activeSessionId else { return }
+        guard !isLoading, let id = activeSessionId else { return }
+        isLoading = true
+        defer { isLoading = false }
+        // API 결과와 관계없이 즉시 타이머/알림 정리
+        stopTimer()
+        removeAlarmNotifications()
         do {
             _ = try await service.endSession(id: id)
-            timerState = .idle
-            activeSessionId = nil
-            elapsedSeconds = 0
-            timerStartDate = nil
-            stopTimer()
-            await endLiveActivity()
-            removeAlarmNotifications()
-            await loadTodaySessions()
         } catch {
             errorMessage = error.localizedDescription
         }
+        timerState = .idle
+        activeSessionId = nil
+        elapsedSeconds = 0
+        timerStartDate = nil
+        await endLiveActivity()
+        await loadTodaySessions()
     }
 
     // MARK: - Subject CRUD
