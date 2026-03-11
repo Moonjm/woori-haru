@@ -73,10 +73,6 @@ struct StudyTimerView: View {
                 .font(.system(size: 56, weight: .light, design: .monospaced))
                 .foregroundStyle(Color.slate900)
 
-            Text("오늘 총 \(vm.todayTotalFormatted)")
-                .font(.caption)
-                .foregroundStyle(Color.slate400)
-
             alarmIntervalSection
 
             timerButtons
