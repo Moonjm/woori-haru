@@ -6,15 +6,18 @@ struct StudyTimerView: View {
     @Environment(StudyTimerViewModel.self) private var vm
     @Environment(\.scenePhase) private var scenePhase
     @FocusState private var isAlarmFieldFocused: Bool
+    @FocusState private var isGoalFieldFocused: Bool
 
     var body: some View {
         @Bindable var vm = vm
         ScrollView {
-            VStack(spacing: 24) {
-                timerSection
-                dailyGoalSection
-                weeklyGoalSection
+            VStack(spacing: 20) {
+                timerCard
+                todaySummaryCard
+                dailyGoalCard
+                weeklyGoalCard
                 subjectSection
+                todayTimelineSection
                 todaySessionsSection
             }
             .padding(20)
@@ -59,28 +62,91 @@ struct StudyTimerView: View {
         }
     }
 
-    // MARK: - Timer Section
+    // MARK: - Timer Card
 
-    private var timerSection: some View {
+    private var timerCard: some View {
         VStack(spacing: 16) {
-            if let subject = vm.selectedSubject, vm.timerState != .idle {
-                Text(subject.name)
-                    .font(.subheadline)
-                    .foregroundStyle(Color.slate500)
-            }
+            // 상태 표시
+            timerStatusBadge
 
+            // 과목명
+            timerSubjectLabel
+
+            // 타이머 숫자
             Text(vm.elapsedFormatted)
-                .font(.system(size: 56, weight: .light, design: .monospaced))
-                .foregroundStyle(Color.slate900)
+                .font(.system(size: 60, weight: .light, design: .monospaced))
+                .foregroundStyle(timerNumberColor)
+                .contentTransition(.numericText())
 
+            // 알림 설정
             alarmIntervalSection
 
+            // 액션 버튼
             timerButtons
         }
         .frame(maxWidth: .infinity)
         .padding(24)
-        .background(.white)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .background(timerCardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+    }
+
+    @ViewBuilder
+    private var timerStatusBadge: some View {
+        switch vm.timerState {
+        case .idle:
+            EmptyView()
+        case .running:
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(Color.green300)
+                    .frame(width: 8, height: 8)
+                Text("공부 중")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color.green700)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(Color.green100)
+            .clipShape(Capsule())
+        case .paused:
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(Color.orange300)
+                    .frame(width: 8, height: 8)
+                Text("일시정지됨")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color.orange700)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(Color.orange200)
+            .clipShape(Capsule())
+        }
+    }
+
+    @ViewBuilder
+    private var timerSubjectLabel: some View {
+        if let subject = vm.selectedSubject {
+            Text(subject.name)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(vm.timerState != .idle ? Color.slate900 : Color.slate500)
+        } else {
+            Text("과목을 선택해주세요")
+                .font(.subheadline)
+                .foregroundStyle(Color.slate400)
+        }
+    }
+
+    private var timerNumberColor: Color {
+        switch vm.timerState {
+        case .idle: return Color.slate900
+        case .running: return Color.blue600
+        case .paused: return Color.slate400
+        }
+    }
+
+    private var timerCardBackground: Color {
+        .white
     }
 
     @ViewBuilder
@@ -92,7 +158,7 @@ struct StudyTimerView: View {
                 vm.saveAlarmInterval()
                 Task { await vm.start() }
             } label: {
-                Label("시작", systemImage: "play.fill")
+                Label("공부 시작", systemImage: "play.fill")
                     .font(.headline)
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
@@ -124,7 +190,7 @@ struct StudyTimerView: View {
                 Button {
                     Task { await vm.resume() }
                 } label: {
-                    Label("재개", systemImage: "play.fill")
+                    Label("다시 시작", systemImage: "play.fill")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Color.green700)
                         .frame(maxWidth: .infinity)
@@ -184,18 +250,47 @@ struct StudyTimerView: View {
                 .font(.caption)
                 .foregroundStyle(Color.slate500)
         }
-        .padding(12)
+        .padding(10)
         .background(Color.slate50)
         .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 
-    // MARK: - Daily Goal Section
+    // MARK: - Today Summary Card
 
-    @FocusState private var isGoalFieldFocused: Bool
+    private var todaySummaryCard: some View {
+        HStack(spacing: 0) {
+            VStack(spacing: 4) {
+                Text("오늘 공부")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Color.slate400)
+                Text(vm.todayTotalFormatted)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(Color.slate900)
+            }
+            .frame(maxWidth: .infinity)
 
-    private var dailyGoalSection: some View {
+            Divider().frame(height: 30)
+
+            VStack(spacing: 4) {
+                Text("세션")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Color.slate400)
+                Text("\(vm.todaySessionCount)회")
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(Color.slate900)
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .padding(.vertical, 14)
+        .background(.white)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+    }
+
+    // MARK: - Daily Goal Card
+
+    private var dailyGoalCard: some View {
         @Bindable var vm = vm
-        return VStack(spacing: 12) {
+        return VStack(spacing: 10) {
             HStack {
                 Text("오늘 목표")
                     .font(.subheadline.weight(.semibold))
@@ -231,33 +326,11 @@ struct StudyTimerView: View {
                 }
             }
 
-            GeometryReader { geo in
-                let barWidth = geo.size.width * vm.goalProgressClamped
-                let isNarrow = vm.goalProgressClamped < narrowProgressThreshold
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.slate100)
-                        .frame(height: 28)
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(vm.goalProgress >= 1.0 ? Color.green300 : Color.blue400)
-                        .frame(width: barWidth, height: 28)
-                        .overlay {
-                            if !isNarrow {
-                                Text(vm.goalPercentText)
-                                    .font(.caption.weight(.bold))
-                                    .foregroundStyle(.white)
-                            }
-                        }
-                        .animation(.easeInOut(duration: 0.3), value: vm.goalProgressClamped)
-                    if isNarrow {
-                        Text(vm.goalPercentText)
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(Color.slate400)
-                            .offset(x: barWidth + 8)
-                    }
-                }
-            }
-            .frame(height: 28)
+            goalProgressBar(
+                progress: vm.goalProgress,
+                progressClamped: vm.goalProgressClamped,
+                percentText: vm.goalPercentText
+            )
 
             HStack {
                 Text(vm.todayTotalFormatted)
@@ -276,10 +349,10 @@ struct StudyTimerView: View {
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 
-    // MARK: - Weekly Goal Section
+    // MARK: - Weekly Goal Card
 
-    private var weeklyGoalSection: some View {
-        VStack(spacing: 12) {
+    private var weeklyGoalCard: some View {
+        VStack(spacing: 10) {
             HStack {
                 Text("이번 주 목표")
                     .font(.subheadline.weight(.semibold))
@@ -287,33 +360,11 @@ struct StudyTimerView: View {
                 Spacer()
             }
 
-            GeometryReader { geo in
-                let barWidth = geo.size.width * vm.weeklyGoalProgressClamped
-                let isNarrow = vm.weeklyGoalProgressClamped < narrowProgressThreshold
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.slate100)
-                        .frame(height: 28)
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(vm.weeklyGoalProgress >= 1.0 ? Color.green300 : Color.blue400)
-                        .frame(width: barWidth, height: 28)
-                        .overlay {
-                            if !isNarrow {
-                                Text(vm.weeklyGoalPercentText)
-                                    .font(.caption.weight(.bold))
-                                    .foregroundStyle(.white)
-                            }
-                        }
-                        .animation(.easeInOut(duration: 0.3), value: vm.weeklyGoalProgressClamped)
-                    if isNarrow {
-                        Text(vm.weeklyGoalPercentText)
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(Color.slate400)
-                            .offset(x: barWidth + 8)
-                    }
-                }
-            }
-            .frame(height: 28)
+            goalProgressBar(
+                progress: vm.weeklyGoalProgress,
+                progressClamped: vm.weeklyGoalProgressClamped,
+                percentText: vm.weeklyGoalPercentText
+            )
 
             HStack {
                 Text(vm.weeklyTotalActualFormatted)
@@ -330,6 +381,38 @@ struct StudyTimerView: View {
         .padding(16)
         .background(.white)
         .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+
+    // MARK: - Shared Progress Bar
+
+    private func goalProgressBar(progress: Double, progressClamped: Double, percentText: String) -> some View {
+        GeometryReader { geo in
+            let barWidth = geo.size.width * progressClamped
+            let isNarrow = progressClamped < narrowProgressThreshold
+            ZStack(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.slate100)
+                    .frame(height: 28)
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(progress >= 1.0 ? Color.green300 : Color.blue400)
+                    .frame(width: barWidth, height: 28)
+                    .overlay {
+                        if !isNarrow {
+                            Text(percentText)
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(.white)
+                        }
+                    }
+                    .animation(.easeInOut(duration: 0.3), value: progressClamped)
+                if isNarrow {
+                    Text(percentText)
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(Color.slate400)
+                        .offset(x: barWidth + 8)
+                }
+            }
+        }
+        .frame(height: 28)
     }
 
     // MARK: - Subject Section
@@ -404,6 +487,61 @@ struct StudyTimerView: View {
         }
     }
 
+    // MARK: - Today Timeline
+
+    private var todayTimelineSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("오늘 공부 흐름")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Color.slate700)
+
+            if vm.todaySessions.isEmpty && vm.timerState == .idle {
+                Text("아직 기록이 없습니다")
+                    .font(.caption)
+                    .foregroundStyle(Color.slate400)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, 16)
+            } else {
+                VStack(spacing: 6) {
+                    ForEach(vm.todaySessions) { session in
+                        timelineBar(session)
+                    }
+                }
+            }
+        }
+        .padding(16)
+        .background(.white)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+
+    private func timelineBar(_ session: StudySession) -> some View {
+        let startText = formatTime(session.startedAt)
+        let endText = session.endedAt.map { formatTime($0) } ?? "진행중"
+        let durationText = session.totalSeconds.durationText
+
+        return HStack(spacing: 10) {
+            Text("\(startText)")
+                .font(.system(size: 11, design: .monospaced))
+                .foregroundStyle(Color.slate400)
+                .frame(width: 38, alignment: .trailing)
+
+            RoundedRectangle(cornerRadius: 3)
+                .fill(Color.blue400)
+                .frame(height: 8)
+
+            Text("\(endText)")
+                .font(.system(size: 11, design: .monospaced))
+                .foregroundStyle(Color.slate400)
+                .frame(width: 38, alignment: .leading)
+
+            Spacer()
+
+            Text(durationText)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(Color.blue600)
+        }
+    }
+
     // MARK: - Today Sessions
 
     private var todaySessionsSection: some View {
@@ -452,7 +590,7 @@ struct StudyTimerView: View {
                     .foregroundStyle(Color.slate400)
             }
             Spacer()
-            Text(formatSeconds(session.totalSeconds))
+            Text(session.totalSeconds.durationText)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(Color.blue600)
         }
@@ -480,9 +618,5 @@ struct StudyTimerView: View {
             return Self.timeFormatter.string(from: date)
         }
         return "??:??"
-    }
-
-    private func formatSeconds(_ seconds: Int) -> String {
-        seconds.durationText
     }
 }
