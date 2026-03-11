@@ -96,7 +96,7 @@ struct StudyTimerView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(24)
-        .background(timerCardBackground)
+        .background(.white)
         .clipShape(RoundedRectangle(cornerRadius: 20))
     }
 
@@ -175,10 +175,6 @@ struct StudyTimerView: View {
         case .running: return Color.blue600
         case .paused: return Color.slate400
         }
-    }
-
-    private var timerCardBackground: Color {
-        .white
     }
 
     @ViewBuilder
@@ -515,7 +511,7 @@ struct StudyTimerView: View {
         let durationText = session.totalSeconds.durationText
 
         return HStack(spacing: 10) {
-            Text("\(startText)")
+            Text(startText)
                 .font(.system(size: 11, design: .monospaced))
                 .foregroundStyle(Color.slate400)
                 .frame(width: 38, alignment: .trailing)
@@ -524,7 +520,7 @@ struct StudyTimerView: View {
                 .fill(Color.blue400)
                 .frame(height: 8)
 
-            Text("\(endText)")
+            Text(endText)
                 .font(.system(size: 11, design: .monospaced))
                 .foregroundStyle(Color.slate400)
                 .frame(width: 38, alignment: .leading)
