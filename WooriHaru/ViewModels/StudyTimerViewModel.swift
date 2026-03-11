@@ -72,11 +72,19 @@ final class StudyTimerViewModel {
         todaySessions.reduce(0) { $0 + $1.totalSeconds }
     }
 
+    var todayTotalWithCurrentSeconds: Int {
+        todayTotalSeconds + (timerState != .idle ? elapsedSeconds : 0)
+    }
+
     var todayTotalFormatted: String {
-        let total = todayTotalSeconds + (timerState != .idle ? elapsedSeconds : 0)
+        let total = todayTotalWithCurrentSeconds
         let h = total / 3600
         let m = (total % 3600) / 60
         return String(format: "%d시간 %d분", h, m)
+    }
+
+    var todaySessionCount: Int {
+        todaySessions.count + (timerState != .idle ? 1 : 0)
     }
 
     var goalProgress: Double {
