@@ -1,5 +1,7 @@
 import SwiftUI
 
+private let narrowProgressThreshold = 0.11
+
 struct StudyTimerView: View {
     @Environment(StudyTimerViewModel.self) private var vm
     @Environment(\.scenePhase) private var scenePhase
@@ -232,7 +234,7 @@ struct StudyTimerView: View {
 
             GeometryReader { geo in
                 let barWidth = geo.size.width * vm.goalProgressClamped
-                let isNarrow = vm.goalProgressClamped < 0.11
+                let isNarrow = vm.goalProgressClamped < narrowProgressThreshold
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 12)
                         .fill(Color.slate100)
@@ -263,10 +265,8 @@ struct StudyTimerView: View {
                     .font(.caption)
                     .foregroundStyle(Color.slate500)
                 Spacer()
-                if vm.dailyGoalMinutes > 0 {
-                    let h = vm.dailyGoalMinutes / 60
-                    let m = vm.dailyGoalMinutes % 60
-                    Text("목표 " + (h > 0 ? (m > 0 ? "\(h)시간 \(m)분" : "\(h)시간") : "\(m)분"))
+                if let goalText = vm.dailyGoalFormatted {
+                    Text(goalText)
                         .font(.caption)
                         .foregroundStyle(Color.slate400)
                 }

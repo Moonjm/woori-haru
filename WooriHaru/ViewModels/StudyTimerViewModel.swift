@@ -89,6 +89,16 @@ final class StudyTimerViewModel {
         "\(Int(goalProgress * 100))%"
     }
 
+    var dailyGoalFormatted: String? {
+        guard dailyGoalMinutes > 0 else { return nil }
+        let h = dailyGoalMinutes / 60
+        let m = dailyGoalMinutes % 60
+        if h > 0 {
+            return m > 0 ? "목표 \(h)시간 \(m)분" : "목표 \(h)시간"
+        }
+        return "목표 \(m)분"
+    }
+
     // MARK: - Load
 
     func restoreActiveSession() async {
@@ -329,8 +339,9 @@ final class StudyTimerViewModel {
     /// 포그라운드 복귀 시 경과 시간 및 Live Activity 동기화
     func syncOnForeground() {
         Task {
-            await loadTodaySessions()
-            await loadDailyGoal()
+            async let sessions: () = loadTodaySessions()
+            async let goal: () = loadDailyGoal()
+            _ = await (sessions, goal)
         }
         guard timerState != .idle else { return }
         if timerState == .running, let start = timerStartDate {
