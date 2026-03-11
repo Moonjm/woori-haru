@@ -89,8 +89,7 @@ final class StudyTimerViewModel {
 
     var goalProgress: Double {
         guard dailyGoalMinutes > 0 else { return 0 }
-        let totalSeconds = todayTotalSeconds + (timerState != .idle ? elapsedSeconds : 0)
-        return Double(totalSeconds) / Double(dailyGoalMinutes * 60)
+        return Double(todayTotalWithCurrentSeconds) / Double(dailyGoalMinutes * 60)
     }
 
     var goalProgressClamped: Double {
@@ -120,8 +119,7 @@ final class StudyTimerViewModel {
 
     /// 주간 실제 = API(월~어제) + 오늘 실제(세션 + 진행중)
     var weeklyTotalActualSeconds: Int {
-        let todaySeconds = todayTotalSeconds + (timerState != .idle ? elapsedSeconds : 0)
-        return weeklyActualMinutes * 60 + todaySeconds
+        weeklyActualMinutes * 60 + todayTotalWithCurrentSeconds
     }
 
     var weeklyTotalActualFormatted: String {
