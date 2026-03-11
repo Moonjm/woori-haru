@@ -24,10 +24,11 @@ struct StudyTimerView: View {
         .navigationTitle("공부 타이머")
         .navigationBarTitleDisplayMode(.inline)
         .task {
-            await vm.loadSubjects()
-            await vm.loadTodaySessions()
-            await vm.loadDailyGoal()
-            await vm.loadWeeklySummary()
+            async let subjects: () = vm.loadSubjects()
+            async let sessions: () = vm.loadTodaySessions()
+            async let goal: () = vm.loadDailyGoal()
+            async let weekly: () = vm.loadWeeklySummary()
+            _ = await (subjects, sessions, goal, weekly)
             await vm.restoreActiveSession()
         }
         .alert("과목 추가", isPresented: $vm.showAddSubject) {
