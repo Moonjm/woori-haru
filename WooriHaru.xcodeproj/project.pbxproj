@@ -20,6 +20,7 @@
 		8825C7582F5B1A1E00E46B14 /* AdminView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8825C7542F5B1A1E00E46B14 /* AdminView.swift */; };
 		8825C75A2F5B1A4400E46B14 /* UserManagementViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8825C7592F5B1A4400E46B14 /* UserManagementViewModel.swift */; };
 		8825C75C2F5B1A4C00E46B14 /* UserService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8825C75B2F5B1A4C00E46B14 /* UserService.swift */; };
+		88DD96ED2F61B3A900E60283 /* StudyRecordView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88DD96EC2F61B3A900E60283 /* StudyRecordView.swift */; };
 		A10001 /* WooriHaruApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20001 /* WooriHaruApp.swift */; };
 		A10002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20002 /* ContentView.swift */; };
 		A10003 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20003 /* Assets.xcassets */; };
@@ -109,6 +110,7 @@
 		8825C7592F5B1A4400E46B14 /* UserManagementViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserManagementViewModel.swift; sourceTree = "<group>"; };
 		8825C75B2F5B1A4C00E46B14 /* UserService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserService.swift; sourceTree = "<group>"; };
 		88C2E2B22F557CCD001249F8 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		88DD96EC2F61B3A900E60283 /* StudyRecordView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyRecordView.swift; sourceTree = "<group>"; };
 		A20001 /* WooriHaruApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WooriHaruApp.swift; sourceTree = "<group>"; };
 		A20002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A20003 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -428,6 +430,7 @@
 		L40001 /* Study */ = {
 			isa = PBXGroup;
 			children = (
+				88DD96EC2F61B3A900E60283 /* StudyRecordView.swift */,
 				880AD4942F5F15A900777742 /* StudySessionLogView.swift */,
 				L20004 /* StudyTimerView.swift */,
 			);
@@ -592,6 +595,7 @@
 				H10004 /* RecordSheetView.swift in Sources */,
 				I10001 /* MonthGridView.swift in Sources */,
 				I10002 /* CalendarView.swift in Sources */,
+				88DD96ED2F61B3A900E60283 /* StudyRecordView.swift in Sources */,
 				I10003 /* YearMonthPickerView.swift in Sources */,
 				I10004 /* SideDrawerView.swift in Sources */,
 				J10001 /* StatsView.swift in Sources */,
