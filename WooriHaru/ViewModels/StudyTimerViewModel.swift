@@ -34,6 +34,10 @@ final class StudyTimerViewModel {
     var dailyGoalMinutes: Int = 0
     var dailyGoalText: String = ""
 
+    // MARK: - Weekly Summary
+    var weeklyGoalMinutes: Int = 0
+    var weeklyActualMinutes: Int = 0
+
     // MARK: - Alarm
     var alarmIntervalMinutes: Int {
         get { UserDefaults.standard.integer(forKey: alarmIntervalKey) }
@@ -99,6 +103,51 @@ final class StudyTimerViewModel {
         return "목표 \(m)분"
     }
 
+    // MARK: - Weekly Computed
+
+    /// 주간 목표 = API(월~어제) + 오늘 목표
+    var weeklyTotalGoalMinutes: Int {
+        weeklyGoalMinutes + dailyGoalMinutes
+    }
+
+    /// 주간 실제 = API(월~어제) + 오늘 실제(세션 + 진행중)
+    var weeklyTotalActualSeconds: Int {
+        let todaySeconds = todayTotalSeconds + (timerState != .idle ? elapsedSeconds : 0)
+        return weeklyActualMinutes * 60 + todaySeconds
+    }
+
+    var weeklyTotalActualFormatted: String {
+        let total = weeklyTotalActualSeconds
+        let h = total / 3600
+        let m = (total % 3600) / 60
+        return String(format: "%d시간 %d분", h, m)
+    }
+
+    var weeklyGoalFormatted: String? {
+        let total = weeklyTotalGoalMinutes
+        guard total > 0 else { return nil }
+        let h = total / 60
+        let m = total % 60
+        if h > 0 {
+            return m > 0 ? "목표 \(h)시간 \(m)분" : "목표 \(h)시간"
+        }
+        return "목표 \(m)분"
+    }
+
+    var weeklyGoalProgress: Double {
+        let goalSeconds = weeklyTotalGoalMinutes * 60
+        guard goalSeconds > 0 else { return 0 }
+        return Double(weeklyTotalActualSeconds) / Double(goalSeconds)
+    }
+
+    var weeklyGoalProgressClamped: Double {
+        min(weeklyGoalProgress, 1.0)
+    }
+
+    var weeklyGoalPercentText: String {
+        "\(Int(weeklyGoalProgress * 100))%"
+    }
+
     // MARK: - Load
 
     func restoreActiveSession() async {
@@ -152,7 +201,7 @@ final class StudyTimerViewModel {
 
     // MARK: - Daily Goal
 
-    func loadDailyGoal() async {
+    func loadDailyGoal(silent: Bool = false) async {
         do {
             if let goal = try await service.fetchDailyGoal(),
                let minutes = goal.goalMinutes {
@@ -160,7 +209,7 @@ final class StudyTimerViewModel {
                 dailyGoalText = goalMinutesToHoursText(minutes)
             }
         } catch {
-            errorMessage = error.localizedDescription
+            if !silent { errorMessage = error.localizedDescription }
         }
     }
 
@@ -187,6 +236,16 @@ final class StudyTimerViewModel {
         return String(format: "%.1f", Double(minutes) / 60.0)
     }
 
+    func loadWeeklySummary(silent: Bool = false) async {
+        do {
+            let summary = try await service.fetchWeeklySummary()
+            weeklyGoalMinutes = summary.totalGoalMinutes
+            weeklyActualMinutes = summary.totalActualMinutes
+        } catch {
+            if !silent { errorMessage = error.localizedDescription }
+        }
+    }
+
     func loadSubjects() async {
         do {
             subjects = try await service.fetchSubjects()
@@ -195,12 +254,12 @@ final class StudyTimerViewModel {
         }
     }
 
-    func loadTodaySessions() async {
+    func loadTodaySessions(silent: Bool = false) async {
         let today = Date().dateString
         do {
             todaySessions = try await service.fetchSessions(from: today, to: today)
         } catch {
-            errorMessage = error.localizedDescription
+            if !silent { errorMessage = error.localizedDescription }
         }
     }
 
@@ -266,7 +325,7 @@ final class StudyTimerViewModel {
         stopTimer()
         removeAlarmNotifications()
         do {
-            _ = try await service.endSession(id: id)
+            try await service.endSession(id: id)
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -276,6 +335,7 @@ final class StudyTimerViewModel {
         timerStartDate = nil
         await endLiveActivity()
         await loadTodaySessions()
+        await loadWeeklySummary()
     }
 
     // MARK: - Subject CRUD
@@ -339,9 +399,10 @@ final class StudyTimerViewModel {
     /// 포그라운드 복귀 시 경과 시간 및 Live Activity 동기화
     func syncOnForeground() {
         Task {
-            async let sessions: () = loadTodaySessions()
-            async let goal: () = loadDailyGoal()
-            _ = await (sessions, goal)
+            async let sessions: () = loadTodaySessions(silent: true)
+            async let goal: () = loadDailyGoal(silent: true)
+            async let weekly: () = loadWeeklySummary(silent: true)
+            _ = await (sessions, goal, weekly)
         }
         guard timerState != .idle else { return }
         if timerState == .running, let start = timerStartDate {
