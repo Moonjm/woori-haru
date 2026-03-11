@@ -16,7 +16,6 @@ struct StudyTimerView: View {
                 todaySummaryCard
                 dailyGoalCard
                 weeklyGoalCard
-                subjectSection
                 todayTimelineSection
                 todaySessionsSection
             }
@@ -69,14 +68,25 @@ struct StudyTimerView: View {
             // 상태 표시
             timerStatusBadge
 
-            // 과목명
-            timerSubjectLabel
+            // 진행 중이면 과목명만, idle이면 과목 선택 UI
+            if vm.timerState != .idle {
+                if let subject = vm.selectedSubject {
+                    Text(subject.name)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(Color.slate900)
+                }
+            }
 
             // 타이머 숫자
             Text(vm.elapsedFormatted)
                 .font(.system(size: 60, weight: .light, design: .monospaced))
                 .foregroundStyle(timerNumberColor)
                 .contentTransition(.numericText())
+
+            // idle 상태에서 과목 선택
+            if vm.timerState == .idle {
+                subjectSelectionInTimer
+            }
 
             // 알림 설정
             alarmIntervalSection
@@ -124,16 +134,38 @@ struct StudyTimerView: View {
         }
     }
 
-    @ViewBuilder
-    private var timerSubjectLabel: some View {
-        if let subject = vm.selectedSubject {
-            Text(subject.name)
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(vm.timerState != .idle ? Color.slate900 : Color.slate500)
-        } else {
-            Text("과목을 선택해주세요")
-                .font(.subheadline)
-                .foregroundStyle(Color.slate400)
+    private var subjectSelectionInTimer: some View {
+        VStack(spacing: 10) {
+            if vm.subjects.isEmpty {
+                Button {
+                    vm.showAddSubject = true
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "plus.circle.fill")
+                        Text("과목 추가")
+                    }
+                    .font(.subheadline)
+                    .foregroundStyle(Color.blue500)
+                }
+            } else {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 90), spacing: 8)], spacing: 8) {
+                    ForEach(vm.subjects) { subject in
+                        subjectChip(subject)
+                    }
+                    Button {
+                        vm.showAddSubject = true
+                    } label: {
+                        Image(systemName: "plus")
+                            .font(.subheadline)
+                            .foregroundStyle(Color.slate400)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                            .frame(maxWidth: .infinity)
+                            .background(Color.slate50)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                    }
+                }
+            }
         }
     }
 
@@ -413,43 +445,6 @@ struct StudyTimerView: View {
             }
         }
         .frame(height: 28)
-    }
-
-    // MARK: - Subject Section
-
-    private var subjectSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("과목")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color.slate700)
-                Spacer()
-                Button {
-                    vm.showAddSubject = true
-                } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .foregroundStyle(Color.blue500)
-                }
-                .disabled(vm.timerState != .idle)
-            }
-
-            if vm.subjects.isEmpty {
-                Text("과목을 추가해 주세요")
-                    .font(.caption)
-                    .foregroundStyle(Color.slate400)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.vertical, 20)
-            } else {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 8)], spacing: 8) {
-                    ForEach(vm.subjects) { subject in
-                        subjectChip(subject)
-                    }
-                }
-            }
-        }
-        .padding(16)
-        .background(.white)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 
     private func subjectChip(_ subject: StudySubject) -> some View {
