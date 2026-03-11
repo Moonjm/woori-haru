@@ -285,7 +285,7 @@ struct StudySessionLogView: View {
     private func buildDaySegments(_ sessions: [StudySession], date: Date) -> [TimelineSegment] {
         let cal = Calendar.current
         let dayStart = cal.startOfDay(for: date)
-        let dayEnd = dayStart.addingTimeInterval(86400)
+        let dayEnd = cal.date(byAdding: .day, value: 1, to: dayStart)!
 
         // 시간 오름차순 정렬, 해당 날짜 범위로 클리핑
         let sorted = sessions
