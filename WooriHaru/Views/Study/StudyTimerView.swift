@@ -640,13 +640,7 @@ struct StudyTimerView: View {
     }
 
     private func pauseTypeLabel(_ value: String) -> String {
-        switch value {
-        case "REST": return "휴식"
-        case "LUNCH": return "점심"
-        case "DINNER": return "저녁"
-        case "EXERCISE": return "운동"
-        default: return value
-        }
+        vm.pauseTypes.first(where: { $0.value == value })?.label ?? value
     }
 
     // MARK: - Today Sessions
