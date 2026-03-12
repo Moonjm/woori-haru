@@ -1,10 +1,4 @@
-import ActivityKit
-import OSLog
 import SwiftUI
-import UserNotifications
-
-private let alarmIntervalKey = "alarmIntervalMinutes"
-private let maxScheduledAlarms = 20
 
 enum TimerState {
     case idle
@@ -42,25 +36,14 @@ final class StudyTimerViewModel {
     var pauseTypes: [PauseType] = []
     var selectedPauseType: String = "REST"
 
-    // MARK: - Alarm
-    var alarmIntervalMinutes: Int {
-        get { UserDefaults.standard.integer(forKey: alarmIntervalKey) }
-        set { UserDefaults.standard.set(newValue, forKey: alarmIntervalKey) }
-    }
-    var alarmIntervalText: String = {
-        let saved = UserDefaults.standard.integer(forKey: alarmIntervalKey)
-        return saved > 0 ? "\(saved)" : ""
-    }()
-
-    // MARK: - Private
-    private let logger = Logger(subsystem: "com.wooriharu", category: "StudyTimer")
+    // MARK: - Dependencies
+    let notificationScheduler = NotificationScheduler()
+    private let liveActivity = LiveActivityCoordinator()
     private let service = StudyService()
     private var activeSessionId: Int?
     nonisolated(unsafe) private var timer: Timer? {
         willSet { timer?.invalidate() }
     }
-    private var lastAlarmSeconds: Int = 0
-    private var liveActivity: Activity<StudyTimerAttributes>?
     private var timerStartDate: Date?
 
     // MARK: - Computed
@@ -116,12 +99,10 @@ final class StudyTimerViewModel {
 
     // MARK: - Weekly Computed
 
-    /// 주간 목표 = API(월~어제) + 오늘 목표
     var weeklyTotalGoalMinutes: Int {
         weeklyGoalMinutes + dailyGoalMinutes
     }
 
-    /// 주간 실제 = API(월~어제) + 오늘 실제(세션 + 진행중)
     var weeklyTotalActualSeconds: Int {
         weeklyActualMinutes * 60 + todayTotalWithCurrentSeconds
     }
@@ -169,11 +150,7 @@ final class StudyTimerViewModel {
             let isPaused = session.pauses.contains { $0.resumedAt == nil }
             let elapsed = calculateElapsed(session: session)
             elapsedSeconds = elapsed
-
-            let intervalSeconds = alarmIntervalMinutes * 60
-            if intervalSeconds > 0 {
-                lastAlarmSeconds = (elapsed / intervalSeconds) * intervalSeconds
-            }
+            notificationScheduler.restoreAlarmTracking(elapsedSeconds: elapsed)
 
             if isPaused {
                 timerState = .paused
@@ -185,12 +162,19 @@ final class StudyTimerViewModel {
                 timerState = .running
                 timerStartDate = Date().addingTimeInterval(TimeInterval(-elapsed))
                 startTimer()
-                scheduleAlarmNotifications()
+                notificationScheduler.scheduleAlarmNotifications(
+                    subjectName: selectedSubject?.name ?? "공부",
+                    elapsedSeconds: elapsedSeconds
+                )
             }
 
-            // Live Activity 복원
             if let subjectName = selectedSubject?.name {
-                await startLiveActivity(subjectName: subjectName)
+                await liveActivity.start(
+                    subjectName: subjectName,
+                    timerStartDate: timerStartDate ?? Date(),
+                    elapsedSeconds: elapsedSeconds,
+                    timerState: timerState
+                )
             }
         } catch {
             errorMessage = error.localizedDescription
@@ -198,19 +182,15 @@ final class StudyTimerViewModel {
     }
 
     private func calculateElapsed(session: StudySession) -> Int {
-        guard let startDate = parseISO(session.startedAt) else { return 0 }
+        guard let startDate = Date.fromISO(session.startedAt) else { return 0 }
         let now = Date()
         let totalDuration = Int(now.timeIntervalSince(startDate))
         let pausedDuration = session.pauses.reduce(0) { total, pause in
-            guard let pauseStart = parseISO(pause.pausedAt) else { return total }
-            let pauseEnd = pause.resumedAt.flatMap { parseISO($0) } ?? now
+            guard let pauseStart = Date.fromISO(pause.pausedAt) else { return total }
+            let pauseEnd = pause.resumedAt.flatMap { Date.fromISO($0) } ?? now
             return total + Int(pauseEnd.timeIntervalSince(pauseStart))
         }
         return max(0, totalDuration - pausedDuration)
-    }
-
-    private func parseISO(_ string: String) -> Date? {
-        Date.fromISO(string)
     }
 
     // MARK: - Daily Goal
@@ -310,12 +290,20 @@ final class StudyTimerViewModel {
             activeSessionId = sessionId
             timerState = .running
             elapsedSeconds = 0
-            lastAlarmSeconds = 0
             timerStartDate = Date()
+            notificationScheduler.resetAlarmTracking()
             startTimer()
-            await startLiveActivity(subjectName: subject.name)
-            await requestNotificationPermission()
-            scheduleAlarmNotifications()
+            await liveActivity.start(
+                subjectName: subject.name,
+                timerStartDate: timerStartDate!,
+                elapsedSeconds: 0,
+                timerState: .running
+            )
+            await notificationScheduler.requestPermission()
+            notificationScheduler.scheduleAlarmNotifications(
+                subjectName: subject.name,
+                elapsedSeconds: elapsedSeconds
+            )
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -325,9 +313,8 @@ final class StudyTimerViewModel {
         guard !isLoading, let id = activeSessionId else { return }
         isLoading = true
         defer { isLoading = false }
-        // API 결과와 관계없이 즉시 타이머/알림 정리
         stopTimer()
-        removeScheduledAlarms()
+        notificationScheduler.removeScheduledAlarms()
         timerState = .paused
         selectedPauseType = "REST"
         do {
@@ -335,7 +322,11 @@ final class StudyTimerViewModel {
         } catch {
             errorMessage = error.localizedDescription
         }
-        await updateLiveActivity()
+        await liveActivity.update(
+            timerState: timerState,
+            timerStartDate: timerStartDate ?? Date(),
+            elapsedSeconds: elapsedSeconds
+        )
     }
 
     func resume() async {
@@ -347,8 +338,15 @@ final class StudyTimerViewModel {
             timerState = .running
             timerStartDate = Date().addingTimeInterval(TimeInterval(-elapsedSeconds))
             startTimer()
-            scheduleAlarmNotifications()
-            await updateLiveActivity()
+            notificationScheduler.scheduleAlarmNotifications(
+                subjectName: selectedSubject?.name ?? "공부",
+                elapsedSeconds: elapsedSeconds
+            )
+            await liveActivity.update(
+                timerState: timerState,
+                timerStartDate: timerStartDate ?? Date(),
+                elapsedSeconds: elapsedSeconds
+            )
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -358,9 +356,8 @@ final class StudyTimerViewModel {
         guard !isLoading, let id = activeSessionId else { return }
         isLoading = true
         defer { isLoading = false }
-        // API 결과와 관계없이 즉시 타이머/알림 정리
         stopTimer()
-        removeAlarmNotifications()
+        notificationScheduler.removeAllAlarmNotifications()
         do {
             try await service.endSession(id: id)
         } catch {
@@ -370,7 +367,7 @@ final class StudyTimerViewModel {
         activeSessionId = nil
         elapsedSeconds = 0
         timerStartDate = nil
-        await endLiveActivity()
+        await liveActivity.end(timerState: .idle, timerStartDate: Date(), elapsedSeconds: 0)
         await loadTodaySessions()
         await loadWeeklySummary()
     }
@@ -416,7 +413,7 @@ final class StudyTimerViewModel {
         }
     }
 
-    // MARK: - Timer
+    // MARK: - Timer Engine
 
     private func startTimer() {
         stopTimer()
@@ -424,7 +421,11 @@ final class StudyTimerViewModel {
             Task { @MainActor in
                 guard let self, let start = self.timerStartDate else { return }
                 self.elapsedSeconds = Int(Date().timeIntervalSince(start))
-                self.checkAlarm()
+                self.notificationScheduler.checkAlarm(
+                    elapsedSeconds: self.elapsedSeconds,
+                    subjectName: self.selectedSubject?.name ?? "공부",
+                    timerState: self.timerState
+                )
             }
         }
     }
@@ -445,181 +446,13 @@ final class StudyTimerViewModel {
         if timerState == .running, let start = timerStartDate {
             elapsedSeconds = Int(Date().timeIntervalSince(start))
         }
-        // Live Activity 참조가 사라진 경우 기존 활동 복원 또는 재생성
-        restoreLiveActivityIfNeeded()
-    }
-
-    private func restoreLiveActivityIfNeeded() {
-        guard liveActivity == nil, activeSessionId != nil,
-              let subjectName = selectedSubject?.name else { return }
-        // iOS가 아직 관리 중인 기존 Live Activity 중 현재 과목과 일치하는 것 복원
-        if let existing = Activity<StudyTimerAttributes>.activities.first(where: {
-            $0.attributes.subjectName == subjectName
-        }) {
-            liveActivity = existing
-            Task { await updateLiveActivity() }
-        } else {
-            Task { await startLiveActivity(subjectName: subjectName) }
-        }
-    }
-
-    // MARK: - Live Activity
-
-    private func startLiveActivity(subjectName: String) async {
-        guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
-
-        // 기존 Live Activity 모두 종료 (고아 포함)
-        await cleanupLiveActivities()
-
-        let attributes = StudyTimerAttributes(subjectName: subjectName)
-        let state = makeContentState()
-
-        do {
-            liveActivity = try Activity.request(
-                attributes: attributes,
-                content: .init(state: state, staleDate: nil)
-            )
-        } catch {
-            logger.error("Live Activity 시작 실패: \(error)")
-        }
-    }
-
-    private func updateLiveActivity() async {
-        guard let activity = liveActivity else { return }
-        let state = makeContentState()
-        await activity.update(.init(state: state, staleDate: nil))
-    }
-
-    private func endLiveActivity() async {
-        guard let activity = liveActivity else { return }
-        let state = makeContentState()
-        await activity.end(.init(state: state, staleDate: nil), dismissalPolicy: .immediate)
-        liveActivity = nil
-    }
-
-    private func cleanupLiveActivities() async {
-        for activity in Activity<StudyTimerAttributes>.activities {
-            await activity.end(nil, dismissalPolicy: .immediate)
-        }
-        liveActivity = nil
-    }
-
-    private func makeContentState() -> StudyTimerAttributes.ContentState {
-        switch timerState {
-        case .running:
-            return .init(
-                timerState: .running,
-                startDate: timerStartDate ?? Date(),
-                pausedElapsed: 0
-            )
-        case .paused, .idle:
-            return .init(
-                timerState: .paused,
-                startDate: Date(),
-                pausedElapsed: elapsedSeconds
+        if let subjectName = selectedSubject?.name, activeSessionId != nil {
+            liveActivity.restoreIfNeeded(
+                subjectName: subjectName,
+                timerState: timerState,
+                timerStartDate: timerStartDate,
+                elapsedSeconds: elapsedSeconds
             )
         }
-    }
-
-    // MARK: - Alarm
-
-    func saveAlarmInterval() {
-        let filtered = alarmIntervalText.filter { $0.isNumber }
-        if alarmIntervalText != filtered {
-            alarmIntervalText = filtered
-        }
-        let value = Int(filtered) ?? 0
-        alarmIntervalMinutes = max(0, value)
-    }
-
-    private func checkAlarm() {
-        let intervalSeconds = alarmIntervalMinutes * 60
-        guard intervalSeconds > 0 else { return }
-        let cumulativeTotal = elapsedSeconds
-        let nextAlarmAt = lastAlarmSeconds + intervalSeconds
-        if cumulativeTotal >= nextAlarmAt {
-            lastAlarmSeconds = (cumulativeTotal / intervalSeconds) * intervalSeconds
-            // 예약 알림 갱신 후 즉시 알림 (예약과 중복 방지)
-            scheduleAlarmNotifications()
-            // 알림 2회 발송 (진동 2번) — 노티는 1개만 유지
-            sendAlarmNotification(elapsedSeconds: elapsedSeconds)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [self] in
-                guard timerState == .running else { return }
-                sendAlarmNotification(elapsedSeconds: elapsedSeconds)
-            }
-        }
-    }
-
-    private func sendAlarmNotification(elapsedSeconds: Int) {
-        let center = UNUserNotificationCenter.current()
-        // 이전 알림 제거 → 알림센터에 항상 최신 1개만 유지
-        center.removeDeliveredNotifications(withIdentifiers: ["study-alarm"])
-
-        let content = UNMutableNotificationContent()
-        let h = elapsedSeconds / 3600
-        let m = (elapsedSeconds % 3600) / 60
-        let subjectName = selectedSubject?.name ?? "공부"
-        content.title = subjectName
-        content.body = "\(h)시간 \(m)분 경과"
-        content.sound = .default
-
-        let request = UNNotificationRequest(
-            identifier: "study-alarm",
-            content: content,
-            trigger: nil
-        )
-        center.add(request)
-    }
-
-    /// 백그라운드에서도 알림이 오도록 미래 시간에 예약
-    private func scheduleAlarmNotifications() {
-        removeScheduledAlarms()
-        let intervalSeconds = alarmIntervalMinutes * 60
-        guard intervalSeconds > 0 else { return }
-
-        let center = UNUserNotificationCenter.current()
-        let subjectName = selectedSubject?.name ?? "공부"
-        let maxSchedule = maxScheduledAlarms
-        let baseElapsed = elapsedSeconds
-
-        for i in 1...maxSchedule {
-            let targetElapsed = lastAlarmSeconds + intervalSeconds * i
-            let delayFromNow = targetElapsed - baseElapsed
-            guard delayFromNow > 0 else { continue }
-
-            let content = UNMutableNotificationContent()
-            let h = targetElapsed / 3600
-            let m = (targetElapsed % 3600) / 60
-            content.title = subjectName
-            content.body = "\(h)시간 \(m)분 경과"
-            content.sound = .default
-
-            let trigger = UNTimeIntervalNotificationTrigger(
-                timeInterval: TimeInterval(delayFromNow), repeats: false
-            )
-            let request = UNNotificationRequest(
-                identifier: "study-scheduled-\(i)",
-                content: content,
-                trigger: trigger
-            )
-            center.add(request)
-        }
-    }
-
-    private func removeScheduledAlarms() {
-        let center = UNUserNotificationCenter.current()
-        let ids = (1...maxScheduledAlarms).map { "study-scheduled-\($0)" }
-        center.removePendingNotificationRequests(withIdentifiers: ids)
-        center.removeDeliveredNotifications(withIdentifiers: ids)
-    }
-
-    private func removeAlarmNotifications() {
-        removeScheduledAlarms()
-        UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: ["study-alarm"])
-    }
-
-    private func requestNotificationPermission() async {
-        try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
     }
 }
-
