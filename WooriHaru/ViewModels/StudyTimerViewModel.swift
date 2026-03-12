@@ -541,11 +541,19 @@ final class StudyTimerViewModel {
             lastAlarmSeconds = (cumulativeTotal / intervalSeconds) * intervalSeconds
             // 예약 알림 갱신 후 즉시 알림 (예약과 중복 방지)
             scheduleAlarmNotifications()
+            // 알림 2회 발송 (진동 2번) — 노티는 1개만 유지
             sendAlarmNotification(elapsedSeconds: elapsedSeconds)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [self] in
+                sendAlarmNotification(elapsedSeconds: elapsedSeconds)
+            }
         }
     }
 
     private func sendAlarmNotification(elapsedSeconds: Int) {
+        let center = UNUserNotificationCenter.current()
+        // 이전 알림 제거 → 알림센터에 항상 최신 1개만 유지
+        center.removeDeliveredNotifications(withIdentifiers: ["study-alarm"])
+
         let content = UNMutableNotificationContent()
         let h = elapsedSeconds / 3600
         let m = (elapsedSeconds % 3600) / 60
@@ -555,11 +563,11 @@ final class StudyTimerViewModel {
         content.sound = .default
 
         let request = UNNotificationRequest(
-            identifier: "study-alarm-\(Date().timeIntervalSince1970)",
+            identifier: "study-alarm",
             content: content,
             trigger: nil
         )
-        UNUserNotificationCenter.current().add(request)
+        center.add(request)
     }
 
     /// 백그라운드에서도 알림이 오도록 미래 시간에 예약
@@ -567,6 +575,10 @@ final class StudyTimerViewModel {
         removeScheduledAlarms()
         let intervalSeconds = alarmIntervalMinutes * 60
         guard intervalSeconds > 0 else { return }
+
+        let center = UNUserNotificationCenter.current()
+        // 이전에 배달된 예약 알림도 제거 → 항상 최신 1개만
+        center.removeDeliveredNotifications(withIdentifiers: ["study-scheduled"])
 
         let subjectName = selectedSubject?.name ?? "공부"
         let maxSchedule = maxScheduledAlarms
@@ -592,24 +604,20 @@ final class StudyTimerViewModel {
                 content: content,
                 trigger: trigger
             )
-            UNUserNotificationCenter.current().add(request)
+            center.add(request)
         }
     }
 
     private func removeScheduledAlarms() {
+        let center = UNUserNotificationCenter.current()
         let ids = (1...maxScheduledAlarms).map { "study-scheduled-\($0)" }
-        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ids)
+        center.removePendingNotificationRequests(withIdentifiers: ids)
+        center.removeDeliveredNotifications(withIdentifiers: ids + ["study-scheduled"])
     }
 
     private func removeAlarmNotifications() {
         removeScheduledAlarms()
-        let center = UNUserNotificationCenter.current()
-        center.getDeliveredNotifications { notifications in
-            let ids = notifications
-                .filter { $0.request.identifier.hasPrefix("study-alarm-") }
-                .map { $0.request.identifier }
-            center.removeDeliveredNotifications(withIdentifiers: ids)
-        }
+        UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: ["study-alarm"])
     }
 
     private func requestNotificationPermission() async {
