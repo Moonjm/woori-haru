@@ -115,12 +115,6 @@ final class StudyRecordViewModel {
         .sorted { $0.totalSeconds > $1.totalSeconds }
     }
 
-    // MARK: - Daily Bar Chart
-
-    var maxDailySeconds: Int {
-        dailyRecords.map { $0.totalSeconds + $0.pauseSeconds }.max() ?? 1
-    }
-
     // MARK: - Load
 
     func loadMonth() async {
