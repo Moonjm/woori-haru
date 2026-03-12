@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 struct RecordService {
     private let api = APIClient.shared
 

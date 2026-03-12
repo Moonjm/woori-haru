@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 struct UserService {
     private let api = APIClient.shared
 

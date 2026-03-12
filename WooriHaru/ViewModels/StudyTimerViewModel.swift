@@ -41,7 +41,7 @@ final class StudyTimerViewModel {
     private let liveActivity = LiveActivityCoordinator()
     private let service = StudyService()
     private var activeSessionId: Int?
-    nonisolated(unsafe) private var timer: Timer? {
+    private var timer: Timer? {
         willSet { timer?.invalidate() }
     }
     private var timerStartDate: Date?

@@ -5,6 +5,7 @@ struct LoginRequest: Encodable {
     let password: String
 }
 
+@MainActor
 struct AuthService {
     private let api = APIClient.shared
 
