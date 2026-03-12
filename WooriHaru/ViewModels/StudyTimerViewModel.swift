@@ -277,6 +277,7 @@ final class StudyTimerViewModel {
                 try await service.setPauseType(sessionId: id, pauseType: type)
             } catch {
                 selectedPauseType = previous
+                errorMessage = "일시정지 타입 변경에 실패했습니다"
             }
         }
     }
