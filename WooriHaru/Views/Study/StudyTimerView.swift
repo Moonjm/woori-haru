@@ -105,31 +105,19 @@ struct StudyTimerView: View {
         switch vm.timerState {
         case .idle:
             EmptyView()
-        case .running:
+        case .running, .paused:
+            let isRunning = vm.timerState == .running
             HStack(spacing: 6) {
                 Circle()
-                    .fill(Color.green300)
+                    .fill(isRunning ? Color.green300 : Color.orange300)
                     .frame(width: 8, height: 8)
-                Text("공부 중")
+                Text(isRunning ? "공부 중" : "일시정지됨")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(Color.green700)
+                    .foregroundStyle(isRunning ? Color.green700 : Color.orange700)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
-            .background(Color.green100)
-            .clipShape(Capsule())
-        case .paused:
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(Color.orange300)
-                    .frame(width: 8, height: 8)
-                Text("일시정지됨")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Color.orange700)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(Color.orange200)
+            .background(isRunning ? Color.green100 : Color.orange200)
             .clipShape(Capsule())
         }
     }
