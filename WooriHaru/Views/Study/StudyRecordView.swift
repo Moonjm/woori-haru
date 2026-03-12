@@ -2,6 +2,16 @@ import SwiftUI
 
 struct StudyRecordView: View {
     @State private var vm = StudyRecordViewModel()
+    @State private var selectedTooltip: DailyTooltipKey?
+
+    private enum DailyTooltipType {
+        case study, rest
+    }
+
+    private struct DailyTooltipKey: Equatable {
+        let dateId: String
+        let type: DailyTooltipType
+    }
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -21,6 +31,13 @@ struct StudyRecordView: View {
                 .padding(.bottom, 20)
             }
             .background(Color.slate50)
+            .onTapGesture {
+                if selectedTooltip != nil {
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        selectedTooltip = nil
+                    }
+                }
+            }
             .onChange(of: vm.selectedDate) {
                 if let date = vm.selectedDate {
                     withAnimation {
@@ -264,31 +281,126 @@ struct StudyRecordView: View {
                 emptyStateView
             } else {
                 ForEach(records.reversed().filter { !$0.sessions.isEmpty }) { record in
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Text(dayHeaderText(record.date))
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(Color.slate500)
-                            Spacer()
-                            Text(record.totalSeconds.durationText)
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(Color.blue500)
-                        }
-
-                        ForEach(record.sessions) { session in
-                            sessionRow(session)
-                        }
-                    }
-                    .id("sessions-\(record.id)")
-                    .padding(12)
-                    .background(Color.slate50)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    dailyRecordRow(record)
                 }
             }
         }
         .padding(16)
         .background(.white)
         .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+
+    private func dailyRecordRow(_ record: DailyStudyRecord) -> some View {
+        let total = record.totalSeconds + record.pauseSeconds
+        let studyRatio = total > 0 ? Double(record.totalSeconds) / Double(total) : 1.0
+        let hasRest = record.pauseSeconds > 0
+        let isStudySelected = selectedTooltip == DailyTooltipKey(dateId: record.id, type: .study)
+        let isRestSelected = selectedTooltip == DailyTooltipKey(dateId: record.id, type: .rest)
+
+        return VStack(alignment: .leading, spacing: 8) {
+            // 날짜 헤더
+            HStack {
+                Text(dayHeaderText(record.date))
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color.slate500)
+                Spacer()
+                HStack(spacing: 8) {
+                    Text("공부 \(record.totalSeconds.durationText)")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Color.blue500)
+                    if hasRest {
+                        Text("휴식 \(record.pauseSeconds.durationText)")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(Color.slate400)
+                    }
+                }
+            }
+
+            // 바 차트
+            GeometryReader { geo in
+                let barWidth = geo.size.width
+                let studyWidth = barWidth * studyRatio
+                let restWidth = barWidth - studyWidth
+
+                HStack(spacing: 0) {
+                    if studyWidth > 0 {
+                        UnevenRoundedRectangle(
+                            topLeadingRadius: 5, bottomLeadingRadius: 5,
+                            bottomTrailingRadius: hasRest ? 0 : 5,
+                            topTrailingRadius: hasRest ? 0 : 5
+                        )
+                        .fill(isStudySelected ? Color.blue500 : Color.blue400)
+                        .frame(width: studyWidth)
+                        .onTapGesture {
+                            withAnimation(.easeInOut(duration: 0.15)) {
+                                selectedTooltip = isStudySelected ? nil : DailyTooltipKey(dateId: record.id, type: .study)
+                            }
+                        }
+                    }
+                    if hasRest && restWidth > 0 {
+                        UnevenRoundedRectangle(
+                            topLeadingRadius: studyWidth > 0 ? 0 : 5,
+                            bottomLeadingRadius: studyWidth > 0 ? 0 : 5,
+                            bottomTrailingRadius: 5, topTrailingRadius: 5
+                        )
+                        .fill(isRestSelected ? Color.slate400 : Color.slate200)
+                        .frame(width: restWidth)
+                        .onTapGesture {
+                            withAnimation(.easeInOut(duration: 0.15)) {
+                                selectedTooltip = isRestSelected ? nil : DailyTooltipKey(dateId: record.id, type: .rest)
+                            }
+                        }
+                    }
+                }
+            }
+            .frame(height: 20)
+
+            // 상세 breakdown (바 아래에 표시)
+            if isStudySelected {
+                dailyBreakdownDetail(
+                    title: "과목별",
+                    items: vm.subjectBreakdown(for: record).map { ($0.name, $0.seconds) },
+                    color: Color.blue500
+                )
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+
+            if isRestSelected {
+                dailyBreakdownDetail(
+                    title: "휴식 종류별",
+                    items: vm.pauseBreakdown(for: record).map { ($0.label, $0.seconds) },
+                    color: Color.slate500
+                )
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .id("sessions-\(record.id)")
+        .padding(12)
+        .background(Color.slate50)
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+
+    private func dailyBreakdownDetail(title: String, items: [(String, Int)], color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(color)
+
+            ForEach(Array(items.enumerated()), id: \.offset) { _, item in
+                HStack {
+                    Text(item.0)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(Color.slate700)
+                    Spacer()
+                    Text(item.1.durationText)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Color.slate600)
+                }
+            }
+        }
+        .padding(8)
+        .background(.white)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 
     private var filteredRecords: [DailyStudyRecord] {
@@ -314,50 +426,7 @@ struct StudyRecordView: View {
         .padding(.vertical, 24)
     }
 
-    private func sessionRow(_ session: StudySession) -> some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(session.subject.name)
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(Color.slate900)
-                Text(sessionTimeRange(session))
-                    .font(.system(size: 11))
-                    .foregroundStyle(Color.slate400)
-            }
-            Spacer()
-            VStack(alignment: .trailing, spacing: 2) {
-                Text("공부 \(session.totalSeconds.durationText)")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Color.blue600)
-                if session.pauseSeconds > 0 {
-                    Text("휴식 \(session.pauseSeconds.durationText)")
-                        .font(.system(size: 11))
-                        .foregroundStyle(Color.slate400)
-                }
-            }
-        }
-    }
-
     // MARK: - Helpers
-
-    private static let timeFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "HH:mm"
-        return f
-    }()
-
-    private func formatTime(_ isoString: String) -> String {
-        if let date = Date.fromISO(isoString) {
-            return Self.timeFormatter.string(from: date)
-        }
-        return "??:??"
-    }
-
-    private func sessionTimeRange(_ session: StudySession) -> String {
-        let start = formatTime(session.startedAt)
-        let end = session.endedAt.map { formatTime($0) } ?? "진행중"
-        return "\(start) - \(end)"
-    }
 
     private static let dayHeaderFormatter: DateFormatter = {
         let f = DateFormatter()
