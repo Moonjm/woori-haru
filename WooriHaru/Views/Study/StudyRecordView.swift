@@ -12,7 +12,6 @@ struct StudyRecordView: View {
                     monthlySummaryCard
 
                     if !vm.dailyRecords.isEmpty {
-                        dailyBarChart
                         subjectBreakdown
                     }
 
@@ -206,58 +205,6 @@ struct StudyRecordView: View {
     }
 
     // MARK: - Daily Bar Chart
-
-    private var dailyBarChart: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("일별 공부시간")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Color.slate700)
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .bottom, spacing: 3) {
-                    ForEach(vm.dailyRecords) { record in
-                        let isSelected = vm.selectedDate?.dateString == record.date.dateString
-                        let maxSeconds = max(vm.maxDailySeconds, 1)
-                        let totalWithPause = record.totalSeconds + record.pauseSeconds
-                        let fullHeight = max(CGFloat(totalWithPause) / CGFloat(maxSeconds) * 100, totalWithPause > 0 ? 4 : 1)
-                        let studyHeight = totalWithPause > 0 ? fullHeight * CGFloat(record.totalSeconds) / CGFloat(totalWithPause) : fullHeight
-                        let pauseHeight = fullHeight - studyHeight
-
-                        VStack(spacing: 0) {
-                            if pauseHeight > 0 {
-                                RoundedRectangle(cornerRadius: 2)
-                                    .fill(isSelected ? Color.slate400 : Color.slate200)
-                                    .frame(width: 8, height: pauseHeight)
-                            }
-                            RoundedRectangle(cornerRadius: 2)
-                                .fill(isSelected ? Color.blue500 : (record.totalSeconds > 0 ? Color.blue300 : Color.slate100))
-                                .frame(width: 8, height: max(studyHeight, totalWithPause > 0 ? 2 : 1))
-                        }
-
-                        .overlay(alignment: .bottom) {
-                            if record.date.day % 5 == 1 || record.date.day == 1 {
-                                Text("\(record.date.day)")
-                                    .font(.system(size: 9))
-                                    .foregroundStyle(Color.slate400)
-                                    .offset(y: 14)
-                            }
-                        }
-                        .onTapGesture {
-                            withAnimation(.easeInOut(duration: 0.15)) {
-                                vm.selectedDate = isSelected ? nil : record.date
-                            }
-                        }
-                    }
-                }
-                .frame(height: 120)
-                .padding(.horizontal, 4)
-                .padding(.bottom, 16)
-            }
-        }
-        .padding(16)
-        .background(.white)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-    }
 
     // MARK: - Subject Breakdown
 
