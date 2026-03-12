@@ -188,6 +188,8 @@ final class StudyRecordViewModel {
         do {
             let sessions = try await service.fetchSessions(from: from, to: to)
             dailyRecords = buildDailyRecords(sessions: sessions)
+        } catch is CancellationError {
+            // 화면 이탈 시 Task 취소 — 무시
         } catch {
             errorMessage = error.localizedDescription
         }
