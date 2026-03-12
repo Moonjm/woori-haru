@@ -33,9 +33,10 @@ struct StudySession: Codable, Identifiable {
 
 extension StudySession {
     var pauseSeconds: Int {
-        pauses.reduce(0) { sum, pause in
-            guard let start = Date.fromISO(pause.pausedAt),
-                  let end = pause.resumedAt.flatMap({ Date.fromISO($0) }) else { return sum }
+        let sessionEnd = endedAt.flatMap { Date.fromISO($0) } ?? Date()
+        return pauses.reduce(0) { sum, pause in
+            guard let start = Date.fromISO(pause.pausedAt) else { return sum }
+            let end = pause.resumedAt.flatMap { Date.fromISO($0) } ?? sessionEnd
             return sum + Int(end.timeIntervalSince(start))
         }
     }
