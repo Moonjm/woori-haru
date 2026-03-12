@@ -30,7 +30,8 @@ struct StudyTimerView: View {
             async let sessions: () = vm.loadTodaySessions()
             async let goal: () = vm.loadDailyGoal()
             async let weekly: () = vm.loadWeeklySummary()
-            _ = await (subjects, sessions, goal, weekly)
+            async let pauseTypes: () = vm.loadPauseTypes()
+            _ = await (subjects, sessions, goal, weekly, pauseTypes)
             await vm.restoreActiveSession()
         }
         .alert("과목 추가", isPresented: $vm.showAddSubject) {
@@ -202,6 +203,14 @@ struct StudyTimerView: View {
             }
 
         case .paused:
+            if !vm.pauseTypes.isEmpty {
+                HStack(spacing: 8) {
+                    ForEach(vm.pauseTypes) { type in
+                        pauseTypeChip(type)
+                    }
+                }
+            }
+
             HStack(spacing: 12) {
                 Button {
                     Task { await vm.resume() }
@@ -233,6 +242,21 @@ struct StudyTimerView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 12))
         }
         .disabled(vm.isLoading)
+    }
+
+    private func pauseTypeChip(_ type: PauseType) -> some View {
+        let isSelected = vm.selectedPauseType == type.value
+        return Button {
+            vm.selectPauseType(type.value)
+        } label: {
+            Text(type.label)
+                .font(.caption.weight(.medium))
+                .foregroundStyle(isSelected ? .white : Color.slate600)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(isSelected ? Color.blue500 : Color.slate100)
+                .clipShape(Capsule())
+        }
     }
 
     // MARK: - Alarm Interval
@@ -409,17 +433,19 @@ struct StudyTimerView: View {
                 RoundedRectangle(cornerRadius: 12)
                     .fill(Color.slate100)
                     .frame(height: 28)
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(progress >= 1.0 ? Color.green300 : Color.blue400)
-                    .frame(width: barWidth, height: 28)
-                    .overlay {
-                        if !isNarrow {
-                            Text(percentText)
-                                .font(.caption.weight(.bold))
-                                .foregroundStyle(.white)
+                if barWidth > 0 {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(progress >= 1.0 ? Color.green300 : Color.blue400)
+                        .frame(width: barWidth, height: 28)
+                        .overlay {
+                            if !isNarrow {
+                                Text(percentText)
+                                    .font(.caption.weight(.bold))
+                                    .foregroundStyle(.white)
+                            }
                         }
-                    }
-                    .animation(.easeInOut(duration: 0.3), value: progressClamped)
+                        .animation(.easeInOut(duration: 0.3), value: progressClamped)
+                }
                 if isNarrow {
                     Text(percentText)
                         .font(.caption.weight(.bold))
@@ -504,8 +530,7 @@ struct StudyTimerView: View {
                 .foregroundStyle(Color.slate400)
                 .frame(width: 38, alignment: .trailing)
 
-            RoundedRectangle(cornerRadius: 3)
-                .fill(Color.blue400)
+            timelineSegments(session)
                 .frame(height: 8)
 
             Text(endText)
@@ -519,6 +544,64 @@ struct StudyTimerView: View {
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(Color.blue600)
         }
+    }
+
+    private func timelineSegments(_ session: StudySession) -> some View {
+        GeometryReader { geo in
+            let segments = buildTimelineSegments(session)
+            let totalDuration = segments.reduce(0.0) { $0 + $1.duration }
+            if totalDuration > 0 {
+                HStack(spacing: 0) {
+                    ForEach(segments.indices, id: \.self) { i in
+                        let seg = segments[i]
+                        let width = geo.size.width * (seg.duration / totalDuration)
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(seg.isStudy ? Color.blue400 : Color.slate200)
+                            .frame(width: max(width, 1))
+                    }
+                }
+            } else {
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(Color.blue400)
+            }
+        }
+    }
+
+    private struct TimelineSegment {
+        let isStudy: Bool
+        let duration: Double
+    }
+
+    private func buildTimelineSegments(_ session: StudySession) -> [TimelineSegment] {
+        guard let start = Date.fromISO(session.startedAt) else { return [] }
+        let end = session.endedAt.flatMap { Date.fromISO($0) } ?? Date()
+        let sortedPauses = session.pauses
+            .compactMap { pause -> (start: Date, end: Date)? in
+                guard let ps = Date.fromISO(pause.pausedAt) else { return nil }
+                let pe = pause.resumedAt.flatMap { Date.fromISO($0) } ?? end
+                return (ps, pe)
+            }
+            .sorted { $0.start < $1.start }
+
+        guard !sortedPauses.isEmpty else {
+            return [TimelineSegment(isStudy: true, duration: end.timeIntervalSince(start))]
+        }
+
+        var segments: [TimelineSegment] = []
+        var cursor = start
+        for pause in sortedPauses {
+            if cursor < pause.start {
+                segments.append(TimelineSegment(isStudy: true, duration: pause.start.timeIntervalSince(cursor)))
+            }
+            if pause.start < pause.end {
+                segments.append(TimelineSegment(isStudy: false, duration: pause.end.timeIntervalSince(pause.start)))
+            }
+            cursor = pause.end
+        }
+        if cursor < end {
+            segments.append(TimelineSegment(isStudy: true, duration: end.timeIntervalSince(cursor)))
+        }
+        return segments
     }
 
     // MARK: - Today Sessions
@@ -569,9 +652,16 @@ struct StudyTimerView: View {
                     .foregroundStyle(Color.slate400)
             }
             Spacer()
-            Text(session.totalSeconds.durationText)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Color.blue600)
+            VStack(alignment: .trailing, spacing: 2) {
+                Text("공부 \(session.totalSeconds.durationText)")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.blue600)
+                if session.pauseSeconds > 0 {
+                    Text("휴식 \(session.pauseSeconds.durationText)")
+                        .font(.caption)
+                        .foregroundStyle(Color.slate400)
+                }
+            }
         }
         .padding(12)
         .background(Color.slate50)
