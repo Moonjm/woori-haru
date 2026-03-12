@@ -49,6 +49,8 @@ final class StudyRecordViewModel {
     var isLoading = false
     var errorMessage: String?
 
+    var pauseTypes: [PauseType] = []
+
     private let service = StudyService()
 
     // MARK: - Month Label
@@ -115,6 +117,48 @@ final class StudyRecordViewModel {
         .sorted { $0.totalSeconds > $1.totalSeconds }
     }
 
+    // MARK: - Daily Breakdown
+
+    func subjectBreakdown(for record: DailyStudyRecord) -> [(name: String, seconds: Int)] {
+        var bySubject: [Int: (name: String, seconds: Int)] = [:]
+        for session in record.sessions {
+            let existing = bySubject[session.subject.id]
+            bySubject[session.subject.id] = (
+                name: session.subject.name,
+                seconds: (existing?.seconds ?? 0) + session.totalSeconds
+            )
+        }
+        return bySubject.values.sorted { $0.seconds > $1.seconds }
+    }
+
+    func pauseBreakdown(for record: DailyStudyRecord) -> [(label: String, seconds: Int)] {
+        let cal = Calendar.current
+        let dayStart = cal.startOfDay(for: record.date)
+        let dayEnd = cal.date(byAdding: .day, value: 1, to: dayStart)!
+
+        var byType: [String: Int] = [:]
+        for session in record.sessions {
+            let sessionEnd = session.effectiveEndDate
+            for pause in session.pauses {
+                guard let ps = Date.fromISO(pause.pausedAt) else { continue }
+                let pe = pause.resumedAt.flatMap { Date.fromISO($0) } ?? sessionEnd
+                let cps = max(ps, dayStart)
+                let cpe = min(pe, dayEnd)
+                guard cps < cpe else { continue }
+                let type = pause.type ?? "REST"
+                byType[type, default: 0] += Int(cpe.timeIntervalSince(cps))
+            }
+        }
+        return byType.map { type, seconds in
+            (label: pauseTypeLabel(type), seconds: seconds)
+        }
+        .sorted { $0.seconds > $1.seconds }
+    }
+
+    func pauseTypeLabel(_ value: String) -> String {
+        pauseTypes.first(where: { $0.value == value })?.label ?? value
+    }
+
     // MARK: - Load
 
     func loadMonth() async {
@@ -124,8 +168,11 @@ final class StudyRecordViewModel {
 
         let (from, to) = Date.monthRange(year: currentYear, month: currentMonth)
         do {
-            let sessions = try await service.fetchSessions(from: from, to: to)
+            async let sessionsTask = service.fetchSessions(from: from, to: to)
+            async let typesTask = service.fetchPauseTypes()
+            let (sessions, types) = try await (sessionsTask, typesTask)
             dailyRecords = buildDailyRecords(sessions: sessions)
+            pauseTypes = types
         } catch is CancellationError {
             // 화면 이탈 시 Task 취소 — 무시
         } catch {
