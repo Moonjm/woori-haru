@@ -609,7 +609,7 @@ struct StudyTimerView: View {
 
     private func buildTimelineSegments(_ session: StudySession) -> [TimelineSegment] {
         guard let start = Date.fromISO(session.startedAt) else { return [] }
-        let end = session.endedAt.flatMap { Date.fromISO($0) } ?? Date()
+        let end = session.effectiveEndDate
         let sortedPauses = session.pauses
             .compactMap { pause -> (start: Date, end: Date, type: String)? in
                 guard let ps = Date.fromISO(pause.pausedAt) else { return nil }

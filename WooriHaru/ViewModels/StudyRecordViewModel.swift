@@ -199,7 +199,7 @@ final class StudyRecordViewModel {
 
         return sessions.reduce(0) { total, session in
             guard let start = Date.fromISO(session.startedAt) else { return total }
-            let end = session.endedAt.flatMap { Date.fromISO($0) } ?? Date()
+            let end = session.effectiveEndDate
             let clippedStart = max(start, dayStart)
             let clippedEnd = min(end, dayEnd)
             guard clippedStart < clippedEnd else { return total }
@@ -221,7 +221,7 @@ final class StudyRecordViewModel {
     }
 
     private func clippedPauseSeconds(session: StudySession, rangeStart: Date, rangeEnd: Date) -> Int {
-        let sessionEnd = session.endedAt.flatMap { Date.fromISO($0) } ?? Date()
+        let sessionEnd = session.effectiveEndDate
         return session.pauses.reduce(0) { sum, pause in
             guard let ps = Date.fromISO(pause.pausedAt) else { return sum }
             let pe = pause.resumedAt.flatMap { Date.fromISO($0) } ?? sessionEnd
