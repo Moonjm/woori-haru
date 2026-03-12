@@ -10,7 +10,7 @@ final class AuthViewModel {
     var errorMessage: String?
 
     private let authService = AuthService()
-    nonisolated(unsafe) private var sessionExpiredObserver: Any?
+    private var sessionExpiredObserver: Any?
 
     init() {
         sessionExpiredObserver = NotificationCenter.default.addObserver(
@@ -23,12 +23,6 @@ final class AuthViewModel {
                 self.user = nil
                 self.isLoggedIn = false
             }
-        }
-    }
-
-    deinit {
-        if let observer = sessionExpiredObserver {
-            NotificationCenter.default.removeObserver(observer)
         }
     }
 

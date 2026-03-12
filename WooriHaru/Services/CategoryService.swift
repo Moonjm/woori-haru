@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 struct CategoryService {
     private let api = APIClient.shared
 

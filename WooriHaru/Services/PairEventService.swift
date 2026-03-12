@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 struct PairEventService {
     private let api = APIClient.shared
 

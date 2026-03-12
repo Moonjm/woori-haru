@@ -99,7 +99,7 @@ final class NotificationScheduler {
     }
 
     func requestPermission() async {
-        try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
+        _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
     }
 
     // MARK: - Private
