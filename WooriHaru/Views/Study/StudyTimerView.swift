@@ -26,7 +26,8 @@ struct StudyTimerView: View {
         .onTapGesture { isAlarmFieldFocused = false; isGoalFieldFocused = false; selectedSegmentKey = nil }
         .navigationTitle("공부 타이머")
         .navigationBarTitleDisplayMode(.inline)
-        .task {
+        .task { @MainActor in
+            let vm = self.vm
             async let subjects: () = vm.loadSubjects()
             async let sessions: () = vm.loadTodaySessions()
             async let goal: () = vm.loadDailyGoal()
@@ -173,7 +174,7 @@ struct StudyTimerView: View {
         case .idle:
             Button {
                 isAlarmFieldFocused = false
-                vm.saveAlarmInterval()
+                vm.notificationScheduler.saveAlarmInterval()
                 Task { await vm.start() }
             } label: {
                 Label("공부 시작", systemImage: "play.fill")
@@ -263,13 +264,13 @@ struct StudyTimerView: View {
     // MARK: - Alarm Interval
 
     private var alarmIntervalSection: some View {
-        @Bindable var vm = vm
+        @Bindable var scheduler = vm.notificationScheduler
         return HStack(spacing: 8) {
             Image(systemName: "bell.fill")
                 .foregroundStyle(Color.blue500)
                 .font(.caption)
 
-            TextField("분", text: $vm.alarmIntervalText)
+            TextField("분", text: $scheduler.alarmIntervalText)
                 .keyboardType(.numberPad)
                 .focused($isAlarmFieldFocused)
                 .font(.caption)
@@ -282,7 +283,7 @@ struct StudyTimerView: View {
                 .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.slate200, lineWidth: 1))
                 .onChange(of: isAlarmFieldFocused) {
                     if !isAlarmFieldFocused {
-                        vm.saveAlarmInterval()
+                        vm.notificationScheduler.saveAlarmInterval()
                     }
                 }
                 .disabled(vm.timerState != .idle)
