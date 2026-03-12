@@ -178,7 +178,7 @@ final class StudyTimerViewModel {
             if isPaused {
                 timerState = .paused
                 if let lastPause = session.pauses.last(where: { $0.resumedAt == nil }),
-                   let type = lastPause.pauseType {
+                   let type = lastPause.type {
                     selectedPauseType = type
                 }
             } else {
