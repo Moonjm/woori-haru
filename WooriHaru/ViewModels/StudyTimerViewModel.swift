@@ -269,10 +269,15 @@ final class StudyTimerViewModel {
     }
 
     func selectPauseType(_ type: String) {
+        let previous = selectedPauseType
         selectedPauseType = type
         guard let id = activeSessionId else { return }
         Task {
-            try? await service.setPauseType(sessionId: id, pauseType: type)
+            do {
+                try await service.setPauseType(sessionId: id, pauseType: type)
+            } catch {
+                selectedPauseType = previous
+            }
         }
     }
 

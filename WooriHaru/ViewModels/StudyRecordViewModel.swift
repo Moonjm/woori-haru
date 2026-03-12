@@ -264,16 +264,7 @@ final class StudyRecordViewModel {
             let clippedEnd = min(end, dayEnd)
             guard clippedStart < clippedEnd else { return total }
 
-            // 일시정지 시간 제외
-            let pausedSeconds = session.pauses.reduce(0) { sum, pause in
-                guard let ps = Date.fromISO(pause.pausedAt) else { return sum }
-                let pe = pause.resumedAt.flatMap { Date.fromISO($0) } ?? end
-                let cps = max(ps, clippedStart)
-                let cpe = min(pe, clippedEnd)
-                guard cps < cpe else { return sum }
-                return sum + Int(cpe.timeIntervalSince(cps))
-            }
-
+            let pausedSeconds = clippedPauseSeconds(session: session, rangeStart: clippedStart, rangeEnd: clippedEnd)
             return total + Int(clippedEnd.timeIntervalSince(clippedStart)) - pausedSeconds
         }
     }
@@ -284,17 +275,20 @@ final class StudyRecordViewModel {
         let dayEnd = cal.date(byAdding: .day, value: 1, to: dayStart)!
 
         return sessions.reduce(0) { total, session in
-            guard let start = Date.fromISO(session.startedAt) else { return total }
-            let end = session.endedAt.flatMap { Date.fromISO($0) } ?? Date()
+            guard Date.fromISO(session.startedAt) != nil else { return total }
+            return total + clippedPauseSeconds(session: session, rangeStart: dayStart, rangeEnd: dayEnd)
+        }
+    }
 
-            return total + session.pauses.reduce(0) { sum, pause in
-                guard let ps = Date.fromISO(pause.pausedAt),
-                      let pe = pause.resumedAt.flatMap({ Date.fromISO($0) }) else { return sum }
-                let cps = max(ps, dayStart)
-                let cpe = min(pe, dayEnd)
-                guard cps < cpe else { return sum }
-                return sum + Int(cpe.timeIntervalSince(cps))
-            }
+    private func clippedPauseSeconds(session: StudySession, rangeStart: Date, rangeEnd: Date) -> Int {
+        let sessionEnd = session.endedAt.flatMap { Date.fromISO($0) } ?? Date()
+        return session.pauses.reduce(0) { sum, pause in
+            guard let ps = Date.fromISO(pause.pausedAt) else { return sum }
+            let pe = pause.resumedAt.flatMap { Date.fromISO($0) } ?? sessionEnd
+            let cps = max(ps, rangeStart)
+            let cpe = min(pe, rangeEnd)
+            guard cps < cpe else { return sum }
+            return sum + Int(cpe.timeIntervalSince(cps))
         }
     }
 
