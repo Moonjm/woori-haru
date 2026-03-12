@@ -38,6 +38,10 @@ final class StudyTimerViewModel {
     var weeklyGoalMinutes: Int = 0
     var weeklyActualMinutes: Int = 0
 
+    // MARK: - Pause Types
+    var pauseTypes: [PauseType] = []
+    var selectedPauseType: String = "REST"
+
     // MARK: - Alarm
     var alarmIntervalMinutes: Int {
         get { UserDefaults.standard.integer(forKey: alarmIntervalKey) }
@@ -173,6 +177,10 @@ final class StudyTimerViewModel {
 
             if isPaused {
                 timerState = .paused
+                if let lastPause = session.pauses.last(where: { $0.resumedAt == nil }),
+                   let type = lastPause.pauseType {
+                    selectedPauseType = type
+                }
             } else {
                 timerState = .running
                 timerStartDate = Date().addingTimeInterval(TimeInterval(-elapsed))
@@ -252,6 +260,22 @@ final class StudyTimerViewModel {
         }
     }
 
+    func loadPauseTypes() async {
+        do {
+            pauseTypes = try await service.fetchPauseTypes()
+        } catch {
+            // 실패해도 기본 동작에 영향 없음
+        }
+    }
+
+    func selectPauseType(_ type: String) {
+        selectedPauseType = type
+        guard let id = activeSessionId else { return }
+        Task {
+            try? await service.setPauseType(sessionId: id, pauseType: type)
+        }
+    }
+
     func loadSubjects() async {
         do {
             subjects = try await service.fetchSubjects()
@@ -299,6 +323,7 @@ final class StudyTimerViewModel {
         stopTimer()
         removeScheduledAlarms()
         timerState = .paused
+        selectedPauseType = "REST"
         do {
             try await service.pauseSession(id: id)
         } catch {

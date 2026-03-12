@@ -6,6 +6,7 @@ struct DailyStudyRecord: Identifiable {
     let id: String // "yyyy-MM-dd"
     let date: Date
     let totalSeconds: Int
+    let pauseSeconds: Int
     let sessions: [StudySession]
 
     var totalMinutes: Double { Double(totalSeconds) / 60.0 }
@@ -173,7 +174,7 @@ final class StudyRecordViewModel {
     // MARK: - Daily Bar Chart
 
     var maxDailySeconds: Int {
-        dailyRecords.map(\.totalSeconds).max() ?? 1
+        dailyRecords.map { $0.totalSeconds + $0.pauseSeconds }.max() ?? 1
     }
 
     // MARK: - Load
@@ -245,7 +246,8 @@ final class StudyRecordViewModel {
             let key = date.dateString
             let daySessions = grouped[key] ?? []
             let totalSeconds = computeDayTotal(sessions: daySessions, date: date)
-            return DailyStudyRecord(id: key, date: date, totalSeconds: totalSeconds, sessions: daySessions)
+            let pauseSeconds = computeDayPause(sessions: daySessions, date: date)
+            return DailyStudyRecord(id: key, date: date, totalSeconds: totalSeconds, pauseSeconds: pauseSeconds, sessions: daySessions)
         }
     }
 
@@ -273,6 +275,26 @@ final class StudyRecordViewModel {
             }
 
             return total + Int(clippedEnd.timeIntervalSince(clippedStart)) - pausedSeconds
+        }
+    }
+
+    private func computeDayPause(sessions: [StudySession], date: Date) -> Int {
+        let cal = Calendar.current
+        let dayStart = cal.startOfDay(for: date)
+        let dayEnd = cal.date(byAdding: .day, value: 1, to: dayStart)!
+
+        return sessions.reduce(0) { total, session in
+            guard let start = Date.fromISO(session.startedAt) else { return total }
+            let end = session.endedAt.flatMap { Date.fromISO($0) } ?? Date()
+
+            return total + session.pauses.reduce(0) { sum, pause in
+                guard let ps = Date.fromISO(pause.pausedAt),
+                      let pe = pause.resumedAt.flatMap({ Date.fromISO($0) }) else { return sum }
+                let cps = max(ps, dayStart)
+                let cpe = min(pe, dayEnd)
+                guard cps < cpe else { return sum }
+                return sum + Int(cpe.timeIntervalSince(cps))
+            }
         }
     }
 

@@ -5,10 +5,21 @@ struct StudySubject: Codable, Identifiable {
     let name: String
 }
 
+struct PauseType: Codable, Identifiable {
+    let value: String
+    let label: String
+    var id: String { value }
+}
+
 struct StudyPause: Codable, Identifiable {
     let id: Int
     let pausedAt: String
     let resumedAt: String?
+    let pauseType: String?
+}
+
+struct PauseTypeRequest: Encodable {
+    let type: String
 }
 
 struct StudySession: Codable, Identifiable {
@@ -18,6 +29,16 @@ struct StudySession: Codable, Identifiable {
     let endedAt: String?
     let totalSeconds: Int
     let pauses: [StudyPause]
+}
+
+extension StudySession {
+    var pauseSeconds: Int {
+        pauses.reduce(0) { sum, pause in
+            guard let start = Date.fromISO(pause.pausedAt),
+                  let end = pause.resumedAt.flatMap({ Date.fromISO($0) }) else { return sum }
+            return sum + Int(end.timeIntervalSince(start))
+        }
+    }
 }
 
 struct StudySessionStartRequest: Encodable {
