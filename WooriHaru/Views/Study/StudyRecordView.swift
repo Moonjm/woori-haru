@@ -14,7 +14,6 @@ struct StudyRecordView: View {
                     if !vm.dailyRecords.isEmpty {
                         dailyBarChart
                         subjectBreakdown
-                        hourlyPattern
                     }
 
                     dailySessionList
@@ -298,54 +297,6 @@ struct StudyRecordView: View {
                     .padding(.vertical, 4)
                 }
             }
-        }
-        .padding(16)
-        .background(.white)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-    }
-
-    // MARK: - Hourly Pattern
-
-    private var hourlyPattern: some View {
-        let pattern = vm.hourlyPattern
-        let maxVal = max(pattern.max() ?? 1, 1)
-
-        return VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("시간대별 공부 패턴")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color.slate700)
-                Spacer()
-                if let peak = vm.peakHourRange {
-                    Text("집중 시간대 \(peak)")
-                        .font(.system(size: 11))
-                        .foregroundStyle(Color.blue500)
-                }
-            }
-
-            HStack(alignment: .bottom, spacing: 2) {
-                ForEach(0..<24, id: \.self) { hour in
-                    let val = pattern[hour]
-                    let height = max(CGFloat(val) / CGFloat(maxVal) * 60, val > 0 ? 3 : 1)
-
-                    VStack(spacing: 2) {
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(val > 0 ? Color.blue400 : Color.slate100)
-                            .frame(height: height)
-
-                        if hour % 6 == 0 {
-                            Text("\(hour)")
-                                .font(.system(size: 9))
-                                .foregroundStyle(Color.slate400)
-                        } else {
-                            Text("")
-                                .font(.system(size: 9))
-                        }
-                    }
-                    .frame(maxWidth: .infinity)
-                }
-            }
-            .frame(height: 80)
         }
         .padding(16)
         .background(.white)

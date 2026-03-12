@@ -115,62 +115,6 @@ final class StudyRecordViewModel {
         .sorted { $0.totalSeconds > $1.totalSeconds }
     }
 
-    // MARK: - Hourly Pattern
-
-    /// 0~23시 각 시간대별 총 공부 초
-    var hourlyPattern: [Int] {
-        var hours = [Int](repeating: 0, count: 24)
-        for record in dailyRecords {
-            for session in record.sessions {
-                distributeSessionToHours(session, into: &hours)
-            }
-        }
-        return hours
-    }
-
-    var peakHourRange: String? {
-        let pattern = hourlyPattern
-        guard let maxVal = pattern.max(), maxVal > 0 else { return nil }
-        let peakHour = pattern.firstIndex(of: maxVal) ?? 0
-        return String(format: "%02d:00~%02d:00", peakHour, (peakHour + 1) % 24)
-    }
-
-    private func distributeSessionToHours(_ session: StudySession, into hours: inout [Int]) {
-        guard let start = Date.fromISO(session.startedAt) else { return }
-        let end = session.endedAt.flatMap { Date.fromISO($0) } ?? Date()
-        let cal = Calendar.current
-
-        // 일시정지 구간 제외를 위해 공부 구간만 추출
-        let pauses = session.pauses.compactMap { pause -> (start: Date, end: Date)? in
-            guard let ps = Date.fromISO(pause.pausedAt) else { return nil }
-            let pe = pause.resumedAt.flatMap { Date.fromISO($0) } ?? end
-            return (ps, pe)
-        }
-
-        var studyRanges: [(start: Date, end: Date)] = []
-        var cursor = start
-        for pause in pauses.sorted(by: { $0.start < $1.start }) {
-            if cursor < pause.start {
-                studyRanges.append((cursor, pause.start))
-            }
-            cursor = pause.end
-        }
-        if cursor < end {
-            studyRanges.append((cursor, end))
-        }
-
-        for range in studyRanges {
-            var t = range.start
-            while t < range.end {
-                let hour = cal.component(.hour, from: t)
-                let nextHour = cal.date(byAdding: .hour, value: 1, to: cal.date(from: cal.dateComponents([.year, .month, .day, .hour], from: t))!)!
-                let segmentEnd = min(nextHour, range.end)
-                hours[hour] += Int(segmentEnd.timeIntervalSince(t))
-                t = segmentEnd
-            }
-        }
-    }
-
     // MARK: - Daily Bar Chart
 
     var maxDailySeconds: Int {
