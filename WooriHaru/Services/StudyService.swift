@@ -54,6 +54,17 @@ struct StudyService {
         try await api.patchVoid("/study/sessions/\(id)/end")
     }
 
+    // MARK: - Pause Types
+
+    func fetchPauseTypes() async throws -> [PauseType] {
+        let response: DataResponse<[PauseType]> = try await api.get("/study/pause-types")
+        return response.data ?? []
+    }
+
+    func setPauseType(sessionId: Int, pauseType: String) async throws {
+        try await api.patchVoid("/study/sessions/\(sessionId)/pause-type", body: PauseTypeRequest(type: pauseType))
+    }
+
     // MARK: - Daily Goal
 
     func fetchDailyGoal() async throws -> StudyDailyGoal? {
