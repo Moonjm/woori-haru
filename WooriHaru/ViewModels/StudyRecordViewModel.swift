@@ -49,7 +49,7 @@ final class StudyRecordViewModel {
     var isLoading = false
     var errorMessage: String?
 
-    var pauseTypes: [PauseType] = []
+    private(set) var pauseTypes: [PauseType] = []
 
     private let service = StudyService()
 

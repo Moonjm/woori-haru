@@ -544,6 +544,7 @@ final class StudyTimerViewModel {
             // 알림 2회 발송 (진동 2번) — 노티는 1개만 유지
             sendAlarmNotification(elapsedSeconds: elapsedSeconds)
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [self] in
+                guard timerState == .running else { return }
                 sendAlarmNotification(elapsedSeconds: elapsedSeconds)
             }
         }
@@ -577,9 +578,6 @@ final class StudyTimerViewModel {
         guard intervalSeconds > 0 else { return }
 
         let center = UNUserNotificationCenter.current()
-        // 이전에 배달된 예약 알림도 제거 → 항상 최신 1개만
-        center.removeDeliveredNotifications(withIdentifiers: ["study-scheduled"])
-
         let subjectName = selectedSubject?.name ?? "공부"
         let maxSchedule = maxScheduledAlarms
         let baseElapsed = elapsedSeconds
@@ -612,7 +610,7 @@ final class StudyTimerViewModel {
         let center = UNUserNotificationCenter.current()
         let ids = (1...maxScheduledAlarms).map { "study-scheduled-\($0)" }
         center.removePendingNotificationRequests(withIdentifiers: ids)
-        center.removeDeliveredNotifications(withIdentifiers: ids + ["study-scheduled"])
+        center.removeDeliveredNotifications(withIdentifiers: ids)
     }
 
     private func removeAlarmNotifications() {
