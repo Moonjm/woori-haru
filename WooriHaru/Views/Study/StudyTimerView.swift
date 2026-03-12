@@ -7,6 +7,7 @@ struct StudyTimerView: View {
     @Environment(\.scenePhase) private var scenePhase
     @FocusState private var isAlarmFieldFocused: Bool
     @FocusState private var isGoalFieldFocused: Bool
+    @State private var selectedSegmentKey: String?
 
     var body: some View {
         @Bindable var vm = vm
@@ -22,7 +23,7 @@ struct StudyTimerView: View {
             .padding(20)
         }
         .background(Color.slate50)
-        .onTapGesture { isAlarmFieldFocused = false; isGoalFieldFocused = false }
+        .onTapGesture { isAlarmFieldFocused = false; isGoalFieldFocused = false; selectedSegmentKey = nil }
         .navigationTitle("공부 타이머")
         .navigationBarTitleDisplayMode(.inline)
         .task {
@@ -521,43 +522,47 @@ struct StudyTimerView: View {
 
     private func timelineBar(_ session: StudySession) -> some View {
         let startText = formatTime(session.startedAt)
-        let endText = session.endedAt.map { formatTime($0) } ?? "진행중"
-        let durationText = session.totalSeconds.durationText
 
-        return HStack(spacing: 10) {
+        return HStack(spacing: 8) {
             Text(startText)
                 .font(.system(size: 11, design: .monospaced))
                 .foregroundStyle(Color.slate400)
                 .frame(width: 38, alignment: .trailing)
 
             timelineSegments(session)
-                .frame(height: 8)
-
-            Text(endText)
-                .font(.system(size: 11, design: .monospaced))
-                .foregroundStyle(Color.slate400)
-                .frame(width: 38, alignment: .leading)
-
-            Spacer()
-
-            Text(durationText)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(Color.blue600)
+                .frame(height: 10)
         }
     }
 
     private func timelineSegments(_ session: StudySession) -> some View {
-        GeometryReader { geo in
-            let segments = buildTimelineSegments(session)
-            let totalDuration = segments.reduce(0.0) { $0 + $1.duration }
+        let segments = buildTimelineSegments(session)
+        let totalDuration = segments.reduce(0.0) { $0 + $1.duration }
+
+        return GeometryReader { geo in
             if totalDuration > 0 {
-                HStack(spacing: 0) {
-                    ForEach(segments.indices, id: \.self) { i in
-                        let seg = segments[i]
-                        let width = geo.size.width * (seg.duration / totalDuration)
-                        RoundedRectangle(cornerRadius: 3)
-                            .fill(seg.isStudy ? Color.blue400 : Color.slate200)
-                            .frame(width: max(width, 1))
+                ZStack(alignment: .leading) {
+                    HStack(spacing: 0) {
+                        ForEach(segments.indices, id: \.self) { i in
+                            let seg = segments[i]
+                            let width = geo.size.width * (seg.duration / totalDuration)
+                            let key = "\(session.id)-\(i)"
+                            let isSelected = selectedSegmentKey == key
+
+                            RoundedRectangle(cornerRadius: 3)
+                                .fill(seg.isStudy ? Color.blue400 : Color.slate200)
+                                .frame(width: max(width, 1))
+                                .overlay(alignment: .top) {
+                                    if isSelected {
+                                        segmentTooltip(seg)
+                                            .offset(y: -28)
+                                    }
+                                }
+                                .onTapGesture {
+                                    withAnimation(.easeInOut(duration: 0.15)) {
+                                        selectedSegmentKey = isSelected ? nil : key
+                                    }
+                                }
+                        }
                     }
                 }
             } else {
@@ -567,41 +572,81 @@ struct StudyTimerView: View {
         }
     }
 
+    private func segmentTooltip(_ segment: TimelineSegment) -> some View {
+        let seconds = Int(segment.duration)
+        let label = segment.isStudy ? "공부" : pauseTypeLabel(segment.typeValue)
+        return VStack(spacing: 0) {
+            Text("\(label) \(seconds.durationText)")
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 3)
+                .background(Color.slate700)
+                .clipShape(Capsule())
+            Triangle()
+                .fill(Color.slate700)
+                .frame(width: 8, height: 5)
+        }
+        .fixedSize()
+    }
+
+    private struct Triangle: Shape {
+        func path(in rect: CGRect) -> Path {
+            Path { p in
+                p.move(to: CGPoint(x: rect.midX, y: rect.maxY))
+                p.addLine(to: CGPoint(x: rect.minX, y: rect.minY))
+                p.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
+                p.closeSubpath()
+            }
+        }
+    }
+
     private struct TimelineSegment {
         let isStudy: Bool
         let duration: Double
+        let typeValue: String
     }
 
     private func buildTimelineSegments(_ session: StudySession) -> [TimelineSegment] {
         guard let start = Date.fromISO(session.startedAt) else { return [] }
         let end = session.endedAt.flatMap { Date.fromISO($0) } ?? Date()
         let sortedPauses = session.pauses
-            .compactMap { pause -> (start: Date, end: Date)? in
+            .compactMap { pause -> (start: Date, end: Date, type: String)? in
                 guard let ps = Date.fromISO(pause.pausedAt) else { return nil }
                 let pe = pause.resumedAt.flatMap { Date.fromISO($0) } ?? end
-                return (ps, pe)
+                return (ps, pe, pause.type ?? "REST")
             }
             .sorted { $0.start < $1.start }
 
         guard !sortedPauses.isEmpty else {
-            return [TimelineSegment(isStudy: true, duration: end.timeIntervalSince(start))]
+            return [TimelineSegment(isStudy: true, duration: end.timeIntervalSince(start), typeValue: "")]
         }
 
         var segments: [TimelineSegment] = []
         var cursor = start
         for pause in sortedPauses {
             if cursor < pause.start {
-                segments.append(TimelineSegment(isStudy: true, duration: pause.start.timeIntervalSince(cursor)))
+                segments.append(TimelineSegment(isStudy: true, duration: pause.start.timeIntervalSince(cursor), typeValue: ""))
             }
             if pause.start < pause.end {
-                segments.append(TimelineSegment(isStudy: false, duration: pause.end.timeIntervalSince(pause.start)))
+                segments.append(TimelineSegment(isStudy: false, duration: pause.end.timeIntervalSince(pause.start), typeValue: pause.type))
             }
             cursor = pause.end
         }
         if cursor < end {
-            segments.append(TimelineSegment(isStudy: true, duration: end.timeIntervalSince(cursor)))
+            segments.append(TimelineSegment(isStudy: true, duration: end.timeIntervalSince(cursor), typeValue: ""))
         }
         return segments
+    }
+
+    private func pauseTypeLabel(_ value: String) -> String {
+        switch value {
+        case "REST": return "휴식"
+        case "LUNCH": return "점심"
+        case "DINNER": return "저녁"
+        case "EXERCISE": return "운동"
+        default: return value
+        }
     }
 
     // MARK: - Today Sessions

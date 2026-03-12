@@ -15,7 +15,7 @@ struct StudyPause: Codable, Identifiable {
     let id: Int
     let pausedAt: String
     let resumedAt: String?
-    let pauseType: String?
+    let type: String?
 }
 
 struct PauseTypeRequest: Encodable {
