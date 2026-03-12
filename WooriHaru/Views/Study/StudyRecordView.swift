@@ -31,13 +31,13 @@ struct StudyRecordView: View {
                 .padding(.bottom, 20)
             }
             .background(Color.slate50)
-            .onTapGesture {
+            .simultaneousGesture(TapGesture().onEnded {
                 if selectedTooltip != nil {
                     withAnimation(.easeInOut(duration: 0.15)) {
                         selectedTooltip = nil
                     }
                 }
-            }
+            })
             .onChange(of: vm.selectedDate) {
                 if let date = vm.selectedDate {
                     withAnimation {
