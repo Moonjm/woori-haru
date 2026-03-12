@@ -96,39 +96,22 @@ final class StudyRecordViewModel {
     // MARK: - Subject Breakdown
 
     var subjectRecords: [SubjectStudyRecord] {
-        var totals: [Int: (name: String, seconds: Int)] = [:]
-        for record in dailyRecords {
-            for session in record.sessions {
-                let existing = totals[session.subject.id]
-                totals[session.subject.id] = (
-                    name: session.subject.name,
-                    seconds: (existing?.seconds ?? 0) + session.totalSeconds
-                )
-            }
-        }
-        let grandTotal = max(totals.values.reduce(0) { $0 + $1.seconds }, 1)
-        return totals.map { id, val in
+        let allSessions = dailyRecords.flatMap(\.sessions)
+        let totals = aggregateBySubject(allSessions)
+        let grandTotal = max(totals.reduce(0) { $0 + $1.seconds }, 1)
+        return totals.map { item in
             SubjectStudyRecord(
-                id: id, name: val.name,
-                totalSeconds: val.seconds,
-                ratio: Double(val.seconds) / Double(grandTotal)
+                id: item.id, name: item.name,
+                totalSeconds: item.seconds,
+                ratio: Double(item.seconds) / Double(grandTotal)
             )
         }
-        .sorted { $0.totalSeconds > $1.totalSeconds }
     }
 
     // MARK: - Daily Breakdown
 
     func subjectBreakdown(for record: DailyStudyRecord) -> [(name: String, seconds: Int)] {
-        var bySubject: [Int: (name: String, seconds: Int)] = [:]
-        for session in record.sessions {
-            let existing = bySubject[session.subject.id]
-            bySubject[session.subject.id] = (
-                name: session.subject.name,
-                seconds: (existing?.seconds ?? 0) + session.totalSeconds
-            )
-        }
-        return bySubject.values.sorted { $0.seconds > $1.seconds }
+        aggregateBySubject(record.sessions).map { ($0.name, $0.seconds) }
     }
 
     func pauseBreakdown(for record: DailyStudyRecord) -> [(label: String, seconds: Int)] {
@@ -138,15 +121,8 @@ final class StudyRecordViewModel {
 
         var byType: [String: Int] = [:]
         for session in record.sessions {
-            let sessionEnd = session.effectiveEndDate
-            for pause in session.pauses {
-                guard let ps = Date.fromISO(pause.pausedAt) else { continue }
-                let pe = pause.resumedAt.flatMap { Date.fromISO($0) } ?? sessionEnd
-                let cps = max(ps, dayStart)
-                let cpe = min(pe, dayEnd)
-                guard cps < cpe else { continue }
-                let type = pause.type ?? "REST"
-                byType[type, default: 0] += Int(cpe.timeIntervalSince(cps))
+            for detail in clippedPauseDetails(session: session, rangeStart: dayStart, rangeEnd: dayEnd) {
+                byType[detail.type, default: 0] += detail.seconds
             }
         }
         return byType.map { type, seconds in
@@ -159,6 +135,19 @@ final class StudyRecordViewModel {
         pauseTypes.first(where: { $0.value == value })?.label ?? value
     }
 
+    private func aggregateBySubject(_ sessions: [StudySession]) -> [(id: Int, name: String, seconds: Int)] {
+        var totals: [Int: (name: String, seconds: Int)] = [:]
+        for session in sessions {
+            let existing = totals[session.subject.id]
+            totals[session.subject.id] = (
+                name: session.subject.name,
+                seconds: (existing?.seconds ?? 0) + session.totalSeconds
+            )
+        }
+        return totals.map { (id: $0.key, name: $0.value.name, seconds: $0.value.seconds) }
+            .sorted { $0.seconds > $1.seconds }
+    }
+
     // MARK: - Load
 
     func loadMonth() async {
@@ -168,11 +157,11 @@ final class StudyRecordViewModel {
 
         let (from, to) = Date.monthRange(year: currentYear, month: currentMonth)
         do {
-            async let sessionsTask = service.fetchSessions(from: from, to: to)
-            async let typesTask = service.fetchPauseTypes()
-            let (sessions, types) = try await (sessionsTask, typesTask)
+            let sessions = try await service.fetchSessions(from: from, to: to)
             dailyRecords = buildDailyRecords(sessions: sessions)
-            pauseTypes = types
+            if pauseTypes.isEmpty {
+                pauseTypes = try await service.fetchPauseTypes()
+            }
         } catch is CancellationError {
             // 화면 이탈 시 Task 취소 — 무시
         } catch {
@@ -268,14 +257,19 @@ final class StudyRecordViewModel {
     }
 
     private func clippedPauseSeconds(session: StudySession, rangeStart: Date, rangeEnd: Date) -> Int {
+        clippedPauseDetails(session: session, rangeStart: rangeStart, rangeEnd: rangeEnd)
+            .reduce(0) { $0 + $1.seconds }
+    }
+
+    private func clippedPauseDetails(session: StudySession, rangeStart: Date, rangeEnd: Date) -> [(type: String, seconds: Int)] {
         let sessionEnd = session.effectiveEndDate
-        return session.pauses.reduce(0) { sum, pause in
-            guard let ps = Date.fromISO(pause.pausedAt) else { return sum }
+        return session.pauses.compactMap { pause in
+            guard let ps = Date.fromISO(pause.pausedAt) else { return nil }
             let pe = pause.resumedAt.flatMap { Date.fromISO($0) } ?? sessionEnd
             let cps = max(ps, rangeStart)
             let cpe = min(pe, rangeEnd)
-            guard cps < cpe else { return sum }
-            return sum + Int(cpe.timeIntervalSince(cps))
+            guard cps < cpe else { return nil }
+            return (type: pause.type ?? "REST", seconds: Int(cpe.timeIntervalSince(cps)))
         }
     }
 
