@@ -393,12 +393,11 @@ final class StudyTimerViewModel {
         }
     }
 
-    func updateSubject() async {
-        guard let subject = editingSubject else { return }
-        let name = editSubjectName.trimmingCharacters(in: .whitespaces)
-        guard !name.isEmpty else { return }
+    func updateSubjectById(_ id: Int, name: String) async {
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
         do {
-            try await subjectStore.update(id: subject.id, name: name)
+            try await subjectStore.update(id: id, name: trimmed)
             editingSubject = nil
             editSubjectName = ""
         } catch {
