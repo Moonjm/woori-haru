@@ -93,8 +93,8 @@ struct SearchView: View {
             viewModel.configure(categoryStore: categoryStore)
             await viewModel.loadInitial()
         }
-        .onChange(of: viewModel.selectedYear) { _, _ in Task { await viewModel.search() } }
-        .onChange(of: viewModel.selectedMonth) { _, _ in Task { await viewModel.search() } }
+        .onChange(of: viewModel.selectedYear) { _, _ in viewModel.reloadSearch() }
+        .onChange(of: viewModel.selectedMonth) { _, _ in viewModel.reloadSearch() }
     }
 }
 

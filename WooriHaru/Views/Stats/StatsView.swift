@@ -38,7 +38,7 @@ struct StatsView: View {
                         ForEach(RecordFilter.allCases, id: \.self) { filter in
                             Button {
                                 viewModel.filterType = filter
-                                Task { await viewModel.loadStats() }
+                                viewModel.reloadStats()
                             } label: {
                                 Text(filter.rawValue)
                                     .font(.caption)
@@ -84,8 +84,8 @@ struct StatsView: View {
             viewModel.configure(pairStore: pairStore)
             await viewModel.loadStats()
         }
-        .onChange(of: viewModel.selectedYear) { _, _ in Task { await viewModel.loadStats() } }
-        .onChange(of: viewModel.selectedMonth) { _, _ in Task { await viewModel.loadStats() } }
+        .onChange(of: viewModel.selectedYear) { _, _ in viewModel.reloadStats() }
+        .onChange(of: viewModel.selectedMonth) { _, _ in viewModel.reloadStats() }
     }
 }
 
