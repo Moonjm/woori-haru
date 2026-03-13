@@ -111,6 +111,7 @@ struct PairView: View {
 
                 Button {
                     UIPasteboard.general.string = code.uppercased()
+                    errorMessage = nil
                     successMessage = "코드가 복사되었습니다."
                 } label: {
                     HStack {
@@ -208,6 +209,7 @@ struct PairView: View {
 
     private func createInvite() async {
         errorMessage = nil
+        successMessage = nil
         do {
             inviteCode = try await pairStore.createInvite()
         } catch {
@@ -219,6 +221,7 @@ struct PairView: View {
         let code = inputCode.trimmingCharacters(in: .whitespaces)
         guard !code.isEmpty else { return }
         errorMessage = nil
+        successMessage = nil
         do {
             try await pairStore.acceptInvite(code: code)
             inputCode = ""
@@ -231,6 +234,7 @@ struct PairView: View {
 
     private func unpair() async {
         errorMessage = nil
+        successMessage = nil
         do {
             try await pairStore.unpair()
             inviteCode = nil
