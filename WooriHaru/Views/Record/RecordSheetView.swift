@@ -3,7 +3,7 @@ import SwiftUI
 struct RecordSheetView: View {
     @Bindable var viewModel: RecordViewModel
     @Environment(PairStore.self) private var pairStore
-    var holidayNames: [String] = []
+    let holidayNames: [String]
     let onChanged: () -> Void
     let onDismiss: () -> Void
 
