@@ -307,6 +307,7 @@ final class StudyTimerViewModel {
             )
         } catch {
             errorMessage = error.localizedDescription
+            await resyncWithServer()
         }
     }
 
@@ -320,14 +321,15 @@ final class StudyTimerViewModel {
         selectedPauseType = "REST"
         do {
             try await service.pauseSession(id: id)
+            await liveActivity.update(
+                timerState: timerState,
+                timerStartDate: timerStartDate ?? Date(),
+                elapsedSeconds: elapsedSeconds
+            )
         } catch {
             errorMessage = error.localizedDescription
+            await resyncWithServer()
         }
-        await liveActivity.update(
-            timerState: timerState,
-            timerStartDate: timerStartDate ?? Date(),
-            elapsedSeconds: elapsedSeconds
-        )
     }
 
     func resume() async {
@@ -350,6 +352,7 @@ final class StudyTimerViewModel {
             )
         } catch {
             errorMessage = error.localizedDescription
+            await resyncWithServer()
         }
     }
 
@@ -361,16 +364,17 @@ final class StudyTimerViewModel {
         notificationScheduler.removeAllAlarmNotifications()
         do {
             try await service.endSession(id: id)
+            timerState = .idle
+            activeSessionId = nil
+            elapsedSeconds = 0
+            timerStartDate = nil
+            await liveActivity.end(timerState: .idle, timerStartDate: Date(), elapsedSeconds: 0)
+            await loadTodaySessions()
+            await loadWeeklySummary()
         } catch {
             errorMessage = error.localizedDescription
+            await resyncWithServer()
         }
-        timerState = .idle
-        activeSessionId = nil
-        elapsedSeconds = 0
-        timerStartDate = nil
-        await liveActivity.end(timerState: .idle, timerStartDate: Date(), elapsedSeconds: 0)
-        await loadTodaySessions()
-        await loadWeeklySummary()
     }
 
     // MARK: - Subject CRUD
@@ -412,6 +416,18 @@ final class StudyTimerViewModel {
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    /// 에러 발생 시 서버 상태로 UI 동기화
+    private func resyncWithServer() async {
+        stopTimer()
+        notificationScheduler.removeAllAlarmNotifications()
+        timerState = .idle
+        activeSessionId = nil
+        elapsedSeconds = 0
+        timerStartDate = nil
+        await liveActivity.end(timerState: .idle, timerStartDate: Date(), elapsedSeconds: 0)
+        await restoreActiveSession()
     }
 
     // MARK: - Timer Engine
