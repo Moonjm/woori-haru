@@ -33,3 +33,6 @@ Pods/
 # Playgrounds
 timeline.xctimeline
 playground.xcworkspace
+
+# Claude
+CLAUDE.md
