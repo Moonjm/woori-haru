@@ -9,20 +9,15 @@ final class SearchViewModel {
     var selectedCategoryId: Int?  // nil = 전체
     var keyword: String = ""
     var results: [DailyRecord] = []
-    var categories: [Category] = []
     var isLoading = false
     var errorMessage: String?
 
+    var categoryStore: CategoryStore!
+
     private let recordService = RecordService()
-    private let categoryService = CategoryService()
     private var allRecords: [DailyRecord] = []
 
     func loadInitial() async {
-        do {
-            categories = try await categoryService.fetchCategories()
-        } catch {
-            errorMessage = "카테고리 목록을 불러오지 못했습니다."
-        }
         await search()
     }
 
