@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import os
 
 @MainActor
 @Observable
@@ -62,7 +63,7 @@ final class AuthViewModel {
         do {
             try await authService.logout()
         } catch {
-            print("Logout failed: \(error.localizedDescription)")
+            Logger.session.error("로그아웃 실패: \(error.localizedDescription)")
         }
         user = nil
         isLoggedIn = false
