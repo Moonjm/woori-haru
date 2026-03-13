@@ -40,7 +40,7 @@ final class NotificationScheduler {
     }
 
     /// 매 초 호출 — 알림 시점이면 알림 발송
-    func checkAlarm(elapsedSeconds: Int, subjectName: String, timerState: TimerState) {
+    func checkAlarm(elapsedSeconds: Int, subjectName: String, isRunning: @escaping () -> Bool) {
         let intervalSeconds = alarmIntervalMinutes * 60
         guard intervalSeconds > 0 else { return }
         let nextAlarmAt = lastAlarmSeconds + intervalSeconds
@@ -48,9 +48,9 @@ final class NotificationScheduler {
             lastAlarmSeconds = (elapsedSeconds / intervalSeconds) * intervalSeconds
             scheduleAlarmNotifications(subjectName: subjectName, elapsedSeconds: elapsedSeconds)
             sendAlarmNotification(subjectName: subjectName, elapsedSeconds: elapsedSeconds)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [self] in
-                guard timerState == .running else { return }
-                sendAlarmNotification(subjectName: subjectName, elapsedSeconds: elapsedSeconds)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
+                guard let self, isRunning() else { return }
+                self.sendAlarmNotification(subjectName: subjectName, elapsedSeconds: elapsedSeconds)
             }
         }
     }
