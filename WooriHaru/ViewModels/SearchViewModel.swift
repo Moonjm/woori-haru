@@ -12,7 +12,11 @@ final class SearchViewModel {
     var isLoading = false
     var errorMessage: String?
 
-    var categoryStore: CategoryStore!
+    private(set) var categoryStore: CategoryStore!
+
+    func configure(categoryStore: CategoryStore) {
+        self.categoryStore = categoryStore
+    }
 
     private let recordService = RecordService()
     private var allRecords: [DailyRecord] = []

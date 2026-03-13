@@ -45,7 +45,12 @@ final class CalendarViewModel {
     private let pairService = PairService()  // fetchPartnerRecords용
     private let pairEventService = PairEventService()
     private let calendar = Calendar.current
-    var pairStore: PairStore!
+    private(set) var pairStore: PairStore!
+
+    func configure(pairStore: PairStore) {
+        self.pairStore = pairStore
+    }
+
     private var isLoadingLater = false
     private var loadedMonthIds: Set<String> = []
 

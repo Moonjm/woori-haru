@@ -90,7 +90,7 @@ struct SearchView: View {
         .navigationTitle("검색")
         .navigationBarTitleDisplayMode(.inline)
         .task {
-            viewModel.categoryStore = categoryStore
+            viewModel.configure(categoryStore: categoryStore)
             await viewModel.loadInitial()
         }
         .onChange(of: viewModel.selectedYear) { _, _ in Task { await viewModel.search() } }

@@ -35,8 +35,13 @@ final class StudyTimerViewModel {
     var selectedPauseType: String = "REST"
 
     // MARK: - Stores
-    var subjectStore: SubjectStore!
-    var pauseTypeStore: PauseTypeStore!
+    private(set) var subjectStore: SubjectStore!
+    private(set) var pauseTypeStore: PauseTypeStore!
+
+    func configure(subjectStore: SubjectStore, pauseTypeStore: PauseTypeStore) {
+        self.subjectStore = subjectStore
+        self.pauseTypeStore = pauseTypeStore
+    }
 
     // MARK: - Dependencies
     let notificationScheduler = NotificationScheduler()

@@ -19,7 +19,11 @@ final class CategoriesViewModel {
     var editName: String = ""
     var editIsActive: Bool = true
 
-    var categoryStore: CategoryStore!
+    private(set) var categoryStore: CategoryStore!
+
+    func configure(categoryStore: CategoryStore) {
+        self.categoryStore = categoryStore
+    }
 
     func loadCategories() async {
         isLoading = true
