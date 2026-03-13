@@ -637,7 +637,7 @@ struct StudyTimerView: View {
         if cursor < end {
             segments.append(TimelineSegment(isStudy: true, duration: end.timeIntervalSince(cursor), typeValue: ""))
         }
-        return segments
+        return segments.filter { $0.duration >= 5 }
     }
 
     private func pauseTypeLabel(_ value: String) -> String {
