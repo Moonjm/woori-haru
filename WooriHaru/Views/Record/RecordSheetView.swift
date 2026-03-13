@@ -2,6 +2,7 @@ import SwiftUI
 
 struct RecordSheetView: View {
     @Bindable var viewModel: RecordViewModel
+    @Environment(PairStore.self) private var pairStore
     let onChanged: () -> Void
     let onDismiss: () -> Void
 
@@ -67,8 +68,8 @@ struct RecordSheetView: View {
                             RecordListView(
                                 records: viewModel.records,
                                 partnerRecords: viewModel.partnerRecords,
-                                partnerName: viewModel.partnerName,
-                                isPaired: viewModel.isPaired,
+                                partnerName: pairStore.partnerName,
+                                isPaired: pairStore.isPaired,
                                 onDelete: { record in
                                     Task {
                                         await viewModel.deleteRecord(record)

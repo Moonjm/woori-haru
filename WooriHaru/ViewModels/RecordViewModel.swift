@@ -10,11 +10,8 @@ final class RecordViewModel {
     var records: [DailyRecord] = []
     var partnerRecords: [DailyRecord] = []
     var overeatLevel: OvereatLevel = .none
-    var categories: [Category] = []
     var isLoading = false
     var errorMessage: String?
-    var isPaired: Bool = false
-    var partnerName: String = ""
     var holidayNames: [String] = []
 
     // MARK: - Form State
@@ -23,6 +20,11 @@ final class RecordViewModel {
     var memo: String = ""
     var together: Bool = false
     var editingRecord: DailyRecord?
+
+    // MARK: - Stores (set from View)
+
+    var pairStore: PairStore!
+    var categoryStore: CategoryStore!
 
     // MARK: - Computed
 
@@ -33,7 +35,6 @@ final class RecordViewModel {
     // MARK: - Services
 
     private let recordService = RecordService()
-    private let categoryService = CategoryService()
     private let pairService = PairService()
 
     // MARK: - Data Loading
@@ -50,21 +51,18 @@ final class RecordViewModel {
 
         do {
             async let fetchedRecords = recordService.fetchRecords(date: date)
-            async let fetchedCategories = categoryService.fetchCategories(active: true)
             async let fetchedOvereats = recordService.fetchOvereats(from: date, to: date)
 
-            let (loadedRecords, loadedCategories, loadedOvereats) = try await (
+            let (loadedRecords, loadedOvereats) = try await (
                 fetchedRecords,
-                fetchedCategories,
                 fetchedOvereats
             )
 
             records = loadedRecords
-            categories = loadedCategories
             overeatLevel = loadedOvereats.first?.overeatLevel ?? .none
 
             // 파트너 기록
-            if isPaired {
+            if pairStore.isPaired {
                 do {
                     partnerRecords = try await pairService.fetchPartnerRecords(date: date)
                 } catch {

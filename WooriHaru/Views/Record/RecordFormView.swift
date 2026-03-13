@@ -2,13 +2,15 @@ import SwiftUI
 
 struct RecordFormView: View {
     @Bindable var viewModel: RecordViewModel
+    @Environment(PairStore.self) private var pairStore
+    @Environment(CategoryStore.self) private var categoryStore
     var onSave: () -> Void = {}
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Category selection
             FlowLayout(spacing: 8) {
-                ForEach(viewModel.categories) { category in
+                ForEach(categoryStore.activeCategories) { category in
                     Button {
                         viewModel.selectedCategoryId = category.id
                     } label: {
@@ -49,7 +51,7 @@ struct RecordFormView: View {
                         if newValue.count > 20 { viewModel.memo = String(newValue.prefix(20)) }
                     }
 
-                if viewModel.isPaired {
+                if pairStore.isPaired {
                     Button {
                         viewModel.together.toggle()
                     } label: {
