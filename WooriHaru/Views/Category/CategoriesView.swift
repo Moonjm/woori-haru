@@ -15,7 +15,7 @@ struct CategoriesView: View {
         .navigationTitle("카테고리 관리")
         .navigationBarTitleDisplayMode(.inline)
         .task {
-            viewModel.categoryStore = categoryStore
+            viewModel.configure(categoryStore: categoryStore)
             await viewModel.loadCategories()
         }
         .alert(

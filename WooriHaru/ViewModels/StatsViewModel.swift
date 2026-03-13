@@ -26,7 +26,11 @@ final class StatsViewModel {
     var isLoading = false
     var errorMessage: String?
 
-    var pairStore: PairStore!
+    private(set) var pairStore: PairStore!
+
+    func configure(pairStore: PairStore) {
+        self.pairStore = pairStore
+    }
 
     private let recordService = RecordService()
     private let pairService = PairService()
