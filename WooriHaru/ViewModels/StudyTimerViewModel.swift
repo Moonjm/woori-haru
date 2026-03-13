@@ -290,12 +290,13 @@ final class StudyTimerViewModel {
             activeSessionId = sessionId
             timerState = .running
             elapsedSeconds = 0
-            timerStartDate = Date()
+            let startDate = Date()
+            timerStartDate = startDate
             notificationScheduler.resetAlarmTracking()
             startTimer()
             await liveActivity.start(
                 subjectName: subject.name,
-                timerStartDate: timerStartDate!,
+                timerStartDate: startDate,
                 elapsedSeconds: 0,
                 timerState: .running
             )
@@ -424,7 +425,7 @@ final class StudyTimerViewModel {
                 self.notificationScheduler.checkAlarm(
                     elapsedSeconds: self.elapsedSeconds,
                     subjectName: self.selectedSubject?.name ?? "공부",
-                    timerState: self.timerState
+                    isRunning: { [weak self] in self?.timerState == .running }
                 )
             }
         }
