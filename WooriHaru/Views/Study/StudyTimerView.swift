@@ -50,7 +50,14 @@ struct StudyTimerView: View {
             set: { if !$0 { vm.editingSubject = nil } }
         )) {
             TextField("과목명", text: $vm.editSubjectName)
-            Button("수정") { Task { await vm.updateSubject() } }
+            Button("수정") {
+                let subject = vm.editingSubject
+                let name = vm.editSubjectName
+                Task {
+                    guard let subject else { return }
+                    await vm.updateSubjectById(subject.id, name: name)
+                }
+            }
             Button("취소", role: .cancel) { vm.editingSubject = nil }
         }
         .alert("오류", isPresented: .init(
