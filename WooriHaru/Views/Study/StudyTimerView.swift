@@ -602,6 +602,9 @@ struct StudyTimerView: View {
         }
     }
 
+    /// 차트에서 무시할 최소 세그먼트 길이(초) — 타이밍 오차로 생긴 미세 구간 필터링
+    private let minimumSegmentDuration: TimeInterval = 5
+
     private struct TimelineSegment {
         let isStudy: Bool
         let duration: Double
@@ -637,7 +640,7 @@ struct StudyTimerView: View {
         if cursor < end {
             segments.append(TimelineSegment(isStudy: true, duration: end.timeIntervalSince(cursor), typeValue: ""))
         }
-        return segments.filter { $0.duration >= 5 }
+        return segments.filter { $0.duration >= minimumSegmentDuration }
     }
 
     private func pauseTypeLabel(_ value: String) -> String {
