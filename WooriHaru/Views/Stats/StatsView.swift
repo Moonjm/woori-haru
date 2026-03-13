@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct StatsView: View {
+    @Environment(PairStore.self) private var pairStore
     @State private var viewModel = StatsViewModel()
 
     var body: some View {
@@ -32,7 +33,7 @@ struct StatsView: View {
                     Spacer()
                 }
 
-                if viewModel.isPaired {
+                if pairStore.isPaired {
                     HStack(spacing: 8) {
                         ForEach(RecordFilter.allCases, id: \.self) { filter in
                             Button {
@@ -79,7 +80,10 @@ struct StatsView: View {
         }
         .navigationTitle("통계")
         .navigationBarTitleDisplayMode(.inline)
-        .task { await viewModel.loadStats() }
+        .task {
+            viewModel.pairStore = pairStore
+            await viewModel.loadStats()
+        }
         .onChange(of: viewModel.selectedYear) { _, _ in Task { await viewModel.loadStats() } }
         .onChange(of: viewModel.selectedMonth) { _, _ in Task { await viewModel.loadStats() } }
     }

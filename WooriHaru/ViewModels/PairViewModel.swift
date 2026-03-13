@@ -4,39 +4,24 @@ import Observation
 @MainActor
 @Observable
 final class PairViewModel {
-
-    // MARK: - State
-
-    var pairInfo: PairInfo?
     var inviteCode: String?
     var inputCode: String = ""
     var isLoading = false
     var errorMessage: String?
     var successMessage: String?
 
-    // MARK: - Computed
+    private let pairStore: PairStore
 
-    var isPaired: Bool {
-        pairInfo?.status == .connected
+    init(pairStore: PairStore) {
+        self.pairStore = pairStore
     }
-
-    var isPending: Bool {
-        pairInfo?.status == .pending
-    }
-
-    // MARK: - Service
-
-    private let pairService = PairService()
-
-    // MARK: - Actions
 
     func loadStatus() async {
         isLoading = true
         defer { isLoading = false }
         errorMessage = nil
-
         do {
-            pairInfo = try await pairService.getStatus()
+            try await pairStore.loadStatus()
         } catch {
             errorMessage = "페어 상태를 불러오지 못했습니다."
         }
@@ -45,9 +30,7 @@ final class PairViewModel {
     func createInvite() async {
         errorMessage = nil
         do {
-            let response = try await pairService.createInvite()
-            inviteCode = response.inviteCode
-            await loadStatus()
+            inviteCode = try await pairStore.createInvite()
         } catch {
             errorMessage = "초대 코드 생성에 실패했습니다."
         }
@@ -58,8 +41,7 @@ final class PairViewModel {
         guard !code.isEmpty else { return }
         errorMessage = nil
         do {
-            let info = try await pairService.acceptInvite(code: code)
-            pairInfo = info
+            try await pairStore.acceptInvite(code: code)
             inputCode = ""
             inviteCode = nil
             successMessage = "페어링이 완료되었습니다!"
@@ -71,8 +53,7 @@ final class PairViewModel {
     func unpair() async {
         errorMessage = nil
         do {
-            try await pairService.unpair()
-            pairInfo = nil
+            try await pairStore.unpair()
             inviteCode = nil
             successMessage = "페어가 해제되었습니다."
         } catch {

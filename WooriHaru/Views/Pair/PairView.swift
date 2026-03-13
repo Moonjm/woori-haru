@@ -2,28 +2,29 @@ import SwiftUI
 
 struct PairView: View {
     @Binding var navPath: NavigationPath
-    @State private var viewModel = PairViewModel()
+    @Environment(PairStore.self) private var pairStore
+    @State private var viewModel: PairViewModel?
     @State private var showUnpairConfirm = false
 
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                if let success = viewModel.successMessage {
+                if let success = viewModel?.successMessage {
                     Text(success)
                         .font(.caption)
                         .foregroundStyle(Color.green700)
                 }
-                if let error = viewModel.errorMessage {
+                if let error = viewModel?.errorMessage {
                     Text(error)
                         .font(.caption)
                         .foregroundStyle(Color.red500)
                 }
 
-                if viewModel.isLoading {
+                if viewModel?.isLoading == true {
                     ProgressView()
-                } else if viewModel.isPaired {
+                } else if pairStore.isPaired {
                     connectedSection
-                } else if viewModel.isPending {
+                } else if pairStore.isPending {
                     pendingSection
                 } else {
                     disconnectedSection
@@ -34,15 +35,23 @@ struct PairView: View {
         .navigationTitle("커플")
         .navigationBarTitleDisplayMode(.inline)
         .task {
-            await viewModel.loadStatus()
+            if viewModel == nil { viewModel = PairViewModel(pairStore: pairStore) }
+            await viewModel?.loadStatus()
         }
         .confirmationDialog("페어 해제", isPresented: $showUnpairConfirm, titleVisibility: .visible) {
             Button("해제", role: .destructive) {
-                Task { await viewModel.unpair() }
+                Task { await viewModel?.unpair() }
             }
         } message: {
             Text("파트너와의 연결을 해제할까요?")
         }
+    }
+
+    private var inputCodeBinding: Binding<String> {
+        Binding(
+            get: { viewModel?.inputCode ?? "" },
+            set: { viewModel?.inputCode = $0 }
+        )
     }
 
     // MARK: - Connected
@@ -53,13 +62,13 @@ struct PairView: View {
                 .font(.system(size: 48))
                 .foregroundStyle(Color.red400)
 
-            if let name = viewModel.pairInfo?.partnerName {
+            if let name = pairStore.pairInfo?.partnerName {
                 Text(name)
                     .font(.title2)
                     .fontWeight(.bold)
             }
 
-            if let connectedAt = viewModel.pairInfo?.connectedAt {
+            if let connectedAt = pairStore.pairInfo?.connectedAt {
                 Text("연결일: \(connectedAt.prefix(10))")
                     .font(.caption)
                     .foregroundStyle(Color.slate500)
@@ -98,7 +107,7 @@ struct PairView: View {
             Text("초대 대기 중")
                 .font(.headline)
 
-            if let code = viewModel.inviteCode {
+            if let code = viewModel?.inviteCode {
                 Text(code.uppercased())
                     .font(.system(.title, design: .monospaced))
                     .fontWeight(.bold)
@@ -106,7 +115,7 @@ struct PairView: View {
 
                 Button {
                     UIPasteboard.general.string = code.uppercased()
-                    viewModel.successMessage = "코드가 복사되었습니다."
+                    viewModel?.successMessage = "코드가 복사되었습니다."
                 } label: {
                     HStack {
                         Image(systemName: "doc.on.doc")
@@ -123,7 +132,7 @@ struct PairView: View {
             }
 
             Button {
-                Task { await viewModel.unpair() }
+                Task { await viewModel?.unpair() }
             } label: {
                 Text("초대 취소")
                     .font(.subheadline)
@@ -142,7 +151,7 @@ struct PairView: View {
                     .fontWeight(.medium)
 
                 Button {
-                    Task { await viewModel.createInvite() }
+                    Task { await viewModel?.createInvite() }
                 } label: {
                     Text("코드 생성하기")
                         .font(.subheadline)
@@ -163,15 +172,15 @@ struct PairView: View {
                     .fontWeight(.medium)
 
                 HStack(spacing: 8) {
-                    TextField("6자리 코드 입력", text: $viewModel.inputCode)
+                    TextField("6자리 코드 입력", text: inputCodeBinding)
                         .textFieldStyle(.roundedBorder)
                         .textInputAutocapitalization(.characters)
-                        .onChange(of: viewModel.inputCode) { _, newValue in
-                            if newValue.count > 6 { viewModel.inputCode = String(newValue.prefix(6)) }
+                        .onChange(of: viewModel?.inputCode ?? "") { _, newValue in
+                            if newValue.count > 6 { viewModel?.inputCode = String(newValue.prefix(6)) }
                         }
 
                     Button {
-                        Task { await viewModel.acceptInvite() }
+                        Task { await viewModel?.acceptInvite() }
                     } label: {
                         Text("수락")
                             .font(.subheadline)
@@ -179,10 +188,10 @@ struct PairView: View {
                             .foregroundStyle(.white)
                             .padding(.horizontal, 20)
                             .padding(.vertical, 8)
-                            .background(viewModel.inputCode.count == 6 ? Color.blue500 : Color.slate400)
+                            .background((viewModel?.inputCode.count ?? 0) == 6 ? Color.blue500 : Color.slate400)
                             .clipShape(RoundedRectangle(cornerRadius: 8))
                     }
-                    .disabled(viewModel.inputCode.count != 6)
+                    .disabled((viewModel?.inputCode.count ?? 0) != 6)
                 }
             }
         }

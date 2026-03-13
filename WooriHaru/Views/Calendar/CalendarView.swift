@@ -2,6 +2,8 @@ import SwiftUI
 
 struct CalendarView: View {
     @Binding var navPath: NavigationPath
+    @Environment(PairStore.self) private var pairStore
+    @Environment(CategoryStore.self) private var categoryStore
     @State private var calendarVM = CalendarViewModel()
     @State private var recordVM = RecordViewModel()
     @State private var showSheet = false
@@ -74,8 +76,6 @@ struct CalendarView: View {
                                                 recordVM.prepareForNewDate()
                                                 recordVM.selectedDate = date
                                                 recordVM.holidayNames = calendarVM.holidays[date.dateString] ?? []
-                                                recordVM.isPaired = calendarVM.isPaired
-                                                recordVM.partnerName = calendarVM.pairInfo?.partnerName ?? "파트너"
                                                 withAnimation(.easeInOut(duration: Self.sheetAnimationDuration)) {
                                                     showSheet = true
                                                 }
@@ -247,8 +247,11 @@ struct CalendarView: View {
             }
         }
         .task {
+            calendarVM.pairStore = pairStore
+            recordVM.pairStore = pairStore
+            recordVM.categoryStore = categoryStore
             await calendarVM.initialLoad()
-            calendarVM.updateBirthdays(user: authVM.user, pairInfo: calendarVM.pairInfo)
+            calendarVM.updateBirthdays(user: authVM.user, pairInfo: pairStore.pairInfo)
 
             // months 배열 세팅 후 ScrollViewReader로 강제 스크롤
             try? await Task.sleep(for: .milliseconds(100))

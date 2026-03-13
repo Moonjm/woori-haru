@@ -23,9 +23,10 @@ final class StatsViewModel {
     var filterType: RecordFilter = .all
     var stats: [CategoryStat] = []
     var totalCount: Int = 0
-    var isPaired: Bool = false
     var isLoading = false
     var errorMessage: String?
+
+    var pairStore: PairStore!
 
     private let recordService = RecordService()
     private let pairService = PairService()
@@ -43,13 +44,10 @@ final class StatsViewModel {
         let (fromStr, toStr) = Date.monthRange(year: selectedYear, month: selectedMonth)
 
         do {
-            let pairInfo = try? await pairService.getStatus()
-            isPaired = pairInfo?.status == .connected
-
             let myRecords = try await recordService.fetchRecords(from: fromStr, to: toStr)
 
             var partnerRecords: [DailyRecord] = []
-            if isPaired {
+            if pairStore.isPaired {
                 partnerRecords = (try? await pairService.fetchPartnerRecords(from: fromStr, to: toStr)) ?? []
             }
 

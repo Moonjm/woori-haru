@@ -35,8 +35,6 @@ final class CalendarViewModel {
     var birthdayMap: [String: [(emoji: String, label: String)]] = [:]
     var currentMonthLabel: String = ""
     var isDrawerOpen: Bool = false
-    var isPaired: Bool = false
-    var pairInfo: PairInfo?
     var pickerTargetYear: Int = Calendar.current.component(.year, from: Date())
     var pickerTargetMonth: Int = Calendar.current.component(.month, from: Date())
 
@@ -44,9 +42,10 @@ final class CalendarViewModel {
 
     private let recordService = RecordService()
     private let holidayService = HolidayService()
-    private let pairService = PairService()
+    private let pairService = PairService()  // fetchPartnerRecords용
     private let pairEventService = PairEventService()
     private let calendar = Calendar.current
+    var pairStore: PairStore!
     private var isLoadingLater = false
     private var loadedMonthIds: Set<String> = []
 
@@ -61,13 +60,6 @@ final class CalendarViewModel {
     /// 전체 범위(-36...+36)의 MonthData를 빌드하고,
     /// API 데이터는 현재 월 ±2 만 초기 로드한다.
     func initialLoad() async {
-        do {
-            pairInfo = try await pairService.getStatus()
-            isPaired = pairInfo?.status == .connected
-        } catch {
-            isPaired = false
-        }
-
         let today = Date()
         let currentStart = today.startOfMonth()
 
@@ -126,7 +118,7 @@ final class CalendarViewModel {
                 }
             }
         }
-        updateBirthdays(user: cachedUser, pairInfo: pairInfo)
+        updateBirthdays(user: cachedUser, pairInfo: pairStore.pairInfo)
     }
 
     // MARK: - Infinite Scroll (Forward Append Only)
@@ -188,7 +180,7 @@ final class CalendarViewModel {
         currentMonthLabel = targetStart.monthDisplayText
 
         await ensureDataLoaded(around: targetId)
-        updateBirthdays(user: cachedUser, pairInfo: pairInfo)
+        updateBirthdays(user: cachedUser, pairInfo: pairStore.pairInfo)
     }
 
     // MARK: - Refresh
@@ -333,7 +325,7 @@ final class CalendarViewModel {
             }
         }
 
-        if isPaired {
+        if pairStore.isPaired {
             do {
                 let partnerRecs = try await pairService.fetchPartnerRecords(from: fromStr, to: toStr)
                 let groupedPartner = Dictionary(grouping: partnerRecs, by: \.date)
