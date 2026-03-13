@@ -34,10 +34,16 @@ final class StatsViewModel {
 
     private let recordService = RecordService()
     private let pairService = PairService()
+    private var loadTask: Task<Void, Never>?
 
     var periodLabel: String {
         if selectedMonth == 0 { return "\(selectedYear)년" }
         return "\(selectedYear)년 \(selectedMonth)월"
+    }
+
+    func reloadStats() {
+        loadTask?.cancel()
+        loadTask = Task { await loadStats() }
     }
 
     func loadStats() async {
