@@ -76,6 +76,8 @@
 		AA100002 /* CategoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200002 /* CategoryStore.swift */; };
 		AA100003 /* SubjectStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200003 /* SubjectStore.swift */; };
 		AA100004 /* PauseTypeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200004 /* PauseTypeStore.swift */; };
+		AA100005 /* Logger+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200005 /* Logger+Extensions.swift */; };
+		AA100006 /* SessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200006 /* SessionManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -172,6 +174,8 @@
 		AA200002 /* CategoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryStore.swift; sourceTree = "<group>"; };
 		AA200003 /* SubjectStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjectStore.swift; sourceTree = "<group>"; };
 		AA200004 /* PauseTypeStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PauseTypeStore.swift; sourceTree = "<group>"; };
+		AA200005 /* Logger+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Logger+Extensions.swift"; sourceTree = "<group>"; };
+		AA200006 /* SessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -311,6 +315,7 @@
 				L20002 /* StudyService.swift */,
 				N20001 /* NotificationScheduler.swift */,
 				N20002 /* LiveActivityCoordinator.swift */,
+				AA200006 /* SessionManager.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -436,6 +441,7 @@
 			children = (
 				F20001 /* Date+Extensions.swift */,
 				F20002 /* Color+Extensions.swift */,
+				AA200005 /* Logger+Extensions.swift */,
 			);
 			path = Extensions;
 			sourceTree = "<group>";
@@ -639,6 +645,8 @@
 				AA100002 /* CategoryStore.swift in Sources */,
 				AA100003 /* SubjectStore.swift in Sources */,
 				AA100004 /* PauseTypeStore.swift in Sources */,
+				AA100005 /* Logger+Extensions.swift in Sources */,
+				AA100006 /* SessionManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
