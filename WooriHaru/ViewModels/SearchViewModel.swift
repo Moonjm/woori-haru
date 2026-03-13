@@ -20,9 +20,15 @@ final class SearchViewModel {
 
     private let recordService = RecordService()
     private var allRecords: [DailyRecord] = []
+    private var searchTask: Task<Void, Never>?
 
     func loadInitial() async {
         await search()
+    }
+
+    func reloadSearch() {
+        searchTask?.cancel()
+        searchTask = Task { await search() }
     }
 
     func search() async {
