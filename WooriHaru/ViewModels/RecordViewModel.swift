@@ -12,7 +12,6 @@ final class RecordViewModel {
     var overeatLevel: OvereatLevel = .none
     var isLoading = false
     var errorMessage: String?
-    var holidayNames: [String] = []
 
     // MARK: - Form State
 

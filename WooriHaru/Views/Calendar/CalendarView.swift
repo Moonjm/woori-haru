@@ -75,7 +75,6 @@ struct CalendarView: View {
                                             onSelectDate: { date in
                                                 recordVM.prepareForNewDate()
                                                 recordVM.selectedDate = date
-                                                recordVM.holidayNames = calendarVM.holidays[date.dateString] ?? []
                                                 withAnimation(.easeInOut(duration: Self.sheetAnimationDuration)) {
                                                     showSheet = true
                                                 }
@@ -227,6 +226,7 @@ struct CalendarView: View {
                         Spacer()
                         RecordSheetView(
                             viewModel: recordVM,
+                            holidayNames: calendarVM.holidays[recordVM.selectedDate.dateString] ?? [],
                             onChanged: {
                                 Task { await calendarVM.refreshMonth(containing: recordVM.selectedDate) }
                             },
