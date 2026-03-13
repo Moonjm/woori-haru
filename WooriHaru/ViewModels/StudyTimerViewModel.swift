@@ -315,12 +315,12 @@ final class StudyTimerViewModel {
         guard !isLoading, let id = activeSessionId else { return }
         isLoading = true
         defer { isLoading = false }
-        stopTimer()
-        notificationScheduler.removeScheduledAlarms()
-        timerState = .paused
-        selectedPauseType = "REST"
         do {
             try await service.pauseSession(id: id)
+            stopTimer()
+            notificationScheduler.removeScheduledAlarms()
+            timerState = .paused
+            selectedPauseType = "REST"
             await liveActivity.update(
                 timerState: timerState,
                 timerStartDate: timerStartDate ?? Date(),
@@ -360,10 +360,10 @@ final class StudyTimerViewModel {
         guard !isLoading, let id = activeSessionId else { return }
         isLoading = true
         defer { isLoading = false }
-        stopTimer()
-        notificationScheduler.removeAllAlarmNotifications()
         do {
             try await service.endSession(id: id)
+            stopTimer()
+            notificationScheduler.removeAllAlarmNotifications()
             timerState = .idle
             activeSessionId = nil
             elapsedSeconds = 0
