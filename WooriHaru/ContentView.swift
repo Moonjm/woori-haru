@@ -1,3 +1,4 @@
+import os
 import SwiftUI
 
 enum AppDestination: Hashable {
@@ -48,6 +49,6 @@ struct ContentView: View {
     }
 
     private func loadStore(_ operation: () async throws -> Void) async {
-        do { try await operation() } catch { print("[ContentView] Store 초기 로딩 실패: \(error.localizedDescription)") }
+        do { try await operation() } catch { Logger.store.error("Store 초기 로딩 실패: \(error.localizedDescription)") }
     }
 }
