@@ -3,6 +3,7 @@ import SwiftUI
 struct RecordSheetView: View {
     @Bindable var viewModel: RecordViewModel
     @Environment(PairStore.self) private var pairStore
+    var holidayNames: [String] = []
     let onChanged: () -> Void
     let onDismiss: () -> Void
 
@@ -28,8 +29,8 @@ struct RecordSheetView: View {
                     .fontWeight(.bold)
                     .foregroundStyle(Color.slate900)
 
-                if !viewModel.holidayNames.isEmpty {
-                    Text(viewModel.holidayNames.joined(separator: ", "))
+                if !holidayNames.isEmpty {
+                    Text(holidayNames.joined(separator: ", "))
                         .font(.caption)
                         .fontWeight(.semibold)
                         .foregroundStyle(Color.red500)
