@@ -1,10 +1,6 @@
 import Foundation
 import os
 
-extension Logger {
-    static let session = Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.woori-haru", category: "Session")
-}
-
 /// 세션 관리 — 401 감지, 토큰 갱신, 세션 만료 노티피케이션
 @MainActor
 final class SessionManager {
