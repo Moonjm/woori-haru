@@ -3,24 +3,28 @@ import SwiftUI
 struct PairView: View {
     @Binding var navPath: NavigationPath
     @Environment(PairStore.self) private var pairStore
-    @State private var viewModel: PairViewModel?
+    @State private var inviteCode: String?
+    @State private var inputCode: String = ""
+    @State private var isLoading = false
+    @State private var errorMessage: String?
+    @State private var successMessage: String?
     @State private var showUnpairConfirm = false
 
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                if let success = viewModel?.successMessage {
+                if let success = successMessage {
                     Text(success)
                         .font(.caption)
                         .foregroundStyle(Color.green700)
                 }
-                if let error = viewModel?.errorMessage {
+                if let error = errorMessage {
                     Text(error)
                         .font(.caption)
                         .foregroundStyle(Color.red500)
                 }
 
-                if viewModel?.isLoading == true {
+                if isLoading {
                     ProgressView()
                 } else if pairStore.isPaired {
                     connectedSection
@@ -35,23 +39,15 @@ struct PairView: View {
         .navigationTitle("커플")
         .navigationBarTitleDisplayMode(.inline)
         .task {
-            if viewModel == nil { viewModel = PairViewModel(pairStore: pairStore) }
-            await viewModel?.loadStatus()
+            await loadStatus()
         }
         .confirmationDialog("페어 해제", isPresented: $showUnpairConfirm, titleVisibility: .visible) {
             Button("해제", role: .destructive) {
-                Task { await viewModel?.unpair() }
+                Task { await unpair() }
             }
         } message: {
             Text("파트너와의 연결을 해제할까요?")
         }
-    }
-
-    private var inputCodeBinding: Binding<String> {
-        Binding(
-            get: { viewModel?.inputCode ?? "" },
-            set: { viewModel?.inputCode = $0 }
-        )
     }
 
     // MARK: - Connected
@@ -107,7 +103,7 @@ struct PairView: View {
             Text("초대 대기 중")
                 .font(.headline)
 
-            if let code = viewModel?.inviteCode {
+            if let code = inviteCode {
                 Text(code.uppercased())
                     .font(.system(.title, design: .monospaced))
                     .fontWeight(.bold)
@@ -115,7 +111,7 @@ struct PairView: View {
 
                 Button {
                     UIPasteboard.general.string = code.uppercased()
-                    viewModel?.successMessage = "코드가 복사되었습니다."
+                    successMessage = "코드가 복사되었습니다."
                 } label: {
                     HStack {
                         Image(systemName: "doc.on.doc")
@@ -132,7 +128,7 @@ struct PairView: View {
             }
 
             Button {
-                Task { await viewModel?.unpair() }
+                Task { await unpair() }
             } label: {
                 Text("초대 취소")
                     .font(.subheadline)
@@ -151,7 +147,7 @@ struct PairView: View {
                     .fontWeight(.medium)
 
                 Button {
-                    Task { await viewModel?.createInvite() }
+                    Task { await createInvite() }
                 } label: {
                     Text("코드 생성하기")
                         .font(.subheadline)
@@ -172,15 +168,15 @@ struct PairView: View {
                     .fontWeight(.medium)
 
                 HStack(spacing: 8) {
-                    TextField("6자리 코드 입력", text: inputCodeBinding)
+                    TextField("6자리 코드 입력", text: $inputCode)
                         .textFieldStyle(.roundedBorder)
                         .textInputAutocapitalization(.characters)
-                        .onChange(of: viewModel?.inputCode ?? "") { _, newValue in
-                            if newValue.count > 6 { viewModel?.inputCode = String(newValue.prefix(6)) }
+                        .onChange(of: inputCode) { _, newValue in
+                            if newValue.count > 6 { inputCode = String(newValue.prefix(6)) }
                         }
 
                     Button {
-                        Task { await viewModel?.acceptInvite() }
+                        Task { await acceptInvite() }
                     } label: {
                         Text("수락")
                             .font(.subheadline)
@@ -188,12 +184,59 @@ struct PairView: View {
                             .foregroundStyle(.white)
                             .padding(.horizontal, 20)
                             .padding(.vertical, 8)
-                            .background((viewModel?.inputCode.count ?? 0) == 6 ? Color.blue500 : Color.slate400)
+                            .background(inputCode.count == 6 ? Color.blue500 : Color.slate400)
                             .clipShape(RoundedRectangle(cornerRadius: 8))
                     }
-                    .disabled((viewModel?.inputCode.count ?? 0) != 6)
+                    .disabled(inputCode.count != 6)
                 }
             }
+        }
+    }
+
+    // MARK: - Actions
+
+    private func loadStatus() async {
+        isLoading = true
+        defer { isLoading = false }
+        errorMessage = nil
+        do {
+            try await pairStore.loadStatus()
+        } catch {
+            errorMessage = "페어 상태를 불러오지 못했습니다."
+        }
+    }
+
+    private func createInvite() async {
+        errorMessage = nil
+        do {
+            inviteCode = try await pairStore.createInvite()
+        } catch {
+            errorMessage = "초대 코드 생성에 실패했습니다."
+        }
+    }
+
+    private func acceptInvite() async {
+        let code = inputCode.trimmingCharacters(in: .whitespaces)
+        guard !code.isEmpty else { return }
+        errorMessage = nil
+        do {
+            try await pairStore.acceptInvite(code: code)
+            inputCode = ""
+            inviteCode = nil
+            successMessage = "페어링이 완료되었습니다!"
+        } catch {
+            errorMessage = "초대 코드가 올바르지 않습니다."
+        }
+    }
+
+    private func unpair() async {
+        errorMessage = nil
+        do {
+            try await pairStore.unpair()
+            inviteCode = nil
+            successMessage = "페어가 해제되었습니다."
+        } catch {
+            errorMessage = "페어 해제에 실패했습니다."
         }
     }
 }
