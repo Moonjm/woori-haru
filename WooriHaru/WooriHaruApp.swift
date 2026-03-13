@@ -14,6 +14,10 @@ class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
 struct WooriHaruApp: App {
     @State private var authVM = AuthViewModel()
     @State private var studyTimerVM = StudyTimerViewModel()
+    @State private var pairStore = PairStore()
+    @State private var categoryStore = CategoryStore()
+    @State private var subjectStore = SubjectStore()
+    @State private var pauseTypeStore = PauseTypeStore()
     private let notificationDelegate = NotificationDelegate()
 
     init() {
@@ -33,6 +37,10 @@ struct WooriHaruApp: App {
             }
             .environment(authVM)
             .environment(studyTimerVM)
+            .environment(pairStore)
+            .environment(categoryStore)
+            .environment(subjectStore)
+            .environment(pauseTypeStore)
             .task {
                 await authVM.checkSession()
             }
