@@ -47,10 +47,13 @@ final class NotificationScheduler {
         if elapsedSeconds >= nextAlarmAt {
             lastAlarmSeconds = (elapsedSeconds / intervalSeconds) * intervalSeconds
             scheduleAlarmNotifications(subjectName: subjectName, elapsedSeconds: elapsedSeconds)
-            sendAlarmNotification(subjectName: subjectName, elapsedSeconds: elapsedSeconds)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
-                guard let self, isRunning() else { return }
-                self.sendAlarmNotification(subjectName: subjectName, elapsedSeconds: elapsedSeconds)
+            sendAlarmNotification(identifier: "study-alarm", subjectName: subjectName, elapsedSeconds: elapsedSeconds)
+            let isForeground = UIApplication.shared.applicationState == .active
+            if !isForeground {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
+                    guard let self, isRunning() else { return }
+                    self.sendAlarmNotification(identifier: "study-alarm-2", subjectName: subjectName, elapsedSeconds: elapsedSeconds)
+                }
             }
         }
     }
@@ -95,7 +98,7 @@ final class NotificationScheduler {
 
     func removeAllAlarmNotifications() {
         removeScheduledAlarms()
-        UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: ["study-alarm"])
+        UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: ["study-alarm", "study-alarm-2"])
     }
 
     func requestPermission() async {
@@ -104,9 +107,9 @@ final class NotificationScheduler {
 
     // MARK: - Private
 
-    private func sendAlarmNotification(subjectName: String, elapsedSeconds: Int) {
+    private func sendAlarmNotification(identifier: String, subjectName: String, elapsedSeconds: Int) {
         let center = UNUserNotificationCenter.current()
-        center.removeDeliveredNotifications(withIdentifiers: ["study-alarm"])
+        center.removeDeliveredNotifications(withIdentifiers: ["study-alarm", "study-alarm-2"])
 
         let content = UNMutableNotificationContent()
         let h = elapsedSeconds / 3600
@@ -116,7 +119,7 @@ final class NotificationScheduler {
         content.sound = .default
 
         let request = UNNotificationRequest(
-            identifier: "study-alarm",
+            identifier: identifier,
             content: content,
             trigger: nil
         )
