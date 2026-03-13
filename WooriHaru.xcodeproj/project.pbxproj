@@ -72,6 +72,10 @@
 		L10006 /* StudyRecordViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = L20006 /* StudyRecordViewModel.swift */; };
 		N10001 /* NotificationScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = N20001 /* NotificationScheduler.swift */; };
 		N10002 /* LiveActivityCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = N20002 /* LiveActivityCoordinator.swift */; };
+		AA100001 /* PairStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200001 /* PairStore.swift */; };
+		AA100002 /* CategoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200002 /* CategoryStore.swift */; };
+		AA100003 /* SubjectStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200003 /* SubjectStore.swift */; };
+		AA100004 /* PauseTypeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200004 /* PauseTypeStore.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -164,6 +168,10 @@
 		L20006 /* StudyRecordViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyRecordViewModel.swift; sourceTree = "<group>"; };
 		N20001 /* NotificationScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationScheduler.swift; sourceTree = "<group>"; };
 		N20002 /* LiveActivityCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityCoordinator.swift; sourceTree = "<group>"; };
+		AA200001 /* PairStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairStore.swift; sourceTree = "<group>"; };
+		AA200002 /* CategoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryStore.swift; sourceTree = "<group>"; };
+		AA200003 /* SubjectStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjectStore.swift; sourceTree = "<group>"; };
+		AA200004 /* PauseTypeStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PauseTypeStore.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -244,6 +252,7 @@
 				A20002 /* ContentView.swift */,
 				B40001 /* Models */,
 				B40002 /* Services */,
+				AA400001 /* Stores */,
 				B40003 /* ViewModels */,
 				B40004 /* Views */,
 				B40013 /* Resources */,
@@ -440,6 +449,17 @@
 			path = Study;
 			sourceTree = "<group>";
 		};
+		AA400001 /* Stores */ = {
+			isa = PBXGroup;
+			children = (
+				AA200001 /* PairStore.swift */,
+				AA200002 /* CategoryStore.swift */,
+				AA200003 /* SubjectStore.swift */,
+				AA200004 /* PauseTypeStore.swift */,
+			);
+			path = Stores;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -615,6 +635,10 @@
 				L10006 /* StudyRecordViewModel.swift in Sources */,
 				N10001 /* NotificationScheduler.swift in Sources */,
 				N10002 /* LiveActivityCoordinator.swift in Sources */,
+				AA100001 /* PairStore.swift in Sources */,
+				AA100002 /* CategoryStore.swift in Sources */,
+				AA100003 /* SubjectStore.swift in Sources */,
+				AA100004 /* PauseTypeStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
