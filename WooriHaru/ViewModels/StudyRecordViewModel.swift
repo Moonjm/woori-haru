@@ -49,7 +49,7 @@ final class StudyRecordViewModel {
     var isLoading = false
     var errorMessage: String?
 
-    private(set) var pauseTypes: [PauseType] = []
+    var pauseTypeStore: PauseTypeStore!
 
     private let service = StudyService()
 
@@ -132,7 +132,7 @@ final class StudyRecordViewModel {
     }
 
     func pauseTypeLabel(_ value: String) -> String {
-        pauseTypes.first(where: { $0.value == value })?.label ?? value
+        pauseTypeStore.pauseTypes.first(where: { $0.value == value })?.label ?? value
     }
 
     private func aggregateBySubject(_ sessions: [StudySession]) -> [(id: Int, name: String, seconds: Int)] {
@@ -159,9 +159,7 @@ final class StudyRecordViewModel {
         do {
             let sessions = try await service.fetchSessions(from: from, to: to)
             dailyRecords = buildDailyRecords(sessions: sessions)
-            if pauseTypes.isEmpty {
-                pauseTypes = try await service.fetchPauseTypes()
-            }
+            try await pauseTypeStore.load()
         } catch is CancellationError {
             // 화면 이탈 시 Task 취소 — 무시
         } catch {

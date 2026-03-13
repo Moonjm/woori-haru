@@ -4,6 +4,8 @@ private let narrowProgressThreshold = 0.11
 
 struct StudyTimerView: View {
     @Environment(StudyTimerViewModel.self) private var vm
+    @Environment(SubjectStore.self) private var subjectStore
+    @Environment(PauseTypeStore.self) private var pauseTypeStore
     @Environment(\.scenePhase) private var scenePhase
     @FocusState private var isAlarmFieldFocused: Bool
     @FocusState private var isGoalFieldFocused: Bool
@@ -28,6 +30,8 @@ struct StudyTimerView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task { @MainActor in
             let vm = self.vm
+            vm.subjectStore = subjectStore
+            vm.pauseTypeStore = pauseTypeStore
             async let subjects: () = vm.loadSubjects()
             async let sessions: () = vm.loadTodaySessions()
             async let goal: () = vm.loadDailyGoal()
@@ -127,7 +131,7 @@ struct StudyTimerView: View {
 
     private var subjectSelectionInTimer: some View {
         VStack(spacing: 10) {
-            if vm.subjects.isEmpty {
+            if subjectStore.subjects.isEmpty {
                 Button {
                     vm.showAddSubject = true
                 } label: {
@@ -140,7 +144,7 @@ struct StudyTimerView: View {
                 }
             } else {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 90), spacing: 8)], spacing: 8) {
-                    ForEach(vm.subjects) { subject in
+                    ForEach(subjectStore.subjects) { subject in
                         subjectChip(subject)
                     }
                     Button {
@@ -205,9 +209,9 @@ struct StudyTimerView: View {
             }
 
         case .paused:
-            if !vm.pauseTypes.isEmpty {
+            if !pauseTypeStore.pauseTypes.isEmpty {
                 HStack(spacing: 8) {
-                    ForEach(vm.pauseTypes) { type in
+                    ForEach(pauseTypeStore.pauseTypes) { type in
                         pauseTypeChip(type)
                     }
                 }
@@ -644,7 +648,7 @@ struct StudyTimerView: View {
     }
 
     private func pauseTypeLabel(_ value: String) -> String {
-        vm.pauseTypes.first(where: { $0.value == value })?.label ?? value
+        pauseTypeStore.pauseTypes.first(where: { $0.value == value })?.label ?? value
     }
 
     // MARK: - Today Sessions
