@@ -48,6 +48,6 @@ struct ContentView: View {
     }
 
     private func loadStore(_ operation: () async throws -> Void) async {
-        do { try await operation() } catch { }
+        do { try await operation() } catch { print("[ContentView] Store 초기 로딩 실패: \(error.localizedDescription)") }
     }
 }
