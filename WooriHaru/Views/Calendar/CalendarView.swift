@@ -247,9 +247,8 @@ struct CalendarView: View {
             }
         }
         .task {
-            calendarVM.pairStore = pairStore
-            recordVM.pairStore = pairStore
-            recordVM.categoryStore = categoryStore
+            calendarVM.configure(pairStore: pairStore)
+            recordVM.configure(pairStore: pairStore, categoryStore: categoryStore)
             await calendarVM.initialLoad()
             calendarVM.updateBirthdays(user: authVM.user, pairInfo: pairStore.pairInfo)
 

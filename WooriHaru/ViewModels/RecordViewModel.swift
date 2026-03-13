@@ -23,8 +23,13 @@ final class RecordViewModel {
 
     // MARK: - Stores (set from View)
 
-    var pairStore: PairStore!
-    var categoryStore: CategoryStore!
+    private(set) var pairStore: PairStore!
+    private(set) var categoryStore: CategoryStore!
+
+    func configure(pairStore: PairStore, categoryStore: CategoryStore) {
+        self.pairStore = pairStore
+        self.categoryStore = categoryStore
+    }
 
     // MARK: - Computed
 

@@ -59,7 +59,7 @@ struct StudyRecordView: View {
             }
         }
         .task {
-            vm.pauseTypeStore = pauseTypeStore
+            vm.configure(pauseTypeStore: pauseTypeStore)
             await vm.loadMonth()
         }
         .alert("오류", isPresented: .init(

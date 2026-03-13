@@ -49,7 +49,11 @@ final class StudyRecordViewModel {
     var isLoading = false
     var errorMessage: String?
 
-    var pauseTypeStore: PauseTypeStore!
+    private(set) var pauseTypeStore: PauseTypeStore!
+
+    func configure(pauseTypeStore: PauseTypeStore) {
+        self.pauseTypeStore = pauseTypeStore
+    }
 
     private let service = StudyService()
 

@@ -81,7 +81,7 @@ struct StatsView: View {
         .navigationTitle("통계")
         .navigationBarTitleDisplayMode(.inline)
         .task {
-            viewModel.pairStore = pairStore
+            viewModel.configure(pairStore: pairStore)
             await viewModel.loadStats()
         }
         .onChange(of: viewModel.selectedYear) { _, _ in Task { await viewModel.loadStats() } }

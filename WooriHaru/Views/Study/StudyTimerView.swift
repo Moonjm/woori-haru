@@ -30,8 +30,7 @@ struct StudyTimerView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task { @MainActor in
             let vm = self.vm
-            vm.subjectStore = subjectStore
-            vm.pauseTypeStore = pauseTypeStore
+            vm.configure(subjectStore: subjectStore, pauseTypeStore: pauseTypeStore)
             async let subjects: () = vm.loadSubjects()
             async let sessions: () = vm.loadTodaySessions()
             async let goal: () = vm.loadDailyGoal()
