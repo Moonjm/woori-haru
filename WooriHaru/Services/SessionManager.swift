@@ -1,6 +1,10 @@
 import Foundation
 import os
 
+extension Notification.Name {
+    static let sessionExpired = Notification.Name("sessionExpired")
+}
+
 /// 세션 관리 — 401 감지, 토큰 갱신, 세션 만료 노티피케이션
 @MainActor
 final class SessionManager {
@@ -24,6 +28,7 @@ final class SessionManager {
     /// 응답이 401이면 토큰 갱신 후 재시도 여부 판단
     /// - Returns: `true`면 재시도 필요, `false`면 갱신 실패(세션 만료)
     func handleUnauthorized() async -> Bool {
+        Logger.session.info("401 수신 — 토큰 갱신 시도")
         let refreshed = await refreshToken()
         if !refreshed {
             Logger.session.warning("세션 만료 — 토큰 갱신 실패")
