@@ -1,9 +1,5 @@
 import Foundation
 
-extension Notification.Name {
-    static let sessionExpired = Notification.Name("sessionExpired")
-}
-
 enum APIError: Error, LocalizedError {
     case invalidURL
     case unauthorized
@@ -31,8 +27,7 @@ enum APIConfig {
 final class APIClient {
     static let shared = APIClient()
 
-    let baseURL = APIConfig.baseURL
-    private var session: URLSession { SessionManager.shared.urlSession }
+    private let baseURL = APIConfig.baseURL
 
     private init() {}
 
@@ -144,7 +139,7 @@ final class APIClient {
 
         let (data, response): (Data, URLResponse)
         do {
-            (data, response) = try await session.data(for: request)
+            (data, response) = try await SessionManager.shared.urlSession.data(for: request)
         } catch {
             throw APIError.networkError(error)
         }
