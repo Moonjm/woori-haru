@@ -22,21 +22,19 @@ enum APIError: Error, LocalizedError {
     }
 }
 
+enum APIConfig {
+    static let baseURL = "https://daily.eunji.shop/api"
+}
+
+/// 순수 HTTP 통신 담당 — 세션/인증은 SessionManager가 처리
 @MainActor
 final class APIClient {
     static let shared = APIClient()
 
-    let baseURL = "https://daily.eunji.shop/api"
-    private let session: URLSession
-    private var refreshTask: Task<Bool, Never>?
+    let baseURL = APIConfig.baseURL
+    private var session: URLSession { SessionManager.shared.urlSession }
 
-    private init() {
-        let config = URLSessionConfiguration.default
-        config.httpCookieAcceptPolicy = .always
-        config.httpShouldSetCookies = true
-        config.httpCookieStorage = .shared
-        self.session = URLSession(configuration: config)
-    }
+    private init() {}
 
     // MARK: - Public Methods
 
@@ -156,11 +154,10 @@ final class APIClient {
         }
 
         if httpResponse.statusCode == 401 && !isRetry {
-            let refreshed = await refreshToken()
-            if refreshed {
+            let shouldRetry = await SessionManager.shared.handleUnauthorized()
+            if shouldRetry {
                 return try await rawFetchWithResponse(method, path: path, query: query, body: body, isRetry: true)
             }
-            NotificationCenter.default.post(name: .sessionExpired, object: nil)
             throw APIError.unauthorized
         }
 
@@ -170,32 +167,5 @@ final class APIClient {
         }
 
         return (data, httpResponse)
-    }
-
-    private func refreshToken() async -> Bool {
-        // 이미 refresh 진행 중이면 해당 task의 결과를 기다림
-        if let existing = refreshTask {
-            return await existing.value
-        }
-
-        let task = Task<Bool, Never> {
-            guard let url = URL(string: baseURL + "/auth/refresh") else { return false }
-            var request = URLRequest(url: url)
-            request.httpMethod = "POST"
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-            do {
-                let (_, response) = try await session.data(for: request)
-                guard let http = response as? HTTPURLResponse else { return false }
-                return (200...299).contains(http.statusCode)
-            } catch {
-                return false
-            }
-        }
-
-        refreshTask = task
-        let result = await task.value
-        refreshTask = nil
-        return result
     }
 }
