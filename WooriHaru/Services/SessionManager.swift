@@ -60,6 +60,8 @@ final class SessionManager {
                     Logger.session.warning("토큰 갱신 실패 — status \(http.statusCode)")
                 }
                 return success
+            } catch is CancellationError {
+                return false
             } catch {
                 Logger.session.error("토큰 갱신 네트워크 오류: \(error.localizedDescription)")
                 return false
