@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct StudyRecordView: View {
+    @Environment(PauseTypeStore.self) private var pauseTypeStore
     @State private var vm = StudyRecordViewModel()
     @State private var selectedTooltip: DailyTooltipKey?
 
@@ -57,7 +58,10 @@ struct StudyRecordView: View {
                 }
             }
         }
-        .task { await vm.loadMonth() }
+        .task {
+            vm.pauseTypeStore = pauseTypeStore
+            await vm.loadMonth()
+        }
         .alert("오류", isPresented: .init(
             get: { vm.errorMessage != nil },
             set: { if !$0 { vm.errorMessage = nil } }

@@ -10,7 +10,6 @@ enum TimerState {
 @Observable
 final class StudyTimerViewModel {
     // MARK: - State
-    var subjects: [StudySubject] = []
     var selectedSubject: StudySubject?
     var timerState: TimerState = .idle
     var elapsedSeconds: Int = 0
@@ -32,9 +31,12 @@ final class StudyTimerViewModel {
     var weeklyGoalMinutes: Int = 0
     var weeklyActualMinutes: Int = 0
 
-    // MARK: - Pause Types
-    var pauseTypes: [PauseType] = []
+    // MARK: - Pause
     var selectedPauseType: String = "REST"
+
+    // MARK: - Stores
+    var subjectStore: SubjectStore!
+    var pauseTypeStore: PauseTypeStore!
 
     // MARK: - Dependencies
     let notificationScheduler = NotificationScheduler()
@@ -145,7 +147,7 @@ final class StudyTimerViewModel {
         do {
             guard let session = try await service.fetchActiveSession() else { return }
             activeSessionId = session.id
-            selectedSubject = subjects.first { $0.id == session.subject.id }
+            selectedSubject = subjectStore.subjects.first { $0.id == session.subject.id }
 
             let isPaused = session.pauses.contains { $0.resumedAt == nil }
             let elapsed = calculateElapsed(session: session)
@@ -242,7 +244,7 @@ final class StudyTimerViewModel {
 
     func loadPauseTypes() async {
         do {
-            pauseTypes = try await service.fetchPauseTypes()
+            try await pauseTypeStore.load()
         } catch {
             // 실패해도 기본 동작에 영향 없음
         }
@@ -264,7 +266,7 @@ final class StudyTimerViewModel {
 
     func loadSubjects() async {
         do {
-            subjects = try await service.fetchSubjects()
+            try await subjectStore.load()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -383,10 +385,9 @@ final class StudyTimerViewModel {
         let name = newSubjectName.trimmingCharacters(in: .whitespaces)
         guard !name.isEmpty else { return }
         do {
-            _ = try await service.createSubject(name: name)
+            try await subjectStore.create(name: name)
             newSubjectName = ""
             showAddSubject = false
-            await loadSubjects()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -397,10 +398,9 @@ final class StudyTimerViewModel {
         let name = editSubjectName.trimmingCharacters(in: .whitespaces)
         guard !name.isEmpty else { return }
         do {
-            try await service.updateSubject(id: subject.id, name: name)
+            try await subjectStore.update(id: subject.id, name: name)
             editingSubject = nil
             editSubjectName = ""
-            await loadSubjects()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -408,11 +408,10 @@ final class StudyTimerViewModel {
 
     func deleteSubject(_ subject: StudySubject) async {
         do {
-            try await service.deleteSubject(id: subject.id)
+            try await subjectStore.delete(id: subject.id)
             if selectedSubject?.id == subject.id {
                 selectedSubject = nil
             }
-            await loadSubjects()
         } catch {
             errorMessage = error.localizedDescription
         }

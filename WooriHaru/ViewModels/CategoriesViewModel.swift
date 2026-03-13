@@ -4,7 +4,6 @@ import Observation
 @MainActor
 @Observable
 final class CategoriesViewModel {
-    var categories: [Category] = []
     var isLoading = false
     var errorMessage: String?
     var successMessage: String?
@@ -20,16 +19,14 @@ final class CategoriesViewModel {
     var editName: String = ""
     var editIsActive: Bool = true
 
-    private let categoryService = CategoryService()
+    var categoryStore: CategoryStore!
 
     func loadCategories() async {
         isLoading = true
         defer { isLoading = false }
         errorMessage = nil
-
         do {
-            categories = try await categoryService.fetchCategories()
-            categories.sort { $0.sortOrder == $1.sortOrder ? $0.id < $1.id : $0.sortOrder < $1.sortOrder }
+            try await categoryStore.load()
         } catch let error as APIError {
             errorMessage = error.errorDescription
         } catch {
@@ -44,14 +41,12 @@ final class CategoriesViewModel {
         }
         errorMessage = nil
         successMessage = nil
-
         do {
-            try await categoryService.createCategory(CategoryRequest(emoji: newEmoji, name: newName, isActive: newIsActive))
+            try await categoryStore.create(CategoryRequest(emoji: newEmoji, name: newName, isActive: newIsActive))
             newEmoji = ""
             newName = ""
             newIsActive = true
             successMessage = "새 카테고리를 추가했어요."
-            await loadCategories()
         } catch let error as APIError {
             errorMessage = error.errorDescription
         } catch {
@@ -63,12 +58,10 @@ final class CategoriesViewModel {
         guard let id = editingId, !editEmoji.isEmpty, !editName.isEmpty else { return }
         errorMessage = nil
         successMessage = nil
-
         do {
-            try await categoryService.updateCategory(id: id, CategoryRequest(emoji: editEmoji, name: editName, isActive: editIsActive))
+            try await categoryStore.update(id: id, CategoryRequest(emoji: editEmoji, name: editName, isActive: editIsActive))
             editingId = nil
             successMessage = "카테고리를 저장했어요."
-            await loadCategories()
         } catch let error as APIError {
             errorMessage = error.errorDescription
         } catch {
@@ -79,11 +72,9 @@ final class CategoriesViewModel {
     func deleteCategory(_ category: Category) async {
         errorMessage = nil
         successMessage = nil
-
         do {
-            try await categoryService.deleteCategory(id: category.id)
+            try await categoryStore.delete(id: category.id)
             successMessage = "삭제가 완료됐어요."
-            await loadCategories()
         } catch let error as APIError {
             errorMessage = error.errorDescription
         } catch {
@@ -91,31 +82,12 @@ final class CategoriesViewModel {
         }
     }
 
-    func moveCategory(from source: IndexSet, to destination: Int) {
-        categories.move(fromOffsets: source, toOffset: destination)
-
-        guard let sourceIndex = source.first else { return }
-        let movedIndex = sourceIndex < destination ? destination - 1 : destination
-        let moved = categories[movedIndex]
-        let beforeId: Int? = (movedIndex + 1 < categories.count) ? categories[movedIndex + 1].id : nil
-
-        Task {
-            do {
-                try await categoryService.reorderCategory(ReorderCategoryRequest(targetId: moved.id, beforeId: beforeId))
-            } catch {
-                errorMessage = "카테고리 순서 변경에 실패했습니다."
-                await loadCategories()
-            }
-        }
-    }
-
     func syncCategoryOrder(movedId: Int) {
-        guard let movedIndex = categories.firstIndex(where: { $0.id == movedId }) else { return }
-        let beforeId: Int? = (movedIndex + 1 < categories.count) ? categories[movedIndex + 1].id : nil
-
+        guard let movedIndex = categoryStore.categories.firstIndex(where: { $0.id == movedId }) else { return }
+        let beforeId: Int? = (movedIndex + 1 < categoryStore.categories.count) ? categoryStore.categories[movedIndex + 1].id : nil
         Task {
             do {
-                try await categoryService.reorderCategory(ReorderCategoryRequest(targetId: movedId, beforeId: beforeId))
+                try await categoryStore.reorder(targetId: movedId, beforeId: beforeId)
             } catch {
                 errorMessage = "카테고리 순서 변경에 실패했습니다."
                 await loadCategories()

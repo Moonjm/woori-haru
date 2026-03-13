@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct CategoriesView: View {
+    @Environment(CategoryStore.self) private var categoryStore
     @State private var viewModel = CategoriesViewModel()
     @State private var deleteTarget: Category?
     @State private var draggingId: Int?
@@ -13,7 +14,10 @@ struct CategoriesView: View {
         .background(Color.slate50)
         .navigationTitle("카테고리 관리")
         .navigationBarTitleDisplayMode(.inline)
-        .task { await viewModel.loadCategories() }
+        .task {
+            viewModel.categoryStore = categoryStore
+            await viewModel.loadCategories()
+        }
         .alert(
             "카테고리 삭제",
             isPresented: .init(
@@ -119,7 +123,7 @@ struct CategoriesView: View {
                     .font(.subheadline)
                     .fontWeight(.medium)
                 Spacer()
-                Text("\(viewModel.categories.count) items")
+                Text("\(categoryStore.categories.count) items")
                     .font(.caption)
                     .foregroundStyle(Color.blue500)
             }
@@ -128,7 +132,7 @@ struct CategoriesView: View {
 
             ScrollView {
                 LazyVStack(spacing: 8) {
-                    ForEach(viewModel.categories) { category in
+                    ForEach(categoryStore.categories) { category in
                         if viewModel.editingId == category.id {
                             editRow(category)
                         } else {
@@ -140,7 +144,7 @@ struct CategoriesView: View {
                                 }
                                 .onDrop(of: [.text], delegate: CategoryRowDrop(
                                     targetId: category.id,
-                                    categories: $viewModel.categories,
+                                    categoryStore: categoryStore,
                                     draggingId: $draggingId,
                                     onDone: { viewModel.syncCategoryOrder(movedId: $0) }
                                 ))
@@ -149,7 +153,7 @@ struct CategoriesView: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 16)
-                .animation(.easeInOut(duration: 0.2), value: viewModel.categories.map(\.id))
+                .animation(.easeInOut(duration: 0.2), value: categoryStore.categories.map(\.id))
             }
         }
         .background(.white)
@@ -294,17 +298,18 @@ struct CategoriesView: View {
     }
 }
 
+@MainActor
 private struct CategoryRowDrop: DropDelegate {
     let targetId: Int
-    @Binding var categories: [Category]
+    let categoryStore: CategoryStore
     @Binding var draggingId: Int?
     let onDone: (Int) -> Void
 
     func dropEntered(info: DropInfo) {
         guard let draggingId, draggingId != targetId,
-              let from = categories.firstIndex(where: { $0.id == draggingId }),
-              let to = categories.firstIndex(where: { $0.id == targetId }) else { return }
-        categories.move(fromOffsets: IndexSet(integer: from), toOffset: to > from ? to + 1 : to)
+              let from = categoryStore.categories.firstIndex(where: { $0.id == draggingId }),
+              let to = categoryStore.categories.firstIndex(where: { $0.id == targetId }) else { return }
+        categoryStore.move(from: IndexSet(integer: from), to: to > from ? to + 1 : to)
     }
 
     func dropUpdated(info: DropInfo) -> DropProposal? {

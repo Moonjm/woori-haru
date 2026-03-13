@@ -14,6 +14,8 @@ enum AppDestination: Hashable {
 }
 
 struct ContentView: View {
+    @Environment(PairStore.self) private var pairStore
+    @Environment(CategoryStore.self) private var categoryStore
     @State private var path = NavigationPath()
 
     var body: some View {
@@ -34,5 +36,18 @@ struct ContentView: View {
                     }
                 }
         }
+        .task {
+            async let pair: () = loadPairStore()
+            async let categories: () = loadCategoryStore()
+            _ = await (pair, categories)
+        }
+    }
+
+    private func loadPairStore() async {
+        do { try await pairStore.loadStatus() } catch { }
+    }
+
+    private func loadCategoryStore() async {
+        do { try await categoryStore.load() } catch { }
     }
 }

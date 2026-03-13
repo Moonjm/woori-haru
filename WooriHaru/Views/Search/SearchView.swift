@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct SearchView: View {
+    @Environment(CategoryStore.self) private var categoryStore
     @State private var viewModel = SearchViewModel()
 
     var body: some View {
@@ -29,7 +30,7 @@ struct SearchView: View {
                 HStack(spacing: 12) {
                     Menu {
                         Button("전체") { viewModel.selectedCategoryId = nil; viewModel.applyFilters() }
-                        ForEach(viewModel.categories) { cat in
+                        ForEach(categoryStore.categories) { cat in
                             Button("\(cat.emoji) \(cat.name)") {
                                 viewModel.selectedCategoryId = cat.id
                                 viewModel.applyFilters()
@@ -38,7 +39,7 @@ struct SearchView: View {
                     } label: {
                         HStack {
                             if let catId = viewModel.selectedCategoryId,
-                               let cat = viewModel.categories.first(where: { $0.id == catId }) {
+                               let cat = categoryStore.categories.first(where: { $0.id == catId }) {
                                 Text("\(cat.emoji) \(cat.name)")
                             } else {
                                 Text("전체 카테고리")
@@ -88,7 +89,10 @@ struct SearchView: View {
         }
         .navigationTitle("검색")
         .navigationBarTitleDisplayMode(.inline)
-        .task { await viewModel.loadInitial() }
+        .task {
+            viewModel.categoryStore = categoryStore
+            await viewModel.loadInitial()
+        }
         .onChange(of: viewModel.selectedYear) { _, _ in Task { await viewModel.search() } }
         .onChange(of: viewModel.selectedMonth) { _, _ in Task { await viewModel.search() } }
     }
