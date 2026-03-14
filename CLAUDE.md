@@ -34,7 +34,8 @@
 
 ---
 
-### 7. APIClient actor/Sendable 전환
-- @MainActor 싱글턴 → actor 또는 Sendable 기반 인프라로 전환
-- Swift 6 strict concurrency 대응
-- 테스트 대체 가능한 구조로 개선
+### 7. [완료] APIClient actor/Sendable 전환
+- SessionManager: @MainActor class → actor 전환 (mutable state 격리)
+- APIClient: @MainActor class → Sendable final class 전환 (stateless)
+- APIClientProtocol 도입 — 테스트 대체 가능한 인터페이스
+- 8개 Service: @MainActor 제거, Sendable 채택, 이니셜라이저 주입

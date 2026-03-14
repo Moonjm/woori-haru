@@ -1,8 +1,11 @@
 import Foundation
 
-@MainActor
-struct CategoryService {
-    private let api = APIClient.shared
+struct CategoryService: Sendable {
+    private let api: any APIClientProtocol
+
+    init(api: any APIClientProtocol = APIClient.shared) {
+        self.api = api
+    }
 
     func fetchCategories(active: Bool? = nil) async throws -> [Category] {
         var query: [String: String] = [:]

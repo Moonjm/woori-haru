@@ -22,9 +22,21 @@ enum APIConfig {
     static let baseURL = "https://daily.eunji.shop/api"
 }
 
+/// APIClient 프로토콜 — 테스트 대체 가능한 인터페이스
+protocol APIClientProtocol: Sendable {
+    func get<T: Decodable>(_ path: String, query: [String: String]) async throws -> T
+    func post<T: Decodable>(_ path: String, body: (any Encodable)?) async throws -> T
+    func postVoid(_ path: String, body: (any Encodable)?) async throws
+    func postCreated(_ path: String, body: (any Encodable)?) async throws -> Int
+    func put<T: Decodable>(_ path: String, body: (any Encodable)?) async throws -> T
+    func putVoid(_ path: String, body: (any Encodable)?) async throws
+    func patch<T: Decodable>(_ path: String, body: (any Encodable)?) async throws -> T
+    func patchVoid(_ path: String, body: (any Encodable)?) async throws
+    func deleteVoid(_ path: String) async throws
+}
+
 /// 순수 HTTP 통신 담당 — 세션/인증은 SessionManager가 처리
-@MainActor
-final class APIClient {
+final class APIClient: APIClientProtocol, Sendable {
     static let shared = APIClient()
 
     private let baseURL = APIConfig.baseURL
@@ -137,9 +149,11 @@ final class APIClient {
             request.httpBody = try JSONEncoder().encode(body)
         }
 
+        let session = await SessionManager.shared.urlSession
+
         let (data, response): (Data, URLResponse)
         do {
-            (data, response) = try await SessionManager.shared.urlSession.data(for: request)
+            (data, response) = try await session.data(for: request)
         } catch {
             throw APIError.networkError(error)
         }
