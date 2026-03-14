@@ -1,8 +1,11 @@
 import Foundation
 
-@MainActor
-struct StudyService {
-    private let api = APIClient.shared
+struct StudyService: Sendable {
+    private let api: any APIClientProtocol
+
+    init(api: any APIClientProtocol = APIClient.shared) {
+        self.api = api
+    }
 
     // MARK: - Subjects
 

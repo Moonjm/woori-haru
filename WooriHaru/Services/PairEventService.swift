@@ -1,8 +1,11 @@
 import Foundation
 
-@MainActor
-struct PairEventService {
-    private let api = APIClient.shared
+struct PairEventService: Sendable {
+    private let api: any APIClientProtocol
+
+    init(api: any APIClientProtocol = APIClient.shared) {
+        self.api = api
+    }
 
     func fetchEvents(from: String? = nil, to: String? = nil) async throws -> [PairEvent] {
         var query: [String: String] = [:]

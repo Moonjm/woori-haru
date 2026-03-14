@@ -5,9 +5,12 @@ struct LoginRequest: Encodable {
     let password: String
 }
 
-@MainActor
-struct AuthService {
-    private let api = APIClient.shared
+struct AuthService: Sendable {
+    private let api: any APIClientProtocol
+
+    init(api: any APIClientProtocol = APIClient.shared) {
+        self.api = api
+    }
 
     func login(username: String, password: String) async throws {
         try await api.postVoid("/auth/login", body: LoginRequest(username: username, password: password))
