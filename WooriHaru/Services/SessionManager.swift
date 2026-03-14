@@ -9,7 +9,7 @@ extension Notification.Name {
 actor SessionManager {
     static let shared = SessionManager()
 
-    let urlSession: URLSession
+    nonisolated let urlSession: URLSession
     private var refreshTask: Task<Bool, Never>?
     private let baseURL = APIConfig.baseURL
 

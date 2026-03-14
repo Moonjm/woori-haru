@@ -17,11 +17,11 @@ struct AuthService: Sendable {
     }
 
     func logout() async throws {
-        try await api.postVoid("/auth/logout", body: nil)
+        try await api.postVoid("/auth/logout")
     }
 
     func fetchMe() async throws -> User {
-        let response: DataResponse<User> = try await api.get("/users/me", query: [:])
+        let response: DataResponse<User> = try await api.get("/users/me")
         guard let user = response.data else { throw APIError.unauthorized }
         return user
     }

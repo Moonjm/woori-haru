@@ -35,6 +35,40 @@ protocol APIClientProtocol: Sendable {
     func deleteVoid(_ path: String) async throws
 }
 
+extension APIClientProtocol {
+    func get<T: Decodable>(_ path: String) async throws -> T {
+        try await get(path, query: [:])
+    }
+
+    func post<T: Decodable>(_ path: String) async throws -> T {
+        try await post(path, body: nil)
+    }
+
+    func postVoid(_ path: String) async throws {
+        try await postVoid(path, body: nil)
+    }
+
+    func postCreated(_ path: String) async throws -> Int {
+        try await postCreated(path, body: nil)
+    }
+
+    func put<T: Decodable>(_ path: String) async throws -> T {
+        try await put(path, body: nil)
+    }
+
+    func putVoid(_ path: String) async throws {
+        try await putVoid(path, body: nil)
+    }
+
+    func patch<T: Decodable>(_ path: String) async throws -> T {
+        try await patch(path, body: nil)
+    }
+
+    func patchVoid(_ path: String) async throws {
+        try await patchVoid(path, body: nil)
+    }
+}
+
 /// 순수 HTTP 통신 담당 — 세션/인증은 SessionManager가 처리
 final class APIClient: APIClientProtocol, Sendable {
     static let shared = APIClient()
@@ -149,7 +183,7 @@ final class APIClient: APIClientProtocol, Sendable {
             request.httpBody = try JSONEncoder().encode(body)
         }
 
-        let session = await SessionManager.shared.urlSession
+        let session = SessionManager.shared.urlSession
 
         let (data, response): (Data, URLResponse)
         do {
