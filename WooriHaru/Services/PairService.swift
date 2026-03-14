@@ -8,12 +8,12 @@ struct PairService: Sendable {
     }
 
     func getStatus() async throws -> PairInfo? {
-        let response: DataResponse<PairInfo?> = try await api.get("/pair", query: [:])
+        let response: DataResponse<PairInfo?> = try await api.get("/pair")
         return response.data ?? nil
     }
 
     func createInvite() async throws -> PairInviteResponse {
-        let response: DataResponse<PairInviteResponse> = try await api.post("/pair/invite", body: nil)
+        let response: DataResponse<PairInviteResponse> = try await api.post("/pair/invite")
         guard let data = response.data else { throw APIError.decodingError(URLError(.cannotParseResponse)) }
         return data
     }

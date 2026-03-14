@@ -8,7 +8,7 @@ struct UserService: Sendable {
     }
 
     func fetchUsers() async throws -> [User] {
-        let response: DataResponse<[User]> = try await api.get("/users", query: [:])
+        let response: DataResponse<[User]> = try await api.get("/users")
         return response.data ?? []
     }
 
