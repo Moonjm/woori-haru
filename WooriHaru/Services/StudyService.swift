@@ -1,13 +1,16 @@
 import Foundation
 
-@MainActor
-struct StudyService {
-    private let api = APIClient.shared
+struct StudyService: Sendable {
+    private let api: any APIClientProtocol
+
+    init(api: any APIClientProtocol = APIClient.shared) {
+        self.api = api
+    }
 
     // MARK: - Subjects
 
     func fetchSubjects() async throws -> [StudySubject] {
-        let response: DataResponse<[StudySubject]> = try await api.get("/study/subjects")
+        let response: DataResponse<[StudySubject]> = try await api.get("/study/subjects", query: [:])
         return response.data ?? []
     }
 
@@ -30,7 +33,7 @@ struct StudyService {
     // MARK: - Sessions
 
     func fetchActiveSession() async throws -> StudySession? {
-        let response: DataResponse<StudySession?> = try await api.get("/study/sessions/active")
+        let response: DataResponse<StudySession?> = try await api.get("/study/sessions/active", query: [:])
         return response.data ?? nil
     }
 
@@ -44,21 +47,21 @@ struct StudyService {
     }
 
     func pauseSession(id: Int) async throws {
-        try await api.patchVoid("/study/sessions/\(id)/pause")
+        try await api.patchVoid("/study/sessions/\(id)/pause", body: nil)
     }
 
     func resumeSession(id: Int) async throws {
-        try await api.patchVoid("/study/sessions/\(id)/resume")
+        try await api.patchVoid("/study/sessions/\(id)/resume", body: nil)
     }
 
     func endSession(id: Int) async throws {
-        try await api.patchVoid("/study/sessions/\(id)/end")
+        try await api.patchVoid("/study/sessions/\(id)/end", body: nil)
     }
 
     // MARK: - Pause Types
 
     func fetchPauseTypes() async throws -> [PauseType] {
-        let response: DataResponse<[PauseType]> = try await api.get("/study/pause-types")
+        let response: DataResponse<[PauseType]> = try await api.get("/study/pause-types", query: [:])
         return response.data ?? []
     }
 
@@ -69,7 +72,7 @@ struct StudyService {
     // MARK: - Daily Goal
 
     func fetchDailyGoal() async throws -> StudyDailyGoal? {
-        let response: DataResponse<StudyDailyGoal?> = try await api.get("/study/daily-goals/today")
+        let response: DataResponse<StudyDailyGoal?> = try await api.get("/study/daily-goals/today", query: [:])
         return response.data ?? nil
     }
 
@@ -81,7 +84,7 @@ struct StudyService {
     // MARK: - Weekly Summary
 
     func fetchWeeklySummary() async throws -> StudyWeeklySummary {
-        let response: DataResponse<StudyWeeklySummary> = try await api.get("/study/weekly-summary")
+        let response: DataResponse<StudyWeeklySummary> = try await api.get("/study/weekly-summary", query: [:])
         return response.data ?? StudyWeeklySummary(totalGoalMinutes: 0, totalActualMinutes: 0)
     }
 }

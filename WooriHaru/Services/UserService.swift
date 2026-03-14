@@ -1,11 +1,14 @@
 import Foundation
 
-@MainActor
-struct UserService {
-    private let api = APIClient.shared
+struct UserService: Sendable {
+    private let api: any APIClientProtocol
+
+    init(api: any APIClientProtocol = APIClient.shared) {
+        self.api = api
+    }
 
     func fetchUsers() async throws -> [User] {
-        let response: DataResponse<[User]> = try await api.get("/users")
+        let response: DataResponse<[User]> = try await api.get("/users", query: [:])
         return response.data ?? []
     }
 

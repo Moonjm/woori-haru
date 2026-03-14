@@ -1,16 +1,19 @@
 import Foundation
 
-@MainActor
-struct PairService {
-    private let api = APIClient.shared
+struct PairService: Sendable {
+    private let api: any APIClientProtocol
+
+    init(api: any APIClientProtocol = APIClient.shared) {
+        self.api = api
+    }
 
     func getStatus() async throws -> PairInfo? {
-        let response: DataResponse<PairInfo?> = try await api.get("/pair")
+        let response: DataResponse<PairInfo?> = try await api.get("/pair", query: [:])
         return response.data ?? nil
     }
 
     func createInvite() async throws -> PairInviteResponse {
-        let response: DataResponse<PairInviteResponse> = try await api.post("/pair/invite")
+        let response: DataResponse<PairInviteResponse> = try await api.post("/pair/invite", body: nil)
         guard let data = response.data else { throw APIError.decodingError(URLError(.cannotParseResponse)) }
         return data
     }

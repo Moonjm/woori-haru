@@ -1,8 +1,11 @@
 import Foundation
 
-@MainActor
-struct RecordService {
-    private let api = APIClient.shared
+struct RecordService: Sendable {
+    private let api: any APIClientProtocol
+
+    init(api: any APIClientProtocol = APIClient.shared) {
+        self.api = api
+    }
 
     func fetchRecords(date: String? = nil, from: String? = nil, to: String? = nil) async throws -> [DailyRecord] {
         var query: [String: String] = [:]

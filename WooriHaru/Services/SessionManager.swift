@@ -6,11 +6,10 @@ extension Notification.Name {
 }
 
 /// 세션 관리 — 401 감지, 토큰 갱신, 세션 만료 노티피케이션
-@MainActor
-final class SessionManager {
+actor SessionManager {
     static let shared = SessionManager()
 
-    private let session: URLSession
+    let urlSession: URLSession
     private var refreshTask: Task<Bool, Never>?
     private let baseURL = APIConfig.baseURL
 
@@ -19,11 +18,8 @@ final class SessionManager {
         config.httpCookieAcceptPolicy = .always
         config.httpShouldSetCookies = true
         config.httpCookieStorage = .shared
-        self.session = URLSession(configuration: config)
+        self.urlSession = URLSession(configuration: config)
     }
-
-    /// URLSession (APIClient가 요청 시 사용)
-    var urlSession: URLSession { session }
 
     /// 응답이 401이면 토큰 갱신 후 재시도 여부 판단
     /// - Returns: `true`면 재시도 필요, `false`면 갱신 실패(세션 만료)
@@ -32,7 +28,9 @@ final class SessionManager {
         let refreshed = await refreshToken()
         if !refreshed {
             Logger.session.warning("세션 만료 — 토큰 갱신 실패")
-            NotificationCenter.default.post(name: .sessionExpired, object: nil)
+            await MainActor.run {
+                NotificationCenter.default.post(name: .sessionExpired, object: nil)
+            }
         }
         return refreshed
     }
@@ -51,7 +49,7 @@ final class SessionManager {
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
             do {
-                let (_, response) = try await session.data(for: request)
+                let (_, response) = try await urlSession.data(for: request)
                 guard let http = response as? HTTPURLResponse else { return false }
                 let success = (200...299).contains(http.statusCode)
                 if success {

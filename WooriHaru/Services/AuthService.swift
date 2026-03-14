@@ -5,20 +5,23 @@ struct LoginRequest: Encodable {
     let password: String
 }
 
-@MainActor
-struct AuthService {
-    private let api = APIClient.shared
+struct AuthService: Sendable {
+    private let api: any APIClientProtocol
+
+    init(api: any APIClientProtocol = APIClient.shared) {
+        self.api = api
+    }
 
     func login(username: String, password: String) async throws {
         try await api.postVoid("/auth/login", body: LoginRequest(username: username, password: password))
     }
 
     func logout() async throws {
-        try await api.postVoid("/auth/logout")
+        try await api.postVoid("/auth/logout", body: nil)
     }
 
     func fetchMe() async throws -> User {
-        let response: DataResponse<User> = try await api.get("/users/me")
+        let response: DataResponse<User> = try await api.get("/users/me", query: [:])
         guard let user = response.data else { throw APIError.unauthorized }
         return user
     }
