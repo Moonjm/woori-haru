@@ -31,16 +31,25 @@ struct SearchView: View {
                     Menu {
                         Button("전체") { viewModel.selectedCategoryId = nil; viewModel.applyFilters() }
                         ForEach(categoryStore.categories) { cat in
-                            Button("\(cat.emoji.displayEmoji) \(cat.name)") {
+                            Button {
                                 viewModel.selectedCategoryId = cat.id
                                 viewModel.applyFilters()
+                            } label: {
+                                Label {
+                                    Text(cat.name)
+                                } icon: {
+                                    EmojiIconView(emoji: cat.emoji, size: 16)
+                                }
                             }
                         }
                     } label: {
                         HStack {
                             if let catId = viewModel.selectedCategoryId,
                                let cat = categoryStore.categories.first(where: { $0.id == catId }) {
-                                Text("\(cat.emoji.displayEmoji) \(cat.name)")
+                                HStack(spacing: 4) {
+                                    EmojiIconView(emoji: cat.emoji, size: 14)
+                                    Text(cat.name)
+                                }
                             } else {
                                 Text("전체 카테고리")
                             }
