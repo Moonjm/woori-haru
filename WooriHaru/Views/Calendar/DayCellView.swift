@@ -74,8 +74,11 @@ struct DayCellView: View {
                         // 내 이모지 (왼쪽)
                         VStack(spacing: 1) {
                             ForEach(0..<maxCount, id: \.self) { i in
-                                Text(i < myEmojis.count ? myEmojis[i] : " ")
-                                    .font(.system(size: 11))
+                                if i < myEmojis.count {
+                                    EmojiIconView(emoji: myEmojis[i], size: 11)
+                                } else {
+                                    Text(" ").font(.system(size: 11))
+                                }
                             }
                         }
                         // 점선 구분 (이모지 겹치는 줄 수만큼)
@@ -90,9 +93,12 @@ struct DayCellView: View {
                         // 파트너 이모지 (오른쪽)
                         VStack(spacing: 1) {
                             ForEach(0..<maxCount, id: \.self) { i in
-                                Text(i < partnerEmojis.count ? partnerEmojis[i] : " ")
-                                    .font(.system(size: 11))
-                                    .opacity(0.7)
+                                if i < partnerEmojis.count {
+                                    EmojiIconView(emoji: partnerEmojis[i], size: 11)
+                                        .opacity(0.7)
+                                } else {
+                                    Text(" ").font(.system(size: 11))
+                                }
                             }
                         }
                     }
@@ -135,15 +141,19 @@ struct DayCellView: View {
     @ViewBuilder
     private var overeatIndicator: some View {
         if let level = overeatLevel, level != .none {
-            Text("🐷")
-                .font(.system(size: 10))
-                .frame(width: 20, height: 20)
-                .background {
-                    Circle()
-                        .fill(overeatColor(level).opacity(0.15))
-                    Circle()
-                        .strokeBorder(overeatColor(level), lineWidth: 1.5)
-                }
+            if level == .extreme {
+                RainbowPigView()
+            } else {
+                Text("🐷")
+                    .font(.system(size: 10))
+                    .frame(width: 20, height: 20)
+                    .background {
+                        Circle()
+                            .fill(overeatColor(level).opacity(0.15))
+                        Circle()
+                            .strokeBorder(overeatColor(level), lineWidth: 1.5)
+                    }
+            }
         }
     }
 
@@ -161,11 +171,53 @@ struct DayCellView: View {
     private func emojiRow(_ emojis: [String], size: CGFloat) -> some View {
         HStack(spacing: 0) {
             ForEach(Array(emojis.prefix(4).enumerated()), id: \.offset) { _, emoji in
-                Text(emoji.trimmingCharacters(in: .whitespacesAndNewlines))
-                    .font(.system(size: size))
+                EmojiIconView(emoji: emoji.trimmingCharacters(in: .whitespacesAndNewlines), size: size)
                     .lineLimit(1)
             }
         }
+    }
+}
+
+// MARK: - Rainbow Pig
+
+private struct RainbowPigView: View {
+    @State private var rotation: Double = 0
+
+    private static let rainbowColors: [Color] = [
+        .red, .orange, .yellow, .green, .cyan, .blue, .purple, .red
+    ]
+
+    var body: some View {
+        Text("🐷")
+            .font(.system(size: 10))
+            .frame(width: 20, height: 20)
+            .background {
+                Circle()
+                    .fill(
+                        AngularGradient(
+                            colors: Self.rainbowColors,
+                            center: .center,
+                            startAngle: .degrees(rotation),
+                            endAngle: .degrees(rotation + 360)
+                        )
+                    )
+                    .opacity(0.2)
+                Circle()
+                    .strokeBorder(
+                        AngularGradient(
+                            colors: Self.rainbowColors,
+                            center: .center,
+                            startAngle: .degrees(rotation),
+                            endAngle: .degrees(rotation + 360)
+                        ),
+                        lineWidth: 1.5
+                    )
+            }
+            .onAppear {
+                withAnimation(.linear(duration: 2).repeatForever(autoreverses: false)) {
+                    rotation = 360
+                }
+            }
     }
 }
 

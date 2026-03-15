@@ -15,7 +15,7 @@ struct RecordFormView: View {
                         viewModel.selectedCategoryId = category.id
                     } label: {
                         HStack(spacing: 4) {
-                            Text(category.emoji)
+                            EmojiIconView(emoji: category.emoji, size: 16)
                             Text(category.name)
                                 .font(.caption)
                         }

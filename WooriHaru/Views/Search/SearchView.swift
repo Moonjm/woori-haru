@@ -31,7 +31,7 @@ struct SearchView: View {
                     Menu {
                         Button("전체") { viewModel.selectedCategoryId = nil; viewModel.applyFilters() }
                         ForEach(categoryStore.categories) { cat in
-                            Button("\(cat.emoji) \(cat.name)") {
+                            Button("\(cat.emoji.displayEmoji) \(cat.name)") {
                                 viewModel.selectedCategoryId = cat.id
                                 viewModel.applyFilters()
                             }
@@ -40,7 +40,7 @@ struct SearchView: View {
                         HStack {
                             if let catId = viewModel.selectedCategoryId,
                                let cat = categoryStore.categories.first(where: { $0.id == catId }) {
-                                Text("\(cat.emoji) \(cat.name)")
+                                Text("\(cat.emoji.displayEmoji) \(cat.name)")
                             } else {
                                 Text("전체 카테고리")
                             }
@@ -120,7 +120,7 @@ struct SearchResultCard: View {
             }
 
             HStack(spacing: 6) {
-                Text(record.category.emoji)
+                EmojiIconView(emoji: record.category.emoji, size: 17)
                 Text(record.category.name)
                     .font(.subheadline)
                     .fontWeight(.medium)

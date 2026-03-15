@@ -95,7 +95,7 @@ struct StatBarView: View {
     var body: some View {
         VStack(spacing: 4) {
             HStack {
-                Text(stat.emoji)
+                EmojiIconView(emoji: stat.emoji, size: 17)
                 Text(stat.name).font(.subheadline)
                 Spacer()
                 Text("\(stat.count)건").font(.subheadline).fontWeight(.medium)
