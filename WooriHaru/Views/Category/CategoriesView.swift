@@ -34,7 +34,7 @@ struct CategoriesView: View {
             }
         } message: {
             if let target = deleteTarget {
-                Text("\(target.emoji) \(target.name)을(를) 삭제할까요?")
+                Text("\(target.emoji.displayEmoji) \(target.name)을(를) 삭제할까요?")
             }
         }
     }
@@ -167,7 +167,7 @@ struct CategoriesView: View {
                 .font(.caption)
                 .foregroundStyle(Color.slate400)
 
-            Text(category.emoji).font(.title3)
+            EmojiIconView(emoji: category.emoji, size: 20)
             Text(category.name).font(.subheadline)
 
             Spacer()

@@ -122,8 +122,7 @@ struct RecordRow: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 10) {
-                Text(record.category.emoji)
-                    .font(.body)
+                EmojiIconView(emoji: record.category.emoji, size: 17)
 
                 Text(record.category.name)
                     .font(.subheadline)
