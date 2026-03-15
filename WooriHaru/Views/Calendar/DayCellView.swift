@@ -73,17 +73,14 @@ struct DayCellView: View {
                     HStack(alignment: .top, spacing: 0) {
                         // 내 이모지 (왼쪽)
                         VStack(spacing: 1) {
-                            ForEach(0..<maxCount, id: \.self) { i in
-                                if i < myEmojis.count {
-                                    EmojiIconView(emoji: myEmojis[i], size: 11)
-                                } else {
-                                    Text(" ").font(.system(size: 11))
-                                }
+                            ForEach(0..<myEmojis.count, id: \.self) { i in
+                                EmojiIconView(emoji: myEmojis[i], size: 11)
                             }
                         }
-                        // 점선 구분 (이모지 겹치는 줄 수만큼)
+                        // 점선 구분
                         if !myEmojis.isEmpty && !partnerEmojis.isEmpty {
-                            let lineHeight = CGFloat(maxCount) * 12 + CGFloat(maxCount - 1) * 1
+                            let overlapCount = min(myEmojis.count, partnerEmojis.count)
+                            let lineHeight = CGFloat(overlapCount) * 12 + CGFloat(overlapCount - 1) * 1
                             DottedVLine()
                                 .stroke(style: StrokeStyle(lineWidth: 0.5, dash: [2, 2]))
                                 .foregroundStyle(Color.slate400)
@@ -92,13 +89,9 @@ struct DayCellView: View {
                         }
                         // 파트너 이모지 (오른쪽)
                         VStack(spacing: 1) {
-                            ForEach(0..<maxCount, id: \.self) { i in
-                                if i < partnerEmojis.count {
-                                    EmojiIconView(emoji: partnerEmojis[i], size: 11)
-                                        .opacity(0.7)
-                                } else {
-                                    Text(" ").font(.system(size: 11))
-                                }
+                            ForEach(0..<partnerEmojis.count, id: \.self) { i in
+                                EmojiIconView(emoji: partnerEmojis[i], size: 11)
+                                    .opacity(0.7)
                             }
                         }
                     }
