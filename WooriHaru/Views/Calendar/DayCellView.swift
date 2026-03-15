@@ -172,7 +172,6 @@ struct DayCellView: View {
         HStack(spacing: 0) {
             ForEach(Array(emojis.prefix(4).enumerated()), id: \.offset) { _, emoji in
                 EmojiIconView(emoji: emoji.trimmingCharacters(in: .whitespacesAndNewlines), size: size)
-                    .lineLimit(1)
             }
         }
     }
