@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // MARK: - EmojiIconView
 
@@ -9,10 +10,18 @@ struct EmojiIconView: View {
 
     var body: some View {
         if let iconName = emoji.iconName {
-            Image(iconName)
-                .resizable()
-                .scaledToFit()
-                .frame(width: size, height: size)
+            if UIImage(named: iconName) != nil {
+                Image(iconName)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: size, height: size)
+            } else {
+                Image(systemName: "questionmark.square")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: size, height: size)
+                    .foregroundStyle(.secondary)
+            }
         } else {
             Text(emoji)
                 .font(.system(size: size))
