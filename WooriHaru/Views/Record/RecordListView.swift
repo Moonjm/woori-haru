@@ -153,7 +153,7 @@ struct RecordRow: View {
 
             if !isLast {
                 Divider()
-                    .padding(.leading, 16)
+                    .padding(.horizontal, 16)
             }
         }
     }
