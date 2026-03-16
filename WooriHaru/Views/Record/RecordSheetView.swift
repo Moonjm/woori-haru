@@ -9,6 +9,7 @@ struct RecordSheetView: View {
 
     @State private var dragOffset: CGFloat = 0
     @State private var keyboardVisible = false
+    @State private var recordToDelete: DailyRecord?
 
     private func hideKeyboard() {
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
@@ -72,10 +73,7 @@ struct RecordSheetView: View {
                                 partnerName: pairStore.partnerName,
                                 isPaired: pairStore.isPaired,
                                 onDelete: { record in
-                                    Task {
-                                        await viewModel.deleteRecord(record)
-                                        onChanged()
-                                    }
+                                    recordToDelete = record
                                 },
                                 onTap: { record in
                                     viewModel.startEditing(record)
@@ -139,6 +137,21 @@ struct RecordSheetView: View {
         )
         .task {
             await viewModel.loadData()
+        }
+        .alert("삭제 확인", isPresented: .init(
+            get: { recordToDelete != nil },
+            set: { if !$0 { recordToDelete = nil } }
+        )) {
+            Button("삭제", role: .destructive) {
+                guard let record = recordToDelete else { return }
+                Task {
+                    await viewModel.deleteRecord(record)
+                    onChanged()
+                }
+            }
+            Button("취소", role: .cancel) { recordToDelete = nil }
+        } message: {
+            Text("이 기록을 삭제하시겠습니까?")
         }
     }
 }

@@ -14,12 +14,14 @@ struct EmojiIconView: View {
                 Image(iconName)
                     .resizable()
                     .scaledToFit()
-                    .frame(width: size, height: size)
+                    .frame(width: size * 1.1, height: size * 1.1)
+                    .padding(.vertical, 1)
             } else {
                 Image(systemName: "questionmark.square")
                     .resizable()
                     .scaledToFit()
-                    .frame(width: size, height: size)
+                    .frame(width: size * 1.1, height: size * 1.1)
+                    .padding(.vertical, 1)
                     .foregroundStyle(.secondary)
             }
         } else {

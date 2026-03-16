@@ -10,6 +10,8 @@ struct StudyTimerView: View {
     @FocusState private var isAlarmFieldFocused: Bool
     @FocusState private var isGoalFieldFocused: Bool
     @State private var selectedSegmentKey: String?
+    @State private var showEarlyPauseConfirm = false
+    @State private var showEarlyEndConfirm = false
 
     var body: some View {
         @Bindable var vm = vm
@@ -66,6 +68,18 @@ struct StudyTimerView: View {
             Button("확인", role: .cancel) {}
         } message: {
             Text(vm.errorMessage ?? "")
+        }
+        .alert("확인", isPresented: $showEarlyPauseConfirm) {
+            Button("일시정지", role: .destructive) { Task { await vm.pause() } }
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text("아직 1분이 지나지 않았습니다.\n정말 일시정지하시겠습니까?")
+        }
+        .alert("확인", isPresented: $showEarlyEndConfirm) {
+            Button("종료", role: .destructive) { Task { await vm.end() } }
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text("아직 1분이 지나지 않았습니다.\n정말 종료하시겠습니까?")
         }
         .onChange(of: scenePhase) {
             if scenePhase == .active {
@@ -200,7 +214,11 @@ struct StudyTimerView: View {
         case .running:
             HStack(spacing: 12) {
                 Button {
-                    Task { await vm.pause() }
+                    if vm.elapsedSeconds < 60 {
+                        showEarlyPauseConfirm = true
+                    } else {
+                        Task { await vm.pause() }
+                    }
                 } label: {
                     Label("일시정지", systemImage: "pause.fill")
                         .font(.subheadline.weight(.semibold))
@@ -243,7 +261,11 @@ struct StudyTimerView: View {
 
     private var endButton: some View {
         Button {
-            Task { await vm.end() }
+            if vm.elapsedSeconds < 60 {
+                showEarlyEndConfirm = true
+            } else {
+                Task { await vm.end() }
+            }
         } label: {
             Label("종료", systemImage: "stop.fill")
                 .font(.subheadline.weight(.semibold))
