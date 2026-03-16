@@ -62,6 +62,7 @@ final class StudyTimerViewModel {
     // MARK: - Computed
 
     /// 마지막 시작/재개로부터 earlyConfirmSeconds 이내인지
+    /// 앱 재시작 시 lastRunStartDate는 nil이므로 false — 의도적 동작
     var isWithinEarlyConfirm: Bool {
         guard let date = lastRunStartDate else { return false }
         return Date().timeIntervalSince(date) < TimeInterval(Self.earlyConfirmSeconds)
@@ -389,6 +390,7 @@ final class StudyTimerViewModel {
             activeSessionId = nil
             elapsedSeconds = 0
             timerStartDate = nil
+            lastRunStartDate = nil
             await liveActivity.end(timerState: .idle, timerStartDate: Date(), elapsedSeconds: 0)
             await loadTodaySessions()
             await loadWeeklySummary()
@@ -443,6 +445,7 @@ final class StudyTimerViewModel {
         activeSessionId = nil
         elapsedSeconds = 0
         timerStartDate = nil
+        lastRunStartDate = nil
         await liveActivity.end(timerState: .idle, timerStartDate: Date(), elapsedSeconds: 0)
         await restoreActiveSession()
     }
