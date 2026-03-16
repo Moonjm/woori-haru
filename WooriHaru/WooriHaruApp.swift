@@ -19,6 +19,7 @@ struct WooriHaruApp: App {
     @State private var subjectStore = SubjectStore()
     @State private var pauseTypeStore = PauseTypeStore()
     private let notificationDelegate = NotificationDelegate()
+    @State private var pendingDeepLink: StudyDeepLink?
 
     init() {
         UNUserNotificationCenter.current().delegate = notificationDelegate
@@ -47,17 +48,42 @@ struct WooriHaruApp: App {
             .onOpenURL { url in
                 handleDeepLink(url)
             }
+            .alert("확인", isPresented: .init(
+                get: { pendingDeepLink != nil },
+                set: { if !$0 { pendingDeepLink = nil } }
+            )) {
+                Button(pendingDeepLink == .pause ? "일시정지" : "종료", role: .destructive) {
+                    let link = pendingDeepLink
+                    pendingDeepLink = nil
+                    Task {
+                        switch link {
+                        case .pause: await studyTimerVM.pause()
+                        case .end: await studyTimerVM.end()
+                        default: break
+                        }
+                    }
+                }
+                Button("취소", role: .cancel) { pendingDeepLink = nil }
+            } message: {
+                Text("아직 1분이 지나지 않았습니다.\n정말 \(pendingDeepLink == .pause ? "일시정지" : "종료")하시겠습니까?")
+            }
         }
     }
 
     private func handleDeepLink(_ url: URL) {
         guard let deepLink = StudyDeepLink(url: url) else { return }
-        Task {
-            switch deepLink {
-            case .pause: await studyTimerVM.pause()
-            case .resume: await studyTimerVM.resume()
-            case .end: await studyTimerVM.end()
+        switch deepLink {
+        case .pause, .end:
+            if studyTimerVM.elapsedSeconds < 60 {
+                pendingDeepLink = deepLink
+            } else {
+                Task {
+                    if deepLink == .pause { await studyTimerVM.pause() }
+                    else { await studyTimerVM.end() }
+                }
             }
+        case .resume:
+            Task { await studyTimerVM.resume() }
         }
     }
 }
