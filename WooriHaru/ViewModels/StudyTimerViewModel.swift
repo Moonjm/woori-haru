@@ -56,8 +56,16 @@ final class StudyTimerViewModel {
         willSet { timer?.invalidate() }
     }
     private var timerStartDate: Date?
+    /// 가장 최근 running 전환 시점 (start / resume)
+    private(set) var lastRunStartDate: Date?
 
     // MARK: - Computed
+
+    /// 마지막 시작/재개로부터 earlyConfirmSeconds 이내인지
+    var isWithinEarlyConfirm: Bool {
+        guard let date = lastRunStartDate else { return false }
+        return Date().timeIntervalSince(date) < TimeInterval(Self.earlyConfirmSeconds)
+    }
 
     var elapsedFormatted: String {
         let h = elapsedSeconds / 3600
@@ -303,6 +311,7 @@ final class StudyTimerViewModel {
             elapsedSeconds = 0
             let startDate = Date()
             timerStartDate = startDate
+            lastRunStartDate = startDate
             notificationScheduler.resetAlarmTracking()
             startTimer()
             await liveActivity.start(
@@ -350,6 +359,7 @@ final class StudyTimerViewModel {
         do {
             try await service.resumeSession(id: id)
             timerState = .running
+            lastRunStartDate = Date()
             timerStartDate = Date().addingTimeInterval(TimeInterval(-elapsedSeconds))
             startTimer()
             notificationScheduler.scheduleAlarmNotifications(

@@ -74,7 +74,7 @@ struct WooriHaruApp: App {
         guard let deepLink = StudyDeepLink(url: url) else { return }
         switch deepLink {
         case .pause, .end:
-            if studyTimerVM.elapsedSeconds < StudyTimerViewModel.earlyConfirmSeconds {
+            if studyTimerVM.isWithinEarlyConfirm {
                 pendingDeepLink = deepLink
             } else {
                 Task {
