@@ -214,7 +214,7 @@ struct StudyTimerView: View {
         case .running:
             HStack(spacing: 12) {
                 Button {
-                    if vm.elapsedSeconds < 60 {
+                    if vm.elapsedSeconds < StudyTimerViewModel.earlyConfirmSeconds {
                         showEarlyPauseConfirm = true
                     } else {
                         Task { await vm.pause() }
@@ -261,7 +261,7 @@ struct StudyTimerView: View {
 
     private var endButton: some View {
         Button {
-            if vm.elapsedSeconds < 60 {
+            if vm.timerState == .running && vm.elapsedSeconds < StudyTimerViewModel.earlyConfirmSeconds {
                 showEarlyEndConfirm = true
             } else {
                 Task { await vm.end() }
