@@ -9,6 +9,10 @@ enum TimerState {
 @MainActor
 @Observable
 final class StudyTimerViewModel {
+    /// 시작 직후 실수 방지 확인 팝업 기준(초)
+    static let earlyConfirmSeconds = 60
+
+
     // MARK: - State
     var selectedSubject: StudySubject?
     var timerState: TimerState = .idle
