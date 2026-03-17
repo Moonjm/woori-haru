@@ -10,6 +10,14 @@ struct MonthData: Identifiable {
     let startDate: Date
     var cells: [DayCell]
 
+    // Per-month display data (관찰 격리)
+    var records: [String: [DailyRecord]] = [:]
+    var partnerRecords: [String: [DailyRecord]] = [:]
+    var overeats: [String: OvereatLevel] = [:]
+    var holidays: [String: [String]] = [:]
+    var pairEvents: [String: [PairEvent]] = [:]
+    var birthdayMap: [String: [(emoji: String, label: String)]] = [:]
+
     struct DayCell: Identifiable {
         let id: String      // "yyyy-MM-dd"
         let date: Date
@@ -27,12 +35,6 @@ final class CalendarViewModel {
     // MARK: - Published State
 
     var months: [MonthData] = []
-    var records: [String: [DailyRecord]] = [:]
-    var partnerRecords: [String: [DailyRecord]] = [:]
-    var overeats: [String: OvereatLevel] = [:]
-    var holidays: [String: [String]] = [:]
-    var pairEvents: [String: [PairEvent]] = [:]
-    var birthdayMap: [String: [(emoji: String, label: String)]] = [:]
     var currentMonthLabel: String = ""
     var isDrawerOpen: Bool = false
     var pickerTargetYear: Int = Calendar.current.component(.year, from: Date())
@@ -248,20 +250,33 @@ final class CalendarViewModel {
 
     private var cachedUser: User?
 
-    /// 생일 맵 구축
+    /// 특정 날짜의 공휴일 이름 조회 (RecordSheetView용)
+    func holidayNames(for date: Date) -> [String] {
+        let monthId = date.startOfMonth().yearMonth
+        guard let month = months.first(where: { $0.id == monthId }) else { return [] }
+        return month.holidays[date.dateString] ?? []
+    }
+
+    /// 생일 맵 구축 — 각 MonthData에 직접 저장
     func updateBirthdays(user: User?, pairInfo: PairInfo?) {
         cachedUser = user
-        birthdayMap.removeAll()
 
-        let years = loadedMonthIds.compactMap { Int($0.prefix(4)) }
-        let yearRange = Set(years)
+        // 기존 birthdayMap 클리어
+        for i in months.indices where !months[i].birthdayMap.isEmpty {
+            months[i].birthdayMap.removeAll()
+        }
+
+        let yearRange = Set(months.map(\.year))
 
         if let birthDateStr = user?.birthDate, let birthDate = Date.from(birthDateStr) {
             let mmdd = String(format: "%02d-%02d", birthDate.month, birthDate.day)
             let genderEmoji = user?.gender == .male ? "👨" : user?.gender == .female ? "👩" : ""
             for year in yearRange {
-                let key = "\(year)-\(mmdd)"
-                birthdayMap[key, default: []].append((emoji: "🎂\(genderEmoji)", label: "내 생일"))
+                let dateKey = "\(year)-\(mmdd)"
+                let monthId = String(dateKey.prefix(7))
+                if let idx = months.firstIndex(where: { $0.id == monthId }) {
+                    months[idx].birthdayMap[dateKey, default: []].append((emoji: "🎂\(genderEmoji)", label: "내 생일"))
+                }
             }
         }
 
@@ -270,8 +285,11 @@ final class CalendarViewModel {
             let name = pairInfo?.partnerName ?? "파트너"
             let genderEmoji = pairInfo?.partnerGender == .male ? "👨" : pairInfo?.partnerGender == .female ? "👩" : ""
             for year in yearRange {
-                let key = "\(year)-\(mmdd)"
-                birthdayMap[key, default: []].append((emoji: "🎂\(genderEmoji)", label: "\(name) 생일"))
+                let dateKey = "\(year)-\(mmdd)"
+                let monthId = String(dateKey.prefix(7))
+                if let idx = months.firstIndex(where: { $0.id == monthId }) {
+                    months[idx].birthdayMap[dateKey, default: []].append((emoji: "🎂\(genderEmoji)", label: "\(name) 생일"))
+                }
             }
         }
     }
@@ -298,21 +316,13 @@ final class CalendarViewModel {
         for record in fetchedRecords {
             recordBatch[record.date, default: []].append(record)
         }
-        records.merge(recordBatch) { _, new in new }
 
+        var overeatBatch: [String: OvereatLevel] = [:]
         do {
             let fetchedOvereats = try await recordService.fetchOvereats(from: fromStr, to: toStr)
-            var overeatBatch: [String: OvereatLevel] = [:]
             for item in fetchedOvereats {
                 overeatBatch[item.date] = item.overeatLevel
             }
-            // 기존 키 클리어 후 일괄 머지
-            for dayOffset in 0..<daysInMonth {
-                if let dayDate = calendar.date(byAdding: .day, value: dayOffset, to: startDate) {
-                    overeats.removeValue(forKey: dayDate.dateString)
-                }
-            }
-            overeats.merge(overeatBatch) { _, new in new }
         } catch {
             print("[CalendarVM] Failed to fetch overeats for \(monthData.id): \(error.localizedDescription)")
         }
@@ -322,7 +332,10 @@ final class CalendarViewModel {
             do {
                 let fetchedHolidays = try await holidayService.fetchHolidays(year: yearStr)
                 for (date, names) in fetchedHolidays {
-                    holidays[date] = names
+                    let hMonthId = String(date.prefix(7))
+                    if let hIdx = months.firstIndex(where: { $0.id == hMonthId }) {
+                        months[hIdx].holidays[date] = names
+                    }
                 }
             } catch {
                 loadedHolidayYears.remove(monthData.year)
@@ -330,17 +343,18 @@ final class CalendarViewModel {
             }
         }
 
+        var partnerBatch: [String: [DailyRecord]] = [:]
+        var eventBatch: [String: [PairEvent]] = [:]
+
         if pairStore.isPaired {
             do {
                 let partnerRecs = try await pairService.fetchPartnerRecords(from: fromStr, to: toStr)
                 let groupedPartner = Dictionary(grouping: partnerRecs, by: \.date)
-                var partnerBatch: [String: [DailyRecord]] = [:]
                 for dayOffset in 0..<daysInMonth {
                     if let dayDate = calendar.date(byAdding: .day, value: dayOffset, to: startDate) {
                         partnerBatch[dayDate.dateString] = groupedPartner[dayDate.dateString] ?? []
                     }
                 }
-                partnerRecords.merge(partnerBatch) { _, new in new }
             } catch {
                 print("[CalendarVM] Failed to fetch partner records: \(error.localizedDescription)")
             }
@@ -348,7 +362,6 @@ final class CalendarViewModel {
             do {
                 let events = try await pairEventService.fetchEvents(from: fromStr, to: toStr)
                 let groupedEvents = Dictionary(grouping: events, by: \.eventDate)
-                var eventBatch: [String: [PairEvent]] = [:]
                 for dayOffset in 0..<daysInMonth {
                     if let dayDate = calendar.date(byAdding: .day, value: dayOffset, to: startDate) {
                         eventBatch[dayDate.dateString] = groupedEvents[dayDate.dateString] ?? []
@@ -361,10 +374,16 @@ final class CalendarViewModel {
                         eventBatch[thisYearDate, default: []].append(event)
                     }
                 }
-                pairEvents.merge(eventBatch) { _, new in new }
             } catch {
                 print("[CalendarVM] Failed to fetch pair events: \(error.localizedDescription)")
             }
         }
+
+        // 모든 데이터를 한번에 적용 — months[idx] 갱신 최소화
+        guard let idx = months.firstIndex(where: { $0.id == monthData.id }) else { return }
+        months[idx].records = recordBatch
+        months[idx].overeats = overeatBatch
+        months[idx].partnerRecords = partnerBatch
+        months[idx].pairEvents = eventBatch
     }
 }
