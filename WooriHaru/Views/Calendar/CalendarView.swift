@@ -112,12 +112,6 @@ struct CalendarView: View {
                                                 .background(.white.opacity(0.95))
                                             MonthGridView(
                                                 monthData: monthData,
-                                                records: calendarVM.records,
-                                                partnerRecords: calendarVM.partnerRecords,
-                                                overeats: calendarVM.overeats,
-                                                holidays: calendarVM.holidays,
-                                                pairEvents: calendarVM.pairEvents,
-                                                birthdayMap: calendarVM.birthdayMap,
                                                 onSelectDate: { date in
                                                     recordVM.prepareForNewDate()
                                                     recordVM.selectedDate = date
@@ -187,9 +181,9 @@ struct CalendarView: View {
                                 .padding(.bottom, 20)
                                 .transition(.opacity.combined(with: .move(edge: .bottom)))
                                 .accessibilityLabel("오늘로 이동")
+                                .animation(.easeInOut(duration: 0.2), value: isViewingToday)
                             }
                         }
-                        .animation(.easeInOut(duration: 0.2), value: isViewingToday)
                     }
                     .opacity(initialScrollDone ? 1 : 0)
 
@@ -269,7 +263,7 @@ struct CalendarView: View {
                         Spacer()
                         RecordSheetView(
                             viewModel: recordVM,
-                            holidayNames: calendarVM.holidays[recordVM.selectedDate.dateString] ?? [],
+                            holidayNames: calendarVM.holidayNames(for: recordVM.selectedDate),
                             onChanged: {
                                 Task { await calendarVM.refreshMonth(containing: recordVM.selectedDate) }
                             },
