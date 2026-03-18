@@ -36,6 +36,8 @@ struct CalendarView: View {
     private let todayMonthId: String = CalendarView.makeTodayMonthId()
     private static let sheetHeightRatio: CGFloat = 0.7
     private static let sheetAnimationDuration: Double = 0.25
+    private static let scrollIdleDelayMs: Int = 300
+    private static let dataLoadDelayMs: Int = 200
 
     private static func makeTodayMonthId() -> String {
         let today = Date()
@@ -65,7 +67,7 @@ struct CalendarView: View {
         isScrolling = true
         scrollIdleTask?.cancel()
         scrollIdleTask = Task {
-            try? await Task.sleep(for: .milliseconds(300))
+            try? await Task.sleep(for: .milliseconds(Self.scrollIdleDelayMs))
             guard !Task.isCancelled else { return }
             isScrolling = false
         }
@@ -82,7 +84,7 @@ struct CalendarView: View {
 
         dataLoadTask?.cancel()
         dataLoadTask = Task {
-            try? await Task.sleep(for: .milliseconds(200))
+            try? await Task.sleep(for: .milliseconds(Self.dataLoadDelayMs))
             guard !Task.isCancelled else { return }
             await calendarVM.ensureDataLoaded(around: visibleFrame.id)
             if let idx = calendarVM.months.firstIndex(where: { $0.id == visibleFrame.id }),
@@ -304,6 +306,10 @@ struct CalendarView: View {
             scrollProxy?.scrollTo(todayMonthId, anchor: .top)
             try? await Task.sleep(for: .milliseconds(50))
             initialScrollDone = true
+        }
+        .onDisappear {
+            dataLoadTask?.cancel()
+            scrollIdleTask?.cancel()
         }
     }
 }
