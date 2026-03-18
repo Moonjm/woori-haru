@@ -30,6 +30,8 @@ struct CalendarView: View {
     @State private var drawerDragOffset: CGFloat = 0
     @State private var isDraggingDrawer = false
     @State private var dataLoadTask: Task<Void, Never>?
+    @State private var isScrolling = false
+    @State private var scrollIdleTask: Task<Void, Never>?
 
     private let todayMonthId: String = CalendarView.makeTodayMonthId()
     private static let sheetHeightRatio: CGFloat = 0.7
@@ -59,6 +61,14 @@ struct CalendarView: View {
             }
 
         guard let visibleFrame, scrolledMonthId != visibleFrame.id else { return }
+
+        isScrolling = true
+        scrollIdleTask?.cancel()
+        scrollIdleTask = Task {
+            try? await Task.sleep(for: .milliseconds(300))
+            guard !Task.isCancelled else { return }
+            isScrolling = false
+        }
 
         scrolledMonthId = visibleFrame.id
 
@@ -144,7 +154,7 @@ struct CalendarView: View {
                             .onAppear { scrollProxy = proxy }
                         }
                         .overlay(alignment: .bottom) {
-                            if !isViewingToday && !showPicker && initialScrollDone {
+                            if !isViewingToday && !showPicker && !isScrolling && initialScrollDone {
                                 Button {
                                     Task {
                                         suppressEdgeLoadingCount += 1
