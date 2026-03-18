@@ -35,11 +35,7 @@ struct SearchView: View {
                                 viewModel.selectedCategoryId = cat.id
                                 viewModel.applyFilters()
                             } label: {
-                                Label {
-                                    Text(cat.name)
-                                } icon: {
-                                    EmojiIconView(emoji: cat.emoji, size: 16)
-                                }
+                                Text(cat.name)
                             }
                         }
                     } label: {
