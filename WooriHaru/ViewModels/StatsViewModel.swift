@@ -55,10 +55,12 @@ final class StatsViewModel {
 
         do {
             let myRecords = try await recordService.fetchRecords(from: fromStr, to: toStr)
+            try Task.checkCancellation()
 
             var partnerRecords: [DailyRecord] = []
             if pairStore.isPaired {
                 partnerRecords = (try? await pairService.fetchPartnerRecords(from: fromStr, to: toStr)) ?? []
+                try Task.checkCancellation()
             }
 
             let filtered: [DailyRecord]
@@ -87,6 +89,8 @@ final class StatsViewModel {
                             ratio: totalCount > 0 ? Double(val.count) / Double(totalCount) : 0)
             }.sorted { $0.count > $1.count }
 
+        } catch is CancellationError {
+            // 새 통계 요청으로 취소됨 — 무시
         } catch let error as APIError {
             errorMessage = error.errorDescription
         } catch {

@@ -39,8 +39,12 @@ final class SearchViewModel {
         let (fromStr, toStr) = Date.monthRange(year: selectedYear, month: selectedMonth)
 
         do {
-            allRecords = try await recordService.fetchRecords(from: fromStr, to: toStr)
+            let fetched = try await recordService.fetchRecords(from: fromStr, to: toStr)
+            try Task.checkCancellation()
+            allRecords = fetched
             applyFilters()
+        } catch is CancellationError {
+            // 새 검색 요청으로 취소됨 — 무시
         } catch let error as APIError {
             errorMessage = error.errorDescription
         } catch {

@@ -1,4 +1,44 @@
 import SwiftUI
+import UIKit
+
+// MARK: - ScrollView 모멘텀 중단 헬퍼
+
+private extension UIView {
+    func findScrollView() -> UIScrollView? {
+        if let sv = self as? UIScrollView { return sv }
+        for child in subviews {
+            if let found = child.findScrollView() { return found }
+        }
+        return nil
+    }
+}
+
+private struct ScrollStopModifier: ViewModifier {
+    let trigger: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .background(ScrollStopHelper(trigger: trigger))
+    }
+}
+
+private struct ScrollStopHelper: UIViewRepresentable {
+    let trigger: Bool
+
+    func makeUIView(context: Context) -> UIView { UIView() }
+
+    func updateUIView(_ uiView: UIView, context: Context) {
+        guard trigger, let scrollView = uiView.superview?.superview?.findScrollView() else { return }
+        // 현재 offset을 다시 세팅하면 deceleration이 즉시 멈춤
+        scrollView.setContentOffset(scrollView.contentOffset, animated: false)
+    }
+}
+
+private extension View {
+    func stopScroll(when trigger: Bool) -> some View {
+        modifier(ScrollStopModifier(trigger: trigger))
+    }
+}
 
 private struct VisibleMonthFrame: Equatable {
     let id: String
@@ -46,6 +86,16 @@ struct CalendarView: View {
 
     private var isViewingToday: Bool {
         scrolledMonthId == todayMonthId
+    }
+
+    /// 모멘텀 스크롤 중단 후 목표로 이동
+    private func forceScrollTo(_ targetId: String) async {
+        // 현재 보이는 월로 먼저 스크롤하여 모멘텀 중단
+        if let currentId = scrolledMonthId, currentId != targetId {
+            scrollProxy?.scrollTo(currentId, anchor: .top)
+            await Task.yield()
+        }
+        scrollProxy?.scrollTo(targetId, anchor: .top)
     }
 
     private func dismissSheet() {
@@ -152,6 +202,7 @@ struct CalendarView: View {
                                 }
                             }
                             .coordinateSpace(name: "calendarScroll")
+                            .stopScroll(when: showPicker)
                             .onPreferenceChange(VisibleMonthFrameKey.self, perform: updateVisibleMonth)
                             .onAppear { scrollProxy = proxy }
                         }
@@ -163,15 +214,15 @@ struct CalendarView: View {
                                         defer { suppressEdgeLoadingCount -= 1 }
                                         let today = Date()
                                         let targetId = String(format: "%04d-%02d", today.year, today.month)
-                                        if !calendarVM.months.contains(where: { $0.id == targetId }) {
-                                            await calendarVM.scrollToMonth(year: today.year, month: today.month)
-                                        }
-                                        scrollProxy?.scrollTo(targetId, anchor: .top)
+                                        // 범위 밖이면 동기로 재빌드
+                                        calendarVM.rebuildMonthsIfNeeded(year: today.year, month: today.month)
+                                        // 모멘텀 스크롤 중단 후 즉시 이동
+                                        await forceScrollTo(targetId)
                                         scrolledMonthId = targetId
-                                        calendarVM.currentMonthLabel = today.monthDisplayText
                                         calendarVM.pickerTargetYear = today.year
                                         calendarVM.pickerTargetMonth = today.month
-                                        await Task.yield()
+                                        // 데이터 로드는 백그라운드
+                                        Task { await calendarVM.ensureDataLoaded(around: targetId) }
                                     }
                                 } label: {
                                     HStack(spacing: 4) {
@@ -207,13 +258,17 @@ struct CalendarView: View {
                                 initialYear: calendarVM.pickerTargetYear,
                                 initialMonth: calendarVM.pickerTargetMonth,
                                 onSelect: { year, month in
-                                    calendarVM.pickerTargetYear = year
-                                    calendarVM.pickerTargetMonth = month
-                                    // 즉시 스크롤 (네트워크 없이)
                                     let target = String(format: "%04d-%02d", year, month)
-                                    suppressEdgeLoadingCount += 1
-                                    scrollProxy?.scrollTo(target, anchor: .top)
-                                    suppressEdgeLoadingCount -= 1
+                                    // 동기로 재빌드 (범위 밖이면) + 라벨 갱신
+                                    calendarVM.rebuildMonthsIfNeeded(year: year, month: month)
+                                    Task {
+                                        suppressEdgeLoadingCount += 1
+                                        defer { suppressEdgeLoadingCount -= 1 }
+                                        // 모멘텀 스크롤 중단 후 즉시 이동
+                                        await forceScrollTo(target)
+                                        // 데이터 로드는 백그라운드
+                                        Task { await calendarVM.ensureDataLoaded(around: target) }
+                                    }
                                 }
                             )
 
