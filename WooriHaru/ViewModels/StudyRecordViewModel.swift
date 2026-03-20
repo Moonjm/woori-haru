@@ -157,7 +157,6 @@ final class StudyRecordViewModel {
 
     func loadMonth() async {
         isLoading = true
-        defer { isLoading = false }
 
         let (from, to) = Date.monthRange(year: currentYear, month: currentMonth)
         do {
@@ -165,10 +164,12 @@ final class StudyRecordViewModel {
             try Task.checkCancellation()
             dailyRecords = buildDailyRecords(sessions: sessions)
             try await pauseTypeStore.load()
+            isLoading = false
         } catch is CancellationError {
-            // 화면 이탈 또는 새 월 이동 시 Task 취소 — 무시
+            // 새 월 이동으로 취소됨 — isLoading은 새 Task가 관리
         } catch {
             errorMessage = error.localizedDescription
+            isLoading = false
         }
     }
 

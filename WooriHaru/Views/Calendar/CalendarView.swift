@@ -28,9 +28,16 @@ private struct ScrollStopHelper: UIViewRepresentable {
     func makeUIView(context: Context) -> UIView { UIView() }
 
     func updateUIView(_ uiView: UIView, context: Context) {
-        guard trigger, let scrollView = uiView.superview?.superview?.findScrollView() else { return }
-        // 현재 offset을 다시 세팅하면 deceleration이 즉시 멈춤
-        scrollView.setContentOffset(scrollView.contentOffset, animated: false)
+        guard trigger else { return }
+        // 부모 체인을 올라가며 UIScrollView 탐색 (계층 깊이에 의존하지 않음)
+        var current: UIView? = uiView
+        while let view = current {
+            if let scrollView = view as? UIScrollView {
+                scrollView.setContentOffset(scrollView.contentOffset, animated: false)
+                return
+            }
+            current = view.superview
+        }
     }
 }
 
@@ -221,8 +228,9 @@ struct CalendarView: View {
                                         scrolledMonthId = targetId
                                         calendarVM.pickerTargetYear = today.year
                                         calendarVM.pickerTargetMonth = today.month
-                                        // 데이터 로드는 백그라운드
-                                        Task { await calendarVM.ensureDataLoaded(around: targetId) }
+                                        // 데이터 로드는 백그라운드 (이전 요청 취소)
+                                        dataLoadTask?.cancel()
+                                        dataLoadTask = Task { await calendarVM.ensureDataLoaded(around: targetId) }
                                     }
                                 } label: {
                                     HStack(spacing: 4) {
@@ -266,8 +274,9 @@ struct CalendarView: View {
                                         defer { suppressEdgeLoadingCount -= 1 }
                                         // 모멘텀 스크롤 중단 후 즉시 이동
                                         await forceScrollTo(target)
-                                        // 데이터 로드는 백그라운드
-                                        Task { await calendarVM.ensureDataLoaded(around: target) }
+                                        // 데이터 로드는 백그라운드 (이전 요청 취소)
+                                        dataLoadTask?.cancel()
+                                        dataLoadTask = Task { await calendarVM.ensureDataLoaded(around: target) }
                                     }
                                 }
                             )

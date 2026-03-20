@@ -48,7 +48,6 @@ final class StatsViewModel {
 
     func loadStats() async {
         isLoading = true
-        defer { isLoading = false }
         errorMessage = nil
 
         let (fromStr, toStr) = Date.monthRange(year: selectedYear, month: selectedMonth)
@@ -89,12 +88,15 @@ final class StatsViewModel {
                             ratio: totalCount > 0 ? Double(val.count) / Double(totalCount) : 0)
             }.sorted { $0.count > $1.count }
 
+            isLoading = false
         } catch is CancellationError {
-            // 새 통계 요청으로 취소됨 — 무시
+            // 새 통계 요청으로 취소됨 — isLoading은 새 Task가 관리
         } catch let error as APIError {
             errorMessage = error.errorDescription
+            isLoading = false
         } catch {
             errorMessage = "통계를 불러오지 못했습니다."
+            isLoading = false
         }
     }
 
