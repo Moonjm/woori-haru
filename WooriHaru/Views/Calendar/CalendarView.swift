@@ -3,16 +3,6 @@ import UIKit
 
 // MARK: - ScrollView 모멘텀 중단 헬퍼
 
-private extension UIView {
-    func findScrollView() -> UIScrollView? {
-        if let sv = self as? UIScrollView { return sv }
-        for child in subviews {
-            if let found = child.findScrollView() { return found }
-        }
-        return nil
-    }
-}
-
 private struct ScrollStopModifier: ViewModifier {
     let trigger: Bool
 
