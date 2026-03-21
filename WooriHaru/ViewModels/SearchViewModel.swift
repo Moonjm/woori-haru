@@ -33,18 +33,24 @@ final class SearchViewModel {
 
     func search() async {
         isLoading = true
-        defer { isLoading = false }
         errorMessage = nil
 
         let (fromStr, toStr) = Date.monthRange(year: selectedYear, month: selectedMonth)
 
         do {
-            allRecords = try await recordService.fetchRecords(from: fromStr, to: toStr)
+            let fetched = try await recordService.fetchRecords(from: fromStr, to: toStr)
+            try Task.checkCancellation()
+            allRecords = fetched
             applyFilters()
+            isLoading = false
+        } catch is CancellationError {
+            // 새 검색 요청으로 취소됨 — isLoading은 새 Task가 관리
         } catch let error as APIError {
             errorMessage = error.errorDescription
+            isLoading = false
         } catch {
             errorMessage = "검색에 실패했습니다."
+            isLoading = false
         }
     }
 

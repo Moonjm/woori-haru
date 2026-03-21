@@ -150,8 +150,9 @@ final class CalendarViewModel {
 
     // MARK: - Navigation
 
-    /// Jumps to a specific month, extending the range if needed.
-    func scrollToMonth(year: Int, month: Int) async {
+    /// months 배열을 해당 월 중심으로 재빌드 (동기). 이미 범위 안이면 false 반환.
+    @discardableResult
+    func rebuildMonthsIfNeeded(year: Int, month: Int) -> Bool {
         pickerTargetYear = year
         pickerTargetMonth = month
         let targetId = String(format: "%04d-%02d", year, month)
@@ -162,14 +163,12 @@ final class CalendarViewModel {
             if let date = calendar.date(from: comps) {
                 currentMonthLabel = date.monthDisplayText
             }
-            // 해당 월 근처 API 데이터 로드
-            await ensureDataLoaded(around: targetId)
-            return
+            return false
         }
 
         // 범위 밖이면 해당 월 중심으로 재빌드
         let comps = DateComponents(year: year, month: month)
-        guard let targetDate = calendar.date(from: comps) else { return }
+        guard let targetDate = calendar.date(from: comps) else { return false }
 
         let targetStart = targetDate.startOfMonth()
         loadedMonthIds.removeAll()
@@ -185,7 +184,13 @@ final class CalendarViewModel {
         }
         months = monthList
         currentMonthLabel = targetStart.monthDisplayText
+        return true
+    }
 
+    /// Jumps to a specific month, extending the range if needed.
+    func scrollToMonth(year: Int, month: Int) async {
+        rebuildMonthsIfNeeded(year: year, month: month)
+        let targetId = String(format: "%04d-%02d", year, month)
         await ensureDataLoaded(around: targetId)
         updateBirthdays(user: cachedUser, pairInfo: pairStore.pairInfo)
     }
@@ -197,8 +202,13 @@ final class CalendarViewModel {
         let yearMonth = date.startOfMonth().yearMonth
         dataLoadedMonths.remove(yearMonth)
         if let monthData = months.first(where: { $0.id == yearMonth }) {
-            try? await loadMonthData(monthData)
-            dataLoadedMonths.insert(yearMonth)
+            do {
+                try await loadMonthData(monthData)
+                dataLoadedMonths.insert(yearMonth)
+            } catch {
+                // 실패 시 캐시에 추가하지 않아 재시도 가능
+                print("[CalendarVM] Failed to refresh \(yearMonth): \(error.localizedDescription)")
+            }
         }
     }
 
