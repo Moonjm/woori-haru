@@ -48,6 +48,7 @@ final class StudyRecordViewModel {
     var selectedDate: Date?
     var isLoading = false
     var errorMessage: String?
+    private var loadTask: Task<Void, Never>?
 
     private(set) var pauseTypeStore: PauseTypeStore!
 
@@ -155,19 +156,20 @@ final class StudyRecordViewModel {
     // MARK: - Load
 
     func loadMonth() async {
-        guard !isLoading else { return }
         isLoading = true
-        defer { isLoading = false }
 
         let (from, to) = Date.monthRange(year: currentYear, month: currentMonth)
         do {
             let sessions = try await service.fetchSessions(from: from, to: to)
+            try Task.checkCancellation()
             dailyRecords = buildDailyRecords(sessions: sessions)
             try await pauseTypeStore.load()
+            isLoading = false
         } catch is CancellationError {
-            // 화면 이탈 시 Task 취소 — 무시
+            // 새 월 이동으로 취소됨 — isLoading은 새 Task가 관리
         } catch {
             errorMessage = error.localizedDescription
+            isLoading = false
         }
     }
 
@@ -180,7 +182,8 @@ final class StudyRecordViewModel {
         }
         dailyRecords = []
         selectedDate = nil
-        Task { await loadMonth() }
+        loadTask?.cancel()
+        loadTask = Task { await loadMonth() }
     }
 
     func goToNextMonth() {
@@ -192,7 +195,8 @@ final class StudyRecordViewModel {
         }
         dailyRecords = []
         selectedDate = nil
-        Task { await loadMonth() }
+        loadTask?.cancel()
+        loadTask = Task { await loadMonth() }
     }
 
     func goToToday() {
@@ -201,7 +205,8 @@ final class StudyRecordViewModel {
         currentMonth = today.month
         dailyRecords = []
         selectedDate = nil
-        Task { await loadMonth() }
+        loadTask?.cancel()
+        loadTask = Task { await loadMonth() }
     }
 
     // MARK: - Private
