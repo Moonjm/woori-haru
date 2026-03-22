@@ -109,7 +109,7 @@ struct CalendarView: View {
 
         // 시트 dismiss 애니메이션 완료 후 데이터 갱신 + 스크롤 복원
         dismissTask = Task {
-            try? await Task.sleep(for: .milliseconds(Int(Self.sheetAnimationDuration * 1000) + 50))
+            try? await Task.sleep(for: .seconds(Self.sheetAnimationDuration) + .milliseconds(50))
             guard !Task.isCancelled else { return }
             if let date = pendingRefreshDate {
                 pendingRefreshDate = nil
