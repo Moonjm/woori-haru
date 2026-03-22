@@ -106,8 +106,10 @@ struct CalendarView: View {
 
         // 이전 dismiss 작업이 남아있으면 취소 (빠른 재조작 대응)
         dismissTask?.cancel()
+        pendingRefreshDate = nil
 
         // 시트 dismiss 애니메이션 완료 후 데이터 갱신 + 스크롤 복원
+        // 50ms 여유: withAnimation 완료 후 레이아웃 안정화 마진
         dismissTask = Task {
             try? await Task.sleep(for: .seconds(Self.sheetAnimationDuration) + .milliseconds(50))
             guard !Task.isCancelled else { return }
