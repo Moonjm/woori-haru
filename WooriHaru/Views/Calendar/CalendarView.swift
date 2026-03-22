@@ -69,6 +69,8 @@ struct CalendarView: View {
     @State private var dataLoadTask: Task<Void, Never>?
     @State private var isScrolling = false
     @State private var scrollIdleTask: Task<Void, Never>?
+    @State private var pendingRefreshDate: Date?
+    @State private var dismissTask: Task<Void, Never>?
 
     private let todayMonthId: String = CalendarView.makeTodayMonthId()
     private static let sheetHeightRatio: CGFloat = 0.7
@@ -96,10 +98,29 @@ struct CalendarView: View {
     }
 
     private func dismissSheet() {
+        let anchorId = scrolledMonthId
         withAnimation(.easeInOut(duration: Self.sheetAnimationDuration)) {
             showSheet = false
         }
         recordVM.resetForm()
+
+        // 이전 dismiss 작업이 남아있으면 취소 (빠른 재조작 대응)
+        dismissTask?.cancel()
+
+        // 시트 dismiss 애니메이션 완료 후 데이터 갱신 + 스크롤 복원
+        dismissTask = Task {
+            try? await Task.sleep(for: .milliseconds(Int(Self.sheetAnimationDuration * 1000) + 50))
+            guard !Task.isCancelled else { return }
+            if let date = pendingRefreshDate {
+                pendingRefreshDate = nil
+                await calendarVM.refreshMonth(containing: date)
+            }
+            guard !Task.isCancelled else { return }
+            // 데이터 갱신으로 LazyVStack 레이아웃이 변했을 수 있으므로 스크롤 복원
+            if let anchorId, scrolledMonthId != anchorId {
+                scrollProxy?.scrollTo(anchorId, anchor: .top)
+            }
+        }
     }
 
     private func updateVisibleMonth(using frames: [VisibleMonthFrame]) {
@@ -331,7 +352,7 @@ struct CalendarView: View {
                             viewModel: recordVM,
                             holidayNames: calendarVM.holidayNames(for: recordVM.selectedDate),
                             onChanged: {
-                                Task { await calendarVM.refreshMonth(containing: recordVM.selectedDate) }
+                                pendingRefreshDate = recordVM.selectedDate
                             },
                             onDismiss: { dismissSheet() }
                         )
@@ -364,6 +385,7 @@ struct CalendarView: View {
         .onDisappear {
             dataLoadTask?.cancel()
             scrollIdleTask?.cancel()
+            dismissTask?.cancel()
         }
     }
 }
