@@ -11,6 +11,7 @@ final class RecordViewModel {
     var partnerRecords: [DailyRecord] = []
     var overeatLevel: OvereatLevel = .none
     var isLoading = false
+    var isSaving = false
     var errorMessage: String?
 
     // MARK: - Form State
@@ -95,8 +96,10 @@ final class RecordViewModel {
 
     @discardableResult
     func createRecord() async -> Bool {
-        guard let categoryId = selectedCategoryId else { return false }
+        guard let categoryId = selectedCategoryId, !isSaving else { return false }
 
+        isSaving = true
+        defer { isSaving = false }
         errorMessage = nil
 
         let request = DailyRecordRequest(
@@ -123,8 +126,11 @@ final class RecordViewModel {
     @discardableResult
     func updateRecord() async -> Bool {
         guard let record = editingRecord,
-              let categoryId = selectedCategoryId else { return false }
+              let categoryId = selectedCategoryId,
+              !isSaving else { return false }
 
+        isSaving = true
+        defer { isSaving = false }
         errorMessage = nil
 
         let request = DailyRecordRequest(

@@ -107,10 +107,10 @@ struct RecordFormView: View {
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
-                        .background(viewModel.selectedCategoryId != nil ? Color.blue500 : Color.slate400)
+                        .background(viewModel.selectedCategoryId != nil && !viewModel.isSaving ? Color.blue500 : Color.slate400)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
-                .disabled(viewModel.selectedCategoryId == nil)
+                .disabled(viewModel.selectedCategoryId == nil || viewModel.isSaving)
             }
         }
         .padding(16)
