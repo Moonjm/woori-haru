@@ -69,7 +69,6 @@ struct CalendarView: View {
     @State private var dataLoadTask: Task<Void, Never>?
     @State private var isScrolling = false
     @State private var scrollIdleTask: Task<Void, Never>?
-    @State private var pendingRefreshDate: Date?
     @State private var dismissTask: Task<Void, Never>?
 
     private let todayMonthId: String = CalendarView.makeTodayMonthId()
@@ -104,21 +103,14 @@ struct CalendarView: View {
         }
         recordVM.resetForm()
 
-        // 이전 dismiss 작업이 남아있으면 취소 (빠른 재조작 대응)
         dismissTask?.cancel()
-        pendingRefreshDate = nil
 
-        // 시트 dismiss 애니메이션 완료 후 데이터 갱신 + 스크롤 복원
+        // 시트 dismiss 애니메이션 완료 후 스크롤 복원
+        // (데이터 갱신은 onChanged에서 즉시 처리됨)
         // 50ms 여유: withAnimation 완료 후 레이아웃 안정화 마진
         dismissTask = Task {
             try? await Task.sleep(for: .seconds(Self.sheetAnimationDuration) + .milliseconds(50))
             guard !Task.isCancelled else { return }
-            if let date = pendingRefreshDate {
-                pendingRefreshDate = nil
-                await calendarVM.refreshMonth(containing: date)
-            }
-            guard !Task.isCancelled else { return }
-            // 데이터 갱신으로 LazyVStack 레이아웃이 변했을 수 있으므로 스크롤 복원
             if let anchorId, scrolledMonthId != anchorId {
                 scrollProxy?.scrollTo(anchorId, anchor: .top)
             }
@@ -354,7 +346,9 @@ struct CalendarView: View {
                             viewModel: recordVM,
                             holidayNames: calendarVM.holidayNames(for: recordVM.selectedDate),
                             onChanged: {
-                                pendingRefreshDate = recordVM.selectedDate
+                                Task {
+                                    await calendarVM.refreshMonth(containing: recordVM.selectedDate)
+                                }
                             },
                             onDismiss: { dismissSheet() }
                         )
