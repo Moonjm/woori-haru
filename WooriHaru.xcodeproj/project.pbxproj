@@ -23,6 +23,12 @@
 		A10002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20002 /* ContentView.swift */; };
 		A10003 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20003 /* Assets.xcassets */; };
 		A10004 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20004 /* Preview Assets.xcassets */; };
+		AA100001 /* PairStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200001 /* PairStore.swift */; };
+		AA100002 /* CategoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200002 /* CategoryStore.swift */; };
+		AA100003 /* SubjectStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200003 /* SubjectStore.swift */; };
+		AA100004 /* PauseTypeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200004 /* PauseTypeStore.swift */; };
+		AA100005 /* Logger+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200005 /* Logger+Extensions.swift */; };
+		AA100006 /* SessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200006 /* SessionManager.swift */; };
 		C10001 /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20001 /* User.swift */; };
 		C10002 /* Category.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20002 /* Category.swift */; };
 		C10003 /* DailyRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20003 /* DailyRecord.swift */; };
@@ -72,12 +78,6 @@
 		L10006 /* StudyRecordViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = L20006 /* StudyRecordViewModel.swift */; };
 		N10001 /* NotificationScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = N20001 /* NotificationScheduler.swift */; };
 		N10002 /* LiveActivityCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = N20002 /* LiveActivityCoordinator.swift */; };
-		AA100001 /* PairStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200001 /* PairStore.swift */; };
-		AA100002 /* CategoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200002 /* CategoryStore.swift */; };
-		AA100003 /* SubjectStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200003 /* SubjectStore.swift */; };
-		AA100004 /* PauseTypeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200004 /* PauseTypeStore.swift */; };
-		AA100005 /* Logger+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200005 /* Logger+Extensions.swift */; };
-		AA100006 /* SessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200006 /* SessionManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -121,6 +121,12 @@
 		A20003 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A20004 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		A20005 /* WooriHaru.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WooriHaru.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA200001 /* PairStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairStore.swift; sourceTree = "<group>"; };
+		AA200002 /* CategoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryStore.swift; sourceTree = "<group>"; };
+		AA200003 /* SubjectStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjectStore.swift; sourceTree = "<group>"; };
+		AA200004 /* PauseTypeStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PauseTypeStore.swift; sourceTree = "<group>"; };
+		AA200005 /* Logger+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Logger+Extensions.swift"; sourceTree = "<group>"; };
+		AA200006 /* SessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionManager.swift; sourceTree = "<group>"; };
 		C20001 /* User.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = User.swift; sourceTree = "<group>"; };
 		C20002 /* Category.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Category.swift; sourceTree = "<group>"; };
 		C20003 /* DailyRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyRecord.swift; sourceTree = "<group>"; };
@@ -170,12 +176,6 @@
 		L20006 /* StudyRecordViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyRecordViewModel.swift; sourceTree = "<group>"; };
 		N20001 /* NotificationScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationScheduler.swift; sourceTree = "<group>"; };
 		N20002 /* LiveActivityCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityCoordinator.swift; sourceTree = "<group>"; };
-		AA200001 /* PairStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairStore.swift; sourceTree = "<group>"; };
-		AA200002 /* CategoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryStore.swift; sourceTree = "<group>"; };
-		AA200003 /* SubjectStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjectStore.swift; sourceTree = "<group>"; };
-		AA200004 /* PauseTypeStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PauseTypeStore.swift; sourceTree = "<group>"; };
-		AA200005 /* Logger+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Logger+Extensions.swift"; sourceTree = "<group>"; };
-		AA200006 /* SessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -259,7 +259,6 @@
 				AA400001 /* Stores */,
 				B40003 /* ViewModels */,
 				B40004 /* Views */,
-				B40013 /* Resources */,
 				B40015 /* Extensions */,
 				A20003 /* Assets.xcassets */,
 				A40004 /* Preview Content */,
@@ -282,6 +281,17 @@
 				A20004 /* Preview Assets.xcassets */,
 			);
 			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		AA400001 /* Stores */ = {
+			isa = PBXGroup;
+			children = (
+				AA200001 /* PairStore.swift */,
+				AA200002 /* CategoryStore.swift */,
+				AA200003 /* SubjectStore.swift */,
+				AA200004 /* PauseTypeStore.swift */,
+			);
+			path = Stores;
 			sourceTree = "<group>";
 		};
 		B40001 /* Models */ = {
@@ -429,13 +439,6 @@
 			path = Components;
 			sourceTree = "<group>";
 		};
-		B40013 /* Resources */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Resources;
-			sourceTree = "<group>";
-		};
 		B40015 /* Extensions */ = {
 			isa = PBXGroup;
 			children = (
@@ -453,17 +456,6 @@
 				L20004 /* StudyTimerView.swift */,
 			);
 			path = Study;
-			sourceTree = "<group>";
-		};
-		AA400001 /* Stores */ = {
-			isa = PBXGroup;
-			children = (
-				AA200001 /* PairStore.swift */,
-				AA200002 /* CategoryStore.swift */,
-				AA200003 /* SubjectStore.swift */,
-				AA200004 /* PauseTypeStore.swift */,
-			);
-			path = Stores;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -518,7 +510,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 2630;
-				LastUpgradeCheck = 1600;
+				LastUpgradeCheck = 2640;
 				TargetAttributes = {
 					880AD4652F5F071100777742 = {
 						CreatedOnToolsVersion = 26.3;
@@ -668,7 +660,6 @@
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 4L7RX6VCB2;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = StudyTimerWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = StudyTimerWidget;
@@ -699,7 +690,6 @@
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 4L7RX6VCB2;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = StudyTimerWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = StudyTimerWidget;
@@ -728,6 +718,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
@@ -758,6 +749,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 4L7RX6VCB2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -781,6 +773,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -791,6 +784,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
@@ -821,6 +815,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 4L7RX6VCB2;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -837,6 +832,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				VALIDATE_PRODUCT = YES;
 			};
@@ -850,7 +846,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"WooriHaru/Preview Content\"";
-				DEVELOPMENT_TEAM = 4L7RX6VCB2;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = WooriHaru/Info.plist;
@@ -881,7 +876,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"WooriHaru/Preview Content\"";
-				DEVELOPMENT_TEAM = 4L7RX6VCB2;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = WooriHaru/Info.plist;
