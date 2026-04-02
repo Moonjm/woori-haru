@@ -59,8 +59,14 @@ final class CalendarViewModel {
     // Track which months have had their API data fetched
     private var dataLoadedMonths: Set<String> = []
 
+    // Track in-flight month loads to prevent duplicate concurrent requests
+    private var inFlightMonths: [String: Task<Void, Never>] = [:]
+
     // Track loaded year ranges to avoid duplicate holiday fetches
     private var loadedHolidayYears: Set<Int> = []
+
+    // Track in-flight holiday fetches to prevent duplicate concurrent requests
+    private var inFlightHolidayYears: Set<Int> = []
 
     // MARK: - Initial Load
 
@@ -72,6 +78,9 @@ final class CalendarViewModel {
 
         loadedMonthIds.removeAll()
         dataLoadedMonths.removeAll()
+        inFlightMonths.values.forEach { $0.cancel() }
+        inFlightMonths.removeAll()
+        inFlightHolidayYears.removeAll()
 
         var monthList: [MonthData] = []
         for offset in -36...36 {
@@ -95,35 +104,37 @@ final class CalendarViewModel {
         let start = max(0, idx - 2)
         let end = min(months.count - 1, idx + 2)
 
-        var toLoad: [MonthData] = []
+        var tasksToAwait: [Task<Void, Never>] = []
+
         for i in start...end {
             let m = months[i]
-            if !dataLoadedMonths.contains(m.id) {
-                toLoad.append(m)
+
+            // 이미 로드 완료된 월은 스킵
+            if dataLoadedMonths.contains(m.id) { continue }
+
+            // 이미 진행 중인 요청이 있으면 그 Task를 대기 목록에 추가
+            if let existing = inFlightMonths[m.id] {
+                tasksToAwait.append(existing)
+                continue
             }
+
+            // 새 로드 Task 생성 및 등록
+            let task = Task { [self] in
+                do {
+                    try await self.loadMonthData(m)
+                    self.dataLoadedMonths.insert(m.id)
+                } catch {
+                    // 실패 시 마킹하지 않아 재시도 가능
+                }
+                self.inFlightMonths.removeValue(forKey: m.id)
+            }
+            inFlightMonths[m.id] = task
+            tasksToAwait.append(task)
         }
-        guard !toLoad.isEmpty else { return }
 
-        // 로드 시작 전에 마킹 (중복 호출 방지)
-        let loadingIds = Set(toLoad.map(\.id))
-        dataLoadedMonths.formUnion(loadingIds)
-
-        await withTaskGroup(of: String?.self) { group in
-            for month in toLoad {
-                group.addTask { [self] in
-                    do {
-                        try await self.loadMonthData(month)
-                        return nil // 성공
-                    } catch {
-                        return month.id // 실패한 id 반환
-                    }
-                }
-            }
-            for await failedId in group {
-                if let failedId {
-                    dataLoadedMonths.remove(failedId)
-                }
-            }
+        // 모든 Task 완료 대기
+        for task in tasksToAwait {
+            await task.value
         }
         updateBirthdays(user: cachedUser, pairInfo: pairStore.pairInfo)
     }
@@ -174,6 +185,9 @@ final class CalendarViewModel {
         loadedMonthIds.removeAll()
         dataLoadedMonths.removeAll()
         loadedHolidayYears.removeAll()
+        inFlightMonths.values.forEach { $0.cancel() }
+        inFlightMonths.removeAll()
+        inFlightHolidayYears.removeAll()
 
         var monthList: [MonthData] = []
         for offset in -36...36 {
@@ -200,16 +214,26 @@ final class CalendarViewModel {
     /// Reloads data for the month containing the given date.
     func refreshMonth(containing date: Date) async {
         let yearMonth = date.startOfMonth().yearMonth
+
+        // 진행 중인 동일 월 요청이 있으면 취소 후 제거
+        inFlightMonths[yearMonth]?.cancel()
+        inFlightMonths.removeValue(forKey: yearMonth)
         dataLoadedMonths.remove(yearMonth)
-        if let monthData = months.first(where: { $0.id == yearMonth }) {
+
+        guard let monthData = months.first(where: { $0.id == yearMonth }) else { return }
+
+        // 새 Task를 등록하여 ensureDataLoaded와의 중복 방지
+        let task = Task { [self] in
             do {
-                try await loadMonthData(monthData)
-                dataLoadedMonths.insert(yearMonth)
+                try await self.loadMonthData(monthData)
+                self.dataLoadedMonths.insert(yearMonth)
             } catch {
-                // 실패 시 캐시에 추가하지 않아 재시도 가능
                 print("[CalendarVM] Failed to refresh \(yearMonth): \(error.localizedDescription)")
             }
+            self.inFlightMonths.removeValue(forKey: yearMonth)
         }
+        inFlightMonths[yearMonth] = task
+        await task.value
     }
 
     // MARK: - Private Helpers
@@ -337,8 +361,9 @@ final class CalendarViewModel {
             print("[CalendarVM] Failed to fetch overeats for \(monthData.id): \(error.localizedDescription)")
         }
 
-        if !loadedHolidayYears.contains(monthData.year) {
-            loadedHolidayYears.insert(monthData.year)
+        let year = monthData.year
+        if !loadedHolidayYears.contains(year) && !inFlightHolidayYears.contains(year) {
+            inFlightHolidayYears.insert(year)
             do {
                 let fetchedHolidays = try await holidayService.fetchHolidays(year: yearStr)
                 for (date, names) in fetchedHolidays {
@@ -347,10 +372,11 @@ final class CalendarViewModel {
                         months[hIdx].holidays[date] = names
                     }
                 }
+                loadedHolidayYears.insert(year)
             } catch {
-                loadedHolidayYears.remove(monthData.year)
                 print("[CalendarVM] Failed to fetch holidays for \(yearStr): \(error.localizedDescription)")
             }
+            inFlightHolidayYears.remove(year)
         }
 
         var partnerBatch: [String: [DailyRecord]] = [:]
@@ -389,7 +415,7 @@ final class CalendarViewModel {
             }
         }
 
-        // 모든 데이터를 한번에 적용 — months[idx] 갱신 최소화
+        // 개별 필드 업데이트 — async 중 다른 로직의 변경(공휴일, 생일 등)을 보존
         guard let idx = months.firstIndex(where: { $0.id == monthData.id }) else { return }
         months[idx].records = recordBatch
         months[idx].overeats = overeatBatch
