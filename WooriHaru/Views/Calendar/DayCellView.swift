@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// DayCellView에 전달할 사전 계산된 표시 데이터
-struct DayCellDisplayData {
+struct DayCellDisplayData: Equatable {
     let holidayLabels: [String]
     let eventEmojis: [String]
     let togetherRows: [[String]]

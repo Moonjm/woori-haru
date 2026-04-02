@@ -220,15 +220,20 @@ final class CalendarViewModel {
         inFlightMonths.removeValue(forKey: yearMonth)
         dataLoadedMonths.remove(yearMonth)
 
-        if let monthData = months.first(where: { $0.id == yearMonth }) {
+        guard let monthData = months.first(where: { $0.id == yearMonth }) else { return }
+
+        // 새 Task를 등록하여 ensureDataLoaded와의 중복 방지
+        let task = Task { [self] in
             do {
-                try await loadMonthData(monthData)
-                dataLoadedMonths.insert(yearMonth)
+                try await self.loadMonthData(monthData)
+                self.dataLoadedMonths.insert(yearMonth)
             } catch {
-                // 실패 시 캐시에 추가하지 않아 재시도 가능
                 print("[CalendarVM] Failed to refresh \(yearMonth): \(error.localizedDescription)")
             }
+            self.inFlightMonths.removeValue(forKey: yearMonth)
         }
+        inFlightMonths[yearMonth] = task
+        await task.value
     }
 
     // MARK: - Private Helpers
@@ -410,13 +415,11 @@ final class CalendarViewModel {
             }
         }
 
-        // 모든 데이터를 한번에 적용 — 단일 할당으로 의도 명확화
+        // 개별 필드 업데이트 — async 중 다른 로직의 변경(공휴일, 생일 등)을 보존
         guard let idx = months.firstIndex(where: { $0.id == monthData.id }) else { return }
-        var updated = months[idx]
-        updated.records = recordBatch
-        updated.overeats = overeatBatch
-        updated.partnerRecords = partnerBatch
-        updated.pairEvents = eventBatch
-        months[idx] = updated
+        months[idx].records = recordBatch
+        months[idx].overeats = overeatBatch
+        months[idx].partnerRecords = partnerBatch
+        months[idx].pairEvents = eventBatch
     }
 }
