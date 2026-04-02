@@ -21,6 +21,7 @@ Package.pins
 Package.resolved
 *.xcodeproj/project.xcworkspace/
 *.xcodeproj/xcshareddata/
+!*.xcodeproj/xcshareddata/xcschemes/
 
 # CocoaPods
 Pods/
