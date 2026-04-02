@@ -1,13 +1,45 @@
 import SwiftUI
 
+/// DayCellView에 전달할 사전 계산된 표시 데이터
+struct DayCellDisplayData {
+    let holidayLabels: [String]
+    let eventEmojis: [String]
+    let togetherRows: [[String]]
+    let myEmojis: [String]
+    let partnerEmojis: [String]
+
+    var hasTogether: Bool { !togetherRows.isEmpty }
+    var maxIndividualCount: Int { max(myEmojis.count, partnerEmojis.count) }
+    var needsDivider: Bool { hasTogether && maxIndividualCount > 0 }
+
+    init(records: [DailyRecord], partnerRecords: [DailyRecord],
+         holidays: [String], pairEvents: [PairEvent],
+         birthdays: [(emoji: String, label: String)]) {
+        // 공휴일: 괄호 제거
+        self.holidayLabels = holidays.prefix(2).map {
+            $0.replacingOccurrences(of: "\\(.*\\)", with: "", options: .regularExpression)
+        }
+
+        // 기념일 + 생일
+        self.eventEmojis = pairEvents.map(\.emoji) + birthdays.map(\.emoji)
+
+        // 같이 한 것
+        let togetherEmojis = records.filter(\.together).map { $0.category.emoji }
+            + partnerRecords.filter(\.together).map { $0.category.emoji }
+        self.togetherRows = stride(from: 0, to: togetherEmojis.count, by: 3).map {
+            Array(togetherEmojis[$0..<min($0 + 3, togetherEmojis.count)])
+        }
+
+        // 개별 기록
+        self.myEmojis = records.filter { !$0.together }.map { $0.category.emoji }
+        self.partnerEmojis = partnerRecords.filter { !$0.together }.map { $0.category.emoji }
+    }
+}
+
 struct DayCellView: View {
     let date: Date
-    let records: [DailyRecord]
-    let partnerRecords: [DailyRecord]
+    let displayData: DayCellDisplayData
     let overeatLevel: OvereatLevel?
-    let holidays: [String]
-    let pairEvents: [PairEvent]
-    let birthdays: [(emoji: String, label: String)]
     let isCurrentMonth: Bool
     let onTap: () -> Void
 
@@ -21,8 +53,8 @@ struct DayCellView: View {
 
             if isCurrentMonth {
                 // 공휴일
-                ForEach(holidays.prefix(2), id: \.self) { name in
-                    Text(name.replacingOccurrences(of: "\\(.*\\)", with: "", options: .regularExpression))
+                ForEach(displayData.holidayLabels, id: \.self) { name in
+                    Text(name)
                         .font(.system(size: 8))
                         .lineLimit(1)
                         .frame(maxWidth: .infinity)
@@ -33,20 +65,14 @@ struct DayCellView: View {
                 }
 
                 // 기념일 + 생일 이모지
-                let eventEmojis = pairEvents.map(\.emoji) + birthdays.map(\.emoji)
-                if !eventEmojis.isEmpty {
-                    emojiRow(eventEmojis, size: 11)
+                if !displayData.eventEmojis.isEmpty {
+                    emojiRow(displayData.eventEmojis, size: 11)
                 }
 
                 // 같이 한 것 (together) — 3개씩 줄바꿈
-                let togetherEmojis = records.filter(\.together).map { $0.category.emoji }
-                    + partnerRecords.filter(\.together).map { $0.category.emoji }
-                if !togetherEmojis.isEmpty {
-                    let rows = stride(from: 0, to: togetherEmojis.count, by: 3).map {
-                        Array(togetherEmojis[$0..<min($0 + 3, togetherEmojis.count)])
-                    }
+                if displayData.hasTogether {
                     VStack(spacing: 1) {
-                        ForEach(Array(rows.enumerated()), id: \.offset) { _, chunk in
+                        ForEach(Array(displayData.togetherRows.enumerated()), id: \.offset) { _, chunk in
                             emojiRow(chunk, size: 11)
                         }
                     }
@@ -57,9 +83,7 @@ struct DayCellView: View {
                 }
 
                 // 같이/개별 구분 점선
-                let myEmojis = records.filter { !$0.together }.map { $0.category.emoji }
-                let partnerEmojis = partnerRecords.filter { !$0.together }.map { $0.category.emoji }
-                if !togetherEmojis.isEmpty && (!myEmojis.isEmpty || !partnerEmojis.isEmpty) {
+                if displayData.needsDivider {
                     DottedHLine()
                         .stroke(style: StrokeStyle(lineWidth: 0.5, dash: [2, 2]))
                         .foregroundStyle(Color.slate400)
@@ -67,22 +91,20 @@ struct DayCellView: View {
                         .padding(.vertical, 1)
                 }
 
-                // 개별 기록: 내 것(왼쪽) | 점선 | 파트너(오른쪽), 1개씩 줄바꿈
-                let maxCount = max(myEmojis.count, partnerEmojis.count)
+                // 개별 기록: 내 것(왼쪽) | 점선 | 파트너(오른쪽)
+                let maxCount = displayData.maxIndividualCount
                 if maxCount > 0 {
                     HStack(alignment: .top, spacing: 0) {
-                        // 내 이모지 (왼쪽)
                         VStack(spacing: 1) {
                             ForEach(0..<maxCount, id: \.self) { i in
-                                if i < myEmojis.count {
-                                    EmojiIconView(emoji: myEmojis[i], size: 11)
+                                if i < displayData.myEmojis.count {
+                                    EmojiIconView(emoji: displayData.myEmojis[i], size: 11)
                                 } else {
                                     Text(" ").font(.system(size: 11))
                                 }
                             }
                         }
-                        // 점선 구분 (이모지 겹치는 줄 수만큼)
-                        if !myEmojis.isEmpty && !partnerEmojis.isEmpty {
+                        if !displayData.myEmojis.isEmpty && !displayData.partnerEmojis.isEmpty {
                             let lineHeight = CGFloat(maxCount) * 12 + CGFloat(maxCount - 1) * 1
                             DottedVLine()
                                 .stroke(style: StrokeStyle(lineWidth: 0.5, dash: [2, 2]))
@@ -90,11 +112,10 @@ struct DayCellView: View {
                                 .frame(width: 1, height: lineHeight)
                                 .padding(.horizontal, 2)
                         }
-                        // 파트너 이모지 (오른쪽)
                         VStack(spacing: 1) {
                             ForEach(0..<maxCount, id: \.self) { i in
-                                if i < partnerEmojis.count {
-                                    EmojiIconView(emoji: partnerEmojis[i], size: 11)
+                                if i < displayData.partnerEmojis.count {
+                                    EmojiIconView(emoji: displayData.partnerEmojis[i], size: 11)
                                         .opacity(0.7)
                                 } else {
                                     Text(" ").font(.system(size: 11))
@@ -133,7 +154,7 @@ struct DayCellView: View {
 
     private var dateColor: Color {
         if !isCurrentMonth { return Color.slate400.opacity(0.5) }
-        if date.isSunday || !holidays.isEmpty { return Color.red500 }
+        if date.isSunday || !displayData.holidayLabels.isEmpty { return Color.red500 }
         if date.isSaturday { return Color.blue500 }
         return .primary
     }

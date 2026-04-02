@@ -11,14 +11,17 @@ struct MonthGridView: View {
         LazyVGrid(columns: columns, spacing: 0) {
             ForEach(monthData.cells, id: \.id) { cell in
                 let dateStr = cell.date.dateString
-                DayCellView(
-                    date: cell.date,
+                let displayData = DayCellDisplayData(
                     records: cell.isCurrentMonth ? (monthData.records[dateStr] ?? []) : [],
                     partnerRecords: cell.isCurrentMonth ? (monthData.partnerRecords[dateStr] ?? []) : [],
-                    overeatLevel: cell.isCurrentMonth ? monthData.overeats[dateStr] : nil,
                     holidays: cell.isCurrentMonth ? (monthData.holidays[dateStr] ?? []) : [],
                     pairEvents: cell.isCurrentMonth ? (monthData.pairEvents[dateStr] ?? []) : [],
-                    birthdays: cell.isCurrentMonth ? (monthData.birthdayMap[dateStr] ?? []) : [],
+                    birthdays: cell.isCurrentMonth ? (monthData.birthdayMap[dateStr] ?? []) : []
+                )
+                DayCellView(
+                    date: cell.date,
+                    displayData: displayData,
+                    overeatLevel: cell.isCurrentMonth ? monthData.overeats[dateStr] : nil,
                     isCurrentMonth: cell.isCurrentMonth,
                     onTap: { onSelectDate(cell.date) }
                 )
