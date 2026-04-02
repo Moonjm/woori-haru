@@ -214,7 +214,12 @@ final class CalendarViewModel {
     /// Reloads data for the month containing the given date.
     func refreshMonth(containing date: Date) async {
         let yearMonth = date.startOfMonth().yearMonth
+
+        // 진행 중인 동일 월 요청이 있으면 취소 후 제거
+        inFlightMonths[yearMonth]?.cancel()
+        inFlightMonths.removeValue(forKey: yearMonth)
         dataLoadedMonths.remove(yearMonth)
+
         if let monthData = months.first(where: { $0.id == yearMonth }) {
             do {
                 try await loadMonthData(monthData)
@@ -405,7 +410,7 @@ final class CalendarViewModel {
             }
         }
 
-        // 모든 데이터를 한번에 적용 — 단일 할당으로 뷰 렌더링 1회만 트리거
+        // 모든 데이터를 한번에 적용 — 단일 할당으로 의도 명확화
         guard let idx = months.firstIndex(where: { $0.id == monthData.id }) else { return }
         var updated = months[idx]
         updated.records = recordBatch
