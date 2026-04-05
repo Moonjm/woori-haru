@@ -1,19 +1,18 @@
-# 보관함 관리 기능 설계
+# 냉장고 관리 기능 설계
 
 ## 개요
 
-페어(커플) 단위로 공유하는 보관함 관리 기능. 보관함별 구역을 나누고, 품목의 소비기한을 추적하여 알림을 보낸다.
-보관함은 냉장고, 냉동고, 김치냉장고, 팬트리(식품장) 등 용도에 맞게 자유롭게 추가할 수 있다.
+페어(커플) 단위로 공유하는 냉장고 관리 기능. 냉장고별 구역을 나누고, 품목의 소비기한을 추적하여 알림을 보낸다.
 
 ## 데이터 모델
 
-### Storage (보관함)
+### Storage (냉장고)
 
 | 필드 | 타입 | 설명 |
 |------|------|------|
 | id | Long | PK |
 | pairId | Long | 페어 ID (공유 단위) |
-| name | String(30) | 보관함 이름 (예: 냉장고, 냉동고, 김치냉장고, 팬트리) |
+| name | String(30) | 냉장고 이름 (예: 냉장고, 냉동고, 김치냉장고) |
 | sortOrder | Int | 정렬 순서 |
 
 - 페어가 없는 사용자: userId로 소유
@@ -25,7 +24,7 @@
 |------|------|------|
 | id | Long | PK |
 | storageId | Long | FK → Storage |
-| name | String(20) | 구역 이름 (예: 윗칸, 아랫칸, 야채칸, 선반1) |
+| name | String(20) | 구역 이름 (예: 윗칸, 아랫칸, 야채칸) |
 | sortOrder | Int | 정렬 순서 |
 
 ### StorageItem (품목)
@@ -35,21 +34,21 @@
 | id | Long | PK |
 | sectionId | Long | FK → StorageSection |
 | name | String(30) | 품목 이름 |
-| quantity | Int | 수량 (기본 1, 최소 0) |
+| quantity | String(20) | 수량 (자유 입력: "2개", "1팩", "30구") |
 | expiryDate | Date? | 소비기한 (nullable) |
 | createdBy | Long | 등록한 사용자 ID |
 | createdAt | DateTime | 등록일시 |
 
 ## API 엔드포인트
 
-### 보관함 (Storage)
+### 냉장고 (Storage)
 
 | Method | Path | 설명 |
 |--------|------|------|
-| GET | /storages | 보관함 목록 조회 (페어 공유 포함) |
-| POST | /storages | 보관함 생성 (구역 포함) |
-| PUT | /storages/{id} | 보관함 이름 수정 |
-| DELETE | /storages/{id} | 보관함 삭제 (하위 구역, 품목 전부 삭제) |
+| GET | /storages | 냉장고 목록 조회 (페어 공유 포함) |
+| POST | /storages | 냉장고 생성 (구역 포함) |
+| PUT | /storages/{id} | 냉장고 이름 수정 |
+| DELETE | /storages/{id} | 냉장고 삭제 (하위 구역, 품목 전부 삭제) |
 
 ### 구역 (Section)
 
@@ -63,7 +62,7 @@
 
 | Method | Path | 설명 |
 |--------|------|------|
-| GET | /storages/{id}/items | 해당 보관함의 전체 품목 조회 (구역별 그룹) |
+| GET | /storages/{id}/items | 해당 냉장고의 전체 품목 조회 (구역별 그룹) |
 | POST | /storages/{id}/items | 품목 추가 |
 | PUT | /storages/{id}/items/{itemId} | 품목 수정 |
 | DELETE | /storages/{id}/items/{itemId} | 품목 삭제 |
@@ -87,30 +86,8 @@ GET /storages 응답:
             {
               "id": 1,
               "name": "우유",
-              "quantity": 2,
+              "quantity": "2개",
               "expiryDate": "2026-04-08",
-              "createdBy": 1,
-              "createdAt": "2026-04-05T10:00:00"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": 2,
-      "name": "팬트리",
-      "sortOrder": 3,
-      "sections": [
-        {
-          "id": 5,
-          "name": "선반1",
-          "sortOrder": 0,
-          "items": [
-            {
-              "id": 10,
-              "name": "라면",
-              "quantity": 5,
-              "expiryDate": "2026-12-01",
               "createdBy": 1,
               "createdAt": "2026-04-05T10:00:00"
             }
@@ -124,15 +101,14 @@ GET /storages 응답:
 
 ## iOS 화면 구성
 
-### 1. 보관함 메인 화면
+### 1. 냉장고 메인 화면
 
-- **상단 탭**: 보관함별 전환 (스크롤 가능한 세그먼트 컨트롤)
+- **상단 탭**: 냉장고별 전환 (세그먼트 컨트롤)
 - **경고 배너**: 소비기한 D-3 이하 품목 수 표시 (있을 때만)
 - **구역별 섹션**: 접기/펼치기 가능한 카드
   - 섹션 헤더: 구역 이름 + 품목 수 + 추가 버튼
-  - 품목 목록: 첫 글자 원형 아이콘 + 이름 + 수량(+/- 스테퍼) + D-day 뱃지
-  - `-` 눌러서 수량이 0이 되면 삭제 확인 다이얼로그 표시 → 확인 시 삭제
-- **네비게이션 바**: 타이틀 "보관함 관리" + 보관함 설정 버튼
+  - 품목 목록: 첫 글자 원형 아이콘 + 이름 + 수량 + D-day 뱃지
+- **네비게이션 바**: 타이틀 "냉장고 관리" + 냉장고 설정 버튼
 
 ### 2. 품목 아이콘
 
@@ -152,20 +128,20 @@ GET /storages 응답:
 ### 4. 품목 추가 시트
 
 - 이름 (필수, 텍스트 입력)
-- 수량 (숫자 스테퍼, 기본 1, 최소 1)
+- 수량 (선택, 기본 "1개")
 - 소비기한 (선택, DatePicker)
-- 구역 선택 (해당 보관함의 구역 목록에서 선택)
+- 구역 선택 (해당 냉장고의 구역 목록에서 선택)
 
-### 5. 보관함 추가 시트
+### 5. 냉장고 추가 시트
 
-- 보관함 이름 입력
+- 냉장고 이름 입력
 - 구역 목록 편집 (추가/삭제/이름변경, 드래그 정렬)
 
-### 6. 보관함 설정 시트
+### 6. 냉장고 설정 시트
 
-- 보관함 이름 변경
+- 냉장고 이름 변경
 - 구역 관리 (추가/삭제/이름변경)
-- 보관함 삭제 (확인 다이얼로그)
+- 냉장고 삭제 (확인 다이얼로그)
 
 ## 알림
 
@@ -175,32 +151,32 @@ GET /storages 응답:
 
 ## 네비게이션
 
-SideDrawerView에 "보관함 관리" 메뉴 항목 추가.
-AppDestination enum에 `.storage` case 추가.
+SideDrawerView에 "냉장고 관리" 메뉴 항목 추가.
+AppDestination enum에 `.fridge` case 추가.
 
 ## 파일 구조
 
 ```
 WooriHaru/
 ├── Models/
-│   └── StorageModels.swift          # Storage, Section, Item 모델
+│   └── FridgeModels.swift          # Storage, Section, Item 모델
 ├── Services/
-│   └── StorageService.swift         # API 통신
+│   └── FridgeService.swift         # API 통신
 ├── ViewModels/
-│   └── StorageViewModel.swift       # 상태 관리
+│   └── FridgeViewModel.swift       # 상태 관리
 └── Views/
-    └── Storage/
-        ├── StorageMainView.swift     # 메인 화면 (탭 + 구역 목록)
-        ├── StorageItemRow.swift      # 품목 행 컴포넌트
-        ├── StorageItemSheet.swift    # 품목 추가/수정 시트
-        ├── StorageSettingSheet.swift # 보관함 추가/설정 시트
-        └── InitialIconView.swift    # 첫 글자 원형 아이콘
+    └── Fridge/
+        ├── FridgeMainView.swift     # 메인 화면 (탭 + 구역 목록)
+        ├── FridgeItemRow.swift      # 품목 행 컴포넌트
+        ├── FridgeItemSheet.swift    # 품목 추가/수정 시트
+        ├── FridgeStorageSheet.swift # 냉장고 추가/설정 시트
+        └── InitialIconView.swift   # 첫 글자 원형 아이콘
 ```
 
 ## 페어 공유 규칙
 
-- 보관함은 페어 단위로 공유 (pairId 기준)
+- 냉장고는 페어 단위로 공유 (pairId 기준)
 - 페어가 없으면 개인 소유 (userId 기준)
-- 페어 연결 시 기존 개인 보관함을 페어로 이관
-- 페어 해제 시 보관함은 생성자에게 귀속
+- 페어 연결 시 기존 개인 냉장고를 페어로 이관
+- 페어 해제 시 냉장고는 생성자에게 귀속
 - 누가 등록했는지 createdBy로 추적 (UI에서는 별도 표시 안 함)
