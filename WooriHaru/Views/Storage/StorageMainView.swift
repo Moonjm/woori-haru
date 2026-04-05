@@ -17,7 +17,8 @@ struct StorageMainView: View {
                 sectionList
             }
         }
-        .background(Color.slate50)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.slate50.ignoresSafeArea())
         .navigationTitle("보관함 관리")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
