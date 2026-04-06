@@ -126,6 +126,14 @@ struct StorageMainView: View {
                 Text("\(target.name)을(를) 삭제할까요?")
             }
         }
+        .alert("오류", isPresented: .init(
+            get: { viewModel.errorMessage != nil },
+            set: { if !$0 { viewModel.errorMessage = nil } }
+        )) {
+            Button("확인") { viewModel.errorMessage = nil }
+        } message: {
+            if let msg = viewModel.errorMessage { Text(msg) }
+        }
     }
 
     // MARK: - Empty State
@@ -208,7 +216,7 @@ struct StorageMainView: View {
         .onDrop(of: [.text], delegate: ReorderDropDelegate(
             itemId: storage.id,
             draggingId: $draggingStorageId,
-            onMove: { fromId, toId in viewModel.moveStorageLocally(fromId: fromId, toId: toId) },
+            onMove: { fromId, toId in withAnimation(.easeInOut(duration: 0.2)) { viewModel.moveStorageLocally(fromId: fromId, toId: toId) } },
             onDrop: { targetId in Task { await viewModel.commitStorageOrder(targetId: targetId) } }
         ))
         .contextMenu {
@@ -297,7 +305,8 @@ struct StorageMainView: View {
 
             if isExpiryBannerExpanded {
                 VStack(spacing: 0) {
-                    ForEach(viewModel.expiringItems, id: \.item.id) { entry in
+                    let items = viewModel.expiringItems
+                    ForEach(Array(items.enumerated()), id: \.element.item.id) { index, entry in
                         HStack(spacing: 10) {
                             InitialIconView(name: entry.item.name, size: 30)
 
@@ -314,7 +323,7 @@ struct StorageMainView: View {
                             Spacer()
 
                             if let days = StorageViewModel.daysUntilExpiry(entry.item.expiryDate) {
-                                Text(days == 0 ? "D-Day" : "D-\(days)")
+                                Text(days < 0 ? "D+\(-days)" : days == 0 ? "D-Day" : "D-\(days)")
                                     .font(.caption2)
                                     .fontWeight(.semibold)
                                     .padding(.horizontal, 8)
@@ -327,7 +336,7 @@ struct StorageMainView: View {
                         .padding(.horizontal, 14)
                         .padding(.vertical, 8)
 
-                        if entry.item.id != viewModel.expiringItems.last?.item.id {
+                        if index < items.count - 1 {
                             Divider().padding(.leading, 54)
                         }
                     }
@@ -359,14 +368,14 @@ struct StorageMainView: View {
             }
         }
         .simultaneousGesture(
-            DragGesture(minimumDistance: 50)
+            DragGesture(minimumDistance: 80)
                 .onEnded { value in
                     let horizontal = value.translation.width
                     let vertical = value.translation.height
-                    guard abs(horizontal) > abs(vertical) * 2 else { return }
-                    if horizontal < -50, viewModel.selectedStorageIndex < viewModel.storages.count - 1 {
+                    guard abs(horizontal) > abs(vertical) * 3, abs(vertical) < 30 else { return }
+                    if horizontal < -80, viewModel.selectedStorageIndex < viewModel.storages.count - 1 {
                         withAnimation { viewModel.selectedStorageIndex += 1 }
-                    } else if horizontal > 50, viewModel.selectedStorageIndex > 0 {
+                    } else if horizontal > 80, viewModel.selectedStorageIndex > 0 {
                         withAnimation { viewModel.selectedStorageIndex -= 1 }
                     }
                 }
@@ -392,7 +401,7 @@ struct StorageMainView: View {
                         .padding(.vertical, 20)
                 } else {
                     VStack(spacing: 0) {
-                        ForEach(section.items) { item in
+                        ForEach(Array(section.items.enumerated()), id: \.element.id) { index, item in
                             StorageItemRow(
                                 item: item,
                                 sectionId: section.id,
@@ -408,7 +417,7 @@ struct StorageMainView: View {
                                     }
                                 }
                             )
-                            if item.id != section.items.last?.id {
+                            if index < section.items.count - 1 {
                                 Divider()
                                     .foregroundStyle(Color.purple100)
                                     .padding(.leading, 54)
@@ -432,7 +441,7 @@ struct StorageMainView: View {
         .onDrop(of: [.text], delegate: ReorderDropDelegate(
             itemId: section.id,
             draggingId: $draggingSectionId,
-            onMove: { fromId, toId in viewModel.moveSectionLocally(fromId: fromId, toId: toId) },
+            onMove: { fromId, toId in withAnimation(.easeInOut(duration: 0.2)) { viewModel.moveSectionLocally(fromId: fromId, toId: toId) } },
             onDrop: { targetId in Task { await viewModel.commitSectionOrder(targetId: targetId) } }
         ))
     }

@@ -29,17 +29,16 @@ struct StorageItemSheet: View {
                             .buttonStyle(.plain)
                             .disabled(viewModel.itemFormQuantity <= 1)
 
-                            TextField("", value: $viewModel.itemFormQuantity, format: .number)
+                            TextField("", value: Binding(
+                                get: { viewModel.itemFormQuantity },
+                                set: { viewModel.itemFormQuantity = max(1, min(999, $0)) }
+                            ), format: .number)
                                 .keyboardType(.numberPad)
                                 .multilineTextAlignment(.center)
                                 .frame(width: 50)
                                 .padding(.vertical, 4)
                                 .background(Color.slate100)
                                 .cornerRadius(6)
-                                .onChange(of: viewModel.itemFormQuantity) {
-                                    if viewModel.itemFormQuantity < 1 { viewModel.itemFormQuantity = 1 }
-                                    if viewModel.itemFormQuantity > 999 { viewModel.itemFormQuantity = 999 }
-                                }
 
                             Button {
                                 if viewModel.itemFormQuantity < 999 {

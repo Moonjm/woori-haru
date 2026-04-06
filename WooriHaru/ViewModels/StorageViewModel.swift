@@ -1,6 +1,5 @@
 import Foundation
 import Observation
-import SwiftUI
 
 @MainActor
 @Observable
@@ -173,12 +172,10 @@ final class StorageViewModel {
         let sections = storages[selectedStorageIndex].sections
         guard let fromIndex = sections.firstIndex(where: { $0.id == fromId }),
               let toIndex = sections.firstIndex(where: { $0.id == toId }) else { return }
-        withAnimation(.easeInOut(duration: 0.2)) {
-            storages[selectedStorageIndex].sections.move(
-                fromOffsets: IndexSet(integer: fromIndex),
-                toOffset: toIndex > fromIndex ? toIndex + 1 : toIndex
-            )
-        }
+        storages[selectedStorageIndex].sections.move(
+            fromOffsets: IndexSet(integer: fromIndex),
+            toOffset: toIndex > fromIndex ? toIndex + 1 : toIndex
+        )
     }
 
     func commitSectionOrder(targetId: Int) async {
@@ -199,12 +196,10 @@ final class StorageViewModel {
         guard let fromIndex = storages.firstIndex(where: { $0.id == fromId }),
               let toIndex = storages.firstIndex(where: { $0.id == toId }) else { return }
         let selectedId = selectedStorage?.id
-        withAnimation(.easeInOut(duration: 0.2)) {
-            storages.move(
-                fromOffsets: IndexSet(integer: fromIndex),
-                toOffset: toIndex > fromIndex ? toIndex + 1 : toIndex
-            )
-        }
+        storages.move(
+            fromOffsets: IndexSet(integer: fromIndex),
+            toOffset: toIndex > fromIndex ? toIndex + 1 : toIndex
+        )
         if let selectedId, let newIndex = storages.firstIndex(where: { $0.id == selectedId }) {
             selectedStorageIndex = newIndex
         }
