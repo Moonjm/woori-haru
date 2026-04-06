@@ -26,6 +26,10 @@ struct StorageService: Sendable {
         try await api.deleteVoid("/storages/\(id)")
     }
 
+    func reorderStorages(targetId: Int, beforeId: Int?) async throws {
+        try await api.putVoid("/storages/order", body: OrderRequest(targetId: targetId, beforeId: beforeId))
+    }
+
     // MARK: - Section
 
     func createSection(storageId: Int, name: String) async throws {
@@ -38,6 +42,10 @@ struct StorageService: Sendable {
 
     func deleteSection(storageId: Int, sectionId: Int) async throws {
         try await api.deleteVoid("/storages/\(storageId)/sections/\(sectionId)")
+    }
+
+    func reorderSections(storageId: Int, targetId: Int, beforeId: Int?) async throws {
+        try await api.putVoid("/storages/\(storageId)/sections/order", body: OrderRequest(targetId: targetId, beforeId: beforeId))
     }
 
     // MARK: - Item

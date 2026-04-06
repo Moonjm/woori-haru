@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import SwiftUI
 
 @MainActor
 @Observable
@@ -14,7 +15,6 @@ final class StorageViewModel {
     // MARK: - Sheet State
 
     var showAddStorageSheet = false
-    var showStorageSettingSheet = false
     var showAddItemSheet = false
     var editingItem: StorageItem?
     var editingSectionId: Int?
@@ -45,15 +45,19 @@ final class StorageViewModel {
         return storages[selectedStorageIndex]
     }
 
-    var expiringItemCount: Int {
-        guard let storage = selectedStorage else { return 0 }
+    var expiringItems: [(item: StorageItem, sectionName: String)] {
+        guard let storage = selectedStorage else { return [] }
         let today = Self.dateString(from: Date())
         let threeDaysLater = Self.dateString(from: Calendar.current.date(byAdding: .day, value: 3, to: Date()) ?? Date())
-        return storage.sections.flatMap(\.items).filter { item in
-            guard let expiry = item.expiryDate else { return false }
-            return expiry <= threeDaysLater && expiry >= today
-        }.count
+        return storage.sections.flatMap { section in
+            section.items.compactMap { item in
+                guard let expiry = item.expiryDate, expiry <= threeDaysLater, expiry >= today else { return nil }
+                return (item: item, sectionName: section.name)
+            }
+        }
     }
+
+    var expiringItemCount: Int { expiringItems.count }
 
     // MARK: - Load
 
@@ -107,7 +111,6 @@ final class StorageViewModel {
         guard let storage = selectedStorage else { return }
         do {
             try await service.deleteStorage(id: storage.id)
-            showStorageSettingSheet = false
             selectedStorageIndex = 0
             await loadStorages()
         } catch let error as APIError {
@@ -159,6 +162,62 @@ final class StorageViewModel {
             errorMessage = error.errorDescription
         } catch {
             errorMessage = "구역 삭제에 실패했습니다."
+        }
+    }
+
+    // MARK: - Reorder (local + API)
+
+    func moveSectionLocally(fromId: Int, toId: Int) {
+        guard fromId != toId,
+              storages.indices.contains(selectedStorageIndex) else { return }
+        let sections = storages[selectedStorageIndex].sections
+        guard let fromIndex = sections.firstIndex(where: { $0.id == fromId }),
+              let toIndex = sections.firstIndex(where: { $0.id == toId }) else { return }
+        withAnimation(.easeInOut(duration: 0.2)) {
+            storages[selectedStorageIndex].sections.move(
+                fromOffsets: IndexSet(integer: fromIndex),
+                toOffset: toIndex > fromIndex ? toIndex + 1 : toIndex
+            )
+        }
+    }
+
+    func commitSectionOrder(targetId: Int) async {
+        guard let storage = selectedStorage else { return }
+        let sections = storage.sections
+        guard let targetIndex = sections.firstIndex(where: { $0.id == targetId }) else { return }
+        let beforeId = targetIndex + 1 < sections.count ? sections[targetIndex + 1].id : nil
+        do {
+            try await service.reorderSections(storageId: storage.id, targetId: targetId, beforeId: beforeId)
+        } catch {
+            errorMessage = "구역 순서 변경에 실패했습니다."
+            await loadStorages()
+        }
+    }
+
+    func moveStorageLocally(fromId: Int, toId: Int) {
+        guard fromId != toId else { return }
+        guard let fromIndex = storages.firstIndex(where: { $0.id == fromId }),
+              let toIndex = storages.firstIndex(where: { $0.id == toId }) else { return }
+        let selectedId = selectedStorage?.id
+        withAnimation(.easeInOut(duration: 0.2)) {
+            storages.move(
+                fromOffsets: IndexSet(integer: fromIndex),
+                toOffset: toIndex > fromIndex ? toIndex + 1 : toIndex
+            )
+        }
+        if let selectedId, let newIndex = storages.firstIndex(where: { $0.id == selectedId }) {
+            selectedStorageIndex = newIndex
+        }
+    }
+
+    func commitStorageOrder(targetId: Int) async {
+        guard let targetIndex = storages.firstIndex(where: { $0.id == targetId }) else { return }
+        let beforeId = targetIndex + 1 < storages.count ? storages[targetIndex + 1].id : nil
+        do {
+            try await service.reorderStorages(targetId: targetId, beforeId: beforeId)
+        } catch {
+            errorMessage = "보관함 순서 변경에 실패했습니다."
+            await loadStorages()
         }
     }
 

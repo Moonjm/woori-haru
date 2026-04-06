@@ -13,7 +13,47 @@ struct StorageItemSheet: View {
                 Section("품목 정보") {
                     TextField("이름", text: $viewModel.itemFormName)
 
-                    Stepper("수량: \(viewModel.itemFormQuantity)", value: $viewModel.itemFormQuantity, in: 1...999)
+                    HStack {
+                        Text("수량")
+                        Spacer()
+                        HStack(spacing: 12) {
+                            Button {
+                                if viewModel.itemFormQuantity > 1 {
+                                    viewModel.itemFormQuantity -= 1
+                                }
+                            } label: {
+                                Image(systemName: "minus.circle.fill")
+                                    .foregroundStyle(viewModel.itemFormQuantity <= 1 ? Color.slate300 : Color.orange300)
+                                    .font(.title3)
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(viewModel.itemFormQuantity <= 1)
+
+                            TextField("", value: $viewModel.itemFormQuantity, format: .number)
+                                .keyboardType(.numberPad)
+                                .multilineTextAlignment(.center)
+                                .frame(width: 50)
+                                .padding(.vertical, 4)
+                                .background(Color.slate100)
+                                .cornerRadius(6)
+                                .onChange(of: viewModel.itemFormQuantity) {
+                                    if viewModel.itemFormQuantity < 1 { viewModel.itemFormQuantity = 1 }
+                                    if viewModel.itemFormQuantity > 999 { viewModel.itemFormQuantity = 999 }
+                                }
+
+                            Button {
+                                if viewModel.itemFormQuantity < 999 {
+                                    viewModel.itemFormQuantity += 1
+                                }
+                            } label: {
+                                Image(systemName: "plus.circle.fill")
+                                    .foregroundStyle(viewModel.itemFormQuantity >= 999 ? Color.slate300 : Color.orange300)
+                                    .font(.title3)
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(viewModel.itemFormQuantity >= 999)
+                        }
+                    }
 
                     Toggle("소비기한 설정", isOn: Binding(
                         get: { viewModel.itemFormExpiryDate != nil },

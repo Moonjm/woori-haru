@@ -4,16 +4,16 @@ import Foundation
 
 struct Storage: Codable, Identifiable {
     let id: Int
-    let name: String
-    let sortOrder: Int
-    let sections: [StorageSection]
+    var name: String
+    var sortOrder: Int
+    var sections: [StorageSection]
 }
 
 struct StorageSection: Codable, Identifiable {
     let id: Int
-    let name: String
-    let sortOrder: Int
-    let items: [StorageItem]
+    var name: String
+    var sortOrder: Int
+    var items: [StorageItem]
 }
 
 struct StorageItem: Codable, Identifiable {
@@ -41,6 +41,11 @@ struct SectionCreateRequest: Encodable {
 
 struct SectionUpdateRequest: Encodable {
     let name: String
+}
+
+struct OrderRequest: Encodable {
+    let targetId: Int
+    let beforeId: Int?
 }
 
 struct ItemRequest: Encodable {

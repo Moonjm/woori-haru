@@ -38,8 +38,11 @@ extension Color {
     static let orange500 = Color(red: 0.961, green: 0.580, blue: 0.118)
     static let orange700 = Color(red: 0.769, green: 0.365, blue: 0.039)
 
-    // MARK: - Purple (과식 EXTREME)
+    // MARK: - Purple
+    static let purple50 = Color(red: 0.960, green: 0.953, blue: 0.980)
+    static let purple100 = Color(red: 0.941, green: 0.933, blue: 0.965)
     static let purple200 = Color(red: 0.863, green: 0.808, blue: 0.980)
     static let purple400 = Color(red: 0.647, green: 0.514, blue: 0.941)
+    static let purple500 = Color(red: 0.486, green: 0.361, blue: 0.878)
     static let purple800 = Color(red: 0.345, green: 0.153, blue: 0.659)
 }
