@@ -64,6 +64,19 @@ struct StorageItemSheet: View {
                     }
                 }
 
+                Section("카테고리") {
+                    NavigationLink {
+                        ItemCategoryPickerView(selection: $viewModel.itemFormCategory)
+                    } label: {
+                        HStack {
+                            Text("카테고리")
+                            Spacer()
+                            Text("\(viewModel.itemFormCategory.emoji) \(viewModel.itemFormCategory.label)")
+                                .foregroundStyle(Color.slate500)
+                        }
+                    }
+                }
+
                 if sections.count > 1 {
                     Section("구역") {
                         Picker("구역", selection: $viewModel.itemFormSectionId) {

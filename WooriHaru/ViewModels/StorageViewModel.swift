@@ -21,6 +21,7 @@ final class StorageViewModel {
     // MARK: - Storage Form
 
     var storageFormName: String = ""
+    var storageFormType: StorageType = .fridge
 
     // MARK: - Section Form
 
@@ -33,6 +34,7 @@ final class StorageViewModel {
     var itemFormName: String = ""
     var itemFormQuantity: Int = 1
     var itemFormExpiryDate: Date? = nil
+    var itemFormCategory: ItemCategory = .other
     var itemFormSectionId: Int?
 
     private let service = StorageService()
@@ -82,7 +84,7 @@ final class StorageViewModel {
         let name = storageFormName.trimmingCharacters(in: .whitespaces)
         guard !name.isEmpty else { return }
         do {
-            try await service.createStorage(name: name)
+            try await service.createStorage(name: name, storageType: storageFormType.rawValue)
             storageFormName = ""
             showAddStorageSheet = false
             await loadStorages()
@@ -94,10 +96,10 @@ final class StorageViewModel {
         }
     }
 
-    func updateStorageName(_ name: String) async {
+    func updateStorage(name: String, storageType: String?) async {
         guard let storage = selectedStorage, !name.isEmpty else { return }
         do {
-            try await service.updateStorage(id: storage.id, name: name)
+            try await service.updateStorage(id: storage.id, name: name, storageType: storageType)
             await loadStorages()
         } catch let error as APIError {
             errorMessage = error.errorDescription
@@ -224,6 +226,7 @@ final class StorageViewModel {
         itemFormName = ""
         itemFormQuantity = 1
         itemFormExpiryDate = nil
+        itemFormCategory = .other
         itemFormSectionId = sectionId
         showAddItemSheet = true
     }
@@ -234,6 +237,7 @@ final class StorageViewModel {
         itemFormName = item.name
         itemFormQuantity = item.quantity
         itemFormExpiryDate = item.expiryDate.flatMap { Self.date(from: $0) }
+        itemFormCategory = item.category.flatMap { ItemCategory(rawValue: $0) } ?? .other
         itemFormSectionId = sectionId
         showAddItemSheet = true
     }
@@ -246,6 +250,7 @@ final class StorageViewModel {
             name: name,
             quantity: itemFormQuantity,
             expiryDate: itemFormExpiryDate.map { Self.dateString(from: $0) },
+            category: itemFormCategory.rawValue,
             sectionId: sectionId
         )
         do {
@@ -271,6 +276,7 @@ final class StorageViewModel {
             name: item.name,
             quantity: newQuantity,
             expiryDate: item.expiryDate,
+            category: item.category,
             sectionId: sectionId
         )
         do {

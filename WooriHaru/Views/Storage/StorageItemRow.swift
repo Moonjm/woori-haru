@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct StorageItemRow: View {
+struct StorageItemCell: View {
     let item: StorageItem
     let sectionId: Int
     let onTap: () -> Void
@@ -9,87 +9,70 @@ struct StorageItemRow: View {
 
     var body: some View {
         Button(action: onTap) {
-            HStack(spacing: 12) {
-                InitialIconView(name: item.name, size: 38)
+            VStack(spacing: 4) {
+                ZStack(alignment: .topTrailing) {
+                    categoryIcon
+                        .frame(maxWidth: .infinity)
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(item.name)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundStyle(Color.slate700)
-
-                    expirySubtext
-                }
-
-                Spacer()
-
-                HStack(spacing: 10) {
-                    quantityStepper
                     expiryBadge
                 }
+
+                Text(item.name)
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(Color.slate700)
+                    .lineLimit(1)
+
+                HStack(spacing: 4) {
+                    Button(action: onDecrement) {
+                        Image(systemName: "minus")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(Color.purple500)
+                            .frame(width: 20, height: 20)
+                            .background(Color.purple500.opacity(0.08))
+                            .cornerRadius(6)
+                    }
+                    .buttonStyle(.plain)
+
+                    Text("\(item.quantity)")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .monospacedDigit()
+                        .foregroundStyle(Color.slate700)
+                        .frame(minWidth: 14)
+
+                    Button(action: onIncrement) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(Color.purple500)
+                            .frame(width: 20, height: 20)
+                            .background(Color.purple500.opacity(0.08))
+                            .cornerRadius(6)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
-            .padding(.vertical, 10)
-            .padding(.horizontal, 14)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 8)
+            .background(Color.purple50)
+            .cornerRadius(12)
         }
         .buttonStyle(.plain)
     }
 
-    // MARK: - Expiry Subtext
+    // MARK: - Category Icon
 
-    @ViewBuilder
-    private var expirySubtext: some View {
-        let days = StorageViewModel.daysUntilExpiry(item.expiryDate)
-        if let days {
-            if days < 0 {
-                Text("소비기한 \(-days)일 지남")
-                    .font(.caption2)
-                    .foregroundStyle(Color.red500)
-            } else if days <= 3 {
-                Text("소비기한 \(days)일 남음")
-                    .font(.caption2)
-                    .foregroundStyle(Color.orange500)
+    private var categoryIcon: some View {
+        let cat = item.category.flatMap { ItemCategory(rawValue: $0) }
+        return Group {
+            if let cat {
+                Text(cat.emoji)
+                    .font(.system(size: 30))
             } else {
-                Text("여유 있음")
-                    .font(.caption2)
-                    .foregroundStyle(Color.green600)
+                Text(String(item.name.prefix(1)))
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundStyle(Color.purple400)
             }
-        } else {
-            Text("기한 없음")
-                .font(.caption2)
-                .foregroundStyle(Color.slate400)
-        }
-    }
-
-    // MARK: - Quantity Stepper
-
-    private var quantityStepper: some View {
-        HStack(spacing: 6) {
-            Button(action: onDecrement) {
-                Image(systemName: "minus")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(Color.purple500)
-                    .frame(width: 24, height: 24)
-                    .background(Color.purple500.opacity(0.08))
-                    .cornerRadius(7)
-            }
-            .buttonStyle(.plain)
-
-            Text("\(item.quantity)")
-                .font(.subheadline)
-                .fontWeight(.semibold)
-                .monospacedDigit()
-                .foregroundStyle(Color.slate700)
-                .frame(minWidth: 18)
-
-            Button(action: onIncrement) {
-                Image(systemName: "plus")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(Color.purple500)
-                    .frame(width: 24, height: 24)
-                    .background(Color.purple500.opacity(0.08))
-                    .cornerRadius(7)
-            }
-            .buttonStyle(.plain)
         }
     }
 
@@ -100,13 +83,12 @@ struct StorageItemRow: View {
         return Group {
             if let days {
                 Text(badgeText(days))
-                    .font(.caption2)
-                    .fontWeight(.semibold)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
+                    .font(.system(size: 9, weight: .bold))
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 2)
                     .background(badgeBackground(days))
                     .foregroundStyle(badgeColor(days))
-                    .cornerRadius(6)
+                    .cornerRadius(4)
             }
         }
     }
@@ -124,8 +106,8 @@ struct StorageItemRow: View {
     }
 
     private func badgeBackground(_ days: Int) -> Color {
-        if days < 0 { return Color.red500.opacity(0.1) }
-        if days <= 3 { return Color.orange500.opacity(0.1) }
+        if days < 0 { return Color.red500.opacity(0.12) }
+        if days <= 3 { return Color.orange500.opacity(0.12) }
         return Color.green600.opacity(0.1)
     }
 }

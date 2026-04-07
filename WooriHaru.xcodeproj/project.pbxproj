@@ -79,9 +79,12 @@
 		N10001 /* NotificationScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = N20001 /* NotificationScheduler.swift */; };
 		N10002 /* LiveActivityCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = N20002 /* LiveActivityCoordinator.swift */; };
 		S10001 /* StorageModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = S20001 /* StorageModels.swift */; };
+		S10009 /* StorageType.swift in Sources */ = {isa = PBXBuildFile; fileRef = S20009 /* StorageType.swift */; };
+		S10010 /* ItemCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = S20010 /* ItemCategory.swift */; };
 		S10002 /* StorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = S20002 /* StorageService.swift */; };
 		S10003 /* StorageViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = S20003 /* StorageViewModel.swift */; };
 		S10004 /* InitialIconView.swift in Sources */ = {isa = PBXBuildFile; fileRef = S20004 /* InitialIconView.swift */; };
+		S10011 /* ItemCategoryPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = S20011 /* ItemCategoryPickerView.swift */; };
 		S10005 /* StorageItemRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = S20005 /* StorageItemRow.swift */; };
 		S10006 /* StorageItemSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = S20006 /* StorageItemSheet.swift */; };
 		S10008 /* StorageMainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = S20008 /* StorageMainView.swift */; };
@@ -184,9 +187,12 @@
 		N20001 /* NotificationScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationScheduler.swift; sourceTree = "<group>"; };
 		N20002 /* LiveActivityCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityCoordinator.swift; sourceTree = "<group>"; };
 		S20001 /* StorageModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageModels.swift; sourceTree = "<group>"; };
+		S20009 /* StorageType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageType.swift; sourceTree = "<group>"; };
+		S20010 /* ItemCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItemCategory.swift; sourceTree = "<group>"; };
 		S20002 /* StorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageService.swift; sourceTree = "<group>"; };
 		S20003 /* StorageViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageViewModel.swift; sourceTree = "<group>"; };
 		S20004 /* InitialIconView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InitialIconView.swift; sourceTree = "<group>"; };
+		S20011 /* ItemCategoryPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItemCategoryPickerView.swift; sourceTree = "<group>"; };
 		S20005 /* StorageItemRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageItemRow.swift; sourceTree = "<group>"; };
 		S20006 /* StorageItemSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageItemSheet.swift; sourceTree = "<group>"; };
 		S20008 /* StorageMainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageMainView.swift; sourceTree = "<group>"; };
@@ -322,6 +328,8 @@
 				L20001 /* StudyModels.swift */,
 				L20005 /* StudyTimerAttributes.swift */,
 				S20001 /* StorageModels.swift */,
+				S20009 /* StorageType.swift */,
+				S20010 /* ItemCategory.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -483,6 +491,7 @@
 				S20005 /* StorageItemRow.swift */,
 				S20006 /* StorageItemSheet.swift */,
 				S20008 /* StorageMainView.swift */,
+				S20011 /* ItemCategoryPickerView.swift */,
 			);
 			path = Storage;
 			sourceTree = "<group>";
@@ -669,12 +678,15 @@
 				AA100005 /* Logger+Extensions.swift in Sources */,
 				AA100006 /* SessionManager.swift in Sources */,
 				S10001 /* StorageModels.swift in Sources */,
+				S10009 /* StorageType.swift in Sources */,
+				S10010 /* ItemCategory.swift in Sources */,
 				S10002 /* StorageService.swift in Sources */,
 				S10003 /* StorageViewModel.swift in Sources */,
 				S10004 /* InitialIconView.swift in Sources */,
 				S10005 /* StorageItemRow.swift in Sources */,
 				S10006 /* StorageItemSheet.swift in Sources */,
 				S10008 /* StorageMainView.swift in Sources */,
+				S10011 /* ItemCategoryPickerView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

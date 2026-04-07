@@ -6,6 +6,7 @@ struct Storage: Codable, Identifiable {
     let id: Int
     var name: String
     var sortOrder: Int
+    var storageType: String?
     var sections: [StorageSection]
 }
 
@@ -21,6 +22,7 @@ struct StorageItem: Codable, Identifiable {
     let name: String
     let quantity: Int
     let expiryDate: String?
+    let category: String?
     let createdBy: Int
     let createdAt: String
 }
@@ -29,10 +31,12 @@ struct StorageItem: Codable, Identifiable {
 
 struct StorageCreateRequest: Encodable {
     let name: String
+    let storageType: String?
 }
 
 struct StorageUpdateRequest: Encodable {
     let name: String
+    let storageType: String?
 }
 
 struct SectionCreateRequest: Encodable {
@@ -52,5 +56,6 @@ struct ItemRequest: Encodable {
     let name: String
     let quantity: Int
     let expiryDate: String?
+    let category: String?
     let sectionId: Int
 }

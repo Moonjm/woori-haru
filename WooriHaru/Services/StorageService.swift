@@ -14,12 +14,12 @@ struct StorageService: Sendable {
         return response.data ?? []
     }
 
-    func createStorage(name: String) async throws {
-        try await api.postVoid("/storages", body: StorageCreateRequest(name: name))
+    func createStorage(name: String, storageType: String?) async throws {
+        try await api.postVoid("/storages", body: StorageCreateRequest(name: name, storageType: storageType))
     }
 
-    func updateStorage(id: Int, name: String) async throws {
-        try await api.putVoid("/storages/\(id)", body: StorageUpdateRequest(name: name))
+    func updateStorage(id: Int, name: String, storageType: String?) async throws {
+        try await api.putVoid("/storages/\(id)", body: StorageUpdateRequest(name: name, storageType: storageType))
     }
 
     func deleteStorage(id: Int) async throws {

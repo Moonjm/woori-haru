@@ -10,15 +10,15 @@ struct StorageMainView: View {
     @State private var renamingSectionId: Int?
     @State private var renamingSectionName = ""
     @State private var deleteSectionTarget: (sectionId: Int, name: String)?
-    @State private var isRenamingStorage = false
-    @State private var renamingStorageName = ""
+    @State private var showEditStorageSheet = false
+    @State private var editStorageName = ""
+    @State private var editStorageType: StorageType = .fridge
     @State private var showDeleteStorageConfirm = false
     @State private var draggingSectionId: Int?
     @State private var draggingStorageId: Int?
     @State private var isExpiryBannerExpanded = false
     @FocusState private var isSectionFieldFocused: Bool
     @FocusState private var isRenameFieldFocused: Bool
-    @FocusState private var isStorageRenameFieldFocused: Bool
 
     private static let sectionDotColors: [LinearGradient] = [
         LinearGradient(colors: [Color(red: 0.40, green: 0.49, blue: 0.92), Color(red: 0.46, green: 0.30, blue: 0.64)], startPoint: .topLeading, endPoint: .bottomTrailing),
@@ -74,6 +74,40 @@ struct StorageMainView: View {
         }
         .sheet(isPresented: $viewModel.showAddStorageSheet) {
             addStorageSheet
+        }
+        .sheet(isPresented: $showEditStorageSheet) {
+            NavigationStack {
+                Form {
+                    Section("보관함 종류") {
+                        Picker("종류", selection: $editStorageType) {
+                            ForEach(StorageType.allCases) { type in
+                                Text("\(type.emoji) \(type.label)").tag(type)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                    }
+                    Section("보관함 이름") {
+                        TextField("이름", text: $editStorageName)
+                    }
+                }
+                .navigationTitle("보관함 편집")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("취소") { showEditStorageSheet = false }
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("저장") {
+                            let name = editStorageName.trimmingCharacters(in: .whitespaces)
+                            let type = editStorageType.rawValue
+                            showEditStorageSheet = false
+                            Task { await viewModel.updateStorage(name: name, storageType: type) }
+                        }
+                        .disabled(editStorageName.trimmingCharacters(in: .whitespaces).isEmpty)
+                    }
+                }
+            }
+            .presentationDetents([.medium])
         }
         .sheet(isPresented: $viewModel.showAddItemSheet) {
             StorageItemSheet(viewModel: viewModel) {
@@ -169,11 +203,7 @@ struct StorageMainView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(Array(viewModel.storages.enumerated()), id: \.element.id) { index, storage in
-                        if isRenamingStorage && viewModel.selectedStorageIndex == index {
-                            storageRenameTab(storage: storage)
-                        } else {
-                            storageTab(index: index, storage: storage)
-                        }
+                        storageTab(index: index, storage: storage)
                     }
                 }
                 .padding(.horizontal, 16)
@@ -193,13 +223,19 @@ struct StorageMainView: View {
 
     private func storageTab(index: Int, storage: Storage) -> some View {
         let isSelected = viewModel.selectedStorageIndex == index
+        let typeEmoji = storage.storageType.flatMap { StorageType(rawValue: $0) }?.emoji
         return Button {
             viewModel.selectedStorageIndex = index
         } label: {
-            Text(storage.name)
-                .font(.subheadline)
-                .fontWeight(isSelected ? .semibold : .regular)
-                .padding(.horizontal, 16)
+            HStack(spacing: 4) {
+                if let emoji = typeEmoji {
+                    Text(emoji).font(.caption)
+                }
+                Text(storage.name)
+                    .font(.subheadline)
+                    .fontWeight(isSelected ? .semibold : .regular)
+            }
+                .padding(.horizontal, 14)
                 .padding(.vertical, 7)
                 .background(isSelected ? Color.purple500.opacity(0.1) : Color.purple100)
                 .foregroundStyle(isSelected ? Color.purple500 : Color.slate500)
@@ -222,11 +258,11 @@ struct StorageMainView: View {
         .contextMenu {
             Button {
                 viewModel.selectedStorageIndex = index
-                renamingStorageName = storage.name
-                isRenamingStorage = true
-                isStorageRenameFieldFocused = true
+                editStorageName = storage.name
+                editStorageType = storage.storageType.flatMap { StorageType(rawValue: $0) } ?? .fridge
+                showEditStorageSheet = true
             } label: {
-                Label("이름 변경", systemImage: "pencil")
+                Label("편집", systemImage: "pencil")
             }
             Divider()
             Button(role: .destructive) {
@@ -237,44 +273,6 @@ struct StorageMainView: View {
             }
         }
         .id(storage.id)
-    }
-
-    private func storageRenameTab(storage: Storage) -> some View {
-        HStack(spacing: 6) {
-            TextField("이름", text: $renamingStorageName)
-                .font(.subheadline)
-                .frame(minWidth: 60)
-                .focused($isStorageRenameFieldFocused)
-                .onSubmit { Task { await submitRenameStorage() } }
-            Button {
-                Task { await submitRenameStorage() }
-            } label: {
-                Image(systemName: "checkmark")
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(Color.purple500)
-            }
-            .disabled(renamingStorageName.trimmingCharacters(in: .whitespaces).isEmpty)
-            Button {
-                isRenamingStorage = false
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.caption)
-                    .foregroundStyle(Color.slate400)
-            }
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
-        .background(Color.purple500.opacity(0.1))
-        .foregroundStyle(Color.slate700)
-        .cornerRadius(10)
-        .id(storage.id)
-    }
-
-    private func submitRenameStorage() async {
-        let name = renamingStorageName.trimmingCharacters(in: .whitespaces)
-        guard !name.isEmpty else { return }
-        await viewModel.updateStorageName(name)
-        isRenamingStorage = false
     }
 
     // MARK: - Expiry Banner
@@ -400,9 +398,9 @@ struct StorageMainView: View {
                         .foregroundStyle(Color.slate400)
                         .padding(.vertical, 20)
                 } else {
-                    VStack(spacing: 0) {
-                        ForEach(Array(section.items.enumerated()), id: \.element.id) { index, item in
-                            StorageItemRow(
+                    LazyVGrid(columns: [GridItem(.flexible(), spacing: 6), GridItem(.flexible(), spacing: 6)], spacing: 6) {
+                        ForEach(section.items) { item in
+                            StorageItemCell(
                                 item: item,
                                 sectionId: section.id,
                                 onTap: { viewModel.prepareEditItem(item, sectionId: section.id) },
@@ -417,13 +415,9 @@ struct StorageMainView: View {
                                     }
                                 }
                             )
-                            if index < section.items.count - 1 {
-                                Divider()
-                                    .foregroundStyle(Color.purple100)
-                                    .padding(.leading, 54)
-                            }
                         }
                     }
+                    .padding(8)
                 }
             }
         }
@@ -648,6 +642,14 @@ struct StorageMainView: View {
     private var addStorageSheet: some View {
         NavigationStack {
             Form {
+                Section("보관함 종류") {
+                    Picker("종류", selection: $viewModel.storageFormType) {
+                        ForEach(StorageType.allCases) { type in
+                            Text("\(type.emoji) \(type.label)").tag(type)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                }
                 Section("보관함 이름") {
                     TextField("예: 냉장고", text: $viewModel.storageFormName)
                 }
