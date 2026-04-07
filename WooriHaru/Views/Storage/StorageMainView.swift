@@ -370,7 +370,7 @@ struct StorageMainView: View {
                 .onEnded { value in
                     let horizontal = value.translation.width
                     let vertical = value.translation.height
-                    guard abs(horizontal) > abs(vertical) * 3, abs(vertical) < 30 else { return }
+                    guard abs(horizontal) > abs(vertical) * 2.5, abs(vertical) < 50 else { return }
                     if horizontal < -80, viewModel.selectedStorageIndex < viewModel.storages.count - 1 {
                         withAnimation { viewModel.selectedStorageIndex += 1 }
                     } else if horizontal > 80, viewModel.selectedStorageIndex > 0 {

@@ -7,7 +7,7 @@ final class StorageViewModel {
     // MARK: - State
 
     var storages: [Storage] = []
-    var selectedStorageIndex: Int = 0
+    var selectedStorageIndex: Int = 0 { didSet { updateExpiringItems() } }
     var isLoading = false
     var errorMessage: String?
 
@@ -46,19 +46,20 @@ final class StorageViewModel {
         return storages[selectedStorageIndex]
     }
 
-    var expiringItems: [(item: StorageItem, sectionName: String)] {
-        guard let storage = selectedStorage else { return [] }
-        let today = Self.dateString(from: Date())
+    private(set) var expiringItems: [(item: StorageItem, sectionName: String)] = []
+
+    var expiringItemCount: Int { expiringItems.count }
+
+    private func updateExpiringItems() {
+        guard let storage = selectedStorage else { expiringItems = []; return }
         let threeDaysLater = Self.dateString(from: Calendar.current.date(byAdding: .day, value: 3, to: Date()) ?? Date())
-        return storage.sections.flatMap { section in
+        expiringItems = storage.sections.flatMap { section in
             section.items.compactMap { item in
-                guard let expiry = item.expiryDate, expiry <= threeDaysLater, expiry >= today else { return nil }
+                guard let expiry = item.expiryDate, expiry <= threeDaysLater else { return nil }
                 return (item: item, sectionName: section.name)
             }
         }
     }
-
-    var expiringItemCount: Int { expiringItems.count }
 
     // MARK: - Load
 
@@ -71,6 +72,7 @@ final class StorageViewModel {
             if selectedStorageIndex >= storages.count {
                 selectedStorageIndex = max(0, storages.count - 1)
             }
+            updateExpiringItems()
         } catch let error as APIError {
             errorMessage = error.errorDescription
         } catch {
