@@ -296,6 +296,7 @@ struct CalendarView: View {
                     }
                 }
             }
+            .ignoresSafeArea(.keyboard)
             .simultaneousGesture(
                 calendarVM.isDrawerOpen ? nil :
                 DragGesture()
