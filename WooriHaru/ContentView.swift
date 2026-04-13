@@ -12,6 +12,7 @@ enum AppDestination: Hashable {
     case userManagement
     case studyTimer
     case studyRecord
+    case storage
 }
 
 struct ContentView: View {
@@ -36,6 +37,7 @@ struct ContentView: View {
                     case .userManagement: UserManagementView()
                     case .studyTimer: StudyTimerView()
                     case .studyRecord: StudyRecordView()
+                    case .storage: StorageMainView()
                     }
                 }
         }
