@@ -214,6 +214,8 @@ struct CalendarView: View {
                                 }
                             }
                             .coordinateSpace(name: "calendarScroll")
+                            .scrollDismissesKeyboard(.immediately)
+                            .ignoresSafeArea(.keyboard)
                             .stopScroll(when: showPicker)
                             .onPreferenceChange(VisibleMonthFrameKey.self, perform: updateVisibleMonth)
                             .onAppear { scrollProxy = proxy }
