@@ -16,18 +16,19 @@ struct StorageMainView: View {
     @State private var showDeleteStorageConfirm = false
     @State private var draggingSectionId: Int?
     @State private var draggingStorageId: Int?
-    @State private var isExpiryBannerExpanded = false
     @FocusState private var isSectionFieldFocused: Bool
     @FocusState private var isRenameFieldFocused: Bool
 
-    private static let sectionDotColors: [LinearGradient] = [
-        LinearGradient(colors: [Color(red: 0.40, green: 0.49, blue: 0.92), Color(red: 0.46, green: 0.30, blue: 0.64)], startPoint: .topLeading, endPoint: .bottomTrailing),
-        LinearGradient(colors: [Color(red: 0.26, green: 0.91, blue: 0.48), Color(red: 0.22, green: 0.98, blue: 0.84)], startPoint: .topLeading, endPoint: .bottomTrailing),
-        LinearGradient(colors: [Color(red: 0.98, green: 0.44, blue: 0.60), Color(red: 0.96, green: 0.34, blue: 0.42)], startPoint: .topLeading, endPoint: .bottomTrailing),
-        LinearGradient(colors: [Color(red: 0.96, green: 0.69, blue: 0.10), Color(red: 0.95, green: 0.46, blue: 0.07)], startPoint: .topLeading, endPoint: .bottomTrailing),
-        LinearGradient(colors: [Color(red: 0.31, green: 0.67, blue: 1.0), Color(red: 0.0, green: 0.95, blue: 1.0)], startPoint: .topLeading, endPoint: .bottomTrailing),
-        LinearGradient(colors: [Color(red: 0.63, green: 0.55, blue: 0.82), Color(red: 0.98, green: 0.76, blue: 0.92)], startPoint: .topLeading, endPoint: .bottomTrailing),
+    private static let sectionAccentColors: [Color] = [
+        Color(red: 0.40, green: 0.49, blue: 0.92),
+        Color(red: 0.26, green: 0.80, blue: 0.52),
+        Color(red: 0.95, green: 0.50, blue: 0.45),
+        Color(red: 0.95, green: 0.65, blue: 0.15),
+        Color(red: 0.35, green: 0.70, blue: 0.95),
+        Color(red: 0.70, green: 0.50, blue: 0.85),
     ]
+
+    private let pageBg = Color(red: 0.975, green: 0.975, blue: 0.98)
 
     var body: some View {
         VStack(spacing: 0) {
@@ -35,14 +36,12 @@ struct StorageMainView: View {
                 emptyState
             } else {
                 storageTabs
-                if viewModel.expiringItemCount > 0 {
-                    expiryBanner
-                }
+                expiryPills
                 sectionList
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.purple50.ignoresSafeArea())
+        .background(pageBg.ignoresSafeArea())
         .navigationTitle("보관함 관리")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
@@ -56,7 +55,7 @@ struct StorageMainView: View {
                             .font(.body.weight(.semibold))
                         Text("뒤로")
                     }
-                    .foregroundStyle(Color.purple500)
+                    .foregroundStyle(Color.slate700)
                 }
             }
             ToolbarItem(placement: .topBarTrailing) {
@@ -65,7 +64,12 @@ struct StorageMainView: View {
                     viewModel.storageFormName = ""
                 } label: {
                     Image(systemName: "plus")
-                        .foregroundStyle(Color.purple500)
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(Color.slate600)
+                        .frame(width: 34, height: 34)
+                        .background(Color.white)
+                        .cornerRadius(17)
+                        .shadow(color: .black.opacity(0.06), radius: 4, y: 1)
                 }
             }
         }
@@ -76,38 +80,7 @@ struct StorageMainView: View {
             addStorageSheet
         }
         .sheet(isPresented: $showEditStorageSheet) {
-            NavigationStack {
-                Form {
-                    Section("보관함 종류") {
-                        Picker("종류", selection: $editStorageType) {
-                            ForEach(StorageType.allCases) { type in
-                                Text("\(type.emoji) \(type.label)").tag(type)
-                            }
-                        }
-                        .pickerStyle(.menu)
-                    }
-                    Section("보관함 이름") {
-                        TextField("이름", text: $editStorageName)
-                    }
-                }
-                .navigationTitle("보관함 편집")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("취소") { showEditStorageSheet = false }
-                    }
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("저장") {
-                            let name = editStorageName.trimmingCharacters(in: .whitespaces)
-                            let type = editStorageType.rawValue
-                            showEditStorageSheet = false
-                            Task { await viewModel.updateStorage(name: name, storageType: type) }
-                        }
-                        .disabled(editStorageName.trimmingCharacters(in: .whitespaces).isEmpty)
-                    }
-                }
-            }
-            .presentationDetents([.medium])
+            editStorageSheetView
         }
         .sheet(isPresented: $viewModel.showAddItemSheet) {
             StorageItemSheet(viewModel: viewModel) {
@@ -177,10 +150,10 @@ struct StorageMainView: View {
             Spacer()
             Image(systemName: "refrigerator")
                 .font(.system(size: 48))
-                .foregroundStyle(Color.purple200)
+                .foregroundStyle(Color.slate200)
             Text("보관함이 없습니다")
                 .font(.subheadline)
-                .foregroundStyle(Color.slate500)
+                .foregroundStyle(Color.slate400)
             Button("보관함 추가") {
                 viewModel.showAddStorageSheet = true
                 viewModel.storageFormName = ""
@@ -190,7 +163,7 @@ struct StorageMainView: View {
             .foregroundStyle(.white)
             .padding(.horizontal, 24)
             .padding(.vertical, 10)
-            .background(Color.purple500)
+            .background(Color.slate700)
             .cornerRadius(10)
             Spacer()
         }
@@ -206,13 +179,11 @@ struct StorageMainView: View {
                         storageTab(index: index, storage: storage)
                     }
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 14)
             }
             .background(.white)
-            .overlay(alignment: .bottom) {
-                Divider().foregroundStyle(Color.purple100)
-            }
+            .shadow(color: .black.opacity(0.03), radius: 2, y: 1)
             .onChange(of: viewModel.selectedStorageIndex) {
                 if let storage = viewModel.selectedStorage {
                     withAnimation { proxy.scrollTo(storage.id, anchor: .center) }
@@ -227,7 +198,7 @@ struct StorageMainView: View {
         return Button {
             viewModel.selectedStorageIndex = index
         } label: {
-            HStack(spacing: 4) {
+            HStack(spacing: 5) {
                 if let emoji = typeEmoji {
                     Text(emoji).font(.caption)
                 }
@@ -235,15 +206,11 @@ struct StorageMainView: View {
                     .font(.subheadline)
                     .fontWeight(isSelected ? .semibold : .regular)
             }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 7)
-                .background(isSelected ? Color.purple500.opacity(0.1) : Color.purple100)
-                .foregroundStyle(isSelected ? Color.purple500 : Color.slate500)
-                .cornerRadius(10)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .strokeBorder(isSelected ? Color.purple500.opacity(0.25) : .clear, lineWidth: 1)
-                )
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(isSelected ? Color.slate700 : Color(red: 0.96, green: 0.96, blue: 0.97))
+            .foregroundStyle(isSelected ? .white : Color.slate500)
+            .cornerRadius(20)
         }
         .onDrag {
             draggingStorageId = storage.id
@@ -275,80 +242,73 @@ struct StorageMainView: View {
         .id(storage.id)
     }
 
-    // MARK: - Expiry Banner
+    // MARK: - Expiry Summary Pills
 
-    private var expiryBanner: some View {
-        VStack(spacing: 0) {
-            Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    isExpiryBannerExpanded.toggle()
-                }
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(Color.orange500)
-                    Text("소비기한 임박 품목 \(viewModel.expiringItemCount)개")
-                        .font(.caption)
-                        .fontWeight(.medium)
-                        .foregroundStyle(Color.orange700)
-                    Spacer()
-                    Image(systemName: isExpiryBannerExpanded ? "chevron.up" : "chevron.down")
-                        .font(.caption2)
-                        .foregroundStyle(Color.orange500)
-                }
-                .padding(.vertical, 10)
-                .padding(.horizontal, 14)
+    private var expiryPills: some View {
+        let allItems = viewModel.selectedStorage?.sections.flatMap(\.items) ?? []
+        let expired = allItems.filter { item in
+            guard let days = StorageViewModel.daysUntilExpiry(item.expiryDate) else { return false }
+            return days < 0
+        }.count
+        let imminent = allItems.filter { item in
+            guard let days = StorageViewModel.daysUntilExpiry(item.expiryDate) else { return false }
+            return days >= 0 && days <= 3
+        }.count
+        let safe = allItems.filter { item in
+            guard let days = StorageViewModel.daysUntilExpiry(item.expiryDate) else { return true }
+            return days > 3
+        }.count
+        let total = allItems.count
+
+        return HStack(spacing: 8) {
+            // 총 품목 수
+            Text("총 \(total)개")
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundStyle(Color.slate600)
+
+            Spacer()
+
+            if expired > 0 {
+                expiryPill(
+                    color: Color(red: 0.90, green: 0.25, blue: 0.25),
+                    bgColor: Color(red: 1.0, green: 0.93, blue: 0.93),
+                    label: "만료",
+                    count: expired
+                )
             }
-            .buttonStyle(.plain)
-
-            if isExpiryBannerExpanded {
-                VStack(spacing: 0) {
-                    let items = viewModel.expiringItems
-                    ForEach(Array(items.enumerated()), id: \.element.item.id) { index, entry in
-                        HStack(spacing: 10) {
-                            InitialIconView(name: entry.item.name, size: 30)
-
-                            VStack(alignment: .leading, spacing: 1) {
-                                Text(entry.item.name)
-                                    .font(.caption)
-                                    .fontWeight(.medium)
-                                    .foregroundStyle(Color.slate700)
-                                Text(entry.sectionName)
-                                    .font(.caption2)
-                                    .foregroundStyle(Color.slate400)
-                            }
-
-                            Spacer()
-
-                            if let days = StorageViewModel.daysUntilExpiry(entry.item.expiryDate) {
-                                Text(days < 0 ? "D+\(-days)" : days == 0 ? "D-Day" : "D-\(days)")
-                                    .font(.caption2)
-                                    .fontWeight(.semibold)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 3)
-                                    .background(days <= 1 ? Color.red500.opacity(0.1) : Color.orange500.opacity(0.1))
-                                    .foregroundStyle(days <= 1 ? Color.red600 : Color.orange700)
-                                    .cornerRadius(6)
-                            }
-                        }
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
-
-                        if index < items.count - 1 {
-                            Divider().padding(.leading, 54)
-                        }
-                    }
-                }
-                .transition(.opacity.combined(with: .move(edge: .top)))
+            if imminent > 0 {
+                expiryPill(
+                    color: Color(red: 0.90, green: 0.52, blue: 0.10),
+                    bgColor: Color(red: 1.0, green: 0.95, blue: 0.88),
+                    label: "임박",
+                    count: imminent
+                )
             }
+            expiryPill(
+                color: Color(red: 0.15, green: 0.65, blue: 0.40),
+                bgColor: Color(red: 0.90, green: 0.98, blue: 0.92),
+                label: "여유",
+                count: safe
+            )
         }
-        .background(Color.orange100.opacity(0.6))
-        .overlay(
-            Rectangle()
-                .frame(height: 0.5)
-                .foregroundStyle(Color.orange200),
-            alignment: .bottom
-        )
+        .padding(.horizontal, 20)
+        .padding(.vertical, 10)
+        .background(.white)
+    }
+
+    private func expiryPill(color: Color, bgColor: Color, label: String, count: Int) -> some View {
+        HStack(spacing: 5) {
+            Circle().fill(color).frame(width: 7, height: 7)
+            Text("\(label) \(count)")
+                .font(.caption2)
+                .fontWeight(.semibold)
+                .foregroundStyle(color)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(bgColor)
+        .cornerRadius(14)
     }
 
     // MARK: - Section List
@@ -356,13 +316,13 @@ struct StorageMainView: View {
     private var sectionList: some View {
         ScrollView {
             if let storage = viewModel.selectedStorage {
-                LazyVStack(spacing: 14) {
+                LazyVStack(spacing: 10) {
                     ForEach(Array(storage.sections.enumerated()), id: \.element.id) { index, section in
                         sectionCard(section, dotIndex: index)
                     }
                     addSectionCard
                 }
-                .padding(16)
+                .padding(14)
             }
         }
         .simultaneousGesture(
@@ -383,23 +343,34 @@ struct StorageMainView: View {
     // MARK: - Section Card
 
     private func sectionCard(_ section: StorageSection, dotIndex: Int) -> some View {
-        VStack(spacing: 0) {
+        let accentColor = Self.sectionAccentColors[dotIndex % Self.sectionAccentColors.count]
+
+        return VStack(spacing: 0) {
             if renamingSectionId == section.id {
                 sectionRenameHeader(section)
             } else {
-                sectionHeader(section, dotIndex: dotIndex)
+                sectionHeader(section, dotIndex: dotIndex, accentColor: accentColor)
             }
 
             if !collapsedSections.contains(section.id) {
-                Divider().foregroundStyle(Color.purple100)
                 if section.items.isEmpty {
-                    Text("품목을 추가해보세요")
-                        .font(.caption)
-                        .foregroundStyle(Color.slate400)
-                        .padding(.vertical, 20)
+                    HStack {
+                        Text("품목을 추가해보세요")
+                            .font(.caption)
+                            .foregroundStyle(Color.slate300)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 20)
                 } else {
-                    LazyVGrid(columns: [GridItem(.flexible(), spacing: 6), GridItem(.flexible(), spacing: 6)], spacing: 6) {
-                        ForEach(section.items) { item in
+                    // 구분선
+                    Rectangle()
+                        .fill(Color(red: 0.95, green: 0.95, blue: 0.96))
+                        .frame(height: 1)
+                        .padding(.leading, 18)
+
+                    VStack(spacing: 0) {
+                        ForEach(Array(section.items.enumerated()), id: \.element.id) { index, item in
                             StorageItemCell(
                                 item: item,
                                 sectionId: section.id,
@@ -415,19 +386,33 @@ struct StorageMainView: View {
                                     }
                                 }
                             )
+
+                            if index < section.items.count - 1 {
+                                Rectangle()
+                                    .fill(Color(red: 0.95, green: 0.95, blue: 0.96))
+                                    .frame(height: 1)
+                                    .padding(.leading, 82)
+                            }
                         }
                     }
-                    .padding(8)
                 }
             }
         }
         .background(.white)
         .cornerRadius(16)
-        .shadow(color: .black.opacity(0.03), radius: 6, y: 2)
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(Color.black.opacity(0.02), lineWidth: 1)
-        )
+        .shadow(color: .black.opacity(0.04), radius: 8, y: 2)
+        .overlay(alignment: .leading) {
+            // 좌측 액센트 바
+            UnevenRoundedRectangle(
+                topLeadingRadius: 16,
+                bottomLeadingRadius: collapsedSections.contains(section.id) ? 16 : (section.items.isEmpty ? 16 : 0),
+                bottomTrailingRadius: 0,
+                topTrailingRadius: 0
+            )
+            .fill(accentColor)
+            .frame(width: 4)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 16))
         .onDrag {
             draggingSectionId = section.id
             return NSItemProvider(object: String(section.id) as NSString)
@@ -440,7 +425,7 @@ struct StorageMainView: View {
         ))
     }
 
-    private func sectionHeader(_ section: StorageSection, dotIndex: Int) -> some View {
+    private func sectionHeader(_ section: StorageSection, dotIndex: Int, accentColor: Color) -> some View {
         Button {
             withAnimation(.easeInOut(duration: 0.2)) {
                 if collapsedSections.contains(section.id) {
@@ -450,24 +435,19 @@ struct StorageMainView: View {
                 }
             }
         } label: {
-            HStack(spacing: 8) {
-                // Gradient dot
-                Circle()
-                    .fill(Self.sectionDotColors[dotIndex % Self.sectionDotColors.count])
-                    .frame(width: 8, height: 8)
-
+            HStack(spacing: 10) {
                 Text(section.name)
                     .font(.subheadline)
-                    .fontWeight(.semibold)
+                    .fontWeight(.bold)
                     .foregroundStyle(Color.slate700)
 
                 Text("\(section.items.count)")
                     .font(.caption2)
-                    .fontWeight(.medium)
-                    .foregroundStyle(Color.slate500)
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 2)
-                    .background(Color.purple100)
+                    .fontWeight(.bold)
+                    .foregroundStyle(accentColor)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(accentColor.opacity(0.1))
                     .cornerRadius(8)
 
                 Spacer()
@@ -475,18 +455,22 @@ struct StorageMainView: View {
                 Button {
                     viewModel.prepareAddItem(sectionId: section.id)
                 } label: {
-                    Image(systemName: "plus")
-                        .font(.caption)
-                        .foregroundStyle(Color.purple500)
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 20))
+                        .foregroundStyle(accentColor.opacity(0.6))
+                        .frame(width: 36, height: 36)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
 
                 Image(systemName: collapsedSections.contains(section.id) ? "chevron.right" : "chevron.down")
-                    .font(.caption2)
-                    .foregroundStyle(Color.slate400)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(Color.slate300)
+                    .frame(width: 28, height: 36)
+                    .contentShape(Rectangle())
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 14)
         }
         .buttonStyle(.plain)
         .contextMenu {
@@ -525,7 +509,7 @@ struct StorageMainView: View {
                     .background(
                         renamingSectionName.trimmingCharacters(in: .whitespaces).isEmpty
                             || renamingSectionName == section.name
-                            ? Color.slate300 : Color.purple500
+                            ? Color.slate300 : Color.slate700
                     )
                     .cornerRadius(6)
             }
@@ -544,8 +528,8 @@ struct StorageMainView: View {
             }
             .buttonStyle(.plain)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 18)
+        .padding(.vertical, 12)
     }
 
     private func submitRenameSection(_ section: StorageSection) async {
@@ -580,7 +564,7 @@ struct StorageMainView: View {
                             .padding(.vertical, 6)
                             .background(
                                 inlineSectionName.trimmingCharacters(in: .whitespaces).isEmpty
-                                    ? Color.slate300 : Color.purple500
+                                    ? Color.slate300 : Color.slate700
                             )
                             .cornerRadius(6)
                     }
@@ -596,11 +580,11 @@ struct StorageMainView: View {
                     }
                     .buttonStyle(.plain)
                 }
-                .padding(.horizontal, 14)
+                .padding(.horizontal, 16)
                 .padding(.vertical, 12)
                 .background(.white)
-                .cornerRadius(16)
-                .shadow(color: .black.opacity(0.03), radius: 6, y: 2)
+                .cornerRadius(14)
+                .shadow(color: .black.opacity(0.04), radius: 8, y: 2)
             } else {
                 Button {
                     isAddingSectionInline = true
@@ -614,15 +598,13 @@ struct StorageMainView: View {
                             .font(.subheadline)
                             .fontWeight(.medium)
                     }
-                    .foregroundStyle(Color.purple500)
+                    .foregroundStyle(Color.slate400)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
                     .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .strokeBorder(Color.purple500.opacity(0.2), style: StrokeStyle(lineWidth: 1.5, dash: [6]))
+                        RoundedRectangle(cornerRadius: 14)
+                            .strokeBorder(Color.slate200, style: StrokeStyle(lineWidth: 1.5, dash: [6]))
                     )
-                    .background(Color.purple500.opacity(0.02))
-                    .cornerRadius(16)
                 }
             }
         }
@@ -665,6 +647,43 @@ struct StorageMainView: View {
                         Task { await viewModel.createStorage() }
                     }
                     .disabled(viewModel.storageFormName.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+            }
+        }
+        .presentationDetents([.medium])
+    }
+
+    // MARK: - Edit Storage Sheet
+
+    private var editStorageSheetView: some View {
+        NavigationStack {
+            Form {
+                Section("보관함 종류") {
+                    Picker("종류", selection: $editStorageType) {
+                        ForEach(StorageType.allCases) { type in
+                            Text("\(type.emoji) \(type.label)").tag(type)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                }
+                Section("보관함 이름") {
+                    TextField("이름", text: $editStorageName)
+                }
+            }
+            .navigationTitle("보관함 편집")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("취소") { showEditStorageSheet = false }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("저장") {
+                        let name = editStorageName.trimmingCharacters(in: .whitespaces)
+                        let type = editStorageType.rawValue
+                        showEditStorageSheet = false
+                        Task { await viewModel.updateStorage(name: name, storageType: type) }
+                    }
+                    .disabled(editStorageName.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
             }
         }
