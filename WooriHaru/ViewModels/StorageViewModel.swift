@@ -7,8 +7,9 @@ final class StorageViewModel {
     // MARK: - State
 
     var storages: [Storage] = []
-    var selectedStorageIndex: Int = 0 { didSet { updateExpiringItems() } }
+    var selectedStorageId: Int? { didSet { updateExpiringItems() } }
     var isLoading = false
+    var isMutating = false
     var errorMessage: String?
 
     // MARK: - Sheet State
@@ -41,24 +42,62 @@ final class StorageViewModel {
 
     // MARK: - Computed
 
+    var selectedStorageIndex: Int? {
+        guard let id = selectedStorageId else { return nil }
+        return storages.firstIndex(where: { $0.id == id })
+    }
+
     var selectedStorage: Storage? {
-        guard storages.indices.contains(selectedStorageIndex) else { return nil }
-        return storages[selectedStorageIndex]
+        guard let index = selectedStorageIndex else { return nil }
+        return storages[index]
     }
 
     private(set) var expiringItems: [(item: StorageItem, sectionName: String)] = []
 
     var expiringItemCount: Int { expiringItems.count }
 
+    // MARK: - Expiry Summary (cached)
+
+    struct ExpirySummary {
+        var total: Int = 0
+        var expired: Int = 0
+        var imminent: Int = 0
+        var safe: Int = 0
+    }
+
+    private(set) var expirySummary = ExpirySummary()
+
     private func updateExpiringItems() {
-        guard let storage = selectedStorage else { expiringItems = []; return }
-        let threeDaysLater = Self.dateString(from: Calendar.current.date(byAdding: .day, value: 3, to: Date()) ?? Date())
+        guard let storage = selectedStorage else {
+            expiringItems = []
+            expirySummary = ExpirySummary()
+            return
+        }
+        let now = Calendar.current.startOfDay(for: Date())
+        let threeDaysLater = Calendar.current.date(byAdding: .day, value: 3, to: now)!
+
         expiringItems = storage.sections.flatMap { section in
             section.items.compactMap { item in
-                guard let expiry = item.expiryDate, expiry <= threeDaysLater else { return nil }
+                guard let expiryStr = item.expiryDate,
+                      let expiryDate = Self.date(from: expiryStr),
+                      expiryDate <= threeDaysLater else { return nil }
                 return (item: item, sectionName: section.name)
             }
         }
+
+        // Update expiry summary
+        let allItems = storage.sections.flatMap(\.items)
+        var summary = ExpirySummary(total: allItems.count)
+        for item in allItems {
+            guard let days = Self.daysUntilExpiry(item.expiryDate) else {
+                summary.safe += 1
+                continue
+            }
+            if days < 0 { summary.expired += 1 }
+            else if days <= 3 { summary.imminent += 1 }
+            else { summary.safe += 1 }
+        }
+        expirySummary = summary
     }
 
     // MARK: - Load
@@ -69,8 +108,10 @@ final class StorageViewModel {
         errorMessage = nil
         do {
             storages = try await service.fetchStorages()
-            if selectedStorageIndex >= storages.count {
-                selectedStorageIndex = max(0, storages.count - 1)
+            if let id = selectedStorageId, !storages.contains(where: { $0.id == id }) {
+                selectedStorageId = storages.first?.id
+            } else if selectedStorageId == nil {
+                selectedStorageId = storages.first?.id
             }
             updateExpiringItems()
         } catch let error as APIError {
@@ -85,12 +126,14 @@ final class StorageViewModel {
     func createStorage() async {
         let name = storageFormName.trimmingCharacters(in: .whitespaces)
         guard !name.isEmpty else { return }
+        isMutating = true
+        defer { isMutating = false }
         do {
             try await service.createStorage(name: name, storageType: storageFormType.rawValue)
             storageFormName = ""
             showAddStorageSheet = false
             await loadStorages()
-            selectedStorageIndex = storages.count - 1
+            selectedStorageId = storages.last?.id
         } catch let error as APIError {
             errorMessage = error.errorDescription
         } catch {
@@ -100,6 +143,8 @@ final class StorageViewModel {
 
     func updateStorage(name: String, storageType: String?) async {
         guard let storage = selectedStorage, !name.isEmpty else { return }
+        isMutating = true
+        defer { isMutating = false }
         do {
             try await service.updateStorage(id: storage.id, name: name, storageType: storageType)
             await loadStorages()
@@ -112,9 +157,11 @@ final class StorageViewModel {
 
     func deleteStorage() async {
         guard let storage = selectedStorage else { return }
+        isMutating = true
+        defer { isMutating = false }
         do {
             try await service.deleteStorage(id: storage.id)
-            selectedStorageIndex = 0
+            selectedStorageId = storages.first(where: { $0.id != storage.id })?.id
             await loadStorages()
         } catch let error as APIError {
             errorMessage = error.errorDescription
@@ -129,6 +176,8 @@ final class StorageViewModel {
         guard let storage = selectedStorage else { return }
         let name = newSectionName.trimmingCharacters(in: .whitespaces)
         guard !name.isEmpty else { return }
+        isMutating = true
+        defer { isMutating = false }
         do {
             try await service.createSection(storageId: storage.id, name: name)
             newSectionName = ""
@@ -144,6 +193,8 @@ final class StorageViewModel {
         guard let storage = selectedStorage, let section = editingSectionForRename else { return }
         let name = sectionRenameName.trimmingCharacters(in: .whitespaces)
         guard !name.isEmpty else { return }
+        isMutating = true
+        defer { isMutating = false }
         do {
             try await service.updateSection(storageId: storage.id, sectionId: section.id, name: name)
             editingSectionForRename = nil
@@ -158,6 +209,8 @@ final class StorageViewModel {
 
     func deleteSection(_ sectionId: Int) async {
         guard let storage = selectedStorage else { return }
+        isMutating = true
+        defer { isMutating = false }
         do {
             try await service.deleteSection(storageId: storage.id, sectionId: sectionId)
             await loadStorages()
@@ -172,11 +225,11 @@ final class StorageViewModel {
 
     func moveSectionLocally(fromId: Int, toId: Int) {
         guard fromId != toId,
-              storages.indices.contains(selectedStorageIndex) else { return }
-        let sections = storages[selectedStorageIndex].sections
+              let idx = selectedStorageIndex else { return }
+        let sections = storages[idx].sections
         guard let fromIndex = sections.firstIndex(where: { $0.id == fromId }),
               let toIndex = sections.firstIndex(where: { $0.id == toId }) else { return }
-        storages[selectedStorageIndex].sections.move(
+        storages[idx].sections.move(
             fromOffsets: IndexSet(integer: fromIndex),
             toOffset: toIndex > fromIndex ? toIndex + 1 : toIndex
         )
@@ -199,14 +252,10 @@ final class StorageViewModel {
         guard fromId != toId else { return }
         guard let fromIndex = storages.firstIndex(where: { $0.id == fromId }),
               let toIndex = storages.firstIndex(where: { $0.id == toId }) else { return }
-        let selectedId = selectedStorage?.id
         storages.move(
             fromOffsets: IndexSet(integer: fromIndex),
             toOffset: toIndex > fromIndex ? toIndex + 1 : toIndex
         )
-        if let selectedId, let newIndex = storages.firstIndex(where: { $0.id == selectedId }) {
-            selectedStorageIndex = newIndex
-        }
     }
 
     func commitStorageOrder(targetId: Int) async {
@@ -248,6 +297,8 @@ final class StorageViewModel {
         guard let storage = selectedStorage, let sectionId = itemFormSectionId else { return }
         let name = itemFormName.trimmingCharacters(in: .whitespaces)
         guard !name.isEmpty else { return }
+        isMutating = true
+        defer { isMutating = false }
         let request = ItemRequest(
             name: name,
             quantity: itemFormQuantity,
@@ -271,9 +322,18 @@ final class StorageViewModel {
     }
 
     func updateItemQuantity(_ item: StorageItem, sectionId: Int, delta: Int) async {
-        guard let storage = selectedStorage else { return }
+        guard let storage = selectedStorage,
+              let storageIdx = selectedStorageIndex else { return }
         let newQuantity = item.quantity + delta
         if newQuantity <= 0 { return }
+
+        // Optimistic local update
+        if let sectionIdx = storages[storageIdx].sections.firstIndex(where: { $0.id == sectionId }),
+           let itemIdx = storages[storageIdx].sections[sectionIdx].items.firstIndex(where: { $0.id == item.id }) {
+            storages[storageIdx].sections[sectionIdx].items[itemIdx].quantity = newQuantity
+            updateExpiringItems()
+        }
+
         let request = ItemRequest(
             name: item.name,
             quantity: newQuantity,
@@ -283,14 +343,17 @@ final class StorageViewModel {
         )
         do {
             try await service.updateItem(storageId: storage.id, itemId: item.id, request: request)
-            await loadStorages()
         } catch {
+            // Rollback on failure
+            await loadStorages()
             errorMessage = "수량 변경에 실패했습니다."
         }
     }
 
     func deleteItem(_ itemId: Int) async {
         guard let storage = selectedStorage else { return }
+        isMutating = true
+        defer { isMutating = false }
         do {
             try await service.deleteItem(storageId: storage.id, itemId: itemId)
             await loadStorages()
@@ -306,6 +369,8 @@ final class StorageViewModel {
     private static let dateFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd"
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = TimeZone(identifier: "Asia/Seoul")
         return f
     }()
 

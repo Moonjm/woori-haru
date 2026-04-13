@@ -41,7 +41,7 @@ struct StorageItemCell: View {
                             .font(.system(size: 10, weight: .bold))
                             .foregroundStyle(Color.slate400)
                             .frame(width: 30, height: 30)
-                            .background(Color(red: 0.96, green: 0.96, blue: 0.97))
+                            .background(Color.slate100)
                             .cornerRadius(9)
                     }
                     .buttonStyle(.plain)
@@ -51,7 +51,7 @@ struct StorageItemCell: View {
                             .font(.system(size: 10, weight: .bold))
                             .foregroundStyle(Color.slate600)
                             .frame(width: 30, height: 30)
-                            .background(Color(red: 0.96, green: 0.96, blue: 0.97))
+                            .background(Color.slate100)
                             .cornerRadius(9)
                     }
                     .buttonStyle(.plain)
@@ -114,7 +114,7 @@ struct StorageItemCell: View {
                         .fontWeight(.bold)
                         .foregroundStyle(expiryColor(days))
                     RoundedRectangle(cornerRadius: 2.5)
-                        .fill(Color(red: 0.93, green: 0.93, blue: 0.95))
+                        .fill(Color.slate200)
                         .frame(width: 44, height: 5)
                         .overlay(alignment: .leading) {
                             RoundedRectangle(cornerRadius: 2.5)
@@ -133,9 +133,10 @@ struct StorageItemCell: View {
     }
 
     private func expiryColor(_ days: Int) -> Color {
-        if days < 0 { return Color(red: 0.90, green: 0.25, blue: 0.25) }
-        if days <= 3 { return Color(red: 0.95, green: 0.55, blue: 0.15) }
-        return Color(red: 0.20, green: 0.72, blue: 0.45)
+        if days < 0 { return Color.red600 }
+        if days <= 3 { return Color.red500 }
+        if days <= 7 { return Color.orange500 }
+        return Color.green600
     }
 
     private func expiryProgress(_ days: Int) -> CGFloat {

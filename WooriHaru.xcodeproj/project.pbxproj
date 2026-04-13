@@ -81,7 +81,6 @@
 		S10001 /* StorageModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = S20001 /* StorageModels.swift */; };
 		S10002 /* StorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = S20002 /* StorageService.swift */; };
 		S10003 /* StorageViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = S20003 /* StorageViewModel.swift */; };
-		S10004 /* InitialIconView.swift in Sources */ = {isa = PBXBuildFile; fileRef = S20004 /* InitialIconView.swift */; };
 		S10005 /* StorageItemRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = S20005 /* StorageItemRow.swift */; };
 		S10006 /* StorageItemSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = S20006 /* StorageItemSheet.swift */; };
 		S10008 /* StorageMainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = S20008 /* StorageMainView.swift */; };
@@ -189,7 +188,6 @@
 		S20001 /* StorageModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageModels.swift; sourceTree = "<group>"; };
 		S20002 /* StorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageService.swift; sourceTree = "<group>"; };
 		S20003 /* StorageViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageViewModel.swift; sourceTree = "<group>"; };
-		S20004 /* InitialIconView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InitialIconView.swift; sourceTree = "<group>"; };
 		S20005 /* StorageItemRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageItemRow.swift; sourceTree = "<group>"; };
 		S20006 /* StorageItemSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageItemSheet.swift; sourceTree = "<group>"; };
 		S20008 /* StorageMainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageMainView.swift; sourceTree = "<group>"; };
@@ -487,7 +485,6 @@
 		S40001 /* Storage */ = {
 			isa = PBXGroup;
 			children = (
-				S20004 /* InitialIconView.swift */,
 				S20005 /* StorageItemRow.swift */,
 				S20006 /* StorageItemSheet.swift */,
 				S20008 /* StorageMainView.swift */,
@@ -682,7 +679,6 @@
 				S10010 /* ItemCategory.swift in Sources */,
 				S10002 /* StorageService.swift in Sources */,
 				S10003 /* StorageViewModel.swift in Sources */,
-				S10004 /* InitialIconView.swift in Sources */,
 				S10005 /* StorageItemRow.swift in Sources */,
 				S10006 /* StorageItemSheet.swift in Sources */,
 				S10008 /* StorageMainView.swift in Sources */,

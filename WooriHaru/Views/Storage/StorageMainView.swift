@@ -20,28 +20,36 @@ struct StorageMainView: View {
     @FocusState private var isRenameFieldFocused: Bool
 
     private static let sectionAccentColors: [Color] = [
-        Color(red: 0.40, green: 0.49, blue: 0.92),
-        Color(red: 0.26, green: 0.80, blue: 0.52),
-        Color(red: 0.95, green: 0.50, blue: 0.45),
-        Color(red: 0.95, green: 0.65, blue: 0.15),
-        Color(red: 0.35, green: 0.70, blue: 0.95),
-        Color(red: 0.70, green: 0.50, blue: 0.85),
+        Color.blue400,
+        Color.green600,
+        Color.red400,
+        Color.orange500,
+        Color.blue300,
+        Color.purple400,
     ]
 
-    private let pageBg = Color(red: 0.975, green: 0.975, blue: 0.98)
-
     var body: some View {
-        VStack(spacing: 0) {
-            if viewModel.storages.isEmpty && !viewModel.isLoading {
-                emptyState
-            } else {
-                storageTabs
-                expiryPills
-                sectionList
+        ZStack {
+            VStack(spacing: 0) {
+                if viewModel.storages.isEmpty && !viewModel.isLoading {
+                    emptyState
+                } else {
+                    storageTabs
+                    expiryPills
+                    sectionList
+                }
+            }
+
+            if viewModel.isMutating {
+                Color.black.opacity(0.05)
+                    .ignoresSafeArea()
+                    .allowsHitTesting(true)
+                ProgressView()
+                    .tint(Color.slate500)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(pageBg.ignoresSafeArea())
+        .background(Color.slate50.ignoresSafeArea())
         .navigationTitle("보관함 관리")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
@@ -175,8 +183,8 @@ struct StorageMainView: View {
         ScrollViewReader { proxy in
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    ForEach(Array(viewModel.storages.enumerated()), id: \.element.id) { index, storage in
-                        storageTab(index: index, storage: storage)
+                    ForEach(viewModel.storages, id: \.id) { storage in
+                        storageTab(storage: storage)
                     }
                 }
                 .padding(.horizontal, 20)
@@ -184,19 +192,19 @@ struct StorageMainView: View {
             }
             .background(.white)
             .shadow(color: .black.opacity(0.03), radius: 2, y: 1)
-            .onChange(of: viewModel.selectedStorageIndex) {
-                if let storage = viewModel.selectedStorage {
-                    withAnimation { proxy.scrollTo(storage.id, anchor: .center) }
+            .onChange(of: viewModel.selectedStorageId) {
+                if let id = viewModel.selectedStorageId {
+                    withAnimation { proxy.scrollTo(id, anchor: .center) }
                 }
             }
         }
     }
 
-    private func storageTab(index: Int, storage: Storage) -> some View {
-        let isSelected = viewModel.selectedStorageIndex == index
+    private func storageTab(storage: Storage) -> some View {
+        let isSelected = viewModel.selectedStorageId == storage.id
         let typeEmoji = storage.storageType.flatMap { StorageType(rawValue: $0) }?.emoji
         return Button {
-            viewModel.selectedStorageIndex = index
+            viewModel.selectedStorageId = storage.id
         } label: {
             HStack(spacing: 5) {
                 if let emoji = typeEmoji {
@@ -208,7 +216,7 @@ struct StorageMainView: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
-            .background(isSelected ? Color.slate700 : Color(red: 0.96, green: 0.96, blue: 0.97))
+            .background(isSelected ? Color.slate700 : Color.slate100)
             .foregroundStyle(isSelected ? .white : Color.slate500)
             .cornerRadius(20)
         }
@@ -224,7 +232,7 @@ struct StorageMainView: View {
         ))
         .contextMenu {
             Button {
-                viewModel.selectedStorageIndex = index
+                viewModel.selectedStorageId = storage.id
                 editStorageName = storage.name
                 editStorageType = storage.storageType.flatMap { StorageType(rawValue: $0) } ?? .fridge
                 showEditStorageSheet = true
@@ -233,7 +241,7 @@ struct StorageMainView: View {
             }
             Divider()
             Button(role: .destructive) {
-                viewModel.selectedStorageIndex = index
+                viewModel.selectedStorageId = storage.id
                 showDeleteStorageConfirm = true
             } label: {
                 Label("보관함 삭제", systemImage: "trash")
@@ -245,52 +253,23 @@ struct StorageMainView: View {
     // MARK: - Expiry Summary Pills
 
     private var expiryPills: some View {
-        let allItems = viewModel.selectedStorage?.sections.flatMap(\.items) ?? []
-        let expired = allItems.filter { item in
-            guard let days = StorageViewModel.daysUntilExpiry(item.expiryDate) else { return false }
-            return days < 0
-        }.count
-        let imminent = allItems.filter { item in
-            guard let days = StorageViewModel.daysUntilExpiry(item.expiryDate) else { return false }
-            return days >= 0 && days <= 3
-        }.count
-        let safe = allItems.filter { item in
-            guard let days = StorageViewModel.daysUntilExpiry(item.expiryDate) else { return true }
-            return days > 3
-        }.count
-        let total = allItems.count
+        let s = viewModel.expirySummary
 
         return HStack(spacing: 8) {
-            // 총 품목 수
-            Text("총 \(total)개")
+            Text("총 \(s.total)개")
                 .font(.caption)
                 .fontWeight(.semibold)
                 .foregroundStyle(Color.slate600)
 
             Spacer()
 
-            if expired > 0 {
-                expiryPill(
-                    color: Color(red: 0.90, green: 0.25, blue: 0.25),
-                    bgColor: Color(red: 1.0, green: 0.93, blue: 0.93),
-                    label: "만료",
-                    count: expired
-                )
+            if s.expired > 0 {
+                expiryPill(color: Color.red500, bgColor: Color(red: 1.0, green: 0.93, blue: 0.93), label: "만료", count: s.expired)
             }
-            if imminent > 0 {
-                expiryPill(
-                    color: Color(red: 0.90, green: 0.52, blue: 0.10),
-                    bgColor: Color(red: 1.0, green: 0.95, blue: 0.88),
-                    label: "임박",
-                    count: imminent
-                )
+            if s.imminent > 0 {
+                expiryPill(color: Color.orange500, bgColor: Color.orange100, label: "임박", count: s.imminent)
             }
-            expiryPill(
-                color: Color(red: 0.15, green: 0.65, blue: 0.40),
-                bgColor: Color(red: 0.90, green: 0.98, blue: 0.92),
-                label: "여유",
-                count: safe
-            )
+            expiryPill(color: Color.green600, bgColor: Color.green100, label: "여유", count: s.safe)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 10)
@@ -331,10 +310,11 @@ struct StorageMainView: View {
                     let horizontal = value.translation.width
                     let vertical = value.translation.height
                     guard abs(horizontal) > abs(vertical) * 2.5, abs(vertical) < 50 else { return }
-                    if horizontal < -80, viewModel.selectedStorageIndex < viewModel.storages.count - 1 {
-                        withAnimation { viewModel.selectedStorageIndex += 1 }
-                    } else if horizontal > 80, viewModel.selectedStorageIndex > 0 {
-                        withAnimation { viewModel.selectedStorageIndex -= 1 }
+                    guard let currentIndex = viewModel.selectedStorageIndex else { return }
+                    if horizontal < -80, currentIndex < viewModel.storages.count - 1 {
+                        withAnimation { viewModel.selectedStorageId = viewModel.storages[currentIndex + 1].id }
+                    } else if horizontal > 80, currentIndex > 0 {
+                        withAnimation { viewModel.selectedStorageId = viewModel.storages[currentIndex - 1].id }
                     }
                 }
         )
@@ -363,9 +343,8 @@ struct StorageMainView: View {
                     .padding(.horizontal, 18)
                     .padding(.vertical, 20)
                 } else {
-                    // 구분선
                     Rectangle()
-                        .fill(Color(red: 0.95, green: 0.95, blue: 0.96))
+                        .fill(Color.slate100)
                         .frame(height: 1)
                         .padding(.leading, 18)
 
@@ -389,7 +368,7 @@ struct StorageMainView: View {
 
                             if index < section.items.count - 1 {
                                 Rectangle()
-                                    .fill(Color(red: 0.95, green: 0.95, blue: 0.96))
+                                    .fill(Color.slate100)
                                     .frame(height: 1)
                                     .padding(.leading, 82)
                             }
@@ -402,7 +381,6 @@ struct StorageMainView: View {
         .cornerRadius(16)
         .shadow(color: .black.opacity(0.04), radius: 8, y: 2)
         .overlay(alignment: .leading) {
-            // 좌측 액센트 바
             UnevenRoundedRectangle(
                 topLeadingRadius: 16,
                 bottomLeadingRadius: collapsedSections.contains(section.id) ? 16 : (section.items.isEmpty ? 16 : 0),

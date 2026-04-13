@@ -20,7 +20,7 @@ struct StorageSection: Codable, Identifiable {
 struct StorageItem: Codable, Identifiable {
     let id: Int
     let name: String
-    let quantity: Int
+    var quantity: Int
     let expiryDate: String?
     let category: String?
     let createdBy: Int
