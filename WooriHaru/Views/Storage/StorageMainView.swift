@@ -309,7 +309,7 @@ struct StorageMainView: View {
                 .onEnded { value in
                     let horizontal = value.translation.width
                     let vertical = value.translation.height
-                    guard abs(horizontal) > abs(vertical) * 2.5, abs(vertical) < 50 else { return }
+                    guard draggingSectionId == nil, draggingStorageId == nil, abs(horizontal) > abs(vertical) * 2.5, abs(vertical) < 50 else { return }
                     guard let currentIndex = viewModel.selectedStorageIndex else { return }
                     if horizontal < -80, currentIndex < viewModel.storages.count - 1 {
                         withAnimation { viewModel.selectedStorageId = viewModel.storages[currentIndex + 1].id }
@@ -404,7 +404,44 @@ struct StorageMainView: View {
     }
 
     private func sectionHeader(_ section: StorageSection, dotIndex: Int, accentColor: Color) -> some View {
-        Button {
+        HStack(spacing: 10) {
+            Text(section.name)
+                .font(.subheadline)
+                .fontWeight(.bold)
+                .foregroundStyle(Color.slate700)
+
+            Text("\(section.items.count)")
+                .font(.caption2)
+                .fontWeight(.bold)
+                .foregroundStyle(accentColor)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(accentColor.opacity(0.1))
+                .cornerRadius(8)
+
+            Spacer()
+
+            Button {
+                viewModel.prepareAddItem(sectionId: section.id)
+            } label: {
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 20))
+                    .foregroundStyle(accentColor.opacity(0.6))
+                    .frame(width: 36, height: 36)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            Image(systemName: collapsedSections.contains(section.id) ? "chevron.right" : "chevron.down")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(Color.slate300)
+                .frame(width: 28, height: 36)
+                .contentShape(Rectangle())
+        }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 14)
+        .contentShape(Rectangle())
+        .onTapGesture {
             withAnimation(.easeInOut(duration: 0.2)) {
                 if collapsedSections.contains(section.id) {
                     collapsedSections.remove(section.id)
@@ -412,45 +449,7 @@ struct StorageMainView: View {
                     collapsedSections.insert(section.id)
                 }
             }
-        } label: {
-            HStack(spacing: 10) {
-                Text(section.name)
-                    .font(.subheadline)
-                    .fontWeight(.bold)
-                    .foregroundStyle(Color.slate700)
-
-                Text("\(section.items.count)")
-                    .font(.caption2)
-                    .fontWeight(.bold)
-                    .foregroundStyle(accentColor)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(accentColor.opacity(0.1))
-                    .cornerRadius(8)
-
-                Spacer()
-
-                Button {
-                    viewModel.prepareAddItem(sectionId: section.id)
-                } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 20))
-                        .foregroundStyle(accentColor.opacity(0.6))
-                        .frame(width: 36, height: 36)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-
-                Image(systemName: collapsedSections.contains(section.id) ? "chevron.right" : "chevron.down")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(Color.slate300)
-                    .frame(width: 28, height: 36)
-                    .contentShape(Rectangle())
-            }
-            .padding(.horizontal, 18)
-            .padding(.vertical, 14)
         }
-        .buttonStyle(.plain)
         .contextMenu {
             Button {
                 renamingSectionId = section.id

@@ -103,6 +103,7 @@ final class StorageViewModel {
     // MARK: - Load
 
     func loadStorages() async {
+        guard !isLoading else { return }
         isLoading = true
         defer { isLoading = false }
         errorMessage = nil
