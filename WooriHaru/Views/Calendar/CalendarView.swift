@@ -214,6 +214,8 @@ struct CalendarView: View {
                                 }
                             }
                             .coordinateSpace(name: "calendarScroll")
+                            .scrollDismissesKeyboard(.immediately)
+                            .ignoresSafeArea(.keyboard)
                             .stopScroll(when: showPicker)
                             .onPreferenceChange(VisibleMonthFrameKey.self, perform: updateVisibleMonth)
                             .onAppear { scrollProxy = proxy }
@@ -294,7 +296,6 @@ struct CalendarView: View {
                     }
                 }
             }
-            .ignoresSafeArea(.keyboard)
             .simultaneousGesture(
                 calendarVM.isDrawerOpen ? nil :
                 DragGesture()
