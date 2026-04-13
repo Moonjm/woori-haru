@@ -33,7 +33,7 @@ enum ItemGroup: String, CaseIterable, Identifiable {
         case .vegetable: "채소"
         case .fruit: "과일"
         case .meat: "정육"
-        case .egg: "계란"
+        case .egg: "식재료"
         case .seafood: "수산물"
         case .dairy: "유제품"
         case .grain: "쌀/잡곡"
@@ -95,6 +95,9 @@ enum ItemCategory: String, CaseIterable, Identifiable {
 
     // 계란
     case egg = "egg"
+
+    // 두부/콩
+    case tofu = "tofu"
 
     // 수산물
     case seafoodFish = "seafood_fish"
@@ -236,6 +239,7 @@ enum ItemCategory: String, CaseIterable, Identifiable {
         case .meatChicken: "닭/오리"
         case .meatBacon: "베이컨/햄"
         case .egg: "계란"
+        case .tofu: "두부/콩"
         case .seafoodFish: "생선"
         case .seafoodShrimp: "새우"
         case .seafoodCrab: "게/랍스터"
@@ -337,6 +341,7 @@ enum ItemCategory: String, CaseIterable, Identifiable {
         case .meatChicken: "🍗"
         case .meatBacon: "🥓"
         case .egg: "🥚"
+        case .tofu: "🫘"
         case .seafoodFish: "🐟"
         case .seafoodShrimp: "🦐"
         case .seafoodCrab: "🦀"
@@ -422,7 +427,7 @@ enum ItemCategory: String, CaseIterable, Identifiable {
             .fruit
         case .meatBeef, .meatPork, .meatChicken, .meatBacon:
             .meat
-        case .egg:
+        case .egg, .tofu:
             .egg
         case .seafoodFish, .seafoodShrimp, .seafoodCrab, .seafoodShellfish,
              .seafoodSquid, .seafoodSeaweed:

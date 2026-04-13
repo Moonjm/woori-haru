@@ -304,6 +304,9 @@ struct StorageMainView: View {
                 .padding(14)
             }
         }
+        .refreshable {
+            await viewModel.loadStorages()
+        }
         .simultaneousGesture(
             DragGesture(minimumDistance: 80)
                 .onEnded { value in
