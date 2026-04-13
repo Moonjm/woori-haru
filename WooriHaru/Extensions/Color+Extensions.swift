@@ -5,6 +5,7 @@ extension Color {
     static let slate50 = Color(red: 0.973, green: 0.980, blue: 0.988)
     static let slate100 = Color(red: 0.945, green: 0.961, blue: 0.976)
     static let slate200 = Color(red: 0.886, green: 0.910, blue: 0.941)
+    static let slate300 = Color(red: 0.796, green: 0.835, blue: 0.882)
     static let slate400 = Color(red: 0.580, green: 0.639, blue: 0.718)
     static let slate500 = Color(red: 0.392, green: 0.455, blue: 0.545)
     static let slate600 = Color(red: 0.278, green: 0.333, blue: 0.412)
@@ -22,19 +23,26 @@ extension Color {
     // MARK: - Red
     static let red400 = Color(red: 0.969, green: 0.447, blue: 0.447)
     static let red500 = Color(red: 0.937, green: 0.267, blue: 0.267)
+    static let red600 = Color(red: 0.863, green: 0.149, blue: 0.149)
 
-    // MARK: - Green (과식 MILD)
+    // MARK: - Green
     static let green100 = Color(red: 0.863, green: 0.988, blue: 0.906)
     static let green300 = Color(red: 0.525, green: 0.937, blue: 0.675)
+    static let green600 = Color(red: 0.129, green: 0.627, blue: 0.325)
     static let green700 = Color(red: 0.082, green: 0.533, blue: 0.243)
 
-    // MARK: - Orange (과식 MODERATE)
+    // MARK: - Orange
+    static let orange100 = Color(red: 1.0, green: 0.929, blue: 0.835)
     static let orange200 = Color(red: 0.996, green: 0.867, blue: 0.667)
     static let orange300 = Color(red: 0.992, green: 0.788, blue: 0.463)
+    static let orange500 = Color(red: 0.961, green: 0.580, blue: 0.118)
     static let orange700 = Color(red: 0.769, green: 0.365, blue: 0.039)
 
-    // MARK: - Purple (과식 EXTREME)
+    // MARK: - Purple
+    static let purple50 = Color(red: 0.960, green: 0.953, blue: 0.980)
+    static let purple100 = Color(red: 0.941, green: 0.933, blue: 0.965)
     static let purple200 = Color(red: 0.863, green: 0.808, blue: 0.980)
     static let purple400 = Color(red: 0.647, green: 0.514, blue: 0.941)
+    static let purple500 = Color(red: 0.486, green: 0.361, blue: 0.878)
     static let purple800 = Color(red: 0.345, green: 0.153, blue: 0.659)
 }
