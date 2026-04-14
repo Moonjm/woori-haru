@@ -8,12 +8,8 @@ struct RecordSheetView: View {
     let onDismiss: () -> Void
 
     @State private var dragOffset: CGFloat = 0
-    @State private var keyboardVisible = false
     @State private var recordToDelete: DailyRecord?
-
-    private func hideKeyboard() {
-        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-    }
+    @FocusState private var memoFocused: Bool
 
     var body: some View {
         VStack(spacing: 0) {
@@ -47,7 +43,7 @@ struct RecordSheetView: View {
             .padding(.top, 12)
             .padding(.bottom, 14)
             .contentShape(Rectangle())
-            .onTapGesture { hideKeyboard() }
+            .onTapGesture { memoFocused = false }
 
             // Scrollable content
             if viewModel.isLoading {
@@ -82,7 +78,7 @@ struct RecordSheetView: View {
                             .padding(.horizontal, 16)
                             .padding(.top, 14)
 
-                            RecordFormView(viewModel: viewModel, onSave: onChanged)
+                            RecordFormView(viewModel: viewModel, memoFocused: $memoFocused, onSave: onChanged)
                                 .padding(.horizontal, 16)
                                 .padding(.top, 12)
                                 .id("recordForm")
@@ -97,17 +93,14 @@ struct RecordSheetView: View {
                         .padding(.bottom, 34)
                         .background {
                             Color.white.opacity(0.001)
-                                .onTapGesture { hideKeyboard() }
+                                .onTapGesture { memoFocused = false }
                         }
                     }
-                    .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
-                        keyboardVisible = true
+                    .onChange(of: memoFocused) { _, focused in
+                        guard focused else { return }
                         withAnimation(.easeOut(duration: 0.25)) {
                             proxy.scrollTo("recordForm", anchor: .bottom)
                         }
-                    }
-                    .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
-                        keyboardVisible = false
                     }
                 }
             }
