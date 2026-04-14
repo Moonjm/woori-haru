@@ -361,12 +361,20 @@ final class StorageViewModel {
         )
         quantityTasks[itemId] = Task { [weak self] in
             guard let self else { return }
-            defer { self.quantityTasks.removeValue(forKey: itemId) }
+            defer {
+                // 외부에서 취소된 경우 맵은 이미 새 Task로 교체됐으므로 건드리지 않는다.
+                // 정상 완료/비취소 에러 시에만 자기 엔트리를 제거.
+                if !Task.isCancelled {
+                    self.quantityTasks.removeValue(forKey: itemId)
+                }
+            }
             do {
                 try await self.service.updateItem(storageId: storageId, itemId: itemId, request: request)
             } catch is CancellationError {
-                // 더 새로운 요청이 시작됨 — 롤백 불필요
+                // 더 새로운 요청이 시작됨 — 롤백/에러 표시 불필요
             } catch {
+                // 실제 실패일 때만 롤백
+                guard !Task.isCancelled else { return }
                 await self.loadStorages()
                 self.errorMessage = "수량 변경에 실패했습니다."
             }
