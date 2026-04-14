@@ -4,7 +4,11 @@ struct MonthGridView: View {
     let monthData: MonthData
     let onSelectDate: (Date) -> Void
 
-    static let cellHeight: CGFloat = 120
+    /// 기본 셀 높이(default size category) — CalendarView.monthTotalHeight 계산의 기준.
+    /// 이 값이 바뀌면 CalendarView의 `monthCellHeight` 기본값도 자동으로 따라온다.
+    static let cellHeightBase: CGFloat = 120
+
+    @ScaledMetric(relativeTo: .body) private var cellHeight: CGFloat = MonthGridView.cellHeightBase
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 0), count: 7)
 
     var body: some View {
@@ -25,14 +29,14 @@ struct MonthGridView: View {
                     isCurrentMonth: cell.isCurrentMonth,
                     onTap: { onSelectDate(cell.date) }
                 )
-                .frame(height: Self.cellHeight)
+                .frame(height: cellHeight)
             }
         }
         .background(.white)
         .overlay {
             GridLinesOverlay(
                 rows: monthData.cells.count / 7,
-                cellHeight: Self.cellHeight
+                cellHeight: cellHeight
             )
         }
     }
