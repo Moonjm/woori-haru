@@ -258,9 +258,11 @@ struct CalendarView: View {
 
                         ScrollViewReader { proxy in
                             ScrollView {
+                                // LazyVStack 바깥/ScrollView 내부에 배치 — 가상화로 deinit 되지 않고
+                                // ScrollView와 생명주기를 공유하면서 UIScrollView ancestor walk도 성공한다.
+                                LockScrollOffsetHelper(active: showSheet)
+                                    .frame(width: 0, height: 0)
                                 LazyVStack(spacing: 0) {
-                                    LockScrollOffsetHelper(active: showSheet)
-                                        .frame(width: 0, height: 0)
                                     ForEach(calendarVM.months) { monthData in
                                         VStack(spacing: 0) {
                                             Text(verbatim: "\(monthData.year)년 \(monthData.month)월")
