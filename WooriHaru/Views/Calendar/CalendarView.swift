@@ -37,6 +37,64 @@ private extension View {
     }
 }
 
+// MARK: - ContentOffset 잠금 헬퍼
+// 시트/키보드로 인한 UIScrollView의 contentOffset/Inset 자동 조정을 차단한다.
+// active=true 동안 현재 offset을 유지시키고 UIKit의 모든 조정을 복원한다.
+
+private struct LockScrollOffsetHelper: UIViewRepresentable {
+    let active: Bool
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+    func makeUIView(context: Context) -> UIView { UIView() }
+
+    func updateUIView(_ uiView: UIView, context: Context) {
+        if context.coordinator.scrollView == nil {
+            var current: UIView? = uiView
+            while let v = current {
+                if let sv = v as? UIScrollView {
+                    context.coordinator.scrollView = sv
+                    break
+                }
+                current = v.superview
+            }
+        }
+        context.coordinator.setActive(active)
+    }
+
+    final class Coordinator: NSObject {
+        weak var scrollView: UIScrollView?
+        private var lockedOffset: CGPoint?
+        private var offsetKVO: NSKeyValueObservation?
+        private var isActive = false
+
+        func setActive(_ active: Bool) {
+            guard active != isActive else { return }
+            isActive = active
+            if active { lock() } else { unlock() }
+        }
+
+        private func lock() {
+            guard let sv = scrollView else { return }
+            lockedOffset = sv.contentOffset
+            offsetKVO = sv.observe(\.contentOffset, options: [.new]) { [weak self] sv, change in
+                // 사용자 드래그 중이거나 감속 중엔 간섭하지 않음
+                guard let self, let locked = self.lockedOffset,
+                      !sv.isDragging, !sv.isDecelerating,
+                      let new = change.newValue, new != locked else { return }
+                sv.setContentOffset(locked, animated: false)
+            }
+        }
+
+        private func unlock() {
+            offsetKVO?.invalidate()
+            offsetKVO = nil
+            lockedOffset = nil
+        }
+
+        deinit { unlock() }
+    }
+}
+
 private struct VisibleMonthFrame: Equatable {
     let id: String
     let minY: CGFloat
@@ -76,6 +134,12 @@ struct CalendarView: View {
     private static let sheetAnimationDuration: Double = 0.25
     private static let scrollIdleDelayMs: Int = 300
     private static let dataLoadDelayMs: Int = 200
+    private static let monthHeaderHeight: CGFloat = 28
+
+    private static func monthTotalHeight(_ monthData: MonthData) -> CGFloat {
+        let rows = monthData.cells.count / 7
+        return monthHeaderHeight + CGFloat(rows) * MonthGridView.cellHeight
+    }
 
     private static func makeTodayMonthId() -> String {
         let today = Date()
@@ -174,6 +238,8 @@ struct CalendarView: View {
                         ScrollViewReader { proxy in
                             ScrollView {
                                 LazyVStack(spacing: 0) {
+                                    LockScrollOffsetHelper(active: showSheet)
+                                        .frame(width: 0, height: 0)
                                     ForEach(calendarVM.months) { monthData in
                                         VStack(spacing: 0) {
                                             Text(verbatim: "\(monthData.year)년 \(monthData.month)월")
@@ -182,7 +248,7 @@ struct CalendarView: View {
                                                 .foregroundStyle(Color.slate400)
                                                 .frame(maxWidth: .infinity, alignment: .leading)
                                                 .padding(.horizontal, 16)
-                                                .padding(.vertical, 6)
+                                                .frame(height: Self.monthHeaderHeight)
                                                 .background(.white.opacity(0.95))
                                             MonthGridView(
                                                 monthData: monthData,
@@ -195,6 +261,9 @@ struct CalendarView: View {
                                                 }
                                             )
                                         }
+                                        // LazyVStack의 contentSize drift 방지 — 월별 정확한 높이를 명시해
+                                        // 시트/키보드 레이아웃 패스 때 off-screen 셀 높이 재추정을 차단한다.
+                                        .frame(height: Self.monthTotalHeight(monthData))
                                         .background {
                                             GeometryReader { geo in
                                                 Color.clear.preference(

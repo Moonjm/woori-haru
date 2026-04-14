@@ -4,7 +4,7 @@ struct MonthGridView: View {
     let monthData: MonthData
     let onSelectDate: (Date) -> Void
 
-    private static let cellHeight: CGFloat = 120
+    static let cellHeight: CGFloat = 120
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 0), count: 7)
 
     var body: some View {
