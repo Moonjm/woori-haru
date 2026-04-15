@@ -2,6 +2,11 @@ import Foundation
 import Observation
 import os
 
+/// deinit(비격리)에서도 접근 가능하도록 observer를 감싸는 박스.
+private final class ObserverBox: @unchecked Sendable {
+    var observer: (any NSObjectProtocol)?
+}
+
 @MainActor
 @Observable
 final class AuthViewModel {
@@ -11,10 +16,10 @@ final class AuthViewModel {
     var errorMessage: String?
 
     private let authService = AuthService()
-    private var sessionExpiredObserver: Any?
+    private let observerBox = ObserverBox()
 
     init() {
-        sessionExpiredObserver = NotificationCenter.default.addObserver(
+        observerBox.observer = NotificationCenter.default.addObserver(
             forName: .sessionExpired,
             object: nil,
             queue: .main
@@ -24,6 +29,12 @@ final class AuthViewModel {
                 self.user = nil
                 self.isLoggedIn = false
             }
+        }
+    }
+
+    deinit {
+        if let observer = observerBox.observer {
+            NotificationCenter.default.removeObserver(observer)
         }
     }
 

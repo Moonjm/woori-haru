@@ -358,13 +358,13 @@ struct StorageMainView: View {
                                 sectionId: section.id,
                                 onTap: { viewModel.prepareEditItem(item, sectionId: section.id) },
                                 onIncrement: {
-                                    Task { await viewModel.updateItemQuantity(item, sectionId: section.id, delta: 1) }
+                                    viewModel.updateItemQuantity(item, sectionId: section.id, delta: 1)
                                 },
                                 onDecrement: {
                                     if item.quantity <= 1 {
                                         deleteItemTarget = (itemId: item.id, name: item.name)
                                     } else {
-                                        Task { await viewModel.updateItemQuantity(item, sectionId: section.id, delta: -1) }
+                                        viewModel.updateItemQuantity(item, sectionId: section.id, delta: -1)
                                     }
                                 }
                             )

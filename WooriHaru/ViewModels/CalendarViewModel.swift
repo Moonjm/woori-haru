@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import os
 
 // MARK: - MonthData
 
@@ -228,7 +229,7 @@ final class CalendarViewModel {
                 try await self.loadMonthData(monthData)
                 self.dataLoadedMonths.insert(yearMonth)
             } catch {
-                print("[CalendarVM] Failed to refresh \(yearMonth): \(error.localizedDescription)")
+                Logger.calendar.error("Failed to refresh \(yearMonth): \(error.localizedDescription)")
             }
             self.inFlightMonths.removeValue(forKey: yearMonth)
         }
@@ -358,7 +359,7 @@ final class CalendarViewModel {
                 overeatBatch[item.date] = item.overeatLevel
             }
         } catch {
-            print("[CalendarVM] Failed to fetch overeats for \(monthData.id): \(error.localizedDescription)")
+            Logger.calendar.error("Failed to fetch overeats for \(monthData.id): \(error.localizedDescription)")
         }
 
         let year = monthData.year
@@ -374,7 +375,7 @@ final class CalendarViewModel {
                 }
                 loadedHolidayYears.insert(year)
             } catch {
-                print("[CalendarVM] Failed to fetch holidays for \(yearStr): \(error.localizedDescription)")
+                Logger.calendar.error("Failed to fetch holidays for \(yearStr): \(error.localizedDescription)")
             }
             inFlightHolidayYears.remove(year)
         }
@@ -392,7 +393,7 @@ final class CalendarViewModel {
                     }
                 }
             } catch {
-                print("[CalendarVM] Failed to fetch partner records: \(error.localizedDescription)")
+                Logger.calendar.error("Failed to fetch partner records: \(error.localizedDescription)")
             }
 
             do {
@@ -411,7 +412,7 @@ final class CalendarViewModel {
                     }
                 }
             } catch {
-                print("[CalendarVM] Failed to fetch pair events: \(error.localizedDescription)")
+                Logger.calendar.error("Failed to fetch pair events: \(error.localizedDescription)")
             }
         }
 

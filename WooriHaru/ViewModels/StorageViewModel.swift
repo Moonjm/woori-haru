@@ -40,6 +40,10 @@ final class StorageViewModel {
 
     private let service = StorageService()
 
+    // 품목별 수량 업데이트 태스크 — 연타 시 이전 네트워크 요청을 취소해
+    // 응답 순서 뒤바뀜으로 인한 서버 상태 어긋남을 방지한다.
+    private var quantityTasks: [Int: Task<Void, Never>] = [:]
+
     // MARK: - Computed
 
     var selectedStorageIndex: Int? {
@@ -125,6 +129,7 @@ final class StorageViewModel {
     // MARK: - Storage CRUD
 
     func createStorage() async {
+        guard !isMutating else { return }
         let name = storageFormName.trimmingCharacters(in: .whitespaces)
         guard !name.isEmpty else { return }
         isMutating = true
@@ -143,7 +148,7 @@ final class StorageViewModel {
     }
 
     func updateStorage(name: String, storageType: String?) async {
-        guard let storage = selectedStorage, !name.isEmpty else { return }
+        guard !isMutating, let storage = selectedStorage, !name.isEmpty else { return }
         isMutating = true
         defer { isMutating = false }
         do {
@@ -157,7 +162,7 @@ final class StorageViewModel {
     }
 
     func deleteStorage() async {
-        guard let storage = selectedStorage else { return }
+        guard !isMutating, let storage = selectedStorage else { return }
         isMutating = true
         defer { isMutating = false }
         do {
@@ -174,7 +179,7 @@ final class StorageViewModel {
     // MARK: - Section CRUD
 
     func createSection() async {
-        guard let storage = selectedStorage else { return }
+        guard !isMutating, let storage = selectedStorage else { return }
         let name = newSectionName.trimmingCharacters(in: .whitespaces)
         guard !name.isEmpty else { return }
         isMutating = true
@@ -191,7 +196,9 @@ final class StorageViewModel {
     }
 
     func updateSectionName() async {
-        guard let storage = selectedStorage, let section = editingSectionForRename else { return }
+        guard !isMutating,
+              let storage = selectedStorage,
+              let section = editingSectionForRename else { return }
         let name = sectionRenameName.trimmingCharacters(in: .whitespaces)
         guard !name.isEmpty else { return }
         isMutating = true
@@ -209,7 +216,7 @@ final class StorageViewModel {
     }
 
     func deleteSection(_ sectionId: Int) async {
-        guard let storage = selectedStorage else { return }
+        guard !isMutating, let storage = selectedStorage else { return }
         isMutating = true
         defer { isMutating = false }
         do {
@@ -295,7 +302,9 @@ final class StorageViewModel {
     }
 
     func saveItem() async {
-        guard let storage = selectedStorage, let sectionId = itemFormSectionId else { return }
+        guard !isMutating,
+              let storage = selectedStorage,
+              let sectionId = itemFormSectionId else { return }
         let name = itemFormName.trimmingCharacters(in: .whitespaces)
         guard !name.isEmpty else { return }
         isMutating = true
@@ -322,37 +331,58 @@ final class StorageViewModel {
         }
     }
 
-    func updateItemQuantity(_ item: StorageItem, sectionId: Int, delta: Int) async {
+    /// 수량 증감. 연타 시 이전 네트워크 요청은 취소하고 최신 상태만 서버에 반영.
+    /// 파라미터 `item`의 quantity 스냅샷이 아닌 현재 storages 상태에서 읽어 누산 오류를 방지한다.
+    func updateItemQuantity(_ item: StorageItem, sectionId: Int, delta: Int) {
         guard let storage = selectedStorage,
-              let storageIdx = selectedStorageIndex else { return }
-        let newQuantity = item.quantity + delta
-        if newQuantity <= 0 { return }
+              let storageIdx = selectedStorageIndex,
+              let sectionIdx = storages[storageIdx].sections.firstIndex(where: { $0.id == sectionId }),
+              let itemIdx = storages[storageIdx].sections[sectionIdx].items.firstIndex(where: { $0.id == item.id })
+        else { return }
 
-        // Optimistic local update
-        if let sectionIdx = storages[storageIdx].sections.firstIndex(where: { $0.id == sectionId }),
-           let itemIdx = storages[storageIdx].sections[sectionIdx].items.firstIndex(where: { $0.id == item.id }) {
-            storages[storageIdx].sections[sectionIdx].items[itemIdx].quantity = newQuantity
-            updateExpiringItems()
-        }
+        let current = storages[storageIdx].sections[sectionIdx].items[itemIdx]
+        let newQuantity = current.quantity + delta
+        guard newQuantity > 0 else { return }
 
+        // 낙관적 로컬 업데이트 (MainActor 동기 — 연속 탭 시 값이 바르게 누적됨)
+        storages[storageIdx].sections[sectionIdx].items[itemIdx].quantity = newQuantity
+        updateExpiringItems()
+
+        // 직전 태스크 취소 — 응답 순서 역전으로 서버 상태가 어긋나는 문제 방지
+        quantityTasks[item.id]?.cancel()
+        let storageId = storage.id
+        let itemId = item.id
         let request = ItemRequest(
-            name: item.name,
+            name: current.name,
             quantity: newQuantity,
-            expiryDate: item.expiryDate,
-            category: item.category,
+            expiryDate: current.expiryDate,
+            category: current.category,
             sectionId: sectionId
         )
-        do {
-            try await service.updateItem(storageId: storage.id, itemId: item.id, request: request)
-        } catch {
-            // Rollback on failure
-            await loadStorages()
-            errorMessage = "수량 변경에 실패했습니다."
+        quantityTasks[itemId] = Task { [weak self] in
+            guard let self else { return }
+            defer {
+                // 외부에서 취소된 경우 맵은 이미 새 Task로 교체됐으므로 건드리지 않는다.
+                // 정상 완료/비취소 에러 시에만 자기 엔트리를 제거.
+                if !Task.isCancelled {
+                    self.quantityTasks.removeValue(forKey: itemId)
+                }
+            }
+            do {
+                try await self.service.updateItem(storageId: storageId, itemId: itemId, request: request)
+            } catch is CancellationError {
+                // 더 새로운 요청이 시작됨 — 롤백/에러 표시 불필요
+            } catch {
+                // 실제 실패일 때만 롤백
+                guard !Task.isCancelled else { return }
+                await self.loadStorages()
+                self.errorMessage = "수량 변경에 실패했습니다."
+            }
         }
     }
 
     func deleteItem(_ itemId: Int) async {
-        guard let storage = selectedStorage else { return }
+        guard !isMutating, let storage = selectedStorage else { return }
         isMutating = true
         defer { isMutating = false }
         do {
