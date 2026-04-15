@@ -9,6 +9,7 @@ struct RecordSheetView: View {
 
     @State private var dragOffset: CGFloat = 0
     @State private var recordToDelete: DailyRecord?
+    @State private var keyboardHeight: CGFloat = 0
     @FocusState private var memoFocused: Bool
 
     var body: some View {
@@ -90,16 +91,32 @@ struct RecordSheetView: View {
                                     .padding(.top, 8)
                             }
                         }
-                        .padding(.bottom, 34)
+                        // 키보드 나왔을 때 저장 버튼까지 가시 영역 위로 올라오도록
+                        // 실제 키보드 높이만큼 하단 여백을 추가해 스크롤 가능 범위를 확장.
+                        .padding(.bottom, 34 + keyboardHeight)
                         .background {
                             Color.white.opacity(0.001)
                                 .onTapGesture { memoFocused = false }
                         }
                     }
-                    .onChange(of: memoFocused) { _, focused in
-                        guard focused else { return }
+                    .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { note in
+                        guard let frame = note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
+                        // 패딩만 먼저 애니메이트 — SwiftUI 자동 TextField 가시화와 충돌하지 않도록
+                        // scrollTo는 여기서 호출하지 않는다.
+                        withAnimation(.easeOut(duration: 0.25)) {
+                            keyboardHeight = frame.height
+                        }
+                    }
+                    .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidShowNotification)) { _ in
+                        // 키보드가 완전히 떠서 ScrollView 가시 영역이 최종 크기로 정착한 뒤
+                        // 저장 버튼까지 보이도록 한 번만 부드럽게 스크롤.
                         withAnimation(.easeOut(duration: 0.25)) {
                             proxy.scrollTo("recordForm", anchor: .bottom)
+                        }
+                    }
+                    .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+                        withAnimation(.easeOut(duration: 0.25)) {
+                            keyboardHeight = 0
                         }
                     }
                 }
