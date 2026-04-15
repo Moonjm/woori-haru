@@ -188,6 +188,10 @@ final class APIClient: APIClientProtocol, Sendable {
         let (data, response): (Data, URLResponse)
         do {
             (data, response) = try await session.data(for: request)
+        } catch let error as URLError where error.code == .cancelled {
+            // Task 취소로 인한 URLSession 취소는 Swift 표준 CancellationError로 변환
+            // 호출자가 `catch is CancellationError`로 일관되게 처리 가능
+            throw CancellationError()
         } catch {
             throw APIError.networkError(error)
         }

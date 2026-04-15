@@ -4,6 +4,7 @@ struct RecordFormView: View {
     @Bindable var viewModel: RecordViewModel
     @Environment(PairStore.self) private var pairStore
     @Environment(CategoryStore.self) private var categoryStore
+    @FocusState.Binding var memoFocused: Bool
     var onSave: () -> Void = {}
 
     var body: some View {
@@ -40,6 +41,7 @@ struct RecordFormView: View {
             HStack(spacing: 8) {
                 TextField("메모 (최대 20자)", text: $viewModel.memo)
                     .font(.subheadline)
+                    .focused($memoFocused)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 10)
                     .background {
