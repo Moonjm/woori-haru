@@ -10,7 +10,14 @@ struct RecordSheetView: View {
     @State private var dragOffset: CGFloat = 0
     @State private var recordToDelete: DailyRecord?
     @State private var keyboardHeight: CGFloat = 0
+    @State private var didScrollForKeyboard = false
     @FocusState private var memoFocused: Bool
+
+    /// 키보드 노티 userInfo에서 애니메이션 duration 추출 (기본 0.25s).
+    /// iOS의 실제 키보드 커브와 싱크를 맞춰 padding/scroll이 어긋나 보이지 않도록.
+    private func keyboardAnimationDuration(from note: Notification) -> Double {
+        (note.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double) ?? 0.25
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -101,21 +108,27 @@ struct RecordSheetView: View {
                     }
                     .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { note in
                         guard let frame = note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
+                        // iPad/HW 키보드의 예측 바(~55pt)만 뜨는 경우엔 무시
+                        guard frame.height > 100 else { return }
                         // 패딩만 먼저 애니메이트 — SwiftUI 자동 TextField 가시화와 충돌하지 않도록
                         // scrollTo는 여기서 호출하지 않는다.
-                        withAnimation(.easeOut(duration: 0.25)) {
+                        withAnimation(.easeOut(duration: keyboardAnimationDuration(from: note))) {
                             keyboardHeight = frame.height
                         }
                     }
-                    .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidShowNotification)) { _ in
-                        // 키보드가 완전히 떠서 ScrollView 가시 영역이 최종 크기로 정착한 뒤
-                        // 저장 버튼까지 보이도록 한 번만 부드럽게 스크롤.
-                        withAnimation(.easeOut(duration: 0.25)) {
+                    .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidShowNotification)) { note in
+                        // 같은 키보드 세션 내에서 예측 바/언어 전환 등으로 여러 번 발화할 수 있음.
+                        // 사용자가 스크롤해서 다른 기록을 읽는 중 강제로 form으로 끌어오지 않도록
+                        // 키보드 세션당 한 번만 scrollTo.
+                        guard !didScrollForKeyboard else { return }
+                        didScrollForKeyboard = true
+                        withAnimation(.easeOut(duration: keyboardAnimationDuration(from: note))) {
                             proxy.scrollTo("recordForm", anchor: .bottom)
                         }
                     }
-                    .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
-                        withAnimation(.easeOut(duration: 0.25)) {
+                    .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { note in
+                        didScrollForKeyboard = false
+                        withAnimation(.easeOut(duration: keyboardAnimationDuration(from: note))) {
                             keyboardHeight = 0
                         }
                     }
