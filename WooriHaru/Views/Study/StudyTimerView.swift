@@ -1,6 +1,8 @@
 import SwiftUI
 
 private let narrowProgressThreshold = 0.11
+private let progressBarHeight: CGFloat = 28
+private let progressBarCornerRadius: CGFloat = 12
 
 struct StudyTimerView: View {
     @Environment(StudyTimerViewModel.self) private var vm
@@ -396,7 +398,7 @@ struct StudyTimerView: View {
             let barWidth = geo.size.width * progressClamped
             let isNarrow = progressClamped < narrowProgressThreshold
             ZStack(alignment: .leading) {
-                Color.slate100
+                Rectangle().fill(Color.slate100)
                 if barWidth > 0 {
                     Rectangle()
                         .fill(progress >= 1.0 ? Color.green300 : Color.blue400)
@@ -417,10 +419,10 @@ struct StudyTimerView: View {
                         .offset(x: barWidth + 8)
                 }
             }
-            .frame(height: 28)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .frame(height: progressBarHeight)
+            .clipShape(RoundedRectangle(cornerRadius: progressBarCornerRadius))
         }
-        .frame(height: 28)
+        .frame(height: progressBarHeight)
     }
 
     private func subjectChip(_ subject: StudySubject) -> some View {
