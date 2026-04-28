@@ -396,13 +396,11 @@ struct StudyTimerView: View {
             let barWidth = geo.size.width * progressClamped
             let isNarrow = progressClamped < narrowProgressThreshold
             ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.slate100)
-                    .frame(height: 28)
+                Color.slate100
                 if barWidth > 0 {
-                    RoundedRectangle(cornerRadius: 12)
+                    Rectangle()
                         .fill(progress >= 1.0 ? Color.green300 : Color.blue400)
-                        .frame(width: barWidth, height: 28)
+                        .frame(width: barWidth)
                         .overlay {
                             if !isNarrow {
                                 Text(percentText)
@@ -419,6 +417,8 @@ struct StudyTimerView: View {
                         .offset(x: barWidth + 8)
                 }
             }
+            .frame(height: 28)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
         }
         .frame(height: 28)
     }
