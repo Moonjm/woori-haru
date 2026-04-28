@@ -105,11 +105,17 @@ final class StudyTimerViewModel {
     }
 
     var weeklyGoalFormatted: String {
-        "목표 \(Self.weeklyGoalMinutes / 60)시간"
+        let h = Self.weeklyGoalMinutes / 60
+        let m = Self.weeklyGoalMinutes % 60
+        if h > 0 {
+            return m > 0 ? "목표 \(h)시간 \(m)분" : "목표 \(h)시간"
+        }
+        return "목표 \(m)분"
     }
 
     var weeklyGoalProgress: Double {
         let goalSeconds = Self.weeklyGoalMinutes * 60
+        guard goalSeconds > 0 else { return 0 }
         return Double(weeklyTotalActualSeconds) / Double(goalSeconds)
     }
 
