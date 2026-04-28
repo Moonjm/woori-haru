@@ -8,7 +8,6 @@ struct StudyTimerView: View {
     @Environment(PauseTypeStore.self) private var pauseTypeStore
     @Environment(\.scenePhase) private var scenePhase
     @FocusState private var isAlarmFieldFocused: Bool
-    @FocusState private var isGoalFieldFocused: Bool
     @State private var selectedSegmentKey: String?
     @State private var showEarlyPauseConfirm = false
     @State private var showEarlyEndConfirm = false
@@ -19,7 +18,6 @@ struct StudyTimerView: View {
             VStack(spacing: 20) {
                 timerCard
                 todaySummaryCard
-                dailyGoalCard
                 weeklyGoalCard
                 todayTimelineSection
                 todaySessionsSection
@@ -27,7 +25,7 @@ struct StudyTimerView: View {
             .padding(20)
         }
         .background(Color.slate50)
-        .onTapGesture { isAlarmFieldFocused = false; isGoalFieldFocused = false; selectedSegmentKey = nil }
+        .onTapGesture { isAlarmFieldFocused = false; selectedSegmentKey = nil }
         .navigationTitle("공부 타이머")
         .navigationBarTitleDisplayMode(.inline)
         .task { @MainActor in
@@ -35,10 +33,9 @@ struct StudyTimerView: View {
             vm.configure(subjectStore: subjectStore, pauseTypeStore: pauseTypeStore)
             async let subjects: () = vm.loadSubjects()
             async let sessions: () = vm.loadTodaySessions()
-            async let goal: () = vm.loadDailyGoal()
             async let weekly: () = vm.loadWeeklySummary()
             async let pauseTypes: () = vm.loadPauseTypes()
-            _ = await (subjects, sessions, goal, weekly, pauseTypes)
+            _ = await (subjects, sessions, weekly, pauseTypes)
             await vm.restoreActiveSession()
         }
         .alert("과목 추가", isPresented: $vm.showAddSubject) {
@@ -360,69 +357,6 @@ struct StudyTimerView: View {
         .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 
-    // MARK: - Daily Goal Card
-
-    private var dailyGoalCard: some View {
-        @Bindable var vm = vm
-        return VStack(spacing: 10) {
-            HStack {
-                Text("오늘 목표")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color.slate700)
-                Spacer()
-                HStack(spacing: 6) {
-                    TextField("0", text: $vm.dailyGoalText)
-                        .keyboardType(.numberPad)
-                        .focused($isGoalFieldFocused)
-                        .font(.caption)
-                        .frame(width: 44)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 4)
-                        .background(Color.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
-                        .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.slate200, lineWidth: 1))
-                    Text("시간")
-                        .font(.caption)
-                        .foregroundStyle(Color.slate500)
-                    Button {
-                        isGoalFieldFocused = false
-                        Task { await vm.saveDailyGoal() }
-                    } label: {
-                        Text("저장")
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Color.blue500)
-                            .clipShape(RoundedRectangle(cornerRadius: 6))
-                    }
-                }
-            }
-
-            goalProgressBar(
-                progress: vm.goalProgress,
-                progressClamped: vm.goalProgressClamped,
-                percentText: vm.goalPercentText
-            )
-
-            HStack {
-                Text(vm.todayTotalFormatted)
-                    .font(.caption)
-                    .foregroundStyle(Color.slate500)
-                Spacer()
-                if let goalText = vm.dailyGoalFormatted {
-                    Text(goalText)
-                        .font(.caption)
-                        .foregroundStyle(Color.slate400)
-                }
-            }
-        }
-        .padding(16)
-        .background(.white)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-    }
-
     // MARK: - Weekly Goal Card
 
     private var weeklyGoalCard: some View {
@@ -445,11 +379,9 @@ struct StudyTimerView: View {
                     .font(.caption)
                     .foregroundStyle(Color.slate500)
                 Spacer()
-                if let goalText = vm.weeklyGoalFormatted {
-                    Text(goalText)
-                        .font(.caption)
-                        .foregroundStyle(Color.slate400)
-                }
+                Text(vm.weeklyGoalFormatted)
+                    .font(.caption)
+                    .foregroundStyle(Color.slate400)
             }
         }
         .padding(16)
