@@ -12,6 +12,9 @@ final class StudyTimerViewModel {
     /// 시작 직후 실수 방지 확인 팝업 기준(초)
     static let earlyConfirmSeconds = 60
 
+    /// 주간 목표 고정값 (50시간)
+    static let weeklyGoalMinutes = 3000
+
 
     // MARK: - State
     var selectedSubject: StudySubject?
@@ -27,12 +30,7 @@ final class StudyTimerViewModel {
     var editingSubject: StudySubject?
     var editSubjectName = ""
 
-    // MARK: - Daily Goal
-    var dailyGoalMinutes: Int = 0
-    var dailyGoalText: String = ""
-
     // MARK: - Weekly Summary
-    var weeklyGoalMinutes: Int = 0
     var weeklyActualMinutes: Int = 0
 
     // MARK: - Pause
@@ -94,34 +92,7 @@ final class StudyTimerViewModel {
         todaySessions.count + (timerState != .idle ? 1 : 0)
     }
 
-    var goalProgress: Double {
-        guard dailyGoalMinutes > 0 else { return 0 }
-        return Double(todayTotalWithCurrentSeconds) / Double(dailyGoalMinutes * 60)
-    }
-
-    var goalProgressClamped: Double {
-        min(goalProgress, 1.0)
-    }
-
-    var goalPercentText: String {
-        "\(Int(goalProgress * 100))%"
-    }
-
-    var dailyGoalFormatted: String? {
-        guard dailyGoalMinutes > 0 else { return nil }
-        let h = dailyGoalMinutes / 60
-        let m = dailyGoalMinutes % 60
-        if h > 0 {
-            return m > 0 ? "목표 \(h)시간 \(m)분" : "목표 \(h)시간"
-        }
-        return "목표 \(m)분"
-    }
-
     // MARK: - Weekly Computed
-
-    var weeklyTotalGoalMinutes: Int {
-        weeklyGoalMinutes + dailyGoalMinutes
-    }
 
     var weeklyTotalActualSeconds: Int {
         weeklyActualMinutes * 60 + todayTotalWithCurrentSeconds
@@ -134,20 +105,12 @@ final class StudyTimerViewModel {
         return String(format: "%d시간 %d분", h, m)
     }
 
-    var weeklyGoalFormatted: String? {
-        let total = weeklyTotalGoalMinutes
-        guard total > 0 else { return nil }
-        let h = total / 60
-        let m = total % 60
-        if h > 0 {
-            return m > 0 ? "목표 \(h)시간 \(m)분" : "목표 \(h)시간"
-        }
-        return "목표 \(m)분"
+    var weeklyGoalFormatted: String {
+        "목표 \(Self.weeklyGoalMinutes / 60)시간"
     }
 
     var weeklyGoalProgress: Double {
-        let goalSeconds = weeklyTotalGoalMinutes * 60
-        guard goalSeconds > 0 else { return 0 }
+        let goalSeconds = Self.weeklyGoalMinutes * 60
         return Double(weeklyTotalActualSeconds) / Double(goalSeconds)
     }
 
@@ -213,47 +176,9 @@ final class StudyTimerViewModel {
         return max(0, totalDuration - pausedDuration)
     }
 
-    // MARK: - Daily Goal
-
-    func loadDailyGoal(silent: Bool = false) async {
-        do {
-            if let goal = try await service.fetchDailyGoal(),
-               let minutes = goal.goalMinutes {
-                dailyGoalMinutes = minutes
-                dailyGoalText = goalMinutesToHoursText(minutes)
-            }
-        } catch {
-            if !silent { errorMessage = error.localizedDescription }
-        }
-    }
-
-    func saveDailyGoal() async {
-        let hours = Double(dailyGoalText) ?? 0
-        let minutes = Int((hours * 60).rounded())
-        guard minutes > 0 else {
-            errorMessage = "올바른 시간을 입력해 주세요"
-            return
-        }
-        do {
-            try await service.setDailyGoal(goalMinutes: minutes)
-            dailyGoalMinutes = minutes
-            dailyGoalText = goalMinutesToHoursText(minutes)
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-    }
-
-    private func goalMinutesToHoursText(_ minutes: Int) -> String {
-        if minutes % 60 == 0 {
-            return "\(minutes / 60)"
-        }
-        return String(format: "%.1f", Double(minutes) / 60.0)
-    }
-
     func loadWeeklySummary(silent: Bool = false) async {
         do {
             let summary = try await service.fetchWeeklySummary()
-            weeklyGoalMinutes = summary.totalGoalMinutes
             weeklyActualMinutes = summary.totalActualMinutes
         } catch {
             if !silent { errorMessage = error.localizedDescription }
@@ -475,9 +400,8 @@ final class StudyTimerViewModel {
     func syncOnForeground() {
         Task {
             async let sessions: () = loadTodaySessions(silent: true)
-            async let goal: () = loadDailyGoal(silent: true)
             async let weekly: () = loadWeeklySummary(silent: true)
-            _ = await (sessions, goal, weekly)
+            _ = await (sessions, weekly)
         }
         guard timerState != .idle else { return }
         if timerState == .running, let start = timerStartDate {
