@@ -15,7 +15,6 @@ final class StudyTimerViewModel {
     /// 주간 목표 고정값 (50시간)
     static let weeklyGoalMinutes = 3000
 
-
     // MARK: - State
     var selectedSubject: StudySubject?
     var timerState: TimerState = .idle
