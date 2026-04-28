@@ -69,22 +69,10 @@ struct StudyService: Sendable {
         try await api.patchVoid("/study/sessions/\(sessionId)/pause-type", body: PauseTypeRequest(type: pauseType))
     }
 
-    // MARK: - Daily Goal
-
-    func fetchDailyGoal() async throws -> StudyDailyGoal? {
-        let response: DataResponse<StudyDailyGoal?> = try await api.get("/study/daily-goals/today")
-        return response.data ?? nil
-    }
-
-    func setDailyGoal(goalMinutes: Int) async throws {
-        let today = Date().dateString
-        try await api.putVoid("/study/daily-goals", body: StudyDailyGoalRequest(date: today, goalMinutes: goalMinutes))
-    }
-
     // MARK: - Weekly Summary
 
     func fetchWeeklySummary() async throws -> StudyWeeklySummary {
         let response: DataResponse<StudyWeeklySummary> = try await api.get("/study/weekly-summary")
-        return response.data ?? StudyWeeklySummary(totalGoalMinutes: 0, totalActualMinutes: 0)
+        return response.data ?? StudyWeeklySummary(totalActualMinutes: 0)
     }
 }

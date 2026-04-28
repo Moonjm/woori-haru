@@ -58,20 +58,8 @@ struct StudySubjectReorderRequest: Encodable {
     let subjectIds: [Int]
 }
 
-// MARK: - Daily Goal
-
-struct StudyDailyGoal: Codable {
-    let goalMinutes: Int?
-}
-
-struct StudyDailyGoalRequest: Encodable {
-    let date: String
-    let goalMinutes: Int
-}
-
 // MARK: - Weekly Summary
 
 struct StudyWeeklySummary: Codable {
-    let totalGoalMinutes: Int
     let totalActualMinutes: Int
 }
