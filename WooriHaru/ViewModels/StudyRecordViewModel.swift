@@ -103,12 +103,12 @@ final class StudyRecordViewModel {
     var subjectRecords: [SubjectStudyRecord] {
         let allSessions = dailyRecords.flatMap(\.sessions)
         let totals = aggregateBySubject(allSessions)
-        let grandTotal = max(totals.reduce(0) { $0 + $1.seconds }, 1)
+        let maxSeconds = max(totals.map(\.seconds).max() ?? 0, 1)
         return totals.map { item in
             SubjectStudyRecord(
                 id: item.id, name: item.name,
                 totalSeconds: item.seconds,
-                ratio: Double(item.seconds) / Double(grandTotal)
+                ratio: Double(item.seconds) / Double(maxSeconds)
             )
         }
     }
