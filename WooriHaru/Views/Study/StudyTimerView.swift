@@ -363,10 +363,13 @@ struct StudyTimerView: View {
 
     private var weeklyGoalCard: some View {
         VStack(spacing: 10) {
-            HStack {
+            HStack(spacing: 6) {
                 Text("이번 주 목표")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Color.slate700)
+                Text(vm.weeklyGoalFormatted)
+                    .font(.subheadline)
+                    .foregroundStyle(Color.slate400)
                 Spacer()
             }
 
@@ -381,7 +384,7 @@ struct StudyTimerView: View {
                     .font(.caption)
                     .foregroundStyle(Color.slate500)
                 Spacer()
-                Text(vm.weeklyGoalFormatted)
+                Text(vm.weeklyRemainingFormatted)
                     .font(.caption)
                     .foregroundStyle(Color.slate400)
             }

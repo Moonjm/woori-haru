@@ -108,9 +108,21 @@ final class StudyTimerViewModel {
         let h = Self.weeklyGoalMinutes / 60
         let m = Self.weeklyGoalMinutes % 60
         if h > 0 {
-            return m > 0 ? "목표 \(h)시간 \(m)분" : "목표 \(h)시간"
+            return m > 0 ? "\(h)시간 \(m)분" : "\(h)시간"
         }
-        return "목표 \(m)분"
+        return "\(m)분"
+    }
+
+    var weeklyRemainingFormatted: String {
+        let goalSeconds = Self.weeklyGoalMinutes * 60
+        let remaining = goalSeconds - weeklyTotalActualSeconds
+        guard remaining > 0 else { return "달성 완료" }
+        let h = remaining / 3600
+        let m = (remaining % 3600) / 60
+        if h > 0 {
+            return m > 0 ? "남은 \(h)시간 \(m)분" : "남은 \(h)시간"
+        }
+        return "남은 \(m)분"
     }
 
     var weeklyGoalProgress: Double {
