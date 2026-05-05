@@ -370,6 +370,9 @@ struct StudyTimerView: View {
                 Text(vm.weeklyGoalFormatted)
                     .font(.subheadline)
                     .foregroundStyle(Color.slate400)
+                Text("· \(vm.weeklyDailyAverageFormatted)")
+                    .font(.subheadline)
+                    .foregroundStyle(Color.slate400)
                 Spacer()
             }
 

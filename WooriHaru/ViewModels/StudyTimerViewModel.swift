@@ -139,6 +139,24 @@ final class StudyTimerViewModel {
         "\(Int(weeklyGoalProgress * 100))%"
     }
 
+    /// 이번 주에서 오늘까지 지나간 일수 (월요일 시작, 오늘 포함, 1~7)
+    /// 서버 주간 집계가 월요일 기준이므로 로케일과 무관하게 월요일로 고정한다.
+    private var daysElapsedThisWeek: Int {
+        let weekday = Calendar.current.component(.weekday, from: Date())
+        return ((weekday - 2 + 7) % 7) + 1
+    }
+
+    var weeklyDailyAverageFormatted: String {
+        let days = daysElapsedThisWeek
+        let avgSeconds = days > 0 ? weeklyTotalActualSeconds / days : 0
+        let h = avgSeconds / 3600
+        let m = (avgSeconds % 3600) / 60
+        if h > 0 {
+            return m > 0 ? "평균 \(h)시간 \(m)분/일" : "평균 \(h)시간/일"
+        }
+        return "평균 \(m)분/일"
+    }
+
     // MARK: - Load
 
     func restoreActiveSession() async {
