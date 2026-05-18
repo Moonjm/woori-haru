@@ -76,6 +76,7 @@
 		L10004 /* StudyTimerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = L20004 /* StudyTimerView.swift */; };
 		L10005 /* StudyTimerAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = L20005 /* StudyTimerAttributes.swift */; };
 		L10006 /* StudyRecordViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = L20006 /* StudyRecordViewModel.swift */; };
+		L10007 /* WeeklyStudyRecordSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = L20007 /* WeeklyStudyRecordSection.swift */; };
 		N10001 /* NotificationScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = N20001 /* NotificationScheduler.swift */; };
 		N10002 /* LiveActivityCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = N20002 /* LiveActivityCoordinator.swift */; };
 		S10001 /* StorageModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = S20001 /* StorageModels.swift */; };
@@ -183,6 +184,7 @@
 		L20004 /* StudyTimerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyTimerView.swift; sourceTree = "<group>"; };
 		L20005 /* StudyTimerAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyTimerAttributes.swift; sourceTree = "<group>"; };
 		L20006 /* StudyRecordViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyRecordViewModel.swift; sourceTree = "<group>"; };
+		L20007 /* WeeklyStudyRecordSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyStudyRecordSection.swift; sourceTree = "<group>"; };
 		N20001 /* NotificationScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationScheduler.swift; sourceTree = "<group>"; };
 		N20002 /* LiveActivityCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityCoordinator.swift; sourceTree = "<group>"; };
 		S20001 /* StorageModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageModels.swift; sourceTree = "<group>"; };
@@ -478,6 +480,7 @@
 			children = (
 				88DD96EC2F61B3A900E60283 /* StudyRecordView.swift */,
 				L20004 /* StudyTimerView.swift */,
+				L20007 /* WeeklyStudyRecordSection.swift */,
 			);
 			path = Study;
 			sourceTree = "<group>";
@@ -666,6 +669,7 @@
 				L10004 /* StudyTimerView.swift in Sources */,
 				L10005 /* StudyTimerAttributes.swift in Sources */,
 				L10006 /* StudyRecordViewModel.swift in Sources */,
+				L10007 /* WeeklyStudyRecordSection.swift in Sources */,
 				N10001 /* NotificationScheduler.swift in Sources */,
 				N10002 /* LiveActivityCoordinator.swift in Sources */,
 				AA100001 /* PairStore.swift in Sources */,
