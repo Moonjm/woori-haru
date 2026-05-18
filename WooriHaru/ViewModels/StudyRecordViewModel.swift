@@ -13,6 +13,15 @@ struct DailyStudyRecord: Identifiable {
     var totalHours: Double { Double(totalSeconds) / 3600.0 }
 }
 
+struct WeeklyStudyRecord: Identifiable {
+    let id: String // "yyyy-MM-dd" of Monday
+    let weekStart: Date // Monday
+    let weekEnd: Date   // Sunday
+    let totalSeconds: Int
+    let pauseSeconds: Int
+    let dailyRecords: [DailyStudyRecord] // Monday..Sunday (7 entries)
+}
+
 struct SubjectStudyRecord: Identifiable {
     let id: Int
     let name: String
@@ -45,10 +54,17 @@ final class StudyRecordViewModel {
     var currentYear: Int = Date().year
     var currentMonth: Int = Date().month
     var dailyRecords: [DailyStudyRecord] = []
+    var weeklyRecords: [WeeklyStudyRecord] = []
     var selectedDate: Date?
     var isLoading = false
     var errorMessage: String?
     private var loadTask: Task<Void, Never>?
+
+    private static let mondayCalendar: Calendar = {
+        var cal = Calendar(identifier: .gregorian)
+        cal.firstWeekday = 2 // Monday
+        return cal
+    }()
 
     private(set) var pauseTypeStore: PauseTypeStore!
 
@@ -158,11 +174,29 @@ final class StudyRecordViewModel {
     func loadMonth() async {
         isLoading = true
 
-        let (from, to) = Date.monthRange(year: currentYear, month: currentMonth)
+        let cal = Self.mondayCalendar
+        guard let monthStart = cal.date(from: DateComponents(year: currentYear, month: currentMonth)),
+              let monthEnd = cal.date(byAdding: .day, value: monthStart.daysInMonth() - 1, to: monthStart),
+              let firstMonday = cal.dateInterval(of: .weekOfYear, for: monthStart)?.start,
+              let lastWeekMonday = cal.dateInterval(of: .weekOfYear, for: monthEnd)?.start,
+              let lastSunday = cal.date(byAdding: .day, value: 6, to: lastWeekMonday) else {
+            isLoading = false
+            return
+        }
+
+        let from = firstMonday.dateString
+        let to = lastSunday.dateString
+
         do {
             let sessions = try await service.fetchSessions(from: from, to: to)
             try Task.checkCancellation()
-            dailyRecords = buildDailyRecords(sessions: sessions)
+            let allDays = buildDailyRecords(sessions: sessions, from: firstMonday, to: lastSunday)
+            dailyRecords = allDays.filter {
+                $0.date.year == currentYear && $0.date.month == currentMonth
+            }
+            weeklyRecords = buildWeeklyRecords(
+                allDays: allDays, firstMonday: firstMonday, monthEnd: monthEnd
+            )
             try await pauseTypeStore.load()
             isLoading = false
         } catch is CancellationError {
@@ -173,6 +207,11 @@ final class StudyRecordViewModel {
         }
     }
 
+    /// 날짜가 속한 주(월요일)의 id 반환. 히트맵 선택 시 자동 펼침에 사용.
+    func weekId(for date: Date) -> String? {
+        Self.mondayCalendar.dateInterval(of: .weekOfYear, for: date)?.start.dateString
+    }
+
     func goToPreviousMonth() {
         if currentMonth == 1 {
             currentYear -= 1
@@ -181,6 +220,7 @@ final class StudyRecordViewModel {
             currentMonth -= 1
         }
         dailyRecords = []
+        weeklyRecords = []
         selectedDate = nil
         loadTask?.cancel()
         loadTask = Task { await loadMonth() }
@@ -194,6 +234,7 @@ final class StudyRecordViewModel {
             currentMonth += 1
         }
         dailyRecords = []
+        weeklyRecords = []
         selectedDate = nil
         loadTask?.cancel()
         loadTask = Task { await loadMonth() }
@@ -204,6 +245,7 @@ final class StudyRecordViewModel {
         currentYear = today.year
         currentMonth = today.month
         dailyRecords = []
+        weeklyRecords = []
         selectedDate = nil
         loadTask?.cancel()
         loadTask = Task { await loadMonth() }
@@ -211,10 +253,8 @@ final class StudyRecordViewModel {
 
     // MARK: - Private
 
-    private func buildDailyRecords(sessions: [StudySession]) -> [DailyStudyRecord] {
+    private func buildDailyRecords(sessions: [StudySession], from start: Date, to end: Date) -> [DailyStudyRecord] {
         let cal = Calendar.current
-        guard let monthStart = cal.date(from: DateComponents(year: currentYear, month: currentMonth)) else { return [] }
-        let daysCount = monthStart.daysInMonth()
 
         // 세션을 날짜별로 그룹화
         var grouped: [String: [StudySession]] = [:]
@@ -224,14 +264,59 @@ final class StudyRecordViewModel {
             }
         }
 
-        return (0..<daysCount).compactMap { offset in
-            guard let date = cal.date(byAdding: .day, value: offset, to: monthStart) else { return nil }
-            let key = date.dateString
+        var records: [DailyStudyRecord] = []
+        var cursor = cal.startOfDay(for: start)
+        let lastDay = cal.startOfDay(for: end)
+        while cursor <= lastDay {
+            let key = cursor.dateString
             let daySessions = grouped[key] ?? []
-            let totalSeconds = computeDayTotal(sessions: daySessions, date: date)
-            let pauseSeconds = computeDayPause(sessions: daySessions, date: date)
-            return DailyStudyRecord(id: key, date: date, totalSeconds: totalSeconds, pauseSeconds: pauseSeconds, sessions: daySessions)
+            let totalSeconds = computeDayTotal(sessions: daySessions, date: cursor)
+            let pauseSeconds = computeDayPause(sessions: daySessions, date: cursor)
+            records.append(DailyStudyRecord(
+                id: key, date: cursor,
+                totalSeconds: totalSeconds, pauseSeconds: pauseSeconds,
+                sessions: daySessions
+            ))
+            cursor = cal.date(byAdding: .day, value: 1, to: cursor)!
         }
+        return records
+    }
+
+    private func buildWeeklyRecords(
+        allDays: [DailyStudyRecord], firstMonday: Date, monthEnd: Date
+    ) -> [WeeklyStudyRecord] {
+        let cal = Calendar.current
+        let lookup = Dictionary(uniqueKeysWithValues: allDays.map { ($0.id, $0) })
+
+        var weeks: [WeeklyStudyRecord] = []
+        var weekStart = cal.startOfDay(for: firstMonday)
+        let monthEndDay = cal.startOfDay(for: monthEnd)
+
+        while weekStart <= monthEndDay {
+            let weekEnd = cal.date(byAdding: .day, value: 6, to: weekStart)!
+            var weekDays: [DailyStudyRecord] = []
+            for offset in 0..<7 {
+                let date = cal.date(byAdding: .day, value: offset, to: weekStart)!
+                if let rec = lookup[date.dateString] {
+                    weekDays.append(rec)
+                } else {
+                    weekDays.append(DailyStudyRecord(
+                        id: date.dateString, date: date,
+                        totalSeconds: 0, pauseSeconds: 0, sessions: []
+                    ))
+                }
+            }
+            let total = weekDays.reduce(0) { $0 + $1.totalSeconds }
+            let pause = weekDays.reduce(0) { $0 + $1.pauseSeconds }
+            weeks.append(WeeklyStudyRecord(
+                id: weekStart.dateString,
+                weekStart: weekStart, weekEnd: weekEnd,
+                totalSeconds: total, pauseSeconds: pause,
+                dailyRecords: weekDays
+            ))
+            weekStart = cal.date(byAdding: .day, value: 7, to: weekStart)!
+        }
+        return weeks
     }
 
     /// 세션의 해당 날짜 범위 내 실제 공부 시간 계산
