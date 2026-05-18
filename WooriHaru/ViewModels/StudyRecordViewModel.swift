@@ -212,6 +212,41 @@ final class StudyRecordViewModel {
         Self.mondayCalendar.dateInterval(of: .weekOfYear, for: date)?.start.dateString
     }
 
+    /// 이번 주를 포함한 최근 `count` 주(월~일)의 데이터를 로드.
+    /// 월별 화면이 아닌 타이머 화면처럼 롤링 윈도우가 필요할 때 사용.
+    func loadRecentWeeks(count: Int = 5) async {
+        isLoading = true
+
+        let cal = Self.mondayCalendar
+        let today = Date()
+        guard let thisMonday = cal.dateInterval(of: .weekOfYear, for: today)?.start,
+              let startMonday = cal.date(byAdding: .day, value: -(count - 1) * 7, to: thisMonday),
+              let thisSunday = cal.date(byAdding: .day, value: 6, to: thisMonday) else {
+            isLoading = false
+            return
+        }
+
+        let from = startMonday.dateString
+        let to = thisSunday.dateString
+
+        do {
+            let sessions = try await service.fetchSessions(from: from, to: to)
+            try Task.checkCancellation()
+            let allDays = buildDailyRecords(sessions: sessions, from: startMonday, to: thisSunday)
+            dailyRecords = []
+            weeklyRecords = buildWeeklyRecords(
+                allDays: allDays, firstMonday: startMonday, monthEnd: thisSunday
+            )
+            try await pauseTypeStore.load()
+            isLoading = false
+        } catch is CancellationError {
+            // 갱신으로 취소됨
+        } catch {
+            errorMessage = error.localizedDescription
+            isLoading = false
+        }
+    }
+
     func goToPreviousMonth() {
         if currentMonth == 1 {
             currentYear -= 1

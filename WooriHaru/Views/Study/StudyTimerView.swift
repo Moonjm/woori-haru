@@ -13,6 +13,7 @@ struct StudyTimerView: View {
     @State private var selectedSegmentKey: String?
     @State private var showEarlyPauseConfirm = false
     @State private var showEarlyEndConfirm = false
+    @State private var recordVM = StudyRecordViewModel()
 
     var body: some View {
         @Bindable var vm = vm
@@ -22,7 +23,7 @@ struct StudyTimerView: View {
                 todaySummaryCard
                 weeklyGoalCard
                 todayTimelineSection
-                todaySessionsSection
+                WeeklyStudyRecordSection(vm: recordVM, showAllRecordsLink: true)
             }
             .padding(20)
         }
@@ -32,13 +33,19 @@ struct StudyTimerView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task { @MainActor in
             let vm = self.vm
+            let recordVM = self.recordVM
             vm.configure(subjectStore: subjectStore, pauseTypeStore: pauseTypeStore)
+            recordVM.configure(pauseTypeStore: pauseTypeStore)
             async let subjects: () = vm.loadSubjects()
             async let sessions: () = vm.loadTodaySessions()
             async let weekly: () = vm.loadWeeklySummary()
             async let pauseTypes: () = vm.loadPauseTypes()
-            _ = await (subjects, sessions, weekly, pauseTypes)
+            async let monthly: () = recordVM.loadRecentWeeks(count: 5)
+            _ = await (subjects, sessions, weekly, pauseTypes, monthly)
             await vm.restoreActiveSession()
+        }
+        .onChange(of: vm.todaySessions.count) {
+            Task { await recordVM.loadRecentWeeks(count: 5) }
         }
         .alert("과목 추가", isPresented: $vm.showAddSubject) {
             TextField("과목명", text: $vm.newSubjectName)
@@ -619,77 +626,7 @@ struct StudyTimerView: View {
         pauseTypeStore.pauseTypes.first(where: { $0.value == value })?.label ?? value
     }
 
-    // MARK: - Today Sessions
-
-    private var todaySessionsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("오늘 기록")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color.slate700)
-                Spacer()
-                NavigationLink(value: AppDestination.studyRecord) {
-                    HStack(spacing: 4) {
-                        Text("전체 기록")
-                            .font(.caption)
-                        Image(systemName: "chevron.right")
-                            .font(.caption2)
-                    }
-                    .foregroundStyle(Color.blue500)
-                }
-            }
-
-            if vm.todaySessions.isEmpty && vm.timerState == .idle {
-                Text("아직 기록이 없습니다")
-                    .font(.caption)
-                    .foregroundStyle(Color.slate400)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.vertical, 20)
-            } else {
-                ForEach(vm.todaySessions) { session in
-                    sessionRow(session)
-                }
-            }
-        }
-        .padding(16)
-        .background(.white)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-    }
-
-    private func sessionRow(_ session: StudySession) -> some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(session.subject.name)
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(Color.slate900)
-                Text(sessionTimeRange(session))
-                    .font(.caption)
-                    .foregroundStyle(Color.slate400)
-            }
-            Spacer()
-            VStack(alignment: .trailing, spacing: 2) {
-                Text("공부 \(session.totalSeconds.durationText)")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color.blue600)
-                if session.pauseSeconds > 0 {
-                    Text("휴식 \(session.pauseSeconds.durationText)")
-                        .font(.caption)
-                        .foregroundStyle(Color.slate400)
-                }
-            }
-        }
-        .padding(12)
-        .background(Color.slate50)
-        .clipShape(RoundedRectangle(cornerRadius: 10))
-    }
-
-    // MARK: - Helpers
-
-    private func sessionTimeRange(_ session: StudySession) -> String {
-        let start = formatTime(session.startedAt)
-        let end = session.endedAt.map { formatTime($0) } ?? "진행중"
-        return "\(start) - \(end)"
-    }
+    // MARK: - Time Helpers
 
     private static let timeFormatter: DateFormatter = {
         let f = DateFormatter()
