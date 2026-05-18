@@ -212,6 +212,12 @@ final class StudyRecordViewModel {
         Self.mondayCalendar.dateInterval(of: .weekOfYear, for: date)?.start.dateString
     }
 
+    /// 이전 로드를 취소하고 최근 N주 데이터를 다시 로드. 빠른 연속 갱신 race 방지용.
+    func refreshRecentWeeks(count: Int = 5) {
+        loadTask?.cancel()
+        loadTask = Task { await loadRecentWeeks(count: count) }
+    }
+
     /// 이번 주를 포함한 최근 `count` 주(월~일)의 데이터를 로드.
     /// 월별 화면이 아닌 타이머 화면처럼 롤링 윈도우가 필요할 때 사용.
     func loadRecentWeeks(count: Int = 5) async {

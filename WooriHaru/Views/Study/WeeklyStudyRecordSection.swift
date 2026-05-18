@@ -49,6 +49,14 @@ struct WeeklyStudyRecordSection: View {
                 }
             }
         })
+        .onChange(of: vm.selectedDate) {
+            guard let date = vm.selectedDate,
+                  let weekId = vm.weekId(for: date) else { return }
+            withAnimation(.easeInOut(duration: 0.18)) {
+                expandedWeekId = weekId
+                selectedTooltip = nil
+            }
+        }
     }
 
     private var header: some View {

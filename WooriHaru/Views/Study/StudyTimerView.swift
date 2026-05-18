@@ -45,7 +45,7 @@ struct StudyTimerView: View {
             await vm.restoreActiveSession()
         }
         .onChange(of: vm.todaySessions.count) {
-            Task { await recordVM.loadRecentWeeks(count: 5) }
+            recordVM.refreshRecentWeeks(count: 5)
         }
         .alert("과목 추가", isPresented: $vm.showAddSubject) {
             TextField("과목명", text: $vm.newSubjectName)
