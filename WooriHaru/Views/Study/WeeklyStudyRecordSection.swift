@@ -102,9 +102,10 @@ struct WeeklyStudyRecordSection: View {
     }
 
     private func weeklyRow(_ week: WeeklyStudyRecord, isExpanded: Bool) -> some View {
-        let total = week.totalSeconds + week.pauseSeconds
-        let studyRatio = total > 0 ? Double(week.totalSeconds) / Double(total) : 1.0
-        let hasRest = week.pauseSeconds > 0
+        let goalSeconds = StudyTimerViewModel.weeklyGoalMinutes * 60
+        let rawRatio = Double(week.totalSeconds) / Double(goalSeconds)
+        let studyRatio = min(rawRatio, 1.0)
+        let studyPct = Int((rawRatio * 100).rounded())
 
         return VStack(alignment: .leading, spacing: 8) {
             HStack {
@@ -113,14 +114,9 @@ struct WeeklyStudyRecordSection: View {
                     .foregroundStyle(Color.slate500)
                 Spacer()
                 HStack(spacing: 8) {
-                    Text("공부 \(week.totalSeconds.durationText)")
+                    Text("공부 \(week.totalSeconds.durationText) / 50시간 (\(studyPct)%)")
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(Color.blue500)
-                    if hasRest {
-                        Text("휴식 \(week.pauseSeconds.durationText)")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(Color.slate400)
-                    }
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                         .font(.system(size: 10, weight: .semibold))
                         .foregroundStyle(Color.slate400)
@@ -130,42 +126,22 @@ struct WeeklyStudyRecordSection: View {
             GeometryReader { geo in
                 let barWidth = geo.size.width
                 let studyWidth = barWidth * studyRatio
-                let restWidth = barWidth - studyWidth
-                let studyPct = Int((studyRatio * 100).rounded())
-                let restPct = 100 - studyPct
 
-                HStack(spacing: 0) {
-                    if studyWidth > 0 {
-                        UnevenRoundedRectangle(
-                            topLeadingRadius: 5, bottomLeadingRadius: 5,
-                            bottomTrailingRadius: hasRest ? 0 : 5,
-                            topTrailingRadius: hasRest ? 0 : 5
-                        )
-                        .fill(Color.blue400)
-                        .frame(width: studyWidth)
-                        .overlay {
-                            if studyWidth >= 32 {
-                                Text("\(studyPct)%")
-                                    .font(.system(size: 10, weight: .semibold))
-                                    .foregroundStyle(.white)
-                            }
-                        }
-                    }
-                    if hasRest && restWidth > 0 {
-                        UnevenRoundedRectangle(
-                            topLeadingRadius: studyWidth > 0 ? 0 : 5,
-                            bottomLeadingRadius: studyWidth > 0 ? 0 : 5,
-                            bottomTrailingRadius: 5, topTrailingRadius: 5
-                        )
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 5)
                         .fill(Color.slate200)
-                        .frame(width: restWidth)
-                        .overlay {
-                            if restWidth >= 32 {
-                                Text("\(restPct)%")
-                                    .font(.system(size: 10, weight: .semibold))
-                                    .foregroundStyle(Color.slate600)
+                        .frame(width: barWidth)
+                    if studyWidth > 0 {
+                        RoundedRectangle(cornerRadius: 5)
+                            .fill(Color.blue400)
+                            .frame(width: studyWidth)
+                            .overlay {
+                                if studyWidth >= 32 {
+                                    Text("\(studyPct)%")
+                                        .font(.system(size: 10, weight: .semibold))
+                                        .foregroundStyle(.white)
+                                }
                             }
-                        }
                     }
                 }
             }
