@@ -102,7 +102,9 @@ struct WeeklyStudyRecordSection: View {
     }
 
     private func weeklyRow(_ week: WeeklyStudyRecord, isExpanded: Bool) -> some View {
-        let goalSeconds = StudyTimerViewModel.weeklyGoalMinutes * 60
+        let goalMinutes = StudyTimerViewModel.weeklyGoalMinutes
+        let goalSeconds = goalMinutes * 60
+        let goalHoursText = "\(goalMinutes / 60)시간"
         let rawRatio = Double(week.totalSeconds) / Double(goalSeconds)
         let studyRatio = min(rawRatio, 1.0)
         let studyPct = Int((rawRatio * 100).rounded())
@@ -114,7 +116,7 @@ struct WeeklyStudyRecordSection: View {
                     .foregroundStyle(Color.slate500)
                 Spacer()
                 HStack(spacing: 8) {
-                    Text("공부 \(week.totalSeconds.durationText) / 50시간 (\(studyPct)%)")
+                    Text("공부 \(week.totalSeconds.durationText) / \(goalHoursText) (\(studyPct)%)")
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(Color.blue500)
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
