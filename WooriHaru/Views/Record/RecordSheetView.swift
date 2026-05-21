@@ -4,6 +4,7 @@ struct RecordSheetView: View {
     @Bindable var viewModel: RecordViewModel
     @Environment(PairStore.self) private var pairStore
     let holidayNames: [String]
+    let eventLabels: [DateEventLabel]
     let onChanged: () -> Void
     let onDismiss: () -> Void
 
@@ -45,6 +46,24 @@ struct RecordSheetView: View {
                             Capsule()
                                 .fill(Color.red500.opacity(0.08))
                         )
+                }
+
+                ForEach(eventLabels) { item in
+                    HStack(spacing: 4) {
+                        Text(item.emoji)
+                            .font(.caption)
+                        Text(item.label)
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(Color.slate700)
+                            .lineLimit(1)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 5)
+                    .background(
+                        Capsule()
+                            .fill(Color.slate500.opacity(0.08))
+                    )
                 }
             }
             .frame(maxWidth: .infinity)

@@ -2,6 +2,14 @@ import Foundation
 import Observation
 import os
 
+// MARK: - DateEventLabel
+
+struct DateEventLabel: Identifiable, Hashable {
+    let id: String
+    let emoji: String
+    let label: String
+}
+
 // MARK: - MonthData
 
 struct MonthData: Identifiable {
@@ -17,7 +25,7 @@ struct MonthData: Identifiable {
     var overeats: [String: OvereatLevel] = [:]
     var holidays: [String: [String]] = [:]
     var pairEvents: [String: [PairEvent]] = [:]
-    var birthdayMap: [String: [(emoji: String, label: String)]] = [:]
+    var birthdayMap: [String: [DateEventLabel]] = [:]
 
     struct DayCell: Identifiable {
         let id: String      // "yyyy-MM-dd"
@@ -292,6 +300,19 @@ final class CalendarViewModel {
         return month.holidays[date.dateString] ?? []
     }
 
+    /// 특정 날짜의 기념일/생일 (RecordSheetView용)
+    func eventLabels(for date: Date) -> [DateEventLabel] {
+        let monthId = date.startOfMonth().yearMonth
+        guard let month = months.first(where: { $0.id == monthId }) else { return [] }
+        let dateStr = date.dateString
+        var items: [DateEventLabel] = []
+        for ev in month.pairEvents[dateStr] ?? [] {
+            items.append(DateEventLabel(id: "pair-\(ev.id)", emoji: ev.emoji, label: ev.title))
+        }
+        items.append(contentsOf: month.birthdayMap[dateStr] ?? [])
+        return items
+    }
+
     /// 생일 맵 구축 — 각 MonthData에 직접 저장
     func updateBirthdays(user: User?, pairInfo: PairInfo?) {
         cachedUser = user
@@ -310,7 +331,9 @@ final class CalendarViewModel {
                 let dateKey = "\(year)-\(mmdd)"
                 let monthId = String(dateKey.prefix(7))
                 if let idx = months.firstIndex(where: { $0.id == monthId }) {
-                    months[idx].birthdayMap[dateKey, default: []].append((emoji: "🎂\(genderEmoji)", label: "내 생일"))
+                    months[idx].birthdayMap[dateKey, default: []].append(
+                        DateEventLabel(id: "birthday-self", emoji: "🎂\(genderEmoji)", label: "내 생일")
+                    )
                 }
             }
         }
@@ -323,7 +346,9 @@ final class CalendarViewModel {
                 let dateKey = "\(year)-\(mmdd)"
                 let monthId = String(dateKey.prefix(7))
                 if let idx = months.firstIndex(where: { $0.id == monthId }) {
-                    months[idx].birthdayMap[dateKey, default: []].append((emoji: "🎂\(genderEmoji)", label: "\(name) 생일"))
+                    months[idx].birthdayMap[dateKey, default: []].append(
+                        DateEventLabel(id: "birthday-partner", emoji: "🎂\(genderEmoji)", label: "\(name) 생일")
+                    )
                 }
             }
         }

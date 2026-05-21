@@ -439,6 +439,7 @@ struct CalendarView: View {
                         RecordSheetView(
                             viewModel: recordVM,
                             holidayNames: calendarVM.holidayNames(for: recordVM.selectedDate),
+                            eventLabels: calendarVM.eventLabels(for: recordVM.selectedDate),
                             onChanged: {
                                 Task {
                                     await calendarVM.refreshMonth(containing: recordVM.selectedDate)
