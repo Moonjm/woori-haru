@@ -14,7 +14,7 @@ struct DayCellDisplayData: Equatable {
 
     init(records: [DailyRecord], partnerRecords: [DailyRecord],
          holidays: [String], pairEvents: [PairEvent],
-         birthdays: [(emoji: String, label: String)]) {
+         birthdays: [DateEventLabel]) {
         // 공휴일: 괄호 제거
         self.holidayLabels = holidays.prefix(2).map {
             $0.replacingOccurrences(of: "\\(.*\\)", with: "", options: .regularExpression)
