@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import os
 
 @MainActor
 @Observable
@@ -93,9 +94,13 @@ final class RecordViewModel {
         }
 
         // 파트너 기록 갱신 (실패 시 기존 값 유지)
+        // errorMessage는 설정하지 않는다: 방금 수행한 수정/삭제는 성공했으므로
+        // 파트너 조회 실패를 작업 실패처럼 표시하면 안 된다. 디버깅용 로그만 남긴다.
         if pairStore.isPaired {
-            if let partner = try? await pairService.fetchPartnerRecords(date: dateString) {
-                partnerRecords = partner
+            do {
+                partnerRecords = try await pairService.fetchPartnerRecords(date: dateString)
+            } catch {
+                Logger.calendar.error("Failed to refresh partner records: \(error.localizedDescription)")
             }
         }
     }
