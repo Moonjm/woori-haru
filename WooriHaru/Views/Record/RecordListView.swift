@@ -40,17 +40,15 @@ struct RecordListView: View {
 
                         VStack(spacing: 0) {
                             ForEach(Array(togetherRecords.enumerated()), id: \.element.id) { index, record in
-                                let isMine = records.contains { $0.id == record.id }
                                 RecordRow(
                                     record: record,
-                                    showDelete: isMine,
+                                    showDelete: true,
                                     isFirst: index == 0,
                                     isLast: index == togetherRecords.count - 1,
                                     isTogether: true,
                                     onDelete: { onDelete(record) }
                                 )
-                                .onTapGesture { if isMine { onTap(record) } }
-                                .opacity(isMine ? 1.0 : 0.7)
+                                .onTapGesture { onTap(record) }
                             }
                         }
                         .clipShape(RoundedRectangle(cornerRadius: 12))

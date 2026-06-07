@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import os
 
 @MainActor
 @Observable
@@ -81,7 +82,8 @@ final class RecordViewModel {
         }
     }
 
-    /// records만 다시 불러오기 (생성/수정/삭제 후 사용)
+    /// 기록 다시 불러오기 (생성/수정/삭제 후 사용)
+    /// together 기록은 양쪽 모두 수정/삭제할 수 있으므로 파트너 기록도 함께 갱신한다.
     private func reloadRecords() async {
         do {
             records = try await recordService.fetchRecords(date: dateString)
@@ -89,6 +91,17 @@ final class RecordViewModel {
             errorMessage = error.errorDescription
         } catch {
             errorMessage = "기록을 불러오지 못했습니다."
+        }
+
+        // 파트너 기록 갱신 (실패 시 기존 값 유지)
+        // errorMessage는 설정하지 않는다: 방금 수행한 수정/삭제는 성공했으므로
+        // 파트너 조회 실패를 작업 실패처럼 표시하면 안 된다. 디버깅용 로그만 남긴다.
+        if pairStore.isPaired {
+            do {
+                partnerRecords = try await pairService.fetchPartnerRecords(date: dateString)
+            } catch {
+                Logger.calendar.error("Failed to refresh partner records: \(error.localizedDescription)")
+            }
         }
     }
 
