@@ -81,7 +81,8 @@ final class RecordViewModel {
         }
     }
 
-    /// records만 다시 불러오기 (생성/수정/삭제 후 사용)
+    /// 기록 다시 불러오기 (생성/수정/삭제 후 사용)
+    /// together 기록은 양쪽 모두 수정/삭제할 수 있으므로 파트너 기록도 함께 갱신한다.
     private func reloadRecords() async {
         do {
             records = try await recordService.fetchRecords(date: dateString)
@@ -89,6 +90,13 @@ final class RecordViewModel {
             errorMessage = error.errorDescription
         } catch {
             errorMessage = "기록을 불러오지 못했습니다."
+        }
+
+        // 파트너 기록 갱신 (실패 시 기존 값 유지)
+        if pairStore.isPaired {
+            if let partner = try? await pairService.fetchPartnerRecords(date: dateString) {
+                partnerRecords = partner
+            }
         }
     }
 
