@@ -25,8 +25,11 @@ final class SearchViewModel {
     private var allRecords: [DailyRecord] = []
     private var searchTask: Task<Void, Never>?
 
-    func loadInitial() async {
-        await search()
+    /// 전체 기간 검색의 시작 연도 (기록 도입 이전이라도 안전하게 포함)
+    private let earliestRecordYear = 2018
+
+    func loadInitial() {
+        reloadSearch()
     }
 
     func reloadSearch() {
@@ -46,10 +49,12 @@ final class SearchViewModel {
 
             var combined = mine
             // 페어 연결 시 파트너가 등록한 "함께 기록"도 검색 대상에 포함
-            if pairStore.isPaired,
-               let partner = try? await pairService.fetchPartnerRecords(from: fromStr, to: toStr) {
-                try Task.checkCancellation()
-                combined += partner.filter(\.together)
+            if pairStore.isPaired {
+                let partner = try? await pairService.fetchPartnerRecords(from: fromStr, to: toStr)
+                try Task.checkCancellation()  // 파트너 fetch가 취소되면 stale 결과 덮어쓰기 방지
+                if let partner {
+                    combined += partner.filter(\.together)
+                }
             }
 
             allRecords = combined
@@ -66,11 +71,11 @@ final class SearchViewModel {
         }
     }
 
-    /// 검색할 날짜 범위. selectedYear == 0이면 전체 기간(2018 ~ 내년)
+    /// 검색할 날짜 범위. selectedYear == 0이면 전체 기간(earliestRecordYear ~ 내년)
     private func dateRange() -> (from: String, to: String) {
         if selectedYear == 0 {
             let currentYear = Calendar.current.component(.year, from: Date())
-            return ("2018-01-01", "\(currentYear + 1)-12-31")
+            return ("\(earliestRecordYear)-01-01", "\(currentYear + 1)-12-31")
         }
         return Date.monthRange(year: selectedYear, month: selectedMonth)
     }

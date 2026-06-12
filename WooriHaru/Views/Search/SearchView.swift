@@ -104,7 +104,7 @@ struct SearchView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task {
             viewModel.configure(categoryStore: categoryStore, pairStore: pairStore)
-            await viewModel.loadInitial()
+            viewModel.loadInitial()
         }
         .onChange(of: viewModel.selectedYear) { _, _ in viewModel.reloadSearch() }
         .onChange(of: viewModel.selectedMonth) { _, _ in viewModel.reloadSearch() }
