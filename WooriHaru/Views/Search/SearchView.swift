@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SearchView: View {
     @Environment(CategoryStore.self) private var categoryStore
+    @Environment(PairStore.self) private var pairStore
     @State private var viewModel = SearchViewModel()
 
     var body: some View {
@@ -10,7 +11,8 @@ struct SearchView: View {
             VStack(spacing: 12) {
                 HStack(spacing: 12) {
                     Picker("연도", selection: $viewModel.selectedYear) {
-                        ForEach(2018...Calendar.current.component(.year, from: Date()) + 1, id: \.self) { year in
+                        Text("전체 기간").tag(0)
+                        ForEach(2026...Calendar.current.component(.year, from: Date()) + 1, id: \.self) { year in
                             Text("\(String(year))년").tag(year)
                         }
                     }
@@ -23,6 +25,7 @@ struct SearchView: View {
                         }
                     }
                     .pickerStyle(.menu)
+                    .disabled(viewModel.selectedYear == 0)
 
                     Spacer()
                 }
@@ -95,7 +98,7 @@ struct SearchView: View {
         .navigationTitle("검색")
         .navigationBarTitleDisplayMode(.inline)
         .task {
-            viewModel.configure(categoryStore: categoryStore)
+            viewModel.configure(categoryStore: categoryStore, pairStore: pairStore)
             await viewModel.loadInitial()
         }
         .onChange(of: viewModel.selectedYear) { _, _ in viewModel.reloadSearch() }
@@ -149,6 +152,6 @@ struct SearchResultCard: View {
         guard let date = Date.from(record.date) else { return record.date }
         let weekdays = ["일", "월", "화", "수", "목", "금", "토"]
         let weekday = weekdays[date.weekday - 1]
-        return "\(date.month)월 \(date.day)일 \(weekday)"
+        return "\(date.year)년 \(date.month)월 \(date.day)일 \(weekday)"
     }
 }
