@@ -4,6 +4,7 @@ struct SearchView: View {
     @Environment(CategoryStore.self) private var categoryStore
     @Environment(PairStore.self) private var pairStore
     @State private var viewModel = SearchViewModel()
+    @FocusState private var isKeywordFocused: Bool
 
     var body: some View {
         VStack(spacing: 0) {
@@ -67,6 +68,7 @@ struct SearchView: View {
                     TextField("키워드 검색", text: $viewModel.keyword)
                         .font(.subheadline)
                         .textFieldStyle(.roundedBorder)
+                        .focused($isKeywordFocused)
                         .onChange(of: viewModel.keyword) { _, _ in
                             viewModel.applyFilters()
                         }
@@ -94,7 +96,10 @@ struct SearchView: View {
                 }
                 .padding(16)
             }
+            .scrollDismissesKeyboard(.immediately)
         }
+        .contentShape(Rectangle())
+        .onTapGesture { isKeywordFocused = false }
         .navigationTitle("검색")
         .navigationBarTitleDisplayMode(.inline)
         .task {
