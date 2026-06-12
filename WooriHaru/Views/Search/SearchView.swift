@@ -106,6 +106,7 @@ struct SearchView: View {
             viewModel.configure(categoryStore: categoryStore, pairStore: pairStore)
             viewModel.loadInitial()
         }
+        .onChange(of: pairStore.isPaired) { _, _ in viewModel.reloadSearch() }
         .onChange(of: viewModel.selectedYear) { _, _ in viewModel.reloadSearch() }
         .onChange(of: viewModel.selectedMonth) { _, _ in viewModel.reloadSearch() }
     }
