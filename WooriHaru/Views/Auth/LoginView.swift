@@ -13,8 +13,7 @@ struct LoginView: View {
 
     var body: some View {
         ZStack {
-            Color.slate50
-                .ignoresSafeArea()
+            GlassBackground()
 
             VStack(spacing: 28) {
                 Spacer(minLength: 0)
@@ -29,50 +28,44 @@ struct LoginView: View {
                         .foregroundStyle(Color.slate500)
                 }
 
-                VStack(spacing: 14) {
-                    inputField(
-                        title: "아이디",
-                        text: $username,
-                        isSecure: false,
-                        submitLabel: .next,
-                        field: .username
-                    )
+                GlassCard(cornerRadius: 18, padding: 22) {
+                    VStack(spacing: 14) {
+                        inputField(
+                            title: "아이디",
+                            text: $username,
+                            isSecure: false,
+                            submitLabel: .next,
+                            field: .username
+                        )
 
-                    inputField(
-                        title: "비밀번호",
-                        text: $password,
-                        isSecure: true,
-                        submitLabel: .go,
-                        field: .password
-                    )
+                        inputField(
+                            title: "비밀번호",
+                            text: $password,
+                            isSecure: true,
+                            submitLabel: .go,
+                            field: .password
+                        )
 
-                    Button {
-                        login()
-                    } label: {
-                        Group {
-                            if authVM.isLoading {
-                                ProgressView()
-                                    .tint(.white)
-                            } else {
-                                Text("로그인")
-                                    .font(.system(size: 16, weight: .semibold))
+                        Button {
+                            login()
+                        } label: {
+                            Group {
+                                if authVM.isLoading {
+                                    ProgressView()
+                                        .tint(.white)
+                                } else {
+                                    Text("로그인")
+                                        .font(.system(size: 16, weight: .semibold))
+                                }
                             }
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 52)
                         }
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 52)
-                        .background(Color.slate900)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .appGlassProminentButton()
+                        .disabled(username.trimmingCharacters(in: .whitespaces).isEmpty || password.isEmpty || authVM.isLoading)
+                        .opacity(username.trimmingCharacters(in: .whitespaces).isEmpty || password.isEmpty || authVM.isLoading ? 0.55 : 1)
                     }
-                    .disabled(username.trimmingCharacters(in: .whitespaces).isEmpty || password.isEmpty || authVM.isLoading)
-                    .opacity(username.trimmingCharacters(in: .whitespaces).isEmpty || password.isEmpty || authVM.isLoading ? 0.55 : 1)
-                }
-                .padding(22)
-                .background(.white)
-                .clipShape(RoundedRectangle(cornerRadius: 18))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 18)
-                        .stroke(Color.slate200, lineWidth: 1)
                 }
                 .padding(.horizontal, 24)
 
