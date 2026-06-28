@@ -26,7 +26,7 @@ struct SideDrawerView: View {
 
             drawerContent
                 .frame(width: Self.width)
-                .background(.white)
+                .glassEffect(.regular, in: Rectangle())
                 .offset(x: revealedWidth - Self.width)
         }
         .allowsHitTesting(isOpen || dragOffset > 0)
