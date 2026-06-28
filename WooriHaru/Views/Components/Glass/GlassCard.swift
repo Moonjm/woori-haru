@@ -4,12 +4,13 @@ import SwiftUI
 struct GlassCard<Content: View>: View {
     var cornerRadius: CGFloat = GlassTokens.cardCornerRadius
     var padding: CGFloat = GlassTokens.cardPadding
+    var alignment: Alignment = .leading
     @ViewBuilder var content: () -> Content
 
     var body: some View {
         content()
             .padding(padding)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: alignment)
             .glassEffect(.regular, in: RoundedRectangle(cornerRadius: cornerRadius))
     }
 }

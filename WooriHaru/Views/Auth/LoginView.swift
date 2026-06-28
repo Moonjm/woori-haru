@@ -28,45 +28,45 @@ struct LoginView: View {
                         .foregroundStyle(Color.slate500)
                 }
 
-                VStack(spacing: 14) {
-                    inputField(
-                        title: "아이디",
-                        text: $username,
-                        isSecure: false,
-                        submitLabel: .next,
-                        field: .username
-                    )
+                GlassCard(cornerRadius: 18, padding: 22, alignment: .center) {
+                    VStack(spacing: 14) {
+                        inputField(
+                            title: "아이디",
+                            text: $username,
+                            isSecure: false,
+                            submitLabel: .next,
+                            field: .username
+                        )
 
-                    inputField(
-                        title: "비밀번호",
-                        text: $password,
-                        isSecure: true,
-                        submitLabel: .go,
-                        field: .password
-                    )
+                        inputField(
+                            title: "비밀번호",
+                            text: $password,
+                            isSecure: true,
+                            submitLabel: .go,
+                            field: .password
+                        )
 
-                    Button {
-                        login()
-                    } label: {
-                        Group {
-                            if authVM.isLoading {
-                                ProgressView()
-                                    .tint(.white)
-                            } else {
-                                Text("로그인")
-                                    .font(.system(size: 16, weight: .semibold))
+                        Button {
+                            login()
+                        } label: {
+                            Group {
+                                if authVM.isLoading {
+                                    ProgressView()
+                                        .tint(.white)
+                                } else {
+                                    Text("로그인")
+                                        .font(.system(size: 16, weight: .semibold))
+                                }
                             }
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 52)
                         }
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 52)
+                        .appGlassProminentButton()
+                        .disabled(username.trimmingCharacters(in: .whitespaces).isEmpty || password.isEmpty || authVM.isLoading)
+                        .opacity(username.trimmingCharacters(in: .whitespaces).isEmpty || password.isEmpty || authVM.isLoading ? 0.55 : 1)
                     }
-                    .appGlassProminentButton()
-                    .disabled(username.trimmingCharacters(in: .whitespaces).isEmpty || password.isEmpty || authVM.isLoading)
-                    .opacity(username.trimmingCharacters(in: .whitespaces).isEmpty || password.isEmpty || authVM.isLoading ? 0.55 : 1)
                 }
-                .padding(22)
-                .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 18))
                 .padding(.horizontal, 24)
 
                 Text("기록은 가볍게, 하루는 선명하게")
