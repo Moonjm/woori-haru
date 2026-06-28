@@ -62,7 +62,6 @@
 		H10004 /* RecordSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = H20004 /* RecordSheetView.swift */; };
 		I10001 /* MonthGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = I20001 /* MonthGridView.swift */; };
 		I10002 /* CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = I20002 /* CalendarView.swift */; };
-		I10003 /* YearMonthPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = I20003 /* YearMonthPickerView.swift */; };
 		I10004 /* SideDrawerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = I20004 /* SideDrawerView.swift */; };
 		GLS10001 /* GlassTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = GLS20001 /* GlassTokens.swift */; };
 		GLS10002 /* GlassCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = GLS20002 /* GlassCard.swift */; };
@@ -175,7 +174,6 @@
 		H20004 /* RecordSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordSheetView.swift; sourceTree = "<group>"; };
 		I20001 /* MonthGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonthGridView.swift; sourceTree = "<group>"; };
 		I20002 /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarView.swift; sourceTree = "<group>"; };
-		I20003 /* YearMonthPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YearMonthPickerView.swift; sourceTree = "<group>"; };
 		I20004 /* SideDrawerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SideDrawerView.swift; sourceTree = "<group>"; };
 		GLS20001 /* GlassTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassTokens.swift; sourceTree = "<group>"; };
 		GLS20002 /* GlassCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassCard.swift; sourceTree = "<group>"; };
@@ -409,7 +407,6 @@
 				G20002 /* DayCellView.swift */,
 				I20001 /* MonthGridView.swift */,
 				G20001 /* WeekdayHeaderView.swift */,
-				I20003 /* YearMonthPickerView.swift */,
 				MPS20001 /* MonthPickerSheet.swift */,
 			);
 			path = Calendar;
@@ -677,7 +674,6 @@
 				I10001 /* MonthGridView.swift in Sources */,
 				I10002 /* CalendarView.swift in Sources */,
 				88DD96ED2F61B3A900E60283 /* StudyRecordView.swift in Sources */,
-				I10003 /* YearMonthPickerView.swift in Sources */,
 				I10004 /* SideDrawerView.swift in Sources */,
 				GLS10001 /* GlassTokens.swift in Sources */,
 				GLS10002 /* GlassCard.swift in Sources */,
