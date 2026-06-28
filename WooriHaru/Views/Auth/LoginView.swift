@@ -13,8 +13,7 @@ struct LoginView: View {
 
     var body: some View {
         ZStack {
-            Color.slate50
-                .ignoresSafeArea()
+            GlassBackground()
 
             VStack(spacing: 28) {
                 Spacer(minLength: 0)
@@ -61,19 +60,13 @@ struct LoginView: View {
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 52)
-                        .background(Color.slate900)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
+                    .appGlassProminentButton()
                     .disabled(username.trimmingCharacters(in: .whitespaces).isEmpty || password.isEmpty || authVM.isLoading)
                     .opacity(username.trimmingCharacters(in: .whitespaces).isEmpty || password.isEmpty || authVM.isLoading ? 0.55 : 1)
                 }
                 .padding(22)
-                .background(.white)
-                .clipShape(RoundedRectangle(cornerRadius: 18))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 18)
-                        .stroke(Color.slate200, lineWidth: 1)
-                }
+                .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 18))
                 .padding(.horizontal, 24)
 
                 Text("기록은 가볍게, 하루는 선명하게")
