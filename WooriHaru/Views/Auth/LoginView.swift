@@ -28,7 +28,7 @@ struct LoginView: View {
                         .foregroundStyle(Color.slate500)
                 }
 
-                GlassCard(cornerRadius: 18, padding: 22, alignment: .center) {
+                GlassCard(cornerRadius: 18, padding: 22) {
                     VStack(spacing: 14) {
                         inputField(
                             title: "아이디",

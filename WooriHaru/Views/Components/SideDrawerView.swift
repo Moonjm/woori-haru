@@ -28,6 +28,8 @@ struct SideDrawerView: View {
                 .frame(width: Self.width)
                 .frame(maxHeight: .infinity, alignment: .top)
                 .background {
+                    // Color.clear는 크기 앵커일 뿐, glassEffect가 패널의 모든 시각 재질을 제공한다.
+                    // ignoresSafeArea로 글래스를 화면 끝까지 확장(내용은 세이프에어리어 유지).
                     Color.clear
                         .glassEffect(.regular, in: Rectangle())
                         .ignoresSafeArea()
