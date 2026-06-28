@@ -272,7 +272,7 @@ struct CalendarView: View {
                                                 .frame(maxWidth: .infinity, alignment: .leading)
                                                 .padding(.horizontal, 16)
                                                 .frame(height: monthHeaderHeight)
-                                                .background(.white.opacity(0.95))
+                                                .background(.white.opacity(0.5))
                                             MonthGridView(
                                                 monthData: monthData,
                                                 onSelectDate: { date in
@@ -419,12 +419,14 @@ struct CalendarView: View {
                             onDismiss: { dismissSheet() }
                         )
                         .frame(height: geo.size.height * Self.sheetHeightRatio)
+                        .glassEffect(.regular, in: UnevenRoundedRectangle(topLeadingRadius: 24, topTrailingRadius: 24))
                     }
                 }
                 .ignoresSafeArea(.container, edges: .bottom)
                 .transition(.move(edge: .bottom))
             }
         }
+        .glassScreenBackground()
         .sheet(isPresented: $showPicker) {
             MonthPickerSheet(
                 initialYear: calendarVM.pickerTargetYear,
