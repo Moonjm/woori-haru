@@ -37,18 +37,34 @@ struct MonthPickerSheet: View {
             .frame(height: 220)
 
             HStack(spacing: 12) {
-                Button("취소") { dismiss() }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 50)
-                    .foregroundStyle(Color.slate700)
+                Button(action: { dismiss() }) {
+                    Text("취소")
+                        .font(.system(size: 16, weight: .semibold))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52)
+                        .foregroundStyle(Color.slate700)
+                        .background(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.slate200, lineWidth: 1)
+                        }
+                }
+                .buttonStyle(.plain)
 
-                Button("확인") {
+                Button(action: {
                     onConfirm(selectedYear, selectedMonth)
                     dismiss()
+                }) {
+                    Text("확인")
+                        .font(.system(size: 16, weight: .semibold))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52)
+                        .foregroundStyle(.white)
+                        .background(Color.slate900)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
-                .frame(maxWidth: .infinity)
-                .frame(height: 50)
-                .appGlassProminentButton()
+                .buttonStyle(.plain)
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 8)
@@ -72,7 +88,6 @@ private struct NaverStyleMonthPicker: UIViewRepresentable {
         picker.delegate = context.coordinator
         picker.dataSource = context.coordinator
         picker.backgroundColor = .clear
-        picker.subviews.forEach { $0.backgroundColor = .clear }
         if let yi = years.firstIndex(of: selectedYear) {
             picker.selectRow(yi, inComponent: 0, animated: false)
         }

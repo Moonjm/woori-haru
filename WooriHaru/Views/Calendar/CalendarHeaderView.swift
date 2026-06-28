@@ -20,9 +20,9 @@ struct CalendarHeaderView: View {
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundStyle(Color.slate900)
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(Color.slate400)
+                    Image(systemName: "arrowtriangle.down.fill")
+                        .font(.system(size: 9))
+                        .foregroundStyle(Color.slate600)
                 }
             }
 
