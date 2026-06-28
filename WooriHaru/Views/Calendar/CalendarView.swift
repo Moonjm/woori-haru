@@ -357,35 +357,6 @@ struct CalendarView: View {
                     }
                     .opacity(initialScrollDone ? 1 : 0)
 
-                    // Picker overlay
-                    if showPicker {
-                        VStack(spacing: 0) {
-                            YearMonthPickerView(
-                                isPresented: $showPicker,
-                                initialYear: calendarVM.pickerTargetYear,
-                                initialMonth: calendarVM.pickerTargetMonth,
-                                onSelect: { year, month in
-                                    let target = String(format: "%04d-%02d", year, month)
-                                    // 동기로 재빌드 (범위 밖이면) + 라벨 갱신
-                                    calendarVM.rebuildMonthsIfNeeded(year: year, month: month)
-                                    Task {
-                                        suppressEdgeLoadingCount += 1
-                                        defer { suppressEdgeLoadingCount -= 1 }
-                                        // 모멘텀 스크롤 중단 후 즉시 이동
-                                        await forceScrollTo(target)
-                                        // 데이터 로드는 백그라운드 (이전 요청 취소)
-                                        dataLoadTask?.cancel()
-                                        dataLoadTask = Task { await calendarVM.ensureDataLoaded(around: target) }
-                                    }
-                                }
-                            )
-
-                            Color.clear
-                                .contentShape(Rectangle())
-                                .onTapGesture { showPicker = false }
-                        }
-                        .transaction { $0.animation = nil }
-                    }
                 }
             }
             .ignoresSafeArea(.keyboard)
@@ -454,12 +425,23 @@ struct CalendarView: View {
                 .transition(.move(edge: .bottom))
             }
         }
-        .onChange(of: showPicker) { _, show in
-            // 피커 닫힐 때 API 데이터 보장
-            if !show {
-                let target = String(format: "%04d-%02d", calendarVM.pickerTargetYear, calendarVM.pickerTargetMonth)
-                Task { await calendarVM.ensureDataLoaded(around: target) }
+        .sheet(isPresented: $showPicker) {
+            MonthPickerSheet(
+                initialYear: calendarVM.pickerTargetYear,
+                initialMonth: calendarVM.pickerTargetMonth
+            ) { year, month in
+                let target = String(format: "%04d-%02d", year, month)
+                calendarVM.rebuildMonthsIfNeeded(year: year, month: month)
+                Task {
+                    suppressEdgeLoadingCount += 1
+                    defer { suppressEdgeLoadingCount -= 1 }
+                    await forceScrollTo(target)
+                    dataLoadTask?.cancel()
+                    dataLoadTask = Task { await calendarVM.ensureDataLoaded(around: target) }
+                }
             }
+            .presentationDetents([.height(320)])
+            .presentationDragIndicator(.visible)
         }
         .task {
             calendarVM.configure(pairStore: pairStore)
