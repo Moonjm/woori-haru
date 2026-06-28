@@ -419,7 +419,6 @@ struct CalendarView: View {
                             onDismiss: { dismissSheet() }
                         )
                         .frame(height: geo.size.height * Self.sheetHeightRatio)
-                        .glassEffect(.regular, in: UnevenRoundedRectangle(topLeadingRadius: 24, topTrailingRadius: 24))
                     }
                 }
                 .ignoresSafeArea(.container, edges: .bottom)

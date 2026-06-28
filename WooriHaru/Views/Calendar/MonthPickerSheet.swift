@@ -11,9 +11,11 @@ struct MonthPickerSheet: View {
     @State private var selectedYear: Int
     @State private var selectedMonth: Int
 
-    private static var years: [Int] {
+    private var years: [Int] {
         let y = Calendar.current.component(.year, from: Date())
-        return Array((y - 10)...(y + 10))
+        let lower = min(initialYear, y - 10)
+        let upper = max(initialYear, y + 10)
+        return Array(lower...upper)
     }
 
     init(initialYear: Int, initialMonth: Int, onConfirm: @escaping (Int, Int) -> Void) {
@@ -28,7 +30,7 @@ struct MonthPickerSheet: View {
         VStack(spacing: 0) {
             HStack(spacing: 0) {
                 Picker("연도", selection: $selectedYear) {
-                    ForEach(Self.years, id: \.self) { y in
+                    ForEach(years, id: \.self) { y in
                         Text("\(String(y))년").tag(y)
                     }
                 }
