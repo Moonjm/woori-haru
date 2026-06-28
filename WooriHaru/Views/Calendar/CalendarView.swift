@@ -246,7 +246,6 @@ struct CalendarView: View {
             VStack(spacing: 0) {
                 CalendarHeaderView(
                     monthLabel: calendarVM.currentMonthLabel,
-                    isPickerOpen: showPicker,
                     onMenuTap: { withAnimation { calendarVM.isDrawerOpen = true } },
                     onMonthTap: { showPicker.toggle() },
                     onSearchTap: { navPath.append(AppDestination.search) }
