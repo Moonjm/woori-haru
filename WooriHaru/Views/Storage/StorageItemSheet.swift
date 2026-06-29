@@ -88,6 +88,8 @@ struct StorageItemSheet: View {
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .glassEffect(.regular, in: RoundedRectangle(cornerRadius: GlassTokens.cardCornerRadius))
             .navigationTitle(isEditing ? "품목 수정" : "품목 추가")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -100,6 +102,7 @@ struct StorageItemSheet: View {
                             await viewModel.saveItem()
                         }
                     }
+                    .appGlassProminentButton()
                     .disabled(viewModel.itemFormName.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
             }

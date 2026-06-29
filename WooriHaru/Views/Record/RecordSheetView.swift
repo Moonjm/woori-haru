@@ -154,12 +154,7 @@ struct RecordSheetView: View {
                 }
             }
         }
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(.white)
-                .shadow(color: .black.opacity(0.15), radius: 10, y: -2)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .glassEffect(.regular, in: UnevenRoundedRectangle(topLeadingRadius: 20, topTrailingRadius: 20))
         .offset(y: dragOffset)
         .gesture(
             DragGesture()
