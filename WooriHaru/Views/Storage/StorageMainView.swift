@@ -49,7 +49,7 @@ struct StorageMainView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.slate50.ignoresSafeArea())
+        .glassScreenBackground()
         .navigationTitle("보관함 관리")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
@@ -75,10 +75,8 @@ struct StorageMainView: View {
                         .font(.body.weight(.semibold))
                         .foregroundStyle(Color.slate600)
                         .frame(width: 34, height: 34)
-                        .background(Color.white)
-                        .cornerRadius(17)
-                        .shadow(color: .black.opacity(0.06), radius: 4, y: 1)
                 }
+                .appGlassProminentButton()
             }
         }
         .task {
@@ -168,11 +166,9 @@ struct StorageMainView: View {
             }
             .font(.subheadline)
             .fontWeight(.semibold)
-            .foregroundStyle(.white)
             .padding(.horizontal, 24)
             .padding(.vertical, 10)
-            .background(Color.slate700)
-            .cornerRadius(10)
+            .appGlassProminentButton()
             Spacer()
         }
     }
@@ -190,7 +186,7 @@ struct StorageMainView: View {
                 .padding(.horizontal, 20)
                 .padding(.vertical, 14)
             }
-            .background(.white)
+            .glassEffect(.regular, in: Rectangle())
             .shadow(color: .black.opacity(0.03), radius: 2, y: 1)
             .onChange(of: viewModel.selectedStorageId) {
                 if let id = viewModel.selectedStorageId {
@@ -273,7 +269,7 @@ struct StorageMainView: View {
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 10)
-        .background(.white)
+        .glassEffect(.regular, in: Rectangle())
     }
 
     private func expiryPill(color: Color, bgColor: Color, label: String, count: Int) -> some View {
@@ -380,8 +376,7 @@ struct StorageMainView: View {
                 }
             }
         }
-        .background(.white)
-        .cornerRadius(16)
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16))
         .shadow(color: .black.opacity(0.04), radius: 8, y: 2)
         .overlay(alignment: .leading) {
             UnevenRoundedRectangle(
@@ -562,8 +557,7 @@ struct StorageMainView: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
-                .background(.white)
-                .cornerRadius(14)
+                .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 14))
                 .shadow(color: .black.opacity(0.04), radius: 8, y: 2)
             } else {
                 Button {
