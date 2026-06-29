@@ -76,7 +76,7 @@ struct StorageMainView: View {
                         .foregroundStyle(Color.slate600)
                         .frame(width: 34, height: 34)
                 }
-                .appGlassProminentButton()
+                .appGlassButton()
             }
         }
         .task {
