@@ -106,14 +106,19 @@ struct RecordFormView: View {
                     Text(viewModel.editingRecord != nil ? "수정" : "저장")
                         .font(.subheadline)
                         .fontWeight(.semibold)
+                        .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
+                        .background(viewModel.selectedCategoryId != nil && !viewModel.isSaving ? Color.blue500 : Color.slate400)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
-                .appGlassProminentButton()
                 .disabled(viewModel.selectedCategoryId == nil || viewModel.isSaving)
             }
         }
         .padding(16)
-        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 12))
+        .background {
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.slate50)
+        }
     }
 }
