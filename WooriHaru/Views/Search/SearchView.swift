@@ -75,9 +75,7 @@ struct SearchView: View {
                 }
             }
             .padding(16)
-            .background(.white)
-
-            Divider()
+            .glassEffect(.regular, in: Rectangle())
 
             ScrollView {
                 LazyVStack(spacing: 8) {
@@ -100,6 +98,7 @@ struct SearchView: View {
         }
         .contentShape(Rectangle())
         .onTapGesture { isKeywordFocused = false }
+        .glassScreenBackground()
         .navigationTitle("검색")
         .navigationBarTitleDisplayMode(.inline)
         .task {
