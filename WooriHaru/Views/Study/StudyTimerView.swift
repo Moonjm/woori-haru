@@ -27,7 +27,7 @@ struct StudyTimerView: View {
             }
             .padding(20)
         }
-        .background(Color.slate50)
+        .glassScreenBackground()
         .onTapGesture { isAlarmFieldFocused = false; selectedSegmentKey = nil }
         .navigationTitle("공부 타이머")
         .navigationBarTitleDisplayMode(.inline)
@@ -129,8 +129,7 @@ struct StudyTimerView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(24)
-        .background(.white)
-        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 20))
     }
 
     @ViewBuilder
@@ -209,12 +208,10 @@ struct StudyTimerView: View {
             } label: {
                 Label("공부 시작", systemImage: "play.fill")
                     .font(.headline)
-                    .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .background(vm.selectedSubject != nil ? Color.blue500 : Color.slate200)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
             }
+            .appGlassProminentButton()
             .disabled(vm.selectedSubject == nil || vm.isLoading)
 
         case .running:
@@ -362,8 +359,7 @@ struct StudyTimerView: View {
             .frame(maxWidth: .infinity)
         }
         .padding(.vertical, 14)
-        .background(.white)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 14))
     }
 
     // MARK: - Weekly Goal Card
@@ -400,8 +396,7 @@ struct StudyTimerView: View {
             }
         }
         .padding(16)
-        .background(.white)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16))
     }
 
     // MARK: - Shared Progress Bar
@@ -496,8 +491,7 @@ struct StudyTimerView: View {
             }
         }
         .padding(16)
-        .background(.white)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16))
     }
 
     private func timelineBar(_ session: StudySession) -> some View {
