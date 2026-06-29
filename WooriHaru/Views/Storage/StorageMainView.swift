@@ -71,8 +71,8 @@ struct StorageMainView: View {
                     viewModel.showAddStorageSheet = true
                     viewModel.storageFormName = ""
                 } label: {
-                    Image(systemName: "plus.circle")
-                        .font(.title3)
+                    Image(systemName: "plus")
+                        .font(.title3.weight(.semibold))
                         .foregroundStyle(Color.slate600)
                 }
             }
