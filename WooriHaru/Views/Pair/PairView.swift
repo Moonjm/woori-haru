@@ -27,15 +27,16 @@ struct PairView: View {
                 if isLoading {
                     ProgressView()
                 } else if pairStore.isPaired {
-                    connectedSection
+                    GlassCard(alignment: .center) { connectedSection }
                 } else if pairStore.isPending {
-                    pendingSection
+                    GlassCard(alignment: .center) { pendingSection }
                 } else {
-                    disconnectedSection
+                    GlassCard(alignment: .center) { disconnectedSection }
                 }
             }
             .padding(20)
         }
+        .glassScreenBackground()
         .navigationTitle("커플")
         .navigationBarTitleDisplayMode(.inline)
         .task {
@@ -79,12 +80,10 @@ struct PairView: View {
                 }
                 .font(.subheadline)
                 .fontWeight(.medium)
-                .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
-                .background(Color.blue500)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
             }
+            .appGlassProminentButton()
 
             Button {
                 showUnpairConfirm = true
@@ -93,6 +92,7 @@ struct PairView: View {
                     .font(.subheadline)
                     .foregroundStyle(Color.red500)
             }
+            .appGlassButton()
         }
     }
 
@@ -121,6 +121,7 @@ struct PairView: View {
                     .font(.subheadline)
                     .foregroundStyle(Color.blue500)
                 }
+                .appGlassButton()
             } else {
                 Text("초대가 발송되었습니다.\n파트너가 수락하기를 기다리는 중입니다.")
                     .font(.subheadline)
@@ -135,6 +136,7 @@ struct PairView: View {
                     .font(.subheadline)
                     .foregroundStyle(Color.red500)
             }
+            .appGlassButton()
         }
     }
 
@@ -153,12 +155,10 @@ struct PairView: View {
                     Text("코드 생성하기")
                         .font(.subheadline)
                         .fontWeight(.semibold)
-                        .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
-                        .background(Color.blue500)
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
                 }
+                .appGlassProminentButton()
             }
 
             Divider()
@@ -182,12 +182,10 @@ struct PairView: View {
                         Text("수락")
                             .font(.subheadline)
                             .fontWeight(.semibold)
-                            .foregroundStyle(.white)
                             .padding(.horizontal, 20)
                             .padding(.vertical, 8)
-                            .background(inputCode.count == 6 ? Color.blue500 : Color.slate400)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
                     }
+                    .appGlassProminentButton()
                     .disabled(inputCode.count != 6)
                 }
             }
