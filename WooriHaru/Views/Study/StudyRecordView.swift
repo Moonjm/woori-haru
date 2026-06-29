@@ -20,7 +20,7 @@ struct StudyRecordView: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 20)
         }
-        .background(Color.slate50)
+        .glassScreenBackground()
         .navigationTitle("전체 기록")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -122,8 +122,7 @@ struct StudyRecordView: View {
             }
         }
         .padding(16)
-        .background(.white)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16))
     }
 
     private func heatmapCell(_ record: DailyStudyRecord) -> some View {
@@ -172,8 +171,7 @@ struct StudyRecordView: View {
             summaryItem(label: "최고 기록", value: s.maxFormatted, icon: "flame")
         }
         .padding(16)
-        .background(.white)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16))
     }
 
     private func summaryItem(label: String, value: String, icon: String) -> some View {
@@ -195,7 +193,7 @@ struct StudyRecordView: View {
             Spacer()
         }
         .padding(10)
-        .background(Color.slate50)
+        .background(Color.blue500.opacity(0.07))
         .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 
@@ -239,7 +237,6 @@ struct StudyRecordView: View {
             }
         }
         .padding(16)
-        .background(.white)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16))
     }
 }

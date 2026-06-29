@@ -40,8 +40,7 @@ struct WeeklyStudyRecordSection: View {
             }
         }
         .padding(16)
-        .background(.white)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16))
         .simultaneousGesture(TapGesture().onEnded {
             if selectedTooltip != nil {
                 withAnimation(.easeInOut(duration: 0.15)) {
@@ -130,11 +129,11 @@ struct WeeklyStudyRecordSection: View {
                 let studyWidth = barWidth * studyRatio
 
                 ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 5)
+                    Rectangle()
                         .fill(Color.slate200)
                         .frame(width: barWidth)
                     if studyWidth > 0 {
-                        RoundedRectangle(cornerRadius: 5)
+                        Rectangle()
                             .fill(Color.blue400)
                             .frame(width: studyWidth)
                             .overlay {
@@ -146,11 +145,12 @@ struct WeeklyStudyRecordSection: View {
                             }
                     }
                 }
+                .clipShape(RoundedRectangle(cornerRadius: 5))
             }
             .frame(height: 20)
         }
         .padding(12)
-        .background(isExpanded ? Color.blue50 : Color.slate50)
+        .background(isExpanded ? Color.blue500.opacity(0.07) : Color.blue500.opacity(0.04))
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .contentShape(Rectangle())
         .onTapGesture {
@@ -260,7 +260,7 @@ struct WeeklyStudyRecordSection: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
-        .background(Color.slate50)
+        .background(Color.blue500.opacity(0.07))
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 
