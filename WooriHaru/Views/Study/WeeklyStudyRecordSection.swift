@@ -40,8 +40,7 @@ struct WeeklyStudyRecordSection: View {
             }
         }
         .padding(16)
-        .background(.white)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16))
         .simultaneousGesture(TapGesture().onEnded {
             if selectedTooltip != nil {
                 withAnimation(.easeInOut(duration: 0.15)) {
