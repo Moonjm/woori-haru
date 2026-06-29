@@ -150,7 +150,7 @@ struct WeeklyStudyRecordSection: View {
             .frame(height: 20)
         }
         .padding(12)
-        .background(isExpanded ? Color.blue500.opacity(0.07) : Color.blue500.opacity(0.10))
+        .background(isExpanded ? Color.blue500.opacity(0.07) : Color.blue500.opacity(0.04))
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .contentShape(Rectangle())
         .onTapGesture {
