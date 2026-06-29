@@ -72,7 +72,7 @@ struct StorageMainView: View {
                     viewModel.storageFormName = ""
                 } label: {
                     Image(systemName: "plus")
-                        .font(.title3.weight(.semibold))
+                        .font(.body)
                         .foregroundStyle(Color.slate600)
                 }
             }
