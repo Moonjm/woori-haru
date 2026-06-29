@@ -39,10 +39,7 @@ struct OvereatSelectorView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background {
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.slate50)
-        }
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 12))
     }
 
     private func buttonBackground(_ level: OvereatLevel) -> Color {

@@ -51,7 +51,7 @@ struct RecordListView: View {
                                 .onTapGesture { onTap(record) }
                             }
                         }
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 12))
                     }
                 }
 
@@ -77,7 +77,7 @@ struct RecordListView: View {
                                 .onTapGesture { onTap(record) }
                             }
                         }
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 12))
                     }
                 }
 
@@ -101,10 +101,11 @@ struct RecordListView: View {
                                 .opacity(0.7)
                             }
                         }
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 12))
                     }
                 }
             }
+            .glassScreenBackground()
         }
     }
 }
@@ -147,7 +148,7 @@ struct RecordRow: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 13)
-            .background(isTogether ? Color.blue50 : Color.slate50)
+            .background(isTogether ? Color.blue50.opacity(0.5) : Color.clear)
 
             if !isLast {
                 Divider()
