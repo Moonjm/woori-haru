@@ -476,7 +476,7 @@ struct StudyTimerView: View {
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(Color.slate700)
 
-            if vm.todaySessions.isEmpty && vm.timerState == .idle {
+            if vm.todaySessions.isEmpty {
                 Text("아직 기록이 없습니다")
                     .font(.caption)
                     .foregroundStyle(Color.slate400)
@@ -490,6 +490,7 @@ struct StudyTimerView: View {
                 }
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
         .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16))
     }
