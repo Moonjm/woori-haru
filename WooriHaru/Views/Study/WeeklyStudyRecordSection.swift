@@ -260,7 +260,7 @@ struct WeeklyStudyRecordSection: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
-        .background(Color.slate50)
+        .background(Color.blue500.opacity(0.12))
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 
