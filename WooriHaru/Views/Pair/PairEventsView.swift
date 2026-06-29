@@ -7,52 +7,50 @@ struct PairEventsView: View {
     var body: some View {
         VStack(spacing: 0) {
             // 생성 폼
-            VStack(spacing: 12) {
-                Text("새 기념일")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                HStack(spacing: 8) {
-                    TextField("😀", text: $viewModel.newEmoji)
-                        .frame(width: 50)
-                        .textFieldStyle(.roundedBorder)
-                        .onChange(of: viewModel.newEmoji) { _, newValue in
-                            if newValue.count > 1 { viewModel.newEmoji = String(newValue.prefix(1)) }
-                        }
-
-                    TextField("제목", text: $viewModel.newTitle)
-                        .textFieldStyle(.roundedBorder)
-                        .onChange(of: viewModel.newTitle) { _, newValue in
-                            if newValue.count > 30 { viewModel.newTitle = String(newValue.prefix(30)) }
-                        }
-                }
-
-                HStack {
-                    DatePicker("날짜", selection: $viewModel.newDate, displayedComponents: .date)
-                        .labelsHidden()
-
-                    Toggle("매년 반복", isOn: $viewModel.newRecurring)
-                        .font(.caption)
-                }
-
-                Button {
-                    Task { await viewModel.createEvent() }
-                } label: {
-                    Text("추가")
+            GlassCard {
+                VStack(spacing: 12) {
+                    Text("새 기념일")
                         .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                        .background(Color.blue500)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .fontWeight(.medium)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                    HStack(spacing: 8) {
+                        TextField("😀", text: $viewModel.newEmoji)
+                            .frame(width: 50)
+                            .textFieldStyle(.roundedBorder)
+                            .onChange(of: viewModel.newEmoji) { _, newValue in
+                                if newValue.count > 1 { viewModel.newEmoji = String(newValue.prefix(1)) }
+                            }
+
+                        TextField("제목", text: $viewModel.newTitle)
+                            .textFieldStyle(.roundedBorder)
+                            .onChange(of: viewModel.newTitle) { _, newValue in
+                                if newValue.count > 30 { viewModel.newTitle = String(newValue.prefix(30)) }
+                            }
+                    }
+
+                    HStack {
+                        DatePicker("날짜", selection: $viewModel.newDate, displayedComponents: .date)
+                            .labelsHidden()
+
+                        Toggle("매년 반복", isOn: $viewModel.newRecurring)
+                            .font(.caption)
+                    }
+
+                    Button {
+                        Task { await viewModel.createEvent() }
+                    } label: {
+                        Text("추가")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                    }
+                    .appGlassProminentButton()
                 }
+                .font(.subheadline)
             }
             .padding(16)
-            .font(.subheadline)
-
-            Divider()
 
             // Messages
             if let success = viewModel.successMessage {
@@ -96,7 +94,9 @@ struct PairEventsView: View {
                 }
             }
             .listStyle(.plain)
+            .scrollContentBackground(.hidden)
         }
+        .glassScreenBackground()
         .navigationTitle("기념일 관리")
         .navigationBarTitleDisplayMode(.inline)
         .task { await viewModel.loadEvents() }
