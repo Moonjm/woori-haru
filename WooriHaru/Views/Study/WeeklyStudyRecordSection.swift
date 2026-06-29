@@ -129,11 +129,11 @@ struct WeeklyStudyRecordSection: View {
                 let studyWidth = barWidth * studyRatio
 
                 ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 5)
+                    Rectangle()
                         .fill(Color.slate200)
                         .frame(width: barWidth)
                     if studyWidth > 0 {
-                        RoundedRectangle(cornerRadius: 5)
+                        Rectangle()
                             .fill(Color.blue400)
                             .frame(width: studyWidth)
                             .overlay {
@@ -145,6 +145,7 @@ struct WeeklyStudyRecordSection: View {
                             }
                     }
                 }
+                .clipShape(RoundedRectangle(cornerRadius: 5))
             }
             .frame(height: 20)
         }

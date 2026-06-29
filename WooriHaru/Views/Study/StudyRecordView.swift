@@ -193,7 +193,7 @@ struct StudyRecordView: View {
             Spacer()
         }
         .padding(10)
-        .background(Color.slate50)
+        .background(Color.blue500.opacity(0.07))
         .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 
