@@ -10,7 +10,9 @@ Foundation의 Liquid Glass 디자인 시스템을 아직 적용되지 않은 나
 
 - **범위**: 남은 전부 한 사이클 — 5영역 7파일.
 - **카드 없는 화면(PairView·ProfileView·PairEventsView 폼)**: GlassCard를 **신규 도입**해 카드 기반 글래스 언어로 통일.
-- **버튼**: 모든 주요(채움형) CTA를 글래스로 통일 — `appGlassProminentButton()`(블루 prominent 글래스). 기존 회색(slate700)·주황(orange300) 버튼도 전부 글래스로 전환(solid 버튼 없음). 텍스트 링크형 보조 동작(해제/취소/복사 등 원래 채움 없던 것)은 텍스트 그대로 유지.
+- **버튼**: 모든 버튼을 글래스로 전환(solid·맨텍스트 버튼 없음).
+  - 주요(채움형) CTA → `appGlassProminentButton()`(블루 prominent 글래스). 기존 회색(slate700)·주황(orange300) 포함 전부.
+  - 보조/텍스트 링크형 동작(해제·취소·복사 등) → `appGlassButton()`(plain 글래스 캡슐). 텍스트 색(파괴=빨강, 복사=파랑, 취소=회색)은 유지.
 - **촘촘한 콘텐츠 유지**: 리스트 행, 입력 필드, 상태 칩, 토글, 진행 표시는 통째 글래스화하지 않음.
 - glass-on-glass 금지.
 
@@ -30,20 +32,20 @@ Foundation의 Liquid Glass 디자인 시스템을 아직 적용되지 않은 나
 
 - 화면 루트 → `glassScreenBackground()` (slate50→blue50 그라데이션).
 - 흰 카드 컨테이너 → `glassEffect(.regular, in: RoundedRectangle(cornerRadius:))` 또는 `GlassCard`.
-- 모든 채움형 주요 CTA → `appGlassProminentButton()`. solid 버튼 없음. 텍스트 링크형 보조 동작은 텍스트 유지.
+- 채움형 주요 CTA → `appGlassProminentButton()`; 보조/텍스트 링크형 → `appGlassButton()`(plain 글래스 캡슐). solid·맨텍스트 버튼 없음.
 - 촘촘한 콘텐츠(리스트 행/입력 필드/상태 칩/토글)는 plain.
 - 리스트는 `scrollContentBackground(.hidden)` 등으로 그라데이션이 비치게(필요한 경우).
 - glass-on-glass 금지: 글래스 카드 안 입력칸·행은 plain.
 
 ## 아키텍처 — 화면별
 
-- **PairView**: 루트 `ScrollView` → `glassScreenBackground()`. `connectedSection`/`pendingSection`/`disconnectedSection`의 내용을 각각 **GlassCard**로 감싼다. 파랑 버튼(기념일 관리 85행 / 코드 생성 159행 / 수락 188행) → `appGlassProminentButton()`. 텍스트 버튼(페어 해제·초대 취소·코드 복사), 코드 입력 TextField, 하트 아이콘은 유지.
+- **PairView**: 루트 `ScrollView` → `glassScreenBackground()`. `connectedSection`/`pendingSection`/`disconnectedSection`의 내용을 각각 **GlassCard**로 감싼다. 파랑 버튼(기념일 관리 85행 / 코드 생성 159행 / 수락 188행) → `appGlassProminentButton()`. 텍스트 버튼(페어 해제·초대 취소·코드 복사) → `appGlassButton()` 글래스 캡슐(텍스트 색 유지). 코드 입력 TextField·하트 아이콘은 유지.
 - **PairEventsView**: 루트 `VStack` → `glassScreenBackground()`. 생성 폼(10–52행)을 **GlassCard**로. "추가"(48행, 파랑) → glass. `List(.plain)`은 `scrollContentBackground(.hidden)`로 배경 투명화, 행 내용은 유지.
 - **SearchView**: 루트 `VStack` → `glassScreenBackground()`. 상단 필터바 `.background(.white)`(78행) → `glassEffect(.regular, in: Rectangle())` 패널. `SearchResultCard`(흰+stroke, 다수)는 콘텐츠라 유지. 피커/메뉴/키워드 입력칸 유지.
 - **ProfileView**: 루트 `ScrollView` → `glassScreenBackground()`. 폼 필드 전체를 **GlassCard**로 묶는다. 입력칸(흰+stroke)·아이디 readonly(slate100)·성별 토글·DatePicker는 유지. "저장"(현재 slate700) → `appGlassProminentButton()`로 전환.
-- **CategoriesView**: 루트 `Color.slate50`(14행) → `glassScreenBackground()`. 생성 폼 흰 카드(87행) → `glassEffect`. 목록 컨테이너 `.background(.white)`(159행) → `glassEffect` 패널. 행(slate50)·입력칸·ACTIVE 칩·드래그 핸들 유지. "추가하기"(현재 orange300)·편집 저장(blue500) 모두 → `appGlassProminentButton()`로 전환.
+- **CategoriesView**: 루트 `Color.slate50`(14행) → `glassScreenBackground()`. 생성 폼 흰 카드(87행) → `glassEffect`. 목록 컨테이너 `.background(.white)`(159행) → `glassEffect` 패널. 행(slate50)·입력칸·ACTIVE 칩·드래그 핸들 유지. "추가하기"(현재 orange300)·편집 저장(blue500) → `appGlassProminentButton()`. 편집 "취소"(텍스트) → `appGlassButton()`.
 - **AdminView**: 루트 `VStack` → `glassScreenBackground()`. `adminCard` 흰+shadow(63행) → `glassEffect`(탭 가능한 네비 카드). 아이콘 배경은 유지.
-- **UserManagementView**: 루트 `Color.slate50`(90행) → `glassScreenBackground()`. 생성 폼 카드(47행)·목록 카드(84행) → `glassEffect`. 행(slate50)·입력칸·권한 칩/메뉴 유지. "사용자 추가"(현재 slate700)·편집 저장(blue500) 모두 → `appGlassProminentButton()`로 전환.
+- **UserManagementView**: 루트 `Color.slate50`(90행) → `glassScreenBackground()`. 생성 폼 카드(47행)·목록 카드(84행) → `glassEffect`. 행(slate50)·입력칸·권한 칩/메뉴 유지. "사용자 추가"(현재 slate700)·편집 저장(blue500) → `appGlassProminentButton()`. 편집 "취소"(텍스트) → `appGlassButton()`.
 
 ## 검증
 
