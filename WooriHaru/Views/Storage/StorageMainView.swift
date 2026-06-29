@@ -71,12 +71,10 @@ struct StorageMainView: View {
                     viewModel.showAddStorageSheet = true
                     viewModel.storageFormName = ""
                 } label: {
-                    Image(systemName: "plus")
-                        .font(.body.weight(.semibold))
+                    Image(systemName: "plus.circle")
+                        .font(.title3)
                         .foregroundStyle(Color.slate600)
-                        .frame(width: 34, height: 34)
                 }
-                .appGlassButton()
             }
         }
         .task {
