@@ -181,8 +181,7 @@ struct StudyTimerView: View {
                             .padding(.horizontal, 16)
                             .padding(.vertical, 10)
                             .frame(maxWidth: .infinity)
-                            .background(Color.slate50)
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .glassInputField(cornerRadius: 10)
                     }
                 }
             }
@@ -326,8 +325,7 @@ struct StudyTimerView: View {
                 .foregroundStyle(Color.slate500)
         }
         .padding(10)
-        .background(Color.slate50)
-        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .glassInputField(cornerRadius: 10)
     }
 
     // MARK: - Today Summary Card
