@@ -7,9 +7,14 @@ struct CategoriesView: View {
     @State private var draggingId: Int?
 
     var body: some View {
-        VStack(spacing: 0) {
-            createFormSection
-            categoryListSection
+        ScrollView {
+            VStack(spacing: 16) {
+                createFormSection
+                categoryListSection
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+            .padding(.bottom, 16)
         }
         .glassScreenBackground()
         .navigationTitle("카테고리 관리")
@@ -42,9 +47,8 @@ struct CategoriesView: View {
     // MARK: - Create Form
 
     private var createFormSection: some View {
-        ScrollView {
-            VStack(spacing: 16) {
-                VStack(alignment: .leading, spacing: 12) {
+        VStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: 12) {
                     HStack {
                         Text("새 카테고리")
                             .font(.subheadline)
@@ -86,13 +90,7 @@ struct CategoriesView: View {
                 .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 12))
 
                 messageSection
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 20)
-            .padding(.bottom, 8)
         }
-        .frame(maxHeight: .infinity, alignment: .top)
-        .layoutPriority(0)
     }
 
     // MARK: - Messages
@@ -126,8 +124,7 @@ struct CategoriesView: View {
             }
             .padding(.bottom, 10)
 
-            ScrollView {
-                LazyVStack(spacing: 8) {
+            LazyVStack(spacing: 8) {
                     ForEach(categoryStore.categories) { category in
                         if viewModel.editingId == category.id {
                             editRow(category)
@@ -148,12 +145,9 @@ struct CategoriesView: View {
                     }
                 }
                 .animation(.easeInOut(duration: 0.2), value: categoryStore.categories.map(\.id))
-            }
         }
         .padding(16)
         .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 12))
-        .padding(.horizontal, 20)
-        .padding(.bottom, 16)
     }
 
     // MARK: - Category Row
