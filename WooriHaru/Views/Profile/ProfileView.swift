@@ -17,7 +17,8 @@ struct ProfileView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
+            GlassCard(alignment: .leading) {
+                VStack(alignment: .leading, spacing: 24) {
                 // 아이디 (읽기전용)
                 fieldSection("아이디") {
                     Text(authVM.user?.username ?? "")
@@ -138,19 +139,17 @@ struct ProfileView: View {
                     Text("저장")
                         .font(.subheadline)
                         .fontWeight(.semibold)
-                        .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(Color.slate700)
-                        )
                 }
+                .appGlassProminentButton()
                 .disabled(isSaving)
                 .opacity(isSaving ? 0.6 : 1)
+                }
             }
             .padding(20)
         }
+        .glassScreenBackground()
         .navigationTitle("내 정보")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { loadUserData() }
