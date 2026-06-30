@@ -8,7 +8,7 @@ struct SearchView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // 필터 영역
+            // 필터 영역 (상단 고정)
             VStack(spacing: 12) {
                 HStack(spacing: 12) {
                     Picker("연도", selection: $viewModel.selectedYear) {
@@ -58,16 +58,16 @@ struct SearchView: View {
                         .font(.subheadline)
                         .foregroundStyle(Color.slate700)
                         .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background {
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color.slate200, lineWidth: 1)
-                        }
+                        .frame(height: 42)
+                        .glassInputField()
                     }
 
                     TextField("키워드 검색", text: $viewModel.keyword)
                         .font(.subheadline)
-                        .textFieldStyle(.roundedBorder)
+                        .textFieldStyle(.plain)
+                        .padding(.horizontal, 12)
+                        .frame(height: 42)
+                        .glassInputField()
                         .focused($isKeywordFocused)
                         .onChange(of: viewModel.keyword) { _, _ in
                             viewModel.applyFilters()
@@ -75,9 +75,6 @@ struct SearchView: View {
                 }
             }
             .padding(16)
-            .background(.white)
-
-            Divider()
 
             ScrollView {
                 LazyVStack(spacing: 8) {
@@ -100,6 +97,7 @@ struct SearchView: View {
         }
         .contentShape(Rectangle())
         .onTapGesture { isKeywordFocused = false }
+        .glassScreenBackground()
         .navigationTitle("검색")
         .navigationBarTitleDisplayMode(.inline)
         .task {
@@ -149,7 +147,7 @@ struct SearchResultCard: View {
         .padding(12)
         .background {
             RoundedRectangle(cornerRadius: 10)
-                .fill(.white)
+                .fill(.white.opacity(0.5))
                 .stroke(Color.slate200, lineWidth: 1)
         }
     }

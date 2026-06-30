@@ -468,6 +468,9 @@ struct StorageMainView: View {
             TextField("구역 이름", text: $renamingSectionName)
                 .font(.subheadline)
                 .focused($isRenameFieldFocused)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .glassInputField()
                 .onSubmit { Task { await submitRenameSection(section) } }
 
             Button {
@@ -524,6 +527,9 @@ struct StorageMainView: View {
                     TextField("구역 이름 입력", text: $inlineSectionName)
                         .font(.subheadline)
                         .focused($isSectionFieldFocused)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .glassInputField()
                         .onSubmit { Task { await submitInlineSection() } }
 
                     Button {

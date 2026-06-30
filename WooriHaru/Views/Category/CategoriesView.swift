@@ -7,11 +7,16 @@ struct CategoriesView: View {
     @State private var draggingId: Int?
 
     var body: some View {
-        VStack(spacing: 0) {
-            createFormSection
-            categoryListSection
+        ScrollView {
+            VStack(spacing: 16) {
+                createFormSection
+                categoryListSection
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+            .padding(.bottom, 16)
         }
-        .background(Color.slate50)
+        .glassScreenBackground()
         .navigationTitle("카테고리 관리")
         .navigationBarTitleDisplayMode(.inline)
         .task {
@@ -42,9 +47,8 @@ struct CategoriesView: View {
     // MARK: - Create Form
 
     private var createFormSection: some View {
-        ScrollView {
-            VStack(spacing: 16) {
-                VStack(alignment: .leading, spacing: 12) {
+        VStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: 12) {
                     HStack {
                         Text("새 카테고리")
                             .font(.subheadline)
@@ -77,25 +81,16 @@ struct CategoriesView: View {
                         Text("추가하기")
                             .font(.subheadline)
                             .fontWeight(.semibold)
-                            .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
-                            .background(RoundedRectangle(cornerRadius: 8).fill(Color.orange300))
                     }
+                    .appGlassProminentButton()
                 }
                 .padding(16)
-                .background(.white)
-                .cornerRadius(12)
-                .shadow(color: .black.opacity(0.04), radius: 4, y: 1)
+                .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 12))
 
                 messageSection
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 20)
-            .padding(.bottom, 8)
         }
-        .frame(maxHeight: .infinity, alignment: .top)
-        .layoutPriority(0)
     }
 
     // MARK: - Messages
@@ -127,11 +122,9 @@ struct CategoriesView: View {
                     .font(.caption)
                     .foregroundStyle(Color.blue500)
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 10)
+            .padding(.bottom, 10)
 
-            ScrollView {
-                LazyVStack(spacing: 8) {
+            LazyVStack(spacing: 8) {
                     ForEach(categoryStore.categories) { category in
                         if viewModel.editingId == category.id {
                             editRow(category)
@@ -151,12 +144,10 @@ struct CategoriesView: View {
                         }
                     }
                 }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 16)
                 .animation(.easeInOut(duration: 0.2), value: categoryStore.categories.map(\.id))
-            }
         }
-        .background(.white)
+        .padding(16)
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 12))
     }
 
     // MARK: - Category Row
@@ -200,7 +191,7 @@ struct CategoriesView: View {
             .buttonStyle(.plain)
         }
         .padding(12)
-        .background(Color.slate50)
+        .background(.white.opacity(0.5))
         .cornerRadius(8)
     }
 
@@ -227,20 +218,19 @@ struct CategoriesView: View {
                     Text("저장")
                         .font(.caption)
                         .fontWeight(.semibold)
-                        .foregroundStyle(.white)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
-                        .background(Color.blue500)
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
                 }
+                .appGlassProminentButton()
 
                 Button("취소") { viewModel.cancelEditing() }
                     .font(.caption)
                     .foregroundStyle(Color.slate500)
+                    .appGlassButton()
             }
         }
         .padding(12)
-        .background(Color.slate50)
+        .background(.white.opacity(0.5))
         .cornerRadius(8)
         .overlay(
             RoundedRectangle(cornerRadius: 8)
@@ -257,12 +247,7 @@ struct CategoriesView: View {
                 .foregroundStyle(Color.slate500)
             content()
                 .padding(12)
-                .background(.white)
-                .cornerRadius(8)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .strokeBorder(Color.slate200, lineWidth: 1)
-                )
+                .glassInputField()
         }
     }
 
