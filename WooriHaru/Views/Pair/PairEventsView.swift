@@ -106,14 +106,14 @@ struct PairEventsView: View {
         .navigationTitle("기념일 관리")
         .navigationBarTitleDisplayMode(.inline)
         .task { await viewModel.loadEvents() }
-        .confirmationDialog(
+        .alert(
             "기념일 삭제",
             isPresented: .init(
                 get: { deleteTarget != nil },
                 set: { if !$0 { deleteTarget = nil } }
-            ),
-            titleVisibility: .visible
+            )
         ) {
+            Button("취소", role: .cancel) { deleteTarget = nil }
             Button("삭제", role: .destructive) {
                 if let target = deleteTarget {
                     Task { await viewModel.deleteEvent(target) }
