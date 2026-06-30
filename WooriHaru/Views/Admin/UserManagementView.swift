@@ -124,8 +124,8 @@ struct UserManagementView: View {
                 .fontWeight(.medium)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 3)
-                .background(user.authority == .admin ? Color.blue50 : Color.slate100)
-                .foregroundStyle(user.authority == .admin ? Color.blue600 : Color.slate500)
+                .background(user.authority == .admin ? Color.blue500 : Color.blue500.opacity(0.15))
+                .foregroundStyle(user.authority == .admin ? .white : Color.blue700)
                 .cornerRadius(10)
 
             Button {
