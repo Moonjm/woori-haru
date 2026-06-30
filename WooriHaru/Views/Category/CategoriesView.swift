@@ -11,7 +11,7 @@ struct CategoriesView: View {
             createFormSection
             categoryListSection
         }
-        .background(Color.slate50)
+        .glassScreenBackground()
         .navigationTitle("카테고리 관리")
         .navigationBarTitleDisplayMode(.inline)
         .task {
@@ -77,16 +77,13 @@ struct CategoriesView: View {
                         Text("추가하기")
                             .font(.subheadline)
                             .fontWeight(.semibold)
-                            .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
-                            .background(RoundedRectangle(cornerRadius: 8).fill(Color.orange300))
                     }
+                    .appGlassProminentButton()
                 }
                 .padding(16)
-                .background(.white)
-                .cornerRadius(12)
-                .shadow(color: .black.opacity(0.04), radius: 4, y: 1)
+                .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 12))
 
                 messageSection
             }
@@ -156,7 +153,7 @@ struct CategoriesView: View {
                 .animation(.easeInOut(duration: 0.2), value: categoryStore.categories.map(\.id))
             }
         }
-        .background(.white)
+        .glassEffect(.regular, in: Rectangle())
     }
 
     // MARK: - Category Row
@@ -227,16 +224,15 @@ struct CategoriesView: View {
                     Text("저장")
                         .font(.caption)
                         .fontWeight(.semibold)
-                        .foregroundStyle(.white)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
-                        .background(Color.blue500)
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
                 }
+                .appGlassProminentButton()
 
                 Button("취소") { viewModel.cancelEditing() }
                     .font(.caption)
                     .foregroundStyle(Color.slate500)
+                    .appGlassButton()
             }
         }
         .padding(12)
