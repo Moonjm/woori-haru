@@ -443,8 +443,14 @@ struct StudyTimerView: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
                 .frame(maxWidth: .infinity)
-                .background(isSelected ? Color.blue500 : Color.slate100)
+                .background(isSelected ? Color.blue500 : Color.white.opacity(0.5))
                 .clipShape(RoundedRectangle(cornerRadius: 10))
+                .overlay {
+                    if !isSelected {
+                        RoundedRectangle(cornerRadius: 10)
+                            .strokeBorder(Color.slate200, lineWidth: 1)
+                    }
+                }
         }
         .disabled(vm.timerState != .idle)
         .contextMenu {
