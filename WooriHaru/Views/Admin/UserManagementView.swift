@@ -30,23 +30,17 @@ struct UserManagementView: View {
                         Text("사용자 추가")
                             .font(.subheadline)
                             .fontWeight(.semibold)
-                            .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
-                            .background(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(Color.slate700)
-                            )
                     }
+                    .appGlassProminentButton()
 
                     Text("생성된 계정은 기본 권한이 USER이며, 권한은 오른쪽에서 수정할 수 있어요.")
                         .font(.caption2)
                         .foregroundStyle(Color.slate400)
                 }
                 .padding(16)
-                .background(.white)
-                .cornerRadius(12)
-                .shadow(color: .black.opacity(0.04), radius: 4, y: 1)
+                .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 12))
 
                 // Messages
                 if let success = viewModel.successMessage {
@@ -81,13 +75,11 @@ struct UserManagementView: View {
                     }
                 }
                 .padding(16)
-                .background(.white)
-                .cornerRadius(12)
-                .shadow(color: .black.opacity(0.04), radius: 4, y: 1)
+                .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 12))
             }
             .padding(20)
         }
-        .background(Color.slate50)
+        .glassScreenBackground()
         .navigationTitle("사용자 관리")
         .navigationBarTitleDisplayMode(.inline)
         .task { await viewModel.loadUsers() }
@@ -209,16 +201,15 @@ struct UserManagementView: View {
                     Text("저장")
                         .font(.caption)
                         .fontWeight(.semibold)
-                        .foregroundStyle(.white)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
-                        .background(Color.blue500)
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
                 }
+                .appGlassProminentButton()
 
                 Button("취소") { viewModel.cancelEditing() }
                     .font(.caption)
                     .foregroundStyle(Color.slate500)
+                    .appGlassButton()
             }
         }
         .padding(12)
