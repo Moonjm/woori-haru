@@ -86,6 +86,12 @@ struct PairEventsView: View {
                                 .foregroundStyle(Color.blue600)
                         }
                     }
+                    .padding(12)
+                    .background(Color.blue500.opacity(0.06))
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
                 }
                 .onDelete { indexSet in
                     if let index = indexSet.first {

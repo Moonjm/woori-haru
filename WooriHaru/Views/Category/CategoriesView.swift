@@ -153,7 +153,6 @@ struct CategoriesView: View {
                 .animation(.easeInOut(duration: 0.2), value: categoryStore.categories.map(\.id))
             }
         }
-        .glassEffect(.regular, in: Rectangle())
     }
 
     // MARK: - Category Row
@@ -197,7 +196,7 @@ struct CategoriesView: View {
             .buttonStyle(.plain)
         }
         .padding(12)
-        .background(Color.slate50)
+        .background(Color.blue500.opacity(0.06))
         .cornerRadius(8)
     }
 
@@ -236,7 +235,7 @@ struct CategoriesView: View {
             }
         }
         .padding(12)
-        .background(Color.slate50)
+        .background(Color.blue500.opacity(0.06))
         .cornerRadius(8)
         .overlay(
             RoundedRectangle(cornerRadius: 8)
