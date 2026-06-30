@@ -27,21 +27,23 @@ struct PairView: View {
                 if isLoading {
                     ProgressView()
                 } else if pairStore.isPaired {
-                    connectedSection
+                    GlassCard(alignment: .center) { connectedSection }
                 } else if pairStore.isPending {
-                    pendingSection
+                    GlassCard(alignment: .center) { pendingSection }
                 } else {
-                    disconnectedSection
+                    GlassCard(alignment: .center) { disconnectedSection }
                 }
             }
             .padding(20)
         }
+        .glassScreenBackground()
         .navigationTitle("커플")
         .navigationBarTitleDisplayMode(.inline)
         .task {
             await loadStatus()
         }
-        .confirmationDialog("페어 해제", isPresented: $showUnpairConfirm, titleVisibility: .visible) {
+        .alert("페어 해제", isPresented: $showUnpairConfirm) {
+            Button("취소", role: .cancel) {}
             Button("해제", role: .destructive) {
                 Task { await unpair() }
             }
@@ -79,12 +81,10 @@ struct PairView: View {
                 }
                 .font(.subheadline)
                 .fontWeight(.medium)
-                .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
-                .background(Color.blue500)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
             }
+            .appGlassProminentButton()
 
             Button {
                 showUnpairConfirm = true
@@ -93,6 +93,7 @@ struct PairView: View {
                     .font(.subheadline)
                     .foregroundStyle(Color.red500)
             }
+            .appGlassButton()
         }
     }
 
@@ -121,6 +122,7 @@ struct PairView: View {
                     .font(.subheadline)
                     .foregroundStyle(Color.blue500)
                 }
+                .appGlassButton()
             } else {
                 Text("초대가 발송되었습니다.\n파트너가 수락하기를 기다리는 중입니다.")
                     .font(.subheadline)
@@ -135,6 +137,7 @@ struct PairView: View {
                     .font(.subheadline)
                     .foregroundStyle(Color.red500)
             }
+            .appGlassButton()
         }
     }
 
@@ -153,12 +156,10 @@ struct PairView: View {
                     Text("코드 생성하기")
                         .font(.subheadline)
                         .fontWeight(.semibold)
-                        .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
-                        .background(Color.blue500)
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
                 }
+                .appGlassProminentButton()
             }
 
             Divider()
@@ -170,7 +171,10 @@ struct PairView: View {
 
                 HStack(spacing: 8) {
                     TextField("6자리 코드 입력", text: $inputCode)
-                        .textFieldStyle(.roundedBorder)
+                        .textFieldStyle(.plain)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                        .glassInputField()
                         .textInputAutocapitalization(.characters)
                         .onChange(of: inputCode) { _, newValue in
                             if newValue.count > 6 { inputCode = String(newValue.prefix(6)) }
@@ -182,12 +186,10 @@ struct PairView: View {
                         Text("수락")
                             .font(.subheadline)
                             .fontWeight(.semibold)
-                            .foregroundStyle(.white)
                             .padding(.horizontal, 20)
                             .padding(.vertical, 8)
-                            .background(inputCode.count == 6 ? Color.blue500 : Color.slate400)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
                     }
+                    .appGlassProminentButton()
                     .disabled(inputCode.count != 6)
                 }
             }

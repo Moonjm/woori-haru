@@ -61,8 +61,9 @@ struct LoginView: View {
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
                             .frame(height: 52)
+                            .background(Color.blue500)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
                         }
-                        .appGlassProminentButton()
                         .disabled(username.trimmingCharacters(in: .whitespaces).isEmpty || password.isEmpty || authVM.isLoading)
                         .opacity(username.trimmingCharacters(in: .whitespaces).isEmpty || password.isEmpty || authVM.isLoading ? 0.55 : 1)
                     }
@@ -118,7 +119,7 @@ struct LoginView: View {
         .submitLabel(submitLabel)
         .padding(.horizontal, 14)
         .frame(height: 50)
-        .background(Color.slate100)
+        .background(.white.opacity(0.5))
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .overlay {
             RoundedRectangle(cornerRadius: 10)

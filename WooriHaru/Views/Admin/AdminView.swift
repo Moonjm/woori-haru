@@ -27,6 +27,7 @@ struct AdminView: View {
             Spacer()
         }
         .padding(.top, 8)
+        .glassScreenBackground()
         .navigationTitle("관리")
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -60,9 +61,7 @@ struct AdminView: View {
                     .foregroundStyle(Color.slate400)
             }
             .padding(16)
-            .background(.white)
-            .cornerRadius(12)
-            .shadow(color: .black.opacity(0.04), radius: 4, y: 1)
+            .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 12))
         }
         .padding(.horizontal, 20)
     }

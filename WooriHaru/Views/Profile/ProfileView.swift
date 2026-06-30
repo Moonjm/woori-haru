@@ -17,7 +17,8 @@ struct ProfileView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
+            GlassCard(alignment: .leading) {
+                VStack(alignment: .leading, spacing: 24) {
                 // 아이디 (읽기전용)
                 fieldSection("아이디") {
                     Text(authVM.user?.username ?? "")
@@ -25,8 +26,7 @@ struct ProfileView: View {
                         .foregroundStyle(Color.slate400)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(12)
-                        .background(Color.slate100)
-                        .cornerRadius(8)
+                        .glassInputField()
                 }
 
                 // 이름
@@ -34,12 +34,7 @@ struct ProfileView: View {
                     TextField("이름", text: $name)
                         .font(.subheadline)
                         .padding(12)
-                        .background(.white)
-                        .cornerRadius(8)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .strokeBorder(Color.slate200, lineWidth: 1)
-                        )
+                        .glassInputField()
                 }
 
                 // 성별
@@ -64,12 +59,7 @@ struct ProfileView: View {
                             Spacer()
                         }
                         .padding(12)
-                        .background(.white)
-                        .cornerRadius(8)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .strokeBorder(Color.slate200, lineWidth: 1)
-                        )
+                        .glassInputField()
                     }
 
                     if showDatePicker {
@@ -98,12 +88,7 @@ struct ProfileView: View {
                     SecureField("비밀번호 변경 시 필요", text: $currentPassword)
                         .font(.subheadline)
                         .padding(12)
-                        .background(.white)
-                        .cornerRadius(8)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .strokeBorder(Color.slate200, lineWidth: 1)
-                        )
+                        .glassInputField()
                 }
 
                 // 새 비밀번호
@@ -111,12 +96,7 @@ struct ProfileView: View {
                     SecureField("", text: $newPassword)
                         .font(.subheadline)
                         .padding(12)
-                        .background(.white)
-                        .cornerRadius(8)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .strokeBorder(Color.slate200, lineWidth: 1)
-                        )
+                        .glassInputField()
                 }
 
                 if let success = successMessage {
@@ -138,19 +118,17 @@ struct ProfileView: View {
                     Text("저장")
                         .font(.subheadline)
                         .fontWeight(.semibold)
-                        .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(Color.slate700)
-                        )
                 }
+                .appGlassProminentButton()
                 .disabled(isSaving)
                 .opacity(isSaving ? 0.6 : 1)
+                }
             }
             .padding(20)
         }
+        .glassScreenBackground()
         .navigationTitle("내 정보")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { loadUserData() }

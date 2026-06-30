@@ -44,11 +44,7 @@ struct RecordFormView: View {
                     .focused($memoFocused)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 10)
-                    .background {
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(.white)
-                            .stroke(Color.slate200, lineWidth: 1)
-                    }
+                    .glassInputField(cornerRadius: 10)
                     .onChange(of: viewModel.memo) { _, newValue in
                         if newValue.count > 20 { viewModel.memo = String(newValue.prefix(20)) }
                     }
