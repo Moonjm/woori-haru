@@ -148,7 +148,7 @@ struct SearchResultCard: View {
         .padding(12)
         .background {
             RoundedRectangle(cornerRadius: 10)
-                .fill(Color.blue500.opacity(0.06))
+                .fill(.white.opacity(0.5))
                 .stroke(Color.slate200, lineWidth: 1)
         }
     }
