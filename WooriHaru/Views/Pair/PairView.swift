@@ -42,7 +42,8 @@ struct PairView: View {
         .task {
             await loadStatus()
         }
-        .confirmationDialog("페어 해제", isPresented: $showUnpairConfirm, titleVisibility: .visible) {
+        .alert("페어 해제", isPresented: $showUnpairConfirm) {
+            Button("취소", role: .cancel) {}
             Button("해제", role: .destructive) {
                 Task { await unpair() }
             }

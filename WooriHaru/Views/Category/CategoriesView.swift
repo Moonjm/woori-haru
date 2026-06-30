@@ -124,8 +124,7 @@ struct CategoriesView: View {
                     .font(.caption)
                     .foregroundStyle(Color.blue500)
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 10)
+            .padding(.bottom, 10)
 
             ScrollView {
                 LazyVStack(spacing: 8) {
@@ -148,11 +147,13 @@ struct CategoriesView: View {
                         }
                     }
                 }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 16)
                 .animation(.easeInOut(duration: 0.2), value: categoryStore.categories.map(\.id))
             }
         }
+        .padding(16)
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 12))
+        .padding(.horizontal, 20)
+        .padding(.bottom, 16)
     }
 
     // MARK: - Category Row
