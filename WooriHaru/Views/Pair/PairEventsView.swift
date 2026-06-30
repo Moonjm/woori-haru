@@ -93,7 +93,7 @@ struct PairEventsView: View {
                         }
                     }
                     .padding(12)
-                    .background(Color.blue500.opacity(0.06))
+                    .background(.white.opacity(0.5))
                     .clipShape(RoundedRectangle(cornerRadius: 10))
                     .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
                     .listRowBackground(Color.clear)

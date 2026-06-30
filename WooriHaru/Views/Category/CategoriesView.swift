@@ -191,7 +191,7 @@ struct CategoriesView: View {
             .buttonStyle(.plain)
         }
         .padding(12)
-        .background(Color.blue500.opacity(0.06))
+        .background(.white.opacity(0.5))
         .cornerRadius(8)
     }
 
@@ -230,7 +230,7 @@ struct CategoriesView: View {
             }
         }
         .padding(12)
-        .background(Color.blue500.opacity(0.06))
+        .background(.white.opacity(0.5))
         .cornerRadius(8)
         .overlay(
             RoundedRectangle(cornerRadius: 8)
