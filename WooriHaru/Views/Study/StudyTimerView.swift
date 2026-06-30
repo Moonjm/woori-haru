@@ -167,6 +167,7 @@ struct StudyTimerView: View {
                     .font(.subheadline)
                     .foregroundStyle(Color.blue500)
                 }
+                .appGlassButton()
             } else {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 90), spacing: 8)], spacing: 8) {
                     ForEach(subjectStore.subjects) { subject in
@@ -228,9 +229,8 @@ struct StudyTimerView: View {
                         .foregroundStyle(Color.orange700)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(Color.orange200)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
+                .appGlassButton()
                 .disabled(vm.isLoading)
                 endButton
             }
@@ -253,9 +253,8 @@ struct StudyTimerView: View {
                         .foregroundStyle(Color.green700)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(Color.green100)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
+                .appGlassButton()
                 .disabled(vm.isLoading)
                 endButton
             }
@@ -275,9 +274,8 @@ struct StudyTimerView: View {
                 .foregroundStyle(Color.red500)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
-                .background(Color.red400.opacity(0.2))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
         }
+        .appGlassButton()
         .disabled(vm.isLoading)
     }
 
