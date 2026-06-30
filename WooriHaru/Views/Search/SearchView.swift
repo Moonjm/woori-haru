@@ -58,7 +58,7 @@ struct SearchView: View {
                         .font(.subheadline)
                         .foregroundStyle(Color.slate700)
                         .padding(.horizontal, 12)
-                        .padding(.vertical, 10)
+                        .frame(height: 42)
                         .glassInputField()
                     }
 
@@ -66,7 +66,7 @@ struct SearchView: View {
                         .font(.subheadline)
                         .textFieldStyle(.plain)
                         .padding(.horizontal, 12)
-                        .padding(.vertical, 10)
+                        .frame(height: 42)
                         .glassInputField()
                         .focused($isKeywordFocused)
                         .onChange(of: viewModel.keyword) { _, _ in
