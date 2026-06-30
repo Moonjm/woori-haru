@@ -176,14 +176,19 @@ struct StudyTimerView: View {
                     Button {
                         vm.showAddSubject = true
                     } label: {
-                        Image(systemName: "plus")
+                        Text(" ")
                             .font(.subheadline)
-                            .foregroundStyle(Color.slate400)
                             .padding(.horizontal, 16)
                             .padding(.vertical, 10)
                             .frame(maxWidth: .infinity)
-                            .background(Color.slate50)
+                            .overlay {
+                                Image(systemName: "plus")
+                                    .font(.subheadline)
+                                    .foregroundStyle(Color.slate400)
+                            }
+                            .background(Color.slate100)
                             .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .accessibilityLabel("과목 추가")
                     }
                 }
             }
@@ -325,9 +330,7 @@ struct StudyTimerView: View {
                 .font(.caption)
                 .foregroundStyle(Color.slate500)
         }
-        .padding(10)
-        .background(Color.slate50)
-        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .padding(.vertical, 4)
     }
 
     // MARK: - Today Summary Card
