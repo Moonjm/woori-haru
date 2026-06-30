@@ -313,9 +313,7 @@ struct StudyTimerView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 6)
                 .padding(.vertical, 4)
-                .background(Color.white)
-                .clipShape(RoundedRectangle(cornerRadius: 6))
-                .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.slate200, lineWidth: 1))
+                .glassInputField(cornerRadius: 6)
                 .onChange(of: isAlarmFieldFocused) {
                     if !isAlarmFieldFocused {
                         vm.notificationScheduler.saveAlarmInterval()

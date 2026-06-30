@@ -37,8 +37,7 @@ struct StorageItemSheet: View {
                                 .multilineTextAlignment(.center)
                                 .frame(width: 50)
                                 .padding(.vertical, 4)
-                                .background(Color.slate100)
-                                .cornerRadius(6)
+                                .glassInputField(cornerRadius: 6)
 
                             Button {
                                 if viewModel.itemFormQuantity < 999 {
