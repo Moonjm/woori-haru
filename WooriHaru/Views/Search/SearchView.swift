@@ -7,7 +7,8 @@ struct SearchView: View {
     @FocusState private var isKeywordFocused: Bool
 
     var body: some View {
-        VStack(spacing: 0) {
+        ScrollView {
+            VStack(spacing: 16) {
             // 필터 영역
             VStack(spacing: 12) {
                 HStack(spacing: 12) {
@@ -74,11 +75,8 @@ struct SearchView: View {
                         }
                 }
             }
-            .padding(16)
-            .glassEffect(.regular, in: Rectangle())
 
-            ScrollView {
-                LazyVStack(spacing: 8) {
+            LazyVStack(spacing: 8) {
                     if viewModel.isLoading {
                         ProgressView().padding(.vertical, 40)
                     } else if viewModel.results.isEmpty {
@@ -92,10 +90,10 @@ struct SearchView: View {
                         }
                     }
                 }
-                .padding(16)
             }
-            .scrollDismissesKeyboard(.immediately)
+            .padding(16)
         }
+        .scrollDismissesKeyboard(.immediately)
         .contentShape(Rectangle())
         .onTapGesture { isKeywordFocused = false }
         .glassScreenBackground()
