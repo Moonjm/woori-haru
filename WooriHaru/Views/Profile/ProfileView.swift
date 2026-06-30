@@ -26,8 +26,7 @@ struct ProfileView: View {
                         .foregroundStyle(Color.slate400)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(12)
-                        .background(Color.slate100)
-                        .cornerRadius(8)
+                        .glassInputField()
                 }
 
                 // 이름
@@ -35,12 +34,7 @@ struct ProfileView: View {
                     TextField("이름", text: $name)
                         .font(.subheadline)
                         .padding(12)
-                        .background(.white)
-                        .cornerRadius(8)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .strokeBorder(Color.slate200, lineWidth: 1)
-                        )
+                        .glassInputField()
                 }
 
                 // 성별
@@ -65,12 +59,7 @@ struct ProfileView: View {
                             Spacer()
                         }
                         .padding(12)
-                        .background(.white)
-                        .cornerRadius(8)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .strokeBorder(Color.slate200, lineWidth: 1)
-                        )
+                        .glassInputField()
                     }
 
                     if showDatePicker {
@@ -99,12 +88,7 @@ struct ProfileView: View {
                     SecureField("비밀번호 변경 시 필요", text: $currentPassword)
                         .font(.subheadline)
                         .padding(12)
-                        .background(.white)
-                        .cornerRadius(8)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .strokeBorder(Color.slate200, lineWidth: 1)
-                        )
+                        .glassInputField()
                 }
 
                 // 새 비밀번호
@@ -112,12 +96,7 @@ struct ProfileView: View {
                     SecureField("", text: $newPassword)
                         .font(.subheadline)
                         .padding(12)
-                        .background(.white)
-                        .cornerRadius(8)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .strokeBorder(Color.slate200, lineWidth: 1)
-                        )
+                        .glassInputField()
                 }
 
                 if let success = successMessage {

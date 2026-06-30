@@ -59,15 +59,15 @@ struct SearchView: View {
                         .foregroundStyle(Color.slate700)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 8)
-                        .background {
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color.slate200, lineWidth: 1)
-                        }
+                        .glassInputField()
                     }
 
                     TextField("키워드 검색", text: $viewModel.keyword)
                         .font(.subheadline)
-                        .textFieldStyle(.roundedBorder)
+                        .textFieldStyle(.plain)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                        .glassInputField()
                         .focused($isKeywordFocused)
                         .onChange(of: viewModel.keyword) { _, _ in
                             viewModel.applyFilters()
@@ -148,7 +148,7 @@ struct SearchResultCard: View {
         .padding(12)
         .background {
             RoundedRectangle(cornerRadius: 10)
-                .fill(.white)
+                .fill(Color.blue500.opacity(0.06))
                 .stroke(Color.slate200, lineWidth: 1)
         }
     }

@@ -171,7 +171,10 @@ struct PairView: View {
 
                 HStack(spacing: 8) {
                     TextField("6자리 코드 입력", text: $inputCode)
-                        .textFieldStyle(.roundedBorder)
+                        .textFieldStyle(.plain)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                        .glassInputField()
                         .textInputAutocapitalization(.characters)
                         .onChange(of: inputCode) { _, newValue in
                             if newValue.count > 6 { inputCode = String(newValue.prefix(6)) }

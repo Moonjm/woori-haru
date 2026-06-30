@@ -16,14 +16,20 @@ struct PairEventsView: View {
 
                     HStack(spacing: 8) {
                         TextField("😀", text: $viewModel.newEmoji)
+                            .textFieldStyle(.plain)
+                            .multilineTextAlignment(.center)
+                            .padding(.vertical, 10)
                             .frame(width: 50)
-                            .textFieldStyle(.roundedBorder)
+                            .glassInputField()
                             .onChange(of: viewModel.newEmoji) { _, newValue in
                                 if newValue.count > 1 { viewModel.newEmoji = String(newValue.prefix(1)) }
                             }
 
                         TextField("제목", text: $viewModel.newTitle)
-                            .textFieldStyle(.roundedBorder)
+                            .textFieldStyle(.plain)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 10)
+                            .glassInputField()
                             .onChange(of: viewModel.newTitle) { _, newValue in
                                 if newValue.count > 30 { viewModel.newTitle = String(newValue.prefix(30)) }
                             }

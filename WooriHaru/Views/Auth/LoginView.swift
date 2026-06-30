@@ -119,7 +119,7 @@ struct LoginView: View {
         .submitLabel(submitLabel)
         .padding(.horizontal, 14)
         .frame(height: 50)
-        .background(Color.slate100)
+        .background(.white.opacity(0.5))
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .overlay {
             RoundedRectangle(cornerRadius: 10)

@@ -247,12 +247,7 @@ struct CategoriesView: View {
                 .foregroundStyle(Color.slate500)
             content()
                 .padding(12)
-                .background(.white)
-                .cornerRadius(8)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .strokeBorder(Color.slate200, lineWidth: 1)
-                )
+                .glassInputField()
         }
     }
 

@@ -145,7 +145,7 @@ struct UserManagementView: View {
             .buttonStyle(.plain)
         }
         .padding(12)
-        .background(Color.slate50)
+        .background(Color.blue500.opacity(0.06))
         .cornerRadius(8)
     }
 
@@ -185,12 +185,7 @@ struct UserManagementView: View {
                     }
                     .foregroundStyle(Color.slate700)
                     .padding(12)
-                    .background(.white)
-                    .cornerRadius(8)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .strokeBorder(Color.slate200, lineWidth: 1)
-                    )
+                    .glassInputField()
                 }
             }
 
@@ -213,7 +208,7 @@ struct UserManagementView: View {
             }
         }
         .padding(12)
-        .background(Color.slate50)
+        .background(Color.blue500.opacity(0.06))
         .cornerRadius(8)
         .overlay(
             RoundedRectangle(cornerRadius: 8)
@@ -231,12 +226,7 @@ struct UserManagementView: View {
             content()
                 .font(.subheadline)
                 .padding(12)
-                .background(.white)
-                .cornerRadius(8)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .strokeBorder(Color.slate200, lineWidth: 1)
-                )
+                .glassInputField()
         }
     }
 }
