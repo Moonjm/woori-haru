@@ -58,7 +58,7 @@ struct SearchView: View {
                         .font(.subheadline)
                         .foregroundStyle(Color.slate700)
                         .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
+                        .padding(.vertical, 10)
                         .glassInputField()
                     }
 
