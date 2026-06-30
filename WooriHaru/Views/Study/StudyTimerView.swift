@@ -181,7 +181,8 @@ struct StudyTimerView: View {
                             .padding(.horizontal, 16)
                             .padding(.vertical, 10)
                             .frame(maxWidth: .infinity)
-                            .glassInputField(cornerRadius: 10)
+                            .background(Color.slate50)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
                     }
                 }
             }
@@ -312,7 +313,9 @@ struct StudyTimerView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 6)
                 .padding(.vertical, 4)
-                .glassInputField(cornerRadius: 6)
+                .background(Color.white)
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.slate200, lineWidth: 1))
                 .onChange(of: isAlarmFieldFocused) {
                     if !isAlarmFieldFocused {
                         vm.notificationScheduler.saveAlarmInterval()
@@ -325,7 +328,8 @@ struct StudyTimerView: View {
                 .foregroundStyle(Color.slate500)
         }
         .padding(10)
-        .glassInputField(cornerRadius: 10)
+        .background(Color.slate50)
+        .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 
     // MARK: - Today Summary Card
@@ -443,14 +447,8 @@ struct StudyTimerView: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
                 .frame(maxWidth: .infinity)
-                .background(isSelected ? Color.blue500 : Color.white.opacity(0.5))
+                .background(isSelected ? Color.blue500 : Color.slate100)
                 .clipShape(RoundedRectangle(cornerRadius: 10))
-                .overlay {
-                    if !isSelected {
-                        RoundedRectangle(cornerRadius: 10)
-                            .strokeBorder(Color.slate200, lineWidth: 1)
-                    }
-                }
         }
         .disabled(vm.timerState != .idle)
         .contextMenu {
