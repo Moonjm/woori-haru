@@ -86,6 +86,16 @@ struct PairEventsView: View {
                                 .foregroundStyle(Color.slate500)
                         }
                         Spacer()
+                        Button {
+                            Task { await viewModel.toggleBadge(for: event) }
+                        } label: {
+                            Image(systemName: viewModel.badgeEventId == event.id
+                                  ? "app.badge.checkmark.fill" : "app.badge")
+                                .font(.body)
+                                .foregroundStyle(viewModel.badgeEventId == event.id
+                                                 ? Color.blue600 : Color.slate500)
+                        }
+                        .buttonStyle(.plain)
                         if event.recurring {
                             Text("🔄 매년")
                                 .font(.caption2)
@@ -130,6 +140,16 @@ struct PairEventsView: View {
             if let target = deleteTarget {
                 Text("\(target.emoji) \(target.title)을(를) 삭제할까요?")
             }
+        }
+        .alert("알림 권한 필요", isPresented: $viewModel.showBadgePermissionAlert) {
+            Button("설정으로 이동") {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
+                }
+            }
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text("D-Day 뱃지를 표시하려면 설정에서 알림을 허용해주세요.")
         }
     }
 }
