@@ -152,6 +152,9 @@ struct LedgerRecurringView: View {
             do {
                 try await ledgerService.updateRecurringRule(id: rule.id, request)
                 await load()
+            } catch let error where LedgerService.isDuplicateError(error) {
+                // 재활성화가 기존 활성 규칙과 겹치면 서버가 거절한다 — 켜지면 매달 2건씩 생기므로.
+                errorMessage = "같은 조건의 반복 규칙이 이미 켜져 있어 켤 수 없어요."
             } catch {
                 errorMessage = "변경하지 못했습니다."
             }
@@ -270,6 +273,9 @@ struct LedgerRecurringEditView: View {
                 try await ledgerService.updateRecurringRule(id: rule.id, request)
                 await onSaved()
                 dismiss()
+            } catch let error where LedgerService.isDuplicateError(error) {
+                errorMessage = "같은 조건의 반복 규칙이 이미 있어요."
+                isSaving = false
             } catch {
                 errorMessage = "저장하지 못했습니다."
                 isSaving = false

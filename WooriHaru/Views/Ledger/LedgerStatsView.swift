@@ -124,6 +124,8 @@ struct LedgerStatsView: View {
             Button { shiftPeriod(-1) } label: {
                 Image(systemName: "chevron.left").font(.system(size: 12, weight: .bold))
             }
+            .disabled(isAtMinPeriod)
+            .opacity(isAtMinPeriod ? 0.3 : 1)
             Text(periodTitle)
                 .font(.subheadline)
                 .fontWeight(.bold)
@@ -147,13 +149,28 @@ struct LedgerStatsView: View {
         return scope == .monthly ? month == current : year == current.year
     }
 
+    private var isAtMinPeriod: Bool {
+        scope == .monthly
+            ? month.year == Self.minYear && month.month == 1
+            : year == Self.minYear
+    }
+
     private func shiftPeriod(_ delta: Int) {
         switch scope {
-        case .monthly: month = month.adding(months: delta)
-        case .yearly: year += delta
+        case .monthly:
+            let next = month.adding(months: delta)
+            guard next.year >= Self.minYear else { return }
+            month = next
+        case .yearly:
+            let next = year + delta
+            guard next >= Self.minYear else { return }
+            year = next
         }
         reloadForPeriodChange()
     }
+
+    /// 기간 이동 하한 — 서버가 거부하는 범위 밖 연도를 요청하지 않게 막는다.
+    private static let minYear = 2000
 
     /// 기간이 바뀌면 이전 기간 데이터가 새 라벨 아래 보이지 않게 비우고 다시 불러온다.
     private func reloadForPeriodChange() {
