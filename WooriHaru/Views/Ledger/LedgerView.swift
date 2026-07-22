@@ -413,7 +413,7 @@ struct LedgerSourceBadge: View {
         case .sms: return Color.blue600
         case .kakaoPay: return Color(red: 0.23, green: 0.18, blue: 0.0)
         case .recurring: return Color.purple500
-        case .manual, .imported: return Color.slate500
+        case .manual: return Color.slate500
         }
     }
 
@@ -422,7 +422,7 @@ struct LedgerSourceBadge: View {
         case .sms: return Color.blue600.opacity(0.12)
         case .kakaoPay: return Color(red: 0.996, green: 0.898, blue: 0.0)
         case .recurring: return Color.purple500.opacity(0.12)
-        case .manual, .imported: return Color.slate500.opacity(0.12)
+        case .manual: return Color.slate500.opacity(0.12)
         }
     }
 }

@@ -271,7 +271,7 @@ struct LedgerStatsView: View {
                                                 startPoint: .leading, endPoint: .trailing))
         case .recurring:
             return AnyShapeStyle(Color.purple500)
-        case .manual, .imported:
+        case .manual:
             return AnyShapeStyle(Color.slate400)
         }
     }

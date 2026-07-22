@@ -13,7 +13,6 @@ enum EntrySource: String, Codable {
     case sms = "SMS"
     case kakaoPay = "KAKAO_PAY"
     case recurring = "RECURRING"
-    case imported = "IMPORT"
 
     /// 알 수 없는 값이 와도 앱이 죽지 않도록 기본값으로 흡수한다.
     init(from decoder: Decoder) throws {
@@ -27,7 +26,6 @@ enum EntrySource: String, Codable {
         case .sms: return "문자"
         case .kakaoPay: return "카카오페이"
         case .recurring: return "반복"
-        case .imported: return "가져오기"
         }
     }
 }
