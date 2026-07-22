@@ -6,6 +6,8 @@ struct LedgerStatsView: View {
     @State private var stats: LedgerStatistics?
     @State private var isLoading = false
     @State private var errorMessage: String?
+    /// 차트에서 선택한 월 (yearMonth 문자열). 기본은 기준월.
+    @State private var selectedMonth: String?
 
     private let ledgerService = LedgerService()
 
@@ -127,28 +129,52 @@ struct LedgerStatsView: View {
 
     private func chartCard(_ stats: LedgerStatistics) -> some View {
         let maxTotal = stats.monthlyTrend.map(\.krwTotal).max() ?? 0
+        let selected = stats.monthlyTrend.first { $0.yearMonth == (selectedMonth ?? stats.yearMonth) }
         return GlassCard {
-            HStack(alignment: .bottom, spacing: 10) {
-                ForEach(stats.monthlyTrend) { item in
-                    let isCurrent = item.yearMonth == stats.yearMonth
-                    VStack(spacing: 5) {
-                        Rectangle()
-                            .fill(
-                                isCurrent
-                                    ? AnyShapeStyle(LinearGradient(colors: [Color.blue500, Color.blue700],
-                                                                   startPoint: .top, endPoint: .bottom))
-                                    : AnyShapeStyle(Color.blue500.opacity(0.25))
-                            )
-                            .frame(height: barHeight(item.krwTotal, max: maxTotal))
-                            .clipShape(UnevenRoundedRectangle(topLeadingRadius: 6, topTrailingRadius: 6))
-                        Text("\(item.monthNumber)월")
-                            .font(.system(size: 9, weight: isCurrent ? .heavy : .bold))
-                            .foregroundStyle(isCurrent ? Color.blue600 : Color.slate400)
+            VStack(spacing: 12) {
+                // 선택한 월의 금액 콜아웃 — 막대를 탭하면 바뀐다.
+                if let selected {
+                    HStack(spacing: 6) {
+                        Text("\(selected.monthNumber)월")
+                            .font(.caption)
+                            .fontWeight(.heavy)
+                            .foregroundStyle(Color.blue600)
+                        Text(LedgerFormat.amount(selected.krwTotal, currency: "KRW"))
+                            .font(.caption)
+                            .fontWeight(.bold)
+                            .monospacedDigit()
+                            .contentTransition(.numericText())
+                        Spacer()
                     }
-                    .frame(maxWidth: .infinity)
+                    .animation(.snappy, value: selected.yearMonth)
                 }
+
+                HStack(alignment: .bottom, spacing: 10) {
+                    ForEach(stats.monthlyTrend) { item in
+                        let isSelected = item.yearMonth == (selectedMonth ?? stats.yearMonth)
+                        VStack(spacing: 5) {
+                            Rectangle()
+                                .fill(
+                                    isSelected
+                                        ? AnyShapeStyle(LinearGradient(colors: [Color.blue500, Color.blue700],
+                                                                       startPoint: .top, endPoint: .bottom))
+                                        : AnyShapeStyle(Color.blue500.opacity(0.25))
+                                )
+                                .frame(height: barHeight(item.krwTotal, max: maxTotal))
+                                .clipShape(UnevenRoundedRectangle(topLeadingRadius: 6, topTrailingRadius: 6))
+                            Text("\(item.monthNumber)월")
+                                .font(.system(size: 9, weight: isSelected ? .heavy : .bold))
+                                .foregroundStyle(isSelected ? Color.blue600 : Color.slate400)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .contentShape(.rect) // 막대가 낮아도 열 전체가 탭되게
+                        .onTapGesture {
+                            withAnimation(.snappy(duration: 0.2)) { selectedMonth = item.yearMonth }
+                        }
+                    }
+                }
+                .frame(height: 130, alignment: .bottom)
             }
-            .frame(height: 130, alignment: .bottom)
         }
     }
 

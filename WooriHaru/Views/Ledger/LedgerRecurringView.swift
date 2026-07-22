@@ -13,10 +13,22 @@ struct LedgerRecurringView: View {
     var body: some View {
         Group {
             if rules.isEmpty && !isLoading {
-                ContentUnavailableView {
-                    Label("반복 규칙이 없어요", systemImage: "arrow.trianglehead.2.clockwise.rotate.90")
-                } description: {
-                    Text("내역 상세에서 '매월 반복으로 등록'을 눌러 만들 수 있어요")
+                // 로딩 실패를 "규칙 없음"으로 오해하지 않도록 에러 상태를 우선 표시한다.
+                if errorMessage != nil {
+                    ContentUnavailableView {
+                        Label("불러오지 못했어요", systemImage: "wifi.exclamationmark")
+                    } description: {
+                        Text("네트워크 상태를 확인한 뒤 다시 시도해 주세요")
+                    } actions: {
+                        Button("다시 시도") { Task { await load() } }
+                            .buttonStyle(.borderedProminent)
+                    }
+                } else {
+                    ContentUnavailableView {
+                        Label("반복 규칙이 없어요", systemImage: "arrow.trianglehead.2.clockwise.rotate.90")
+                    } description: {
+                        Text("내역 상세에서 '매월 반복으로 등록'을 눌러 만들 수 있어요")
+                    }
                 }
             } else {
                 List {
