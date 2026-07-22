@@ -96,6 +96,49 @@ struct IssuedLedgerApiKey: Codable, Identifiable {
     let key: String
 }
 
+// MARK: - 통계
+
+struct LedgerStatistics: Codable {
+    let yearMonth: String
+    let monthlyTrend: [MonthlyTotal]
+    let sourceBreakdown: [SourceTotal]
+    let foreignTotals: [CurrencyTotal]
+    let topMerchants: [MerchantTotal]
+    let maxEntry: MaxEntry?
+    let dailyAverage: Decimal
+
+    struct MonthlyTotal: Codable, Identifiable {
+        let yearMonth: String
+        let krwTotal: Decimal
+        var id: String { yearMonth }
+        /// "2026-07" → 7
+        var monthNumber: Int { Int(yearMonth.suffix(2)) ?? 0 }
+    }
+
+    struct SourceTotal: Codable {
+        let source: EntrySource
+        let krwTotal: Decimal
+    }
+
+    struct CurrencyTotal: Codable {
+        let currency: String
+        let total: Decimal
+    }
+
+    struct MerchantTotal: Codable, Identifiable {
+        let merchant: String
+        let krwTotal: Decimal
+        let count: Int
+        var id: String { merchant }
+    }
+
+    struct MaxEntry: Codable {
+        let merchant: String?
+        let amount: Decimal
+        let entryAt: String
+    }
+}
+
 // MARK: - 연월
 
 /// 월 이동을 다루는 값 타입 (연·월만).

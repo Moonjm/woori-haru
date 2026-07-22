@@ -30,6 +30,15 @@ struct LedgerService: Sendable {
         try await api.deleteVoid("/entries/\(id)")
     }
 
+    func fetchStatistics(yearMonth: String) async throws -> LedgerStatistics {
+        let response: DataResponse<LedgerStatistics> =
+            try await api.get("/entries/statistics", query: ["yearMonth": yearMonth])
+        guard let statistics = response.data else {
+            throw APIError.serverError(statusCode: 200, message: "통계 응답이 비어 있습니다")
+        }
+        return statistics
+    }
+
     // MARK: - 반복 규칙
 
     func fetchRecurringRules() async throws -> [RecurringRule] {
