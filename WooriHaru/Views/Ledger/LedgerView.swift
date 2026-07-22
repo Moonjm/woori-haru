@@ -304,6 +304,11 @@ struct LedgerView: View {
         }
         .padding(6)
         .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 24))
+        // 글래스는 시각 효과일 뿐 터치를 잡지 않는다 — 버튼 사이·테두리 여백 터치가
+        // 아래 목록으로 새서 상세가 열리는 것을 막기 위해 바 전체를 히트 영역으로 만들고
+        // 빈 곳 탭은 여기서 소비한다 (버튼 탭은 자식이 우선이라 영향 없음).
+        .contentShape(RoundedRectangle(cornerRadius: 24))
+        .onTapGesture {}
         .padding(.horizontal, 32)
         .padding(.bottom, 8)
     }
@@ -328,6 +333,7 @@ struct LedgerView: View {
                         .shadow(color: Color.blue600.opacity(0.4), radius: 8, y: 3)
                 }
             }
+            .contentShape(.rect) // 아이콘·글자 사이 빈틈 없이 버튼 전체가 눌리게
         }
         .buttonStyle(.plain)
     }
