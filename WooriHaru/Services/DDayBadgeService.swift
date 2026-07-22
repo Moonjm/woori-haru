@@ -24,11 +24,20 @@ enum DDayBadgeService {
         return days + 1
     }
 
-    /// 뱃지 대상 기념일 선택. 알림 권한이 거부되면 false.
+    /// D-Day 갱신 알림인지 식별 (포그라운드 표시 옵션 분기용)
+    static func isDDayNotification(_ identifier: String) -> Bool {
+        identifier.hasPrefix(identifierPrefix)
+    }
+
+    /// 뱃지 대상 기념일 선택. 알림 권한 또는 배지 설정이 꺼져 있으면 false.
     static func select(event: PairEvent) async -> Bool {
-        let granted = (try? await UNUserNotificationCenter.current()
+        let center = UNUserNotificationCenter.current()
+        let granted = (try? await center
             .requestAuthorization(options: [.alert, .sound, .badge])) ?? false
         guard granted else { return false }
+        // 알림 자체는 허용돼도 배지만 꺼져 있을 수 있음
+        // (설정에서 배지 off, 또는 과거 .badge 없이 권한을 받은 기존 사용자)
+        guard await center.notificationSettings().badgeSetting == .enabled else { return false }
         UserDefaults.standard.set(event.id, forKey: eventIdKey)
         UserDefaults.standard.set(event.eventDate, forKey: eventDateKey)
         await refresh()

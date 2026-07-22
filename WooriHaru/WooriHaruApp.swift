@@ -6,7 +6,10 @@ class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification
     ) async -> UNNotificationPresentationOptions {
-        [.banner, .sound]
+        if DDayBadgeService.isDDayNotification(notification.request.identifier) {
+            return [.badge]
+        }
+        return [.banner, .sound]
     }
 }
 

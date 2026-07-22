@@ -149,7 +149,7 @@ struct PairEventsView: View {
             }
             Button("취소", role: .cancel) {}
         } message: {
-            Text("D-Day 뱃지를 표시하려면 설정에서 알림을 허용해주세요.")
+            Text("D-Day 뱃지를 표시하려면 설정에서 알림과 배지를 허용해주세요.")
         }
     }
 }
