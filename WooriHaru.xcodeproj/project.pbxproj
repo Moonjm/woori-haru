@@ -82,6 +82,7 @@
 		L10006 /* StudyRecordViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = L20006 /* StudyRecordViewModel.swift */; };
 		L10007 /* WeeklyStudyRecordSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = L20007 /* WeeklyStudyRecordSection.swift */; };
 		N10001 /* NotificationScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = N20001 /* NotificationScheduler.swift */; };
+		B10001 /* DDayBadgeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20001 /* DDayBadgeService.swift */; };
 		N10002 /* LiveActivityCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = N20002 /* LiveActivityCoordinator.swift */; };
 		S10001 /* StorageModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = S20001 /* StorageModels.swift */; };
 		S10002 /* StorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = S20002 /* StorageService.swift */; };
@@ -194,6 +195,7 @@
 		L20006 /* StudyRecordViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyRecordViewModel.swift; sourceTree = "<group>"; };
 		L20007 /* WeeklyStudyRecordSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyStudyRecordSection.swift; sourceTree = "<group>"; };
 		N20001 /* NotificationScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationScheduler.swift; sourceTree = "<group>"; };
+		B20001 /* DDayBadgeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DDayBadgeService.swift; sourceTree = "<group>"; };
 		N20002 /* LiveActivityCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityCoordinator.swift; sourceTree = "<group>"; };
 		S20001 /* StorageModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageModels.swift; sourceTree = "<group>"; };
 		S20002 /* StorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageService.swift; sourceTree = "<group>"; };
@@ -355,6 +357,7 @@
 				D20007 /* HolidayService.swift */,
 				L20002 /* StudyService.swift */,
 				N20001 /* NotificationScheduler.swift */,
+				B20001 /* DDayBadgeService.swift */,
 				N20002 /* LiveActivityCoordinator.swift */,
 				AA200006 /* SessionManager.swift */,
 				S20002 /* StorageService.swift */,
@@ -651,6 +654,7 @@
 				D10004 /* CategoryService.swift in Sources */,
 				D10005 /* PairService.swift in Sources */,
 				D10006 /* PairEventService.swift in Sources */,
+				B10001 /* DDayBadgeService.swift in Sources */,
 				D10007 /* HolidayService.swift in Sources */,
 				E10001 /* AuthViewModel.swift in Sources */,
 				E10003 /* RecordViewModel.swift in Sources */,
