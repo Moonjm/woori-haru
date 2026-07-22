@@ -251,3 +251,13 @@ enum LedgerFormat {
     /// 상세 화면용 전체 표기
     static func full(_ date: Date) -> String { fullFormatter.string(from: date) }
 }
+
+extension Decimal {
+    /// 소수부가 없는 정수인지 — KRW·JPY처럼 소수 없는 통화의 금액 검증에 쓴다.
+    var isWholeNumber: Bool {
+        var value = self
+        var rounded = Decimal()
+        NSDecimalRound(&rounded, &value, 0, .plain)
+        return rounded == self
+    }
+}

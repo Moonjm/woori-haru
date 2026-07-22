@@ -94,6 +94,8 @@ final class LedgerViewModel {
             return
         } catch {
             guard request == currentRequest else { return }
+            // 이전 월/검색 결과가 현재 요청의 데이터처럼 보이지 않게 비운다.
+            entries = []
             errorMessage = "내역을 불러오지 못했습니다."
         }
     }

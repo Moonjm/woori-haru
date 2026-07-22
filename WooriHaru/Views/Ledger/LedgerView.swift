@@ -108,9 +108,17 @@ struct LedgerView: View {
     }
 
     /// 블루 틴트 히어로 (G4) — 이번 달 지출 + 외화 합계
+    /// 이동한 달에서는 "이번 달"이 아니라 실제 연·월로 표시한다.
+    private var summaryTitle: String {
+        let current = LedgerYearMonth.current()
+        if viewModel.month == current { return "이번 달 지출" }
+        if viewModel.month.year == current.year { return "\(viewModel.month.month)월 지출" }
+        return "\(viewModel.month.year)년 \(viewModel.month.month)월 지출"
+    }
+
     private var summaryCard: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("이번 달 지출")
+            Text(summaryTitle)
                 .font(.caption)
                 .fontWeight(.semibold)
                 .foregroundStyle(.white.opacity(0.8))

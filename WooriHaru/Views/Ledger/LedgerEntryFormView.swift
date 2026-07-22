@@ -101,8 +101,8 @@ struct LedgerEntryFormView: View {
                         .lineLimit(1...3)
                 }
                 Divider().padding(.leading, 16)
-                fieldRow("일시") {
-                    DatePicker("", selection: $entryAt)
+                fieldRow("날짜") {
+                    DatePicker("", selection: $entryAt, displayedComponents: [.date])
                         .labelsHidden()
                         .environment(\.locale, Locale(identifier: "ko_KR"))
                 }
@@ -156,10 +156,23 @@ struct LedgerEntryFormView: View {
     private var parsedAmount: Decimal? {
         let cleaned = amountText.replacingOccurrences(of: ",", with: "").trimmingCharacters(in: .whitespaces)
         guard let value = Decimal(string: cleaned), value > 0 else { return nil }
+        // KRW·JPY 등 소수 없는 통화는 소수 금액을 거부한다 — 표시 시 반올림돼 다른 값으로 보이는 것을 막는다.
+        if LedgerFormat.integerAmount(currency), !value.isWholeNumber { return nil }
         return value
     }
 
     private var canSave: Bool { parsedAmount != nil && !isSaving }
+
+    /// 화면에서는 날짜만 고른다 — 등록은 자정, 수정은 기존 시각을 보존한 채 날짜만 바꾼다.
+    private func resolvedEntryAt() -> Date {
+        let calendar = Calendar.current
+        let day = calendar.startOfDay(for: entryAt)
+        if case let .edit(entry) = mode {
+            let time = calendar.dateComponents([.hour, .minute, .second], from: entry.date)
+            return calendar.date(byAdding: time, to: day) ?? day
+        }
+        return day
+    }
 
     private func prefill() {
         guard case let .edit(entry) = mode else { return }
@@ -175,7 +188,7 @@ struct LedgerEntryFormView: View {
         let trimmedMerchant = merchant.trimmingCharacters(in: .whitespaces)
         let trimmedNote = note.trimmingCharacters(in: .whitespaces)
         let request = LedgerEntryRequest(
-            entryAt: LedgerFormat.formatDateTime(entryAt),
+            entryAt: LedgerFormat.formatDateTime(resolvedEntryAt()),
             amount: amount,
             currency: currency,
             type: {
