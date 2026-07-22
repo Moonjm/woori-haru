@@ -60,6 +60,14 @@ struct LedgerService: Sendable {
         try await api.postVoid("/recurring-rules", body: RecurringCreateRequest(entryId: entryId, dayOfMonth: dayOfMonth))
     }
 
+    /// 서버가 중복 리소스(이미 같은 반복 규칙 존재)로 거절했는지 — 에러 바디의 코드명으로 판별.
+    static func isDuplicateError(_ error: Error) -> Bool {
+        if case let APIError.serverError(_, message) = error {
+            return message?.contains("DUPLICATE_RESOURCE") == true
+        }
+        return false
+    }
+
     func updateRecurringRule(id: Int, _ request: RecurringUpdateRequest) async throws {
         try await api.putVoid("/recurring-rules/\(id)", body: request)
     }

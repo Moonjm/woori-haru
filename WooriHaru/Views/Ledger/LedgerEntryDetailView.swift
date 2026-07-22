@@ -11,6 +11,8 @@ struct LedgerEntryDetailView: View {
     @State private var showingDeleteConfirm = false
     @State private var isWorking = false
     @State private var successMessage: String?
+    /// 실패는 아니지만 알려줄 안내 (예: 이미 등록된 반복) — 에러 빨간색 대신 중립 톤으로 표시.
+    @State private var infoMessage: String?
     @State private var errorMessage: String?
 
     private let ledgerService = LedgerService()
@@ -27,6 +29,12 @@ struct LedgerEntryDetailView: View {
                         Text(success)
                             .font(.caption)
                             .foregroundStyle(Color.green700)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    if let info = infoMessage {
+                        Text(info)
+                            .font(.caption)
+                            .foregroundStyle(Color.slate500)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     if let error = errorMessage {
@@ -154,11 +162,14 @@ struct LedgerEntryDetailView: View {
         isWorking = true
         errorMessage = nil
         successMessage = nil
+        infoMessage = nil
         let day = Calendar.current.component(.day, from: entry.date)
         Task {
             do {
                 try await ledgerService.createRecurringRule(entryId: entry.id, dayOfMonth: day)
                 successMessage = "매월 \(day)일 반복으로 등록했습니다."
+            } catch let error where LedgerService.isDuplicateError(error) {
+                infoMessage = "이미 매월 \(day)일 반복으로 등록되어 있어요."
             } catch {
                 errorMessage = "반복 등록에 실패했습니다."
             }

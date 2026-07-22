@@ -59,9 +59,24 @@ struct LedgerStatsView: View {
             .padding(16)
             .padding(.bottom, 110)
         }
+        // 좌우 스와이프 = 기간 이동 (월별이면 월, 연별이면 연). 내역 탭과 같은 판정 기준.
+        .simultaneousGesture(periodSwipeGesture)
         .overlay { if isLoading && stats == nil { ProgressView() } }
         .task { await load() }
         .refreshable { await load() }
+    }
+
+    /// 수직 스크롤과 헷갈리지 않게 가로 성분이 확실할 때만 반응. 미래 기간으로는 이동하지 않는다.
+    private var periodSwipeGesture: some Gesture {
+        DragGesture(minimumDistance: 30)
+            .onEnded { value in
+                let dx = value.translation.width
+                let dy = value.translation.height
+                guard abs(dx) > 70, abs(dx) > abs(dy) * 1.5 else { return }
+                let delta = dx > 0 ? -1 : 1
+                guard delta < 0 || !isAtCurrentPeriod else { return }
+                shiftPeriod(delta)
+            }
     }
 
     // MARK: - 기간 선택 (월별/연별 + 앞뒤 이동)
