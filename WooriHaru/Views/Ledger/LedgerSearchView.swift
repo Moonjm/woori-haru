@@ -211,20 +211,30 @@ struct LedgerSearchView: View {
 
     // MARK: - 검색 실행
 
+    /// 이 검색어가 여전히 현재 입력값인지 — 연속 검색 시 느린 이전 응답이 새 결과를 덮지 않게 한다.
+    private func isCurrent(_ keyword: String) -> Bool {
+        keyword == searchText.trimmingCharacters(in: .whitespaces)
+    }
+
     private func search() async {
         let keyword = searchText.trimmingCharacters(in: .whitespaces)
         guard !keyword.isEmpty else { return }
         fieldFocused = false
         isLoading = true
         hasSearched = true
-        defer { isLoading = false }
+        defer {
+            if isCurrent(keyword) { isLoading = false }
+        }
         do {
-            results = try await ledgerService.fetchEntries(keyword: keyword)
+            let list = try await ledgerService.fetchEntries(keyword: keyword)
+            guard isCurrent(keyword) else { return } // 밀려난 검색의 응답은 폐기
+            results = list
             errorMessage = nil
             saveRecent(keyword)
         } catch is CancellationError {
             return
         } catch {
+            guard isCurrent(keyword) else { return }
             results = []
             errorMessage = "검색하지 못했습니다."
         }
