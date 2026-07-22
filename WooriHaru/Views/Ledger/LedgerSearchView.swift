@@ -178,12 +178,21 @@ struct LedgerSearchView: View {
                 }
             }
             Spacer(minLength: 8)
-            Text(LedgerFormat.amount(entry.amount, currency: entry.currency))
-                .font(.subheadline)
-                .fontWeight(.bold)
-                .monospacedDigit()
-                .foregroundStyle(LedgerFormat.isForeign(entry.currency) ? Color.blue600 : Color.slate900)
-                .lineLimit(1)
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(LedgerFormat.amount(entry.amount, currency: entry.currency))
+                    .font(.subheadline)
+                    .fontWeight(.bold)
+                    .monospacedDigit()
+                    .foregroundStyle(LedgerFormat.isForeign(entry.currency) ? Color.blue600 : Color.slate900)
+                    .lineLimit(1)
+                if let converted = entry.fxConvertedText {
+                    Text(converted)
+                        .font(.caption2)
+                        .monospacedDigit()
+                        .foregroundStyle(Color.slate400)
+                        .lineLimit(1)
+                }
+            }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)

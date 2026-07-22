@@ -387,12 +387,22 @@ struct LedgerEntryRow: View {
                 }
             }
             Spacer(minLength: 8)
-            Text(LedgerFormat.amount(entry.amount, currency: entry.currency))
-                .font(.subheadline)
-                .fontWeight(.bold)
-                .monospacedDigit()
-                .foregroundStyle(amountColor)
-                .lineLimit(1)
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(LedgerFormat.amount(entry.amount, currency: entry.currency))
+                    .font(.subheadline)
+                    .fontWeight(.bold)
+                    .monospacedDigit()
+                    .foregroundStyle(amountColor)
+                    .lineLimit(1)
+                // 외화 건: 메모의 환율 기록에서 원화 환산액만 뽑아 보여준다.
+                if let converted = entry.fxConvertedText {
+                    Text(converted)
+                        .font(.caption2)
+                        .monospacedDigit()
+                        .foregroundStyle(Color.slate400)
+                        .lineLimit(1)
+                }
+            }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)

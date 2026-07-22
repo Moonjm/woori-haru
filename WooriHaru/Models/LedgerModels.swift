@@ -44,6 +44,33 @@ struct LedgerEntry: Codable, Identifiable, Hashable {
     let source: EntrySource
 
     var date: Date { LedgerFormat.parseDateTime(entryAt) ?? .distantPast }
+
+    /// 메모에 기록된 결제 시점 환율 문구 전체. 예) "환율 1 JPY ≈ 9.15원 (약 9,150원)"
+    var fxNote: String? {
+        guard let description,
+              let range = description.range(of: LedgerFormat.fxNotePattern, options: .regularExpression)
+        else { return nil }
+        return String(description[range])
+    }
+
+    /// 환율 메모의 원화 환산 부분만. 예) "약 9,150원"
+    var fxConvertedText: String? {
+        guard let fxNote,
+              let range = fxNote.range(of: #"약 -?[\d,]+원"#, options: .regularExpression)
+        else { return nil }
+        return String(fxNote[range])
+    }
+
+    /// 환율 문구를 제거한 순수 메모 (없으면 nil) — 상세에서 환율을 별도 줄로 빼서 보여줄 때 사용.
+    var descriptionWithoutFxNote: String? {
+        guard let description else { return nil }
+        let stripped = description
+            .replacingOccurrences(of: LedgerFormat.fxNotePattern, with: "", options: .regularExpression)
+            .replacingOccurrences(of: #"\s*·\s*$"#, with: "", options: .regularExpression)
+            .replacingOccurrences(of: #"^\s*·\s*"#, with: "", options: .regularExpression)
+            .trimmingCharacters(in: .whitespaces)
+        return stripped.isEmpty ? nil : stripped
+    }
 }
 
 struct LedgerEntryRequest: Encodable {
@@ -165,6 +192,9 @@ struct LedgerYearMonth: Equatable {
 /// 가계부 전용 금액·일시 표시 헬퍼. 외화는 환산하지 않고 통화별 기호/소수 자리로만 표시한다.
 enum LedgerFormat {
     static let currencies = ["KRW", "JPY", "USD", "EUR", "CNY", "GBP"]
+
+    /// 백엔드 fxNote 형식과 일치하는 환율 메모 패턴. 예) "환율 1 JPY ≈ 9.15원 (약 9,150원)"
+    static let fxNotePattern = #"환율 1 [A-Z]{3} ≈ [\d.,]+원 \(약 -?[\d,]+원\)"#
 
     private static let symbols: [String: String] = [
         "KRW": "₩", "JPY": "¥", "USD": "$", "EUR": "€", "CNY": "¥", "GBP": "£",

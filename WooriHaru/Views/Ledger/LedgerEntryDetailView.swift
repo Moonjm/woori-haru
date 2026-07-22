@@ -85,7 +85,12 @@ struct LedgerEntryDetailView: View {
                 detailRow("구매처", entry.merchant ?? "—")
                 Divider().padding(.leading, 16)
                 detailRow("일시", LedgerFormat.full(entry.date))
-                if let note = entry.description, !note.isEmpty {
+                // 환율 기록은 메모에서 분리해 전용 줄로 보여준다.
+                if let fxNote = entry.fxNote {
+                    Divider().padding(.leading, 16)
+                    detailRow("환율", fxNote.replacingOccurrences(of: "환율 ", with: ""))
+                }
+                if let note = entry.descriptionWithoutFxNote {
                     Divider().padding(.leading, 16)
                     detailRow("메모", note)
                 }
