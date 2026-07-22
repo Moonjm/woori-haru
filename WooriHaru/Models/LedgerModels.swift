@@ -61,6 +61,14 @@ struct LedgerEntry: Codable, Identifiable, Hashable {
         return String(fxNote[range])
     }
 
+    /// 환산 금액만 숫자로. 예) "약 9,150원" → 9150 — 외화 지출을 원화로 합산할 때 사용.
+    var fxConvertedAmount: Decimal? {
+        guard let fxConvertedText,
+              let range = fxConvertedText.range(of: #"-?[\d,]+"#, options: .regularExpression)
+        else { return nil }
+        return Decimal(string: fxConvertedText[range].replacingOccurrences(of: ",", with: ""))
+    }
+
     /// 환율 문구를 제거한 순수 메모 (없으면 nil) — 상세에서 환율을 별도 줄로 빼서 보여줄 때 사용.
     var descriptionWithoutFxNote: String? {
         guard let description else { return nil }
@@ -124,8 +132,11 @@ struct IssuedLedgerApiKey: Codable, Identifiable {
 // MARK: - 통계
 
 struct LedgerStatistics: Codable {
+    /// 기준 기간 — 월별이면 "2026-07", 연별이면 "2026"
     let yearMonth: String
     let monthlyTrend: [MonthlyTotal]
+    /// 직전 기간(지난달/지난해) 원화 합계. 구버전 서버 응답에는 없어 옵셔널.
+    let previousTotal: Decimal?
     let sourceBreakdown: [SourceTotal]
     let foreignTotals: [CurrencyTotal]
     let topMerchants: [MerchantTotal]

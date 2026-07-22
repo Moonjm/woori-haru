@@ -1,12 +1,21 @@
 import SwiftUI
 
 /// 가계부 통계 탭 — /entries/statistics API의 서버 집계를 그대로 표시한다.
-/// 월별 추이(6개월)·지난달 비교·가맹점 TOP·출처 구성·최대 단건·일평균·외화.
+/// 월별(최근 6개월 추이)·연별(12개월 추이)을 전환할 수 있고, 기간을 앞뒤로 이동할 수 있다.
 struct LedgerStatsView: View {
+    private enum Scope: String, CaseIterable, Identifiable {
+        case monthly = "월별"
+        case yearly = "연별"
+        var id: String { rawValue }
+    }
+
+    @State private var scope: Scope = .monthly
+    @State private var month = LedgerYearMonth.current()
+    @State private var year = LedgerYearMonth.current().year
     @State private var stats: LedgerStatistics?
     @State private var isLoading = false
     @State private var errorMessage: String?
-    /// 차트에서 선택한 월 (yearMonth 문자열). 기본은 기준월.
+    /// 차트에서 선택한 월 (yearMonth 문자열). 로드 시 기본값이 정해진다.
     @State private var selectedMonth: String?
 
     private let ledgerService = LedgerService()
@@ -14,6 +23,9 @@ struct LedgerStatsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 8) {
+                periodHeader
+                    .padding(.top, 4)
+
                 if let error = errorMessage {
                     Text(error)
                         .font(.caption)
@@ -24,7 +36,8 @@ struct LedgerStatsView: View {
                     summaryCard(stats)
                         .padding(.top, 8)
 
-                    sectionHeader("최근 6개월").padding(.top, 12)
+                    sectionHeader(scope == .monthly ? "최근 6개월" : "\(year)년 월별 추이")
+                        .padding(.top, 12)
                     chartCard(stats)
 
                     if !stats.topMerchants.isEmpty {
@@ -51,14 +64,98 @@ struct LedgerStatsView: View {
         .refreshable { await load() }
     }
 
+    // MARK: - 기간 선택 (월별/연별 + 앞뒤 이동)
+
+    private var periodHeader: some View {
+        HStack {
+            scopeToggle
+            Spacer()
+            periodSwitcher
+        }
+    }
+
+    private var scopeToggle: some View {
+        HStack(spacing: 2) {
+            ForEach(Scope.allCases) { item in
+                Button {
+                    guard scope != item else { return }
+                    scope = item
+                    reloadForPeriodChange()
+                } label: {
+                    Text(item.rawValue)
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundStyle(scope == item ? .white : Color.slate500)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background {
+                            if scope == item {
+                                Capsule()
+                                    .fill(LinearGradient(colors: [Color.blue500, Color.blue700],
+                                                         startPoint: .topLeading, endPoint: .bottomTrailing))
+                            }
+                        }
+                        .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(3)
+        .background(.white.opacity(0.55), in: Capsule())
+    }
+
+    private var periodSwitcher: some View {
+        HStack(spacing: 12) {
+            Button { shiftPeriod(-1) } label: {
+                Image(systemName: "chevron.left").font(.system(size: 12, weight: .bold))
+            }
+            Text(periodTitle)
+                .font(.subheadline)
+                .fontWeight(.bold)
+                .monospacedDigit()
+                .contentTransition(.numericText())
+            Button { shiftPeriod(1) } label: {
+                Image(systemName: "chevron.right").font(.system(size: 12, weight: .bold))
+            }
+            .disabled(isAtCurrentPeriod)
+            .opacity(isAtCurrentPeriod ? 0.3 : 1)
+        }
+        .foregroundStyle(Color.slate700)
+    }
+
+    private var periodTitle: String {
+        scope == .monthly ? month.displayLong : "\(year)년"
+    }
+
+    private var isAtCurrentPeriod: Bool {
+        let current = LedgerYearMonth.current()
+        return scope == .monthly ? month == current : year == current.year
+    }
+
+    private func shiftPeriod(_ delta: Int) {
+        switch scope {
+        case .monthly: month = month.adding(months: delta)
+        case .yearly: year += delta
+        }
+        reloadForPeriodChange()
+    }
+
+    /// 기간이 바뀌면 이전 기간 데이터가 새 라벨 아래 보이지 않게 비우고 다시 불러온다.
+    private func reloadForPeriodChange() {
+        stats = nil
+        selectedMonth = nil
+        errorMessage = nil
+        Task { await load() }
+    }
+
     // MARK: - 요약
 
     private func summaryCard(_ stats: LedgerStatistics) -> some View {
-        let current = stats.monthlyTrend.last?.krwTotal ?? 0
-        let previous = stats.monthlyTrend.count >= 2 ? stats.monthlyTrend[stats.monthlyTrend.count - 2].krwTotal : 0
+        let current = currentTotal(stats)
+        let previous = previousTotal(stats)
         return GlassCard {
             VStack(alignment: .leading, spacing: 0) {
-                Text("\(stats.monthlyTrend.last?.monthNumber ?? 0)월 지출")
+                Text(summaryTitle)
                     .font(.caption)
                     .fontWeight(.semibold)
                     .foregroundStyle(Color.slate500)
@@ -76,7 +173,7 @@ struct LedgerStatsView: View {
                 .padding(.top, 3)
 
                 HStack(spacing: 6) {
-                    statChip("지난달", LedgerFormat.amount(previous, currency: "KRW"))
+                    statChip(scope == .monthly ? "지난달" : "지난해", LedgerFormat.amount(previous, currency: "KRW"))
                     statChip("일평균", LedgerFormat.amount(stats.dailyAverage, currency: "KRW"))
                 }
                 .padding(.top, 12)
@@ -105,6 +202,32 @@ struct LedgerStatsView: View {
         }
     }
 
+    private var summaryTitle: String {
+        switch scope {
+        case .monthly:
+            let current = LedgerYearMonth.current()
+            if month.year == current.year { return "\(month.month)월 지출" }
+            return "\(month.year)년 \(month.month)월 지출"
+        case .yearly:
+            return "\(year)년 지출"
+        }
+    }
+
+    /// 기준 기간 원화 합계 — 월별이면 추이 마지막(기준월), 연별이면 12개월 합.
+    private func currentTotal(_ stats: LedgerStatistics) -> Decimal {
+        switch scope {
+        case .monthly: return stats.monthlyTrend.last?.krwTotal ?? 0
+        case .yearly: return stats.monthlyTrend.reduce(Decimal.zero) { $0 + $1.krwTotal }
+        }
+    }
+
+    /// 직전 기간 원화 합계 — 서버 값 우선, 구버전 응답이면 추이에서 지난달을 취한다.
+    private func previousTotal(_ stats: LedgerStatistics) -> Decimal {
+        if let previous = stats.previousTotal { return previous }
+        guard scope == .monthly, stats.monthlyTrend.count >= 2 else { return 0 }
+        return stats.monthlyTrend[stats.monthlyTrend.count - 2].krwTotal
+    }
+
     private func deltaPercent(current: Decimal, previous: Decimal) -> Int? {
         guard previous > 0 else { return nil }
         let ratio = ((current - previous) as NSDecimalNumber).doubleValue
@@ -129,7 +252,8 @@ struct LedgerStatsView: View {
 
     private func chartCard(_ stats: LedgerStatistics) -> some View {
         let maxTotal = stats.monthlyTrend.map(\.krwTotal).max() ?? 0
-        let selected = stats.monthlyTrend.first { $0.yearMonth == (selectedMonth ?? stats.yearMonth) }
+        let selectedKey = selectedMonth ?? defaultSelectedMonth(stats)
+        let selected = stats.monthlyTrend.first { $0.yearMonth == selectedKey }
         return GlassCard {
             VStack(spacing: 12) {
                 // 선택한 월의 금액 콜아웃 — 막대를 탭하면 바뀐다.
@@ -149,9 +273,9 @@ struct LedgerStatsView: View {
                     .animation(.snappy, value: selected.yearMonth)
                 }
 
-                HStack(alignment: .bottom, spacing: 10) {
+                HStack(alignment: .bottom, spacing: scope == .monthly ? 10 : 5) {
                     ForEach(stats.monthlyTrend) { item in
-                        let isSelected = item.yearMonth == (selectedMonth ?? stats.yearMonth)
+                        let isSelected = item.yearMonth == selectedKey
                         VStack(spacing: 5) {
                             Rectangle()
                                 .fill(
@@ -162,7 +286,8 @@ struct LedgerStatsView: View {
                                 )
                                 .frame(height: barHeight(item.krwTotal, max: maxTotal))
                                 .clipShape(UnevenRoundedRectangle(topLeadingRadius: 6, topTrailingRadius: 6))
-                            Text("\(item.monthNumber)월")
+                            // 12개 막대(연별)는 폭이 좁아 "월" 없이 숫자만 표시
+                            Text(scope == .monthly ? "\(item.monthNumber)월" : "\(item.monthNumber)")
                                 .font(.system(size: 9, weight: isSelected ? .heavy : .bold))
                                 .foregroundStyle(isSelected ? Color.blue600 : Color.slate400)
                         }
@@ -175,6 +300,16 @@ struct LedgerStatsView: View {
                 }
                 .frame(height: 130, alignment: .bottom)
             }
+        }
+    }
+
+    /// 콜아웃 기본 선택 — 월별은 기준월, 연별은 지출이 있는 마지막 달.
+    private func defaultSelectedMonth(_ stats: LedgerStatistics) -> String? {
+        switch scope {
+        case .monthly:
+            return stats.yearMonth
+        case .yearly:
+            return (stats.monthlyTrend.last { $0.krwTotal > 0 } ?? stats.monthlyTrend.last)?.yearMonth
         }
     }
 
@@ -312,15 +447,31 @@ struct LedgerStatsView: View {
 
     // MARK: - 로드
 
+    /// 지금 화면이 요청한 기간인지 식별하는 키 — 응답 도착 시 기간이 바뀌었으면 폐기한다.
+    private var requestKey: String {
+        scope == .monthly ? "m:\(month.apiValue)" : "y:\(year)"
+    }
+
     private func load() async {
+        let key = requestKey
         isLoading = true
-        defer { isLoading = false }
+        defer {
+            if key == requestKey { isLoading = false }
+        }
         do {
-            stats = try await ledgerService.fetchStatistics(yearMonth: LedgerYearMonth.current().apiValue)
+            let result: LedgerStatistics
+            switch scope {
+            case .monthly: result = try await ledgerService.fetchStatistics(yearMonth: month.apiValue)
+            case .yearly: result = try await ledgerService.fetchStatistics(year: year)
+            }
+            guard key == requestKey else { return }
+            stats = result
+            selectedMonth = defaultSelectedMonth(result)
             errorMessage = nil
         } catch is CancellationError {
             return
         } catch {
+            guard key == requestKey else { return }
             errorMessage = "통계를 불러오지 못했습니다."
         }
     }

@@ -148,6 +148,17 @@ struct LedgerView: View {
                             .padding(.vertical, 5)
                             .background(.white.opacity(0.2), in: Capsule())
                     }
+                    // 외화끼리 결제 시점 환율로 환산해 합친 금액 (환율 메모 없는 건 제외)
+                    if viewModel.foreignConvertedKRWTotal > 0 {
+                        Text("≈ \(LedgerFormat.amount(viewModel.foreignConvertedKRWTotal, currency: "KRW"))")
+                            .font(.caption2)
+                            .fontWeight(.heavy)
+                            .monospacedDigit()
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(.white.opacity(0.32), in: Capsule())
+                    }
                 }
                 .padding(.top, 12)
             }

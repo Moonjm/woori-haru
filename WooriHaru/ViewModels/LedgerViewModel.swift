@@ -49,6 +49,15 @@ final class LedgerViewModel {
         return map.sorted { $0.key < $1.key }.map { (currency: $0.key, amount: $0.value) }
     }
 
+    /// 외화 지출을 결제 시점 환율 메모 기준으로 원화 환산한 합계. 환율 메모가 없는 건은 제외.
+    var foreignConvertedKRWTotal: Decimal {
+        var sum = Decimal.zero
+        for entry in entries where entry.type == .expense && LedgerFormat.isForeign(entry.currency) {
+            sum += entry.fxConvertedAmount ?? .zero
+        }
+        return sum
+    }
+
     private static func krwExpenseTotal(_ list: [LedgerEntry]) -> Decimal {
         var sum = Decimal.zero
         for entry in list where entry.type == .expense && entry.currency.uppercased() == "KRW" {

@@ -39,6 +39,16 @@ struct LedgerService: Sendable {
         return statistics
     }
 
+    /// 연별 통계 — 기준연 12개월 추이·집계.
+    func fetchStatistics(year: Int) async throws -> LedgerStatistics {
+        let response: DataResponse<LedgerStatistics> =
+            try await api.get("/entries/statistics/yearly", query: ["year": String(year)])
+        guard let statistics = response.data else {
+            throw APIError.serverError(statusCode: 200, message: "통계 응답이 비어 있습니다")
+        }
+        return statistics
+    }
+
     // MARK: - 반복 규칙
 
     func fetchRecurringRules() async throws -> [RecurringRule] {
