@@ -10,6 +10,8 @@ struct LedgerView: View {
     @State private var viewModel = LedgerViewModel()
     @State private var showingCreate = false
     @State private var selectedEntry: LedgerEntry?
+    /// 검색창 표시 여부 — 돋보기 버튼으로 연다 (숨김 당김 방식 대체).
+    @State private var searchPresented = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -27,6 +29,11 @@ struct LedgerView: View {
                 Button { dismiss() } label: { Image(systemName: "chevron.backward") }
             }
             ToolbarItem(placement: .principal) { principalTitle }
+            if tab == .entries {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { searchPresented = true } label: { Image(systemName: "magnifyingglass") }
+                }
+            }
         }
         .task { await viewModel.load() }
         .sheet(item: $selectedEntry) { entry in
@@ -93,13 +100,27 @@ struct LedgerView: View {
         }
         // 좌우 스와이프 = 월 이동
         .simultaneousGesture(monthSwipeGesture)
-        .searchable(text: $viewModel.searchText, placement: .navigationBarDrawer(displayMode: .automatic), prompt: "구매처·내용 검색")
+        // 검색창은 돋보기 버튼으로 열고 닫는다 (당겨야 보이는 기본 동작 대체).
+        .searchable(
+            text: $viewModel.searchText,
+            isPresented: $searchPresented,
+            placement: .navigationBarDrawer(displayMode: .automatic),
+            prompt: "구매처·내용 검색"
+        )
         .onSubmit(of: .search) {
             viewModel.isSearching = true
             Task { await viewModel.reload() }
         }
         .onChange(of: viewModel.searchText) { _, newValue in
             if newValue.trimmingCharacters(in: .whitespaces).isEmpty, viewModel.isSearching {
+                viewModel.isSearching = false
+                Task { await viewModel.reload() }
+            }
+        }
+        .onChange(of: searchPresented) { _, presented in
+            // 취소로 닫히면 검색 상태를 정리하고 월 목록으로 복귀한다.
+            if !presented, viewModel.isSearching || !viewModel.searchText.isEmpty {
+                viewModel.searchText = ""
                 viewModel.isSearching = false
                 Task { await viewModel.reload() }
             }
