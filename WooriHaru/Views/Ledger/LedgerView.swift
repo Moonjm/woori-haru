@@ -10,8 +10,8 @@ struct LedgerView: View {
     @State private var viewModel = LedgerViewModel()
     @State private var showingCreate = false
     @State private var selectedEntry: LedgerEntry?
-    /// 검색창 표시 여부 — 돋보기 버튼으로 연다 (숨김 당김 방식 대체).
-    @State private var searchPresented = false
+    /// 전용 검색 화면 표시 여부 — 돋보기 버튼으로 연다.
+    @State private var showingSearch = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -31,9 +31,12 @@ struct LedgerView: View {
             ToolbarItem(placement: .principal) { principalTitle }
             if tab == .entries {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button { searchPresented = true } label: { Image(systemName: "magnifyingglass") }
+                    Button { showingSearch = true } label: { Image(systemName: "magnifyingglass") }
                 }
             }
+        }
+        .fullScreenCover(isPresented: $showingSearch) {
+            LedgerSearchView { await viewModel.reload() }
         }
         .task { await viewModel.load() }
         .sheet(item: $selectedEntry) { entry in
@@ -55,11 +58,7 @@ struct LedgerView: View {
     @ViewBuilder private var principalTitle: some View {
         switch tab {
         case .entries:
-            if viewModel.isSearching {
-                Text("검색").font(.subheadline).fontWeight(.bold)
-            } else {
-                monthSwitcher
-            }
+            monthSwitcher
         case .stats:
             Text("통계").font(.subheadline).fontWeight(.bold)
         case .settings:
@@ -72,10 +71,8 @@ struct LedgerView: View {
     private var entriesTab: some View {
         ScrollView {
             LazyVStack(spacing: 0) {
-                if !viewModel.isSearching {
-                    summaryCard
-                        .padding(.top, 8)
-                }
+                summaryCard
+                    .padding(.top, 8)
 
                 if let error = viewModel.errorMessage {
                     Text(error)
@@ -98,33 +95,8 @@ struct LedgerView: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 120) // 하단 탭바·FAB에 가리지 않게
         }
-        // 좌우 스와이프 = 월 이동
+        // 좌우 스와이프 = 월 이동. 검색은 전용 화면(LedgerSearchView)에서.
         .simultaneousGesture(monthSwipeGesture)
-        // 검색창은 돋보기 버튼으로 열고 닫는다 (당겨야 보이는 기본 동작 대체).
-        .searchable(
-            text: $viewModel.searchText,
-            isPresented: $searchPresented,
-            placement: .navigationBarDrawer(displayMode: .automatic),
-            prompt: "구매처·내용 검색"
-        )
-        .onSubmit(of: .search) {
-            viewModel.isSearching = true
-            Task { await viewModel.reload() }
-        }
-        .onChange(of: viewModel.searchText) { _, newValue in
-            if newValue.trimmingCharacters(in: .whitespaces).isEmpty, viewModel.isSearching {
-                viewModel.isSearching = false
-                Task { await viewModel.reload() }
-            }
-        }
-        .onChange(of: searchPresented) { _, presented in
-            // 취소로 닫히면 검색 상태를 정리하고 월 목록으로 복귀한다.
-            if !presented, viewModel.isSearching || !viewModel.searchText.isEmpty {
-                viewModel.searchText = ""
-                viewModel.isSearching = false
-                Task { await viewModel.reload() }
-            }
-        }
         .refreshable { await viewModel.reload() }
     }
 
@@ -215,14 +187,9 @@ struct LedgerView: View {
 
     private var emptyState: some View {
         ContentUnavailableView {
-            Label(
-                viewModel.isSearching ? "검색 결과가 없어요" : "이 달 내역이 없어요",
-                systemImage: viewModel.isSearching ? "magnifyingglass" : "tray"
-            )
+            Label("이 달 내역이 없어요", systemImage: "tray")
         } description: {
-            if !viewModel.isSearching {
-                Text("오른쪽 아래 + 로 내역을 추가해 보세요")
-            }
+            Text("오른쪽 아래 + 로 내역을 추가해 보세요")
         }
     }
 
@@ -230,7 +197,6 @@ struct LedgerView: View {
     private var monthSwipeGesture: some Gesture {
         DragGesture(minimumDistance: 30)
             .onEnded { value in
-                guard !viewModel.isSearching else { return }
                 let dx = value.translation.width
                 let dy = value.translation.height
                 guard abs(dx) > 70, abs(dx) > abs(dy) * 1.5 else { return }

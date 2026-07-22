@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 
+/// 내역 탭(월 목록) 뷰모델. 검색은 전용 화면(LedgerSearchView)이 따로 담당한다.
 @MainActor
 @Observable
 final class LedgerViewModel {
@@ -8,8 +9,6 @@ final class LedgerViewModel {
     // MARK: - State
 
     var month = LedgerYearMonth.current()
-    var searchText = ""
-    var isSearching = false
 
     private(set) var entries: [LedgerEntry] = []
     private(set) var isLoading = false
@@ -41,8 +40,6 @@ final class LedgerViewModel {
     /// 원화 지출 합계 (외화는 환산하지 않으므로 제외)
     var monthlyKRWTotal: Decimal { Self.krwExpenseTotal(entries) }
 
-    var expenseCount: Int { entries.filter { $0.type == .expense }.count }
-
     /// 통화별 외화 지출 합계 (환산 없이 통화별로 그대로). 통화 오름차순.
     var foreignTotals: [(currency: String, amount: Decimal)] {
         var map: [String: Decimal] = [:]
@@ -62,21 +59,6 @@ final class LedgerViewModel {
 
     // MARK: - 로드
 
-    /// 이 조회가 어떤 요청이었는지 식별한다. 응답 도착 시 현재 요청과 다르면(월 이동·검색으로
-    /// 바뀌었으면) 오래된 응답이므로 버려 화면이 뒤바뀌지 않게 한다.
-    private struct Request: Equatable {
-        let yearMonth: String?
-        let keyword: String?
-    }
-
-    private var currentRequest: Request {
-        let keyword = searchText.trimmingCharacters(in: .whitespaces)
-        if isSearching, !keyword.isEmpty {
-            return Request(yearMonth: nil, keyword: keyword)
-        }
-        return Request(yearMonth: month.apiValue, keyword: nil)
-    }
-
     func load() async {
         isLoading = true
         defer { isLoading = false }
@@ -84,17 +66,17 @@ final class LedgerViewModel {
     }
 
     func reload() async {
-        let request = currentRequest
+        let requested = month
         do {
-            let list = try await ledgerService.fetchEntries(yearMonth: request.yearMonth, keyword: request.keyword)
-            guard request == currentRequest else { return } // 사이에 월·검색이 바뀌었으면 폐기
+            let list = try await ledgerService.fetchEntries(yearMonth: requested.apiValue)
+            guard requested == month else { return } // 응답 도착 전에 월이 바뀌었으면 폐기
             entries = list
             errorMessage = nil
         } catch is CancellationError {
             return
         } catch {
-            guard request == currentRequest else { return }
-            // 이전 월/검색 결과가 현재 요청의 데이터처럼 보이지 않게 비운다.
+            guard requested == month else { return }
+            // 이전 월 결과가 현재 월의 데이터처럼 보이지 않게 비운다.
             entries = []
             errorMessage = "내역을 불러오지 못했습니다."
         }
