@@ -6,7 +6,10 @@ class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification
     ) async -> UNNotificationPresentationOptions {
-        [.banner, .sound]
+        if DDayBadgeService.isDDayNotification(notification.request.identifier) {
+            return [.badge]
+        }
+        return [.banner, .sound]
     }
 }
 
@@ -20,6 +23,7 @@ struct WooriHaruApp: App {
     @State private var pauseTypeStore = PauseTypeStore()
     private let notificationDelegate = NotificationDelegate()
     @State private var pendingDeepLink: StudyDeepLink?
+    @Environment(\.scenePhase) private var scenePhase
 
     init() {
         UNUserNotificationCenter.current().delegate = notificationDelegate
@@ -47,6 +51,11 @@ struct WooriHaruApp: App {
             }
             .onOpenURL { url in
                 handleDeepLink(url)
+            }
+            .onChange(of: scenePhase) {
+                if scenePhase == .active {
+                    Task { await DDayBadgeService.refresh() }
+                }
             }
             .alert("확인", isPresented: .init(
                 get: { pendingDeepLink != nil },

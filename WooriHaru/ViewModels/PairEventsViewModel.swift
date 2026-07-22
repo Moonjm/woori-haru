@@ -11,6 +11,8 @@ final class PairEventsViewModel {
     var isLoading = false
     var errorMessage: String?
     var successMessage: String?
+    var badgeEventId: Int? = DDayBadgeService.selectedEventId
+    var showBadgePermissionAlert = false
 
     // MARK: - Form State
 
@@ -32,6 +34,8 @@ final class PairEventsViewModel {
 
         do {
             events = try await pairEventService.fetchEvents()
+            await DDayBadgeService.sync(with: events)
+            badgeEventId = DDayBadgeService.selectedEventId
         } catch {
             errorMessage = "기념일을 불러오지 못했습니다."
         }
@@ -73,8 +77,21 @@ final class PairEventsViewModel {
         do {
             try await pairEventService.deleteEvent(id: event.id)
             events.removeAll { $0.id == event.id }
+            await DDayBadgeService.sync(with: events)
+            badgeEventId = DDayBadgeService.selectedEventId
         } catch {
             errorMessage = "기념일 삭제에 실패했습니다."
+        }
+    }
+
+    func toggleBadge(for event: PairEvent) async {
+        if badgeEventId == event.id {
+            await DDayBadgeService.deselect()
+            badgeEventId = nil
+        } else if await DDayBadgeService.select(event: event) {
+            badgeEventId = event.id
+        } else {
+            showBadgePermissionAlert = true
         }
     }
 
