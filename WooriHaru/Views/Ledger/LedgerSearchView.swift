@@ -172,7 +172,7 @@ struct LedgerSearchView: View {
                     .lineLimit(1)
                 HStack(spacing: 6) {
                     LedgerSourceBadge(source: entry.source)
-                    Text(LedgerFormat.dayHeader(entry.date))
+                    Text(LedgerFormat.dayWithYear(entry.date))
                         .font(.caption2)
                         .foregroundStyle(Color.slate400)
                 }

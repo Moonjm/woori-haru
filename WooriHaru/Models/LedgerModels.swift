@@ -244,8 +244,17 @@ enum LedgerFormat {
         return f
     }()
 
+    private static let dayWithYearFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "ko_KR")
+        f.setLocalizedDateFormatFromTemplate("yMd EEE")
+        return f
+    }()
+
     /// "7월 19일 토"
     static func dayHeader(_ date: Date) -> String { dayHeaderFormatter.string(from: date) }
+    /// "2025년 7월 19일 토" — 전체 기간을 다루는 검색 결과용
+    static func dayWithYear(_ date: Date) -> String { dayWithYearFormatter.string(from: date) }
     /// "오후 2:30"
     static func time(_ date: Date) -> String { timeFormatter.string(from: date) }
     /// 상세 화면용 전체 표기
