@@ -12,6 +12,8 @@ struct LedgerView: View {
     @State private var selectedEntry: LedgerEntry?
     /// 전용 검색 화면 표시 여부 — 돋보기 버튼으로 연다.
     @State private var showingSearch = false
+    /// 연월 선택 시트 — 상단 연월 타이틀 탭으로 연다.
+    @State private var showingMonthPicker = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -37,6 +39,17 @@ struct LedgerView: View {
         }
         .fullScreenCover(isPresented: $showingSearch) {
             LedgerSearchView { await viewModel.reload() }
+        }
+        .sheet(isPresented: $showingMonthPicker) {
+            MonthPickerSheet(
+                initialYear: viewModel.month.year,
+                initialMonth: viewModel.month.month
+            ) { year, month in
+                viewModel.month = LedgerYearMonth(year: year, month: month)
+                Task { await viewModel.reload() }
+            }
+            .presentationDetents([.height(320)])
+            .presentationDragIndicator(.visible)
         }
         .task { await viewModel.load() }
         .sheet(item: $selectedEntry) { entry in
@@ -209,11 +222,14 @@ struct LedgerView: View {
             Button { Task { await viewModel.shiftMonth(-1) } } label: {
                 Image(systemName: "chevron.left").font(.system(size: 13, weight: .bold))
             }
-            Text(viewModel.month.displayLong)
-                .font(.subheadline)
-                .fontWeight(.bold)
-                .monospacedDigit()
-                .contentTransition(.numericText())
+            Button { showingMonthPicker = true } label: {
+                Text(viewModel.month.displayLong)
+                    .font(.subheadline)
+                    .fontWeight(.bold)
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+            }
+            .buttonStyle(.plain)
             Button { Task { await viewModel.shiftMonth(1) } } label: {
                 Image(systemName: "chevron.right").font(.system(size: 13, weight: .bold))
             }
