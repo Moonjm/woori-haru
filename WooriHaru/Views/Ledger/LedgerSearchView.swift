@@ -12,6 +12,8 @@ struct LedgerSearchView: View {
     @State private var results: [LedgerEntry] = []
     @State private var hasSearched = false
     @State private var isLoading = false
+    /// 진행 중 검색의 세대 번호 — 새 검색이 제출되면 이전 요청은 결과 반영·로딩 해제에서 손을 뗀다.
+    @State private var searchGeneration = 0
     @State private var errorMessage: String?
     @State private var selectedEntry: LedgerEntry?
     @State private var recentSearches: [String] =
@@ -80,6 +82,8 @@ struct LedgerSearchView: View {
                         searchText = ""
                         hasSearched = false
                         results = []
+                        isLoading = false
+                        searchGeneration += 1 // 진행 중이던 검색 응답은 폐기
                         fieldFocused = true
                     } label: {
                         Image(systemName: "xmark.circle.fill")
@@ -211,30 +215,29 @@ struct LedgerSearchView: View {
 
     // MARK: - 검색 실행
 
-    /// 이 검색어가 여전히 현재 입력값인지 — 연속 검색 시 느린 이전 응답이 새 결과를 덮지 않게 한다.
-    private func isCurrent(_ keyword: String) -> Bool {
-        keyword == searchText.trimmingCharacters(in: .whitespaces)
-    }
-
     private func search() async {
         let keyword = searchText.trimmingCharacters(in: .whitespaces)
         guard !keyword.isEmpty else { return }
+        searchGeneration += 1
+        let generation = searchGeneration
         fieldFocused = false
         isLoading = true
         hasSearched = true
+        // 입력값만 고쳐진 상태라면 이 요청이 여전히 최신이라 로딩이 갇히지 않고,
+        // 새 검색이 제출됐다면 결과 반영·로딩 해제를 그쪽이 이어받는다.
         defer {
-            if isCurrent(keyword) { isLoading = false }
+            if generation == searchGeneration { isLoading = false }
         }
         do {
             let list = try await ledgerService.fetchEntries(keyword: keyword)
-            guard isCurrent(keyword) else { return } // 밀려난 검색의 응답은 폐기
+            guard generation == searchGeneration else { return } // 밀려난 검색의 응답은 폐기
             results = list
             errorMessage = nil
             saveRecent(keyword)
         } catch is CancellationError {
             return
         } catch {
-            guard isCurrent(keyword) else { return }
+            guard generation == searchGeneration else { return }
             results = []
             errorMessage = "검색하지 못했습니다."
         }

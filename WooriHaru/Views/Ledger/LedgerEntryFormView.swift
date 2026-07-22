@@ -180,7 +180,22 @@ struct LedgerEntryFormView: View {
         amountText = NSDecimalNumber(decimal: entry.amount).stringValue
         currency = entry.currency.uppercased()
         merchant = entry.merchant ?? ""
-        note = entry.description ?? ""
+        // 환율 메모는 편집 대상이 아니다 — 순수 메모만 보여주고, 저장 시 조건부로 다시 붙인다.
+        note = entry.descriptionWithoutFxNote ?? ""
+    }
+
+    /// 수정 시 원본의 환율 메모 처리 — 금액·통화가 그대로면 보존하고,
+    /// 바뀌었으면 환산액이 더는 맞지 않으므로 버린다.
+    private func resolvedDescription(note: String, amount: Decimal) -> String? {
+        var parts: [String] = note.isEmpty ? [] : [note]
+        if case let .edit(entry) = mode,
+           let fxNote = entry.fxNote,
+           amount == entry.amount,
+           currency == entry.currency.uppercased() {
+            parts.append(fxNote)
+        }
+        let joined = parts.joined(separator: " · ")
+        return joined.isEmpty ? nil : joined
     }
 
     private func save() {
@@ -197,7 +212,7 @@ struct LedgerEntryFormView: View {
                 return .expense
             }(),
             merchant: trimmedMerchant.isEmpty ? nil : trimmedMerchant,
-            description: trimmedNote.isEmpty ? nil : trimmedNote
+            description: resolvedDescription(note: trimmedNote, amount: amount)
         )
         isSaving = true
         errorMessage = nil
