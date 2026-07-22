@@ -122,10 +122,14 @@ struct LedgerSearchView: View {
             .padding(.horizontal, 4)
             .padding(.top, 10)
 
-            FlowLayoutChips(items: recentSearches) { keyword in
-                searchText = keyword
-                Task { await search() }
-            }
+            FlowLayoutChips(
+                items: recentSearches,
+                onTap: { keyword in
+                    searchText = keyword
+                    Task { await search() }
+                },
+                onDelete: { keyword in removeRecent(keyword) }
+            )
         }
     }
 
@@ -224,26 +228,41 @@ struct LedgerSearchView: View {
         recentSearches = list
         UserDefaults.standard.set(list, forKey: Self.recentKey)
     }
+
+    private func removeRecent(_ keyword: String) {
+        recentSearches.removeAll { $0 == keyword }
+        UserDefaults.standard.set(recentSearches, forKey: Self.recentKey)
+    }
 }
 
 /// 최근 검색어 칩을 줄바꿈하며 배치하는 간단한 플로우 레이아웃.
 private struct FlowLayoutChips: View {
     let items: [String]
     let onTap: (String) -> Void
+    let onDelete: (String) -> Void
 
     var body: some View {
         LedgerFlowLayout(spacing: 6) {
             ForEach(items, id: \.self) { keyword in
-                Button { onTap(keyword) } label: {
-                    Text(keyword)
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(Color.slate900)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 7)
-                        .background(.white.opacity(0.7), in: Capsule())
+                HStack(spacing: 6) {
+                    Button { onTap(keyword) } label: {
+                        Text(keyword)
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(Color.slate900)
+                    }
+                    .buttonStyle(.plain)
+                    Button { onDelete(keyword) } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(Color.slate400)
+                            .padding(2) // 터치 여유
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
+                .background(.white.opacity(0.7), in: Capsule())
             }
         }
     }
