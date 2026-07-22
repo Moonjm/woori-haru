@@ -1,12 +1,68 @@
 import SwiftUI
 
+/// 가계부 미니앱 컨테이너 — 자체 하단 탭(내역·통계·설정) + 우측 하단 FAB.
+/// 디자인: 라이트 글래스 바탕 + 블루 틴트 히어로(G4).
 struct LedgerView: View {
+    private enum LedgerTab { case entries, stats, settings }
+
     @Environment(\.dismiss) private var dismiss
+    @State private var tab: LedgerTab = .entries
     @State private var viewModel = LedgerViewModel()
     @State private var showingCreate = false
     @State private var selectedEntry: LedgerEntry?
 
     var body: some View {
+        ZStack(alignment: .bottom) {
+            content
+            ledgerTabBar
+        }
+        .overlay(alignment: .bottomTrailing) {
+            if tab == .entries { addButton }
+        }
+        .glassScreenBackground()
+        .navigationBarBackButtonHidden(true) // 좌우 스와이프(월 이동)와 겹치는 엣지 제스처 차단
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button { dismiss() } label: { Image(systemName: "chevron.backward") }
+            }
+            ToolbarItem(placement: .principal) { principalTitle }
+        }
+        .task { await viewModel.load() }
+        .sheet(item: $selectedEntry) { entry in
+            LedgerEntryDetailView(entry: entry) { await viewModel.reload() }
+        }
+        .sheet(isPresented: $showingCreate) {
+            LedgerEntryFormView(mode: .create) { await viewModel.reload() }
+        }
+    }
+
+    @ViewBuilder private var content: some View {
+        switch tab {
+        case .entries: entriesTab
+        case .stats: LedgerStatsView()
+        case .settings: settingsTab
+        }
+    }
+
+    @ViewBuilder private var principalTitle: some View {
+        switch tab {
+        case .entries:
+            if viewModel.isSearching {
+                Text("검색").font(.subheadline).fontWeight(.bold)
+            } else {
+                monthSwitcher
+            }
+        case .stats:
+            Text("통계").font(.subheadline).fontWeight(.bold)
+        case .settings:
+            Text("설정").font(.subheadline).fontWeight(.bold)
+        }
+    }
+
+    // MARK: - 내역 탭
+
+    private var entriesTab: some View {
         ScrollView {
             LazyVStack(spacing: 0) {
                 if !viewModel.isSearching {
@@ -33,38 +89,10 @@ struct LedgerView: View {
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.bottom, 24)
+            .padding(.bottom, 120) // 하단 탭바·FAB에 가리지 않게
         }
-        // 좌우 스와이프 = 월 이동. 시스템 뒤로가기 엣지 제스처와 겹치지 않도록
-        // 시스템 뒤로가기는 끄고(제스처 포함) 커스텀 뒤로가기 버튼으로 대체한다.
+        // 좌우 스와이프 = 월 이동
         .simultaneousGesture(monthSwipeGesture)
-        .navigationBarBackButtonHidden(true)
-        .glassScreenBackground()
-        .navigationTitle(viewModel.isSearching ? "검색" : "가계부")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button { dismiss() } label: { Image(systemName: "chevron.backward") }
-            }
-            if !viewModel.isSearching {
-                ToolbarItem(placement: .principal) { monthSwitcher }
-            }
-            ToolbarItem(placement: .topBarTrailing) {
-                Menu {
-                    NavigationLink(value: AppDestination.ledgerRecurring) {
-                        Label("반복 관리", systemImage: "arrow.trianglehead.2.clockwise.rotate.90")
-                    }
-                    NavigationLink(value: AppDestination.ledgerApiKeys) {
-                        Label("단축어 API 키", systemImage: "key")
-                    }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                }
-            }
-            ToolbarItem(placement: .topBarTrailing) {
-                Button { showingCreate = true } label: { Image(systemName: "plus") }
-            }
-        }
         .searchable(text: $viewModel.searchText, placement: .navigationBarDrawer(displayMode: .automatic), prompt: "구매처·내용 검색")
         .onSubmit(of: .search) {
             viewModel.isSearching = true
@@ -77,61 +105,49 @@ struct LedgerView: View {
             }
         }
         .refreshable { await viewModel.reload() }
-        .task { await viewModel.load() }
-        .sheet(item: $selectedEntry) { entry in
-            LedgerEntryDetailView(entry: entry) { await viewModel.reload() }
-        }
-        .sheet(isPresented: $showingCreate) {
-            LedgerEntryFormView(mode: .create) { await viewModel.reload() }
-        }
     }
 
-    // MARK: - 상단 합계
-
+    /// 블루 틴트 히어로 (G4) — 이번 달 지출 + 외화 합계
     private var summaryCard: some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: 0) {
-                Text("이번 달 지출")
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(Color.slate500)
-                Text(LedgerFormat.amount(viewModel.monthlyKRWTotal, currency: "KRW"))
-                    .font(.system(size: 34, weight: .heavy))
-                    .monospacedDigit()
-                    .padding(.top, 4)
-                    .contentTransition(.numericText())
-                    .animation(.snappy, value: viewModel.monthlyKRWTotal)
+        VStack(alignment: .leading, spacing: 0) {
+            Text("이번 달 지출")
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundStyle(.white.opacity(0.8))
+            Text(LedgerFormat.amount(viewModel.monthlyKRWTotal, currency: "KRW"))
+                .font(.system(size: 34, weight: .heavy))
+                .monospacedDigit()
+                .foregroundStyle(.white)
+                .padding(.top, 4)
+                .contentTransition(.numericText())
+                .animation(.snappy, value: viewModel.monthlyKRWTotal)
 
-                HStack(spacing: 8) {
-                    statChip(key: "거래", value: "\(viewModel.expenseCount)건")
+            if !viewModel.foreignTotals.isEmpty {
+                HStack(spacing: 6) {
                     ForEach(viewModel.foreignTotals, id: \.currency) { item in
-                        statChip(key: item.currency, value: LedgerFormat.amount(item.amount, currency: item.currency))
+                        Text("\(item.currency) \(LedgerFormat.amount(item.amount, currency: item.currency))")
+                            .font(.caption2)
+                            .fontWeight(.bold)
+                            .monospacedDigit()
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(.white.opacity(0.2), in: Capsule())
                     }
                 }
-                .padding(.top, 14)
+                .padding(.top, 12)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(18)
+        .background(
+            LinearGradient(colors: [Color.blue500, Color.blue700],
+                           startPoint: .topLeading, endPoint: .bottomTrailing),
+            in: RoundedRectangle(cornerRadius: 20)
+        )
+        .shadow(color: Color.blue600.opacity(0.35), radius: 14, y: 8)
+        .padding(.bottom, 4)
     }
-
-    private func statChip(key: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(key)
-                .font(.caption2)
-                .fontWeight(.semibold)
-                .foregroundStyle(Color.slate500)
-            Text(value)
-                .font(.subheadline)
-                .fontWeight(.bold)
-                .monospacedDigit()
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(.white.opacity(0.5))
-        .clipShape(RoundedRectangle(cornerRadius: 10))
-    }
-
-    // MARK: - 날짜 섹션
 
     private func daySection(_ section: LedgerViewModel.DaySection) -> some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -155,9 +171,8 @@ struct LedgerView: View {
             GlassCard(padding: 0) {
                 VStack(spacing: 0) {
                     ForEach(Array(section.entries.enumerated()), id: \.element.id) { index, entry in
-                        // Button 대신 onTapGesture: simultaneousGesture(월 스와이프)와 조합 시
-                        // 스크롤 중에도 Button 터치가 살아 상세가 열리는 문제를 막는다.
-                        // (탭 제스처는 드래그가 시작되면 자동으로 실패한다)
+                        // Button 대신 onTapGesture: 월 스와이프 제스처와 조합 시
+                        // 스크롤 중 상세가 열리는 문제를 막는다 (드래그 시작 시 탭 자동 실패).
                         LedgerEntryRow(entry: entry)
                             .onTapGesture { selectedEntry = entry }
                         if index < section.entries.count - 1 {
@@ -177,12 +192,10 @@ struct LedgerView: View {
             )
         } description: {
             if !viewModel.isSearching {
-                Text("오른쪽 위 + 로 내역을 추가해 보세요")
+                Text("오른쪽 아래 + 로 내역을 추가해 보세요")
             }
         }
     }
-
-    // MARK: - 월 이동
 
     /// 좌우 스와이프로 월을 넘긴다. 수직 스크롤과 헷갈리지 않게 가로 성분이 확실할 때만 반응.
     private var monthSwipeGesture: some Gesture {
@@ -212,9 +225,132 @@ struct LedgerView: View {
         }
         .foregroundStyle(Color.slate700)
     }
+
+    // MARK: - 설정 탭
+
+    private var settingsTab: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 8) {
+                sectionHeader("자동화")
+                GlassCard(padding: 0) {
+                    VStack(spacing: 0) {
+                        NavigationLink(value: AppDestination.ledgerRecurring) {
+                            settingsRow(icon: "arrow.trianglehead.2.clockwise.rotate.90",
+                                        title: "반복 관리", subtitle: "매월 자동 등록 규칙")
+                        }
+                        Divider().padding(.leading, 52)
+                        NavigationLink(value: AppDestination.ledgerApiKeys) {
+                            settingsRow(icon: "key", title: "단축어 API 키", subtitle: "카드 문자 자동 수집용 키")
+                        }
+                    }
+                }
+
+                sectionHeader("정보").padding(.top, 12)
+                GlassCard {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("외화 표시")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                        Text("환산 없이 통화 그대로 표시하고, 결제 시점 환율은 메모에 기록돼요.")
+                            .font(.caption)
+                            .foregroundStyle(Color.slate500)
+                    }
+                }
+            }
+            .padding(16)
+            .padding(.bottom, 110)
+        }
+    }
+
+    private func sectionHeader(_ title: String) -> some View {
+        Text(title)
+            .font(.caption)
+            .fontWeight(.bold)
+            .foregroundStyle(Color.slate500)
+            .padding(.horizontal, 4)
+    }
+
+    private func settingsRow(icon: String, title: String, subtitle: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 16))
+                .foregroundStyle(Color.blue600)
+                .frame(width: 28)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(Color.slate900)
+                Text(subtitle)
+                    .font(.caption2)
+                    .foregroundStyle(Color.slate400)
+            }
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundStyle(Color.slate400)
+        }
+        .padding(14)
+        .contentShape(.rect)
+    }
+
+    // MARK: - 하단 탭바 + FAB
+
+    private var ledgerTabBar: some View {
+        HStack(spacing: 4) {
+            tabButton(.entries, icon: "list.bullet", label: "내역")
+            tabButton(.stats, icon: "chart.bar.fill", label: "통계")
+            tabButton(.settings, icon: "gearshape.fill", label: "설정")
+        }
+        .padding(6)
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 24))
+        .padding(.horizontal, 32)
+        .padding(.bottom, 8)
+    }
+
+    private func tabButton(_ target: LedgerTab, icon: String, label: String) -> some View {
+        let selected = tab == target
+        return Button {
+            withAnimation(.snappy(duration: 0.2)) { tab = target }
+        } label: {
+            VStack(spacing: 2) {
+                Image(systemName: icon).font(.system(size: 16, weight: .semibold))
+                Text(label).font(.system(size: 10, weight: .bold))
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+            .foregroundStyle(selected ? .white : Color.slate500)
+            .background {
+                if selected {
+                    RoundedRectangle(cornerRadius: 18)
+                        .fill(LinearGradient(colors: [Color.blue500, Color.blue700],
+                                             startPoint: .topLeading, endPoint: .bottomTrailing))
+                        .shadow(color: Color.blue600.opacity(0.4), radius: 8, y: 3)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var addButton: some View {
+        Button { showingCreate = true } label: {
+            Image(systemName: "plus")
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 52, height: 52)
+                .background(
+                    LinearGradient(colors: [Color.blue500, Color.blue700],
+                                   startPoint: .topLeading, endPoint: .bottomTrailing),
+                    in: RoundedRectangle(cornerRadius: 18)
+                )
+                .shadow(color: Color.blue600.opacity(0.45), radius: 10, y: 5)
+        }
+        .padding(.trailing, 16)
+        .padding(.bottom, 84)
+    }
 }
 
-/// 한 줄 내역 — 구매처 + 출처 배지 + 금액.
+/// 한 줄 내역 — 구매처 + 출처 배지 + 시각 + 금액.
 struct LedgerEntryRow: View {
     let entry: LedgerEntry
 
