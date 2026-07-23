@@ -92,8 +92,8 @@ struct SideDrawerView: View {
 
             HStack(spacing: 0) {
                 shortcutItem(icon: "refrigerator", label: "보관함 관리") { isOpen = false; navPath.append(AppDestination.storage) }
-                shortcutItem(icon: "timer", label: "공부 타이머") { isOpen = false; navPath.append(AppDestination.studyTimer) }
                 shortcutItem(icon: "wonsign.circle", label: "가계부") { isOpen = false; navPath.append(AppDestination.ledger) }
+                shortcutItem(icon: "timer", label: "공부 타이머") { isOpen = false; navPath.append(AppDestination.studyTimer) }
             }
             .padding(.horizontal, 8)
             .padding(.top, 10)
