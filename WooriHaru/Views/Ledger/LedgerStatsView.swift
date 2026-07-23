@@ -32,16 +32,14 @@ struct LedgerStatsView: View {
                     withAnimation(.snappy) { proxy.scrollTo("ledgerStatsTop", anchor: .top) }
                 }
         }
-        .toolbar {
-            // 다른 기간을 보는 중에만 나타나는 복귀 버튼 (캘린더의 "오늘" 패턴)
+        .overlay(alignment: .bottom) {
+            // 다른 기간을 보는 중에만 탭바 위에 떠 있는 복귀 캡슐 — 내역 탭과 동일한 패턴.
             if !isAtCurrentPeriod {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(scope == .monthly ? "이번 달" : "올해") { resetToCurrentPeriod() }
-                        .font(.footnote)
-                        .fontWeight(.semibold)
-                }
+                LedgerReturnPill(label: scope == .monthly ? "이번 달" : "올해") { resetToCurrentPeriod() }
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
         }
+        .animation(.snappy(duration: 0.2), value: isAtCurrentPeriod)
     }
 
     /// 현재 기간(이번 달/올해)으로 즉시 복귀한다.
