@@ -50,10 +50,12 @@ final class LedgerViewModel {
     }
 
     /// 외화 지출을 결제 시점 환율 메모 기준으로 원화 환산한 합계. 환율 메모가 없는 건은 제외.
+    /// 환율 메모의 환산액은 절대값이므로 취소 보정(음수) 건은 부호를 입혀 합계를 줄인다.
     var foreignConvertedKRWTotal: Decimal {
         var sum = Decimal.zero
         for entry in entries where entry.type == .expense && LedgerFormat.isForeign(entry.currency) {
-            sum += entry.fxConvertedAmount ?? .zero
+            guard let converted = entry.fxConvertedAmount else { continue }
+            sum += entry.amount < 0 ? -abs(converted) : abs(converted)
         }
         return sum
     }

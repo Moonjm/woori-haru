@@ -69,6 +69,20 @@ struct LedgerEntryFormView: View {
                     .monospacedDigit()
                     .focused($amountFocused)
                 Spacer(minLength: 8)
+                // 숫자 키보드에는 마이너스가 없다 — 취소(환불) 보정 건의 음수 입력·수정용 부호 토글.
+                Button {
+                    if amountText.hasPrefix("-") {
+                        amountText.removeFirst()
+                    } else {
+                        amountText = "-" + amountText
+                    }
+                } label: {
+                    Image(systemName: "plus.forwardslash.minus")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(Color.slate500)
+                        .padding(9)
+                        .background(Color.slate500.opacity(0.12), in: Circle())
+                }
                 Menu {
                     Picker("통화", selection: $currency) {
                         ForEach(LedgerFormat.currencies, id: \.self) { Text($0).tag($0) }
@@ -156,7 +170,8 @@ struct LedgerEntryFormView: View {
 
     private var parsedAmount: Decimal? {
         let cleaned = amountText.replacingOccurrences(of: ",", with: "").trimmingCharacters(in: .whitespaces)
-        guard let value = Decimal(string: cleaned), value > 0 else { return nil }
+        // 취소 보정 건(매칭 안 된 카드 취소)은 음수로 저장되므로 0만 아니면 허용한다.
+        guard let value = Decimal(string: cleaned), value != 0 else { return nil }
         // KRW·JPY 등 소수 없는 통화는 소수 금액을 거부한다 — 표시 시 반올림돼 다른 값으로 보이는 것을 막는다.
         if LedgerFormat.integerAmount(currency), !value.isWholeNumber { return nil }
         return value

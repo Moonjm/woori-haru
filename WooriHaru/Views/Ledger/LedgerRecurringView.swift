@@ -268,7 +268,8 @@ struct LedgerRecurringEditView: View {
 
     private var parsedAmount: Decimal? {
         let cleaned = amountText.replacingOccurrences(of: ",", with: "").trimmingCharacters(in: .whitespaces)
-        guard let value = Decimal(string: cleaned), value > 0 else { return nil }
+        // 음수(취소 보정) 건으로 만든 규칙도 수정할 수 있게 0만 아니면 허용한다.
+        guard let value = Decimal(string: cleaned), value != 0 else { return nil }
         // KRW·JPY 등 소수 없는 통화는 소수 금액을 거부한다.
         if LedgerFormat.integerAmount(currency), !value.isWholeNumber { return nil }
         return value

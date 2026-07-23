@@ -153,7 +153,8 @@ struct LedgerView: View {
                             .background(.white.opacity(0.2), in: Capsule())
                     }
                     // 외화끼리 결제 시점 환율로 환산해 합친 금액 (환율 메모 없는 건 제외)
-                    if viewModel.foreignConvertedKRWTotal > 0 {
+                    // 취소 건이 많아 합계가 음수여도 유효한 값이므로 0일 때만 숨긴다.
+                    if viewModel.foreignConvertedKRWTotal != 0 {
                         Text("≈ \(LedgerFormat.amount(viewModel.foreignConvertedKRWTotal, currency: "KRW"))")
                             .font(.caption2)
                             .fontWeight(.heavy)
