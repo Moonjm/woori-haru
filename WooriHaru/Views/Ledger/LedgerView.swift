@@ -446,8 +446,10 @@ struct LedgerReturnPill: View {
                     .fontWeight(.bold)
             }
             .foregroundStyle(Color.blue600)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 9)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 11)
+            // 글자 픽셀만이 아니라 캡슐 전체(여백 포함)가 눌리게 — 글래스는 히트테스트에 잡히지 않는다.
+            .contentShape(Capsule())
         }
         .buttonStyle(.plain)
         .glassEffect(.regular, in: Capsule())
