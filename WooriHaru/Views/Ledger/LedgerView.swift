@@ -57,8 +57,19 @@ struct LedgerView: View {
             LedgerEntryDetailView(entry: entry) { await viewModel.reload() }
         }
         .sheet(isPresented: $showingCreate) {
-            LedgerEntryFormView(mode: .create) { await viewModel.reload() }
+            LedgerEntryFormView(mode: .create, initialDate: createDefaultDate) { await viewModel.reload() }
         }
+    }
+
+    /// 등록 폼의 기본 날짜 — 보고 있는 달 기준. 현재 달이면 오늘, 과거 달이면 같은 일자(달 길이 보정).
+    private var createDefaultDate: Date {
+        let calendar = Calendar.current
+        guard viewModel.month != LedgerYearMonth.current() else { return .now }
+        var components = DateComponents(year: viewModel.month.year, month: viewModel.month.month, day: 1)
+        let firstOfMonth = calendar.date(from: components) ?? .now
+        let dayCount = calendar.range(of: .day, in: .month, for: firstOfMonth)?.count ?? 28
+        components.day = min(calendar.component(.day, from: .now), dayCount)
+        return calendar.date(from: components) ?? firstOfMonth
     }
 
     @ViewBuilder private var content: some View {

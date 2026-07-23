@@ -5,8 +5,8 @@ struct LedgerInboundFailuresView: View {
     @State private var failures: [LedgerInboundFailure] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
-    /// 재시도 중인 건의 id — 해당 행에만 스피너를 보여준다.
-    @State private var retryingId: Int?
+    /// 재시도 중인 건들의 id — 여러 건을 동시에 재시도해도 각 행의 스피너·중복 요청 방지가 독립적으로 동작한다.
+    @State private var retryingIds: Set<Int> = []
     /// 재시도했지만 여전히 실패한 건의 안내 문구 (id별).
     @State private var retryFailedIds: Set<Int> = []
     @State private var deleteTarget: LedgerInboundFailure?
@@ -96,7 +96,7 @@ struct LedgerInboundFailuresView: View {
                     .font(.caption2)
                     .foregroundStyle(Color.slate400)
                 Spacer()
-                if retryingId == failure.id {
+                if retryingIds.contains(failure.id) {
                     ProgressView().controlSize(.small)
                 } else {
                     Button {
@@ -145,7 +145,8 @@ struct LedgerInboundFailuresView: View {
     }
 
     private func retry(_ failure: LedgerInboundFailure) {
-        retryingId = failure.id
+        guard !retryingIds.contains(failure.id) else { return } // 이미 재시도 중인 건은 중복 요청 방지
+        retryingIds.insert(failure.id)
         retryFailedIds.remove(failure.id)
         errorMessage = nil
         // 진행 중이던 로드 응답이 재시도 결과를 되돌리지 못하게 무효화한다.
@@ -160,7 +161,7 @@ struct LedgerInboundFailuresView: View {
             } catch {
                 errorMessage = "재시도하지 못했습니다."
             }
-            retryingId = nil
+            retryingIds.remove(failure.id)
         }
     }
 

@@ -8,6 +8,8 @@ struct LedgerEntryFormView: View {
     }
 
     let mode: Mode
+    /// 등록 모드의 기본 날짜 — 과거 달을 보다가 열면 그 달로 시작해, 저장한 내역이 화면에서 사라져 보이지 않게 한다.
+    var initialDate: Date = .now
     let onSaved: () async -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -191,7 +193,10 @@ struct LedgerEntryFormView: View {
     }
 
     private func prefill() {
-        guard case let .edit(entry) = mode else { return }
+        guard case let .edit(entry) = mode else {
+            entryAt = min(initialDate, .now) // 날짜 피커 상한(오늘)을 넘지 않게
+            return
+        }
         entryAt = entry.date
         amountText = NSDecimalNumber(decimal: entry.amount).stringValue
         currency = entry.currency.uppercased()
