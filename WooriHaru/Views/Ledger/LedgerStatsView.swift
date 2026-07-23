@@ -60,7 +60,7 @@ struct LedgerStatsView: View {
                     chartCard(stats)
 
                     if !stats.topMerchants.isEmpty {
-                        sectionHeader("가맹점 TOP 5").padding(.top, 12)
+                        sectionHeader("구매금액 TOP 5").padding(.top, 12)
                         merchantCard(stats)
                     }
 
