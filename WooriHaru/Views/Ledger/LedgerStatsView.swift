@@ -20,6 +20,8 @@ struct LedgerStatsView: View {
     @State private var errorMessage: String?
     /// 차트에서 선택한 월 (yearMonth 문자열). 로드 시 기본값이 정해진다.
     @State private var selectedMonth: String?
+    /// 기간 타이틀 탭으로 여는 선택 시트 — 월별은 연월, 연별은 연도.
+    @State private var showingPeriodPicker = false
     /// 진행 중 로드의 세대 번호 — 기간을 오갔다 되돌아와도 최신 요청만 화면을 갱신한다.
     @State private var loadGeneration = 0
 
@@ -40,6 +42,28 @@ struct LedgerStatsView: View {
             }
         }
         .animation(.snappy(duration: 0.2), value: isAtCurrentPeriod)
+        .sheet(isPresented: $showingPeriodPicker) {
+            Group {
+                switch scope {
+                case .monthly:
+                    MonthPickerSheet(initialYear: month.year, initialMonth: month.month) { pickedYear, pickedMonth in
+                        // 미래 달을 골라도 오늘이 속한 달까지로 되돌린다 (내역 탭과 동일)
+                        month = min(LedgerYearMonth(year: pickedYear, month: pickedMonth), LedgerYearMonth.current())
+                        reloadForPeriodChange()
+                    }
+                case .yearly:
+                    YearPickerSheet(
+                        initialYear: year,
+                        range: Self.minYear...LedgerYearMonth.current().year
+                    ) { pickedYear in
+                        year = pickedYear
+                        reloadForPeriodChange()
+                    }
+                }
+            }
+            .presentationDetents([.height(320)])
+            .presentationDragIndicator(.visible)
+        }
     }
 
     /// 현재 기간(이번 달/올해)으로 즉시 복귀한다.
@@ -163,11 +187,14 @@ struct LedgerStatsView: View {
             }
             .disabled(isAtMinPeriod)
             .opacity(isAtMinPeriod ? 0.3 : 1)
-            Text(periodTitle)
-                .font(.subheadline)
-                .fontWeight(.bold)
-                .monospacedDigit()
-                .contentTransition(.numericText())
+            Button { showingPeriodPicker = true } label: {
+                Text(periodTitle)
+                    .font(.subheadline)
+                    .fontWeight(.bold)
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+            }
+            .buttonStyle(.plain)
             Button { shiftPeriod(1) } label: {
                 Image(systemName: "chevron.right").font(.system(size: 12, weight: .bold))
             }
@@ -601,5 +628,68 @@ struct LedgerStatsView: View {
             guard generation == loadGeneration else { return }
             errorMessage = "통계를 불러오지 못했습니다."
         }
+    }
+}
+
+// MARK: - 연도 선택 시트 (연별 통계용)
+
+/// 연별 통계에서 기간 타이틀 탭 시 올라오는 연도 선택 바텀시트 — MonthPickerSheet와 같은 톤.
+private struct YearPickerSheet: View {
+    let initialYear: Int
+    let range: ClosedRange<Int>
+    let onConfirm: (Int) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var selected: Int
+
+    init(initialYear: Int, range: ClosedRange<Int>, onConfirm: @escaping (Int) -> Void) {
+        self.initialYear = initialYear
+        self.range = range
+        self.onConfirm = onConfirm
+        _selected = State(initialValue: initialYear)
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Picker("연도", selection: $selected) {
+                ForEach(Array(range), id: \.self) { Text("\($0)년").tag($0) }
+            }
+            .pickerStyle(.wheel)
+            .frame(height: 220)
+
+            HStack(spacing: 12) {
+                Button { dismiss() } label: {
+                    Text("취소")
+                        .font(.system(size: 16, weight: .semibold))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52)
+                        .foregroundStyle(Color.slate700)
+                        .background(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.slate200, lineWidth: 1)
+                        }
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    onConfirm(selected)
+                    dismiss()
+                } label: {
+                    Text("확인")
+                        .font(.system(size: 16, weight: .semibold))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52)
+                        .foregroundStyle(.white)
+                        .background(Color.slate900)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 8)
+        }
+        .padding(.top, 12)
     }
 }
