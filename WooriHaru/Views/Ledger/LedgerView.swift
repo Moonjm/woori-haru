@@ -22,6 +22,17 @@ struct LedgerView: View {
             content
             ledgerTabBar
         }
+        .overlay(alignment: .bottom) {
+            // 다른 달을 보는 중에만 탭바 위에 떠 있는 복귀 캡슐 (지도 앱 '현재 위치' 패턴)
+            if tab == .entries && !viewModel.isAtCurrentMonth {
+                LedgerReturnPill(label: "이번 달") {
+                    viewModel.month = LedgerYearMonth.current()
+                    Task { await viewModel.reload() }
+                }
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
+        }
+        .animation(.snappy(duration: 0.2), value: viewModel.isAtCurrentMonth)
         .overlay(alignment: .bottomTrailing) {
             if tab == .entries { addButton }
         }
@@ -416,6 +427,34 @@ struct LedgerView: View {
         }
         .padding(.trailing, 16)
         .padding(.bottom, 84)
+    }
+}
+
+/// 탭바 위에 떠 있는 복귀 캡슐 — 내역(이번 달)·통계(이번 달/올해) 공용.
+/// FAB와 같은 높이에 놓여 탭바와 겹치지 않는다.
+struct LedgerReturnPill: View {
+    let label: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 5) {
+                Image(systemName: "arrow.uturn.backward")
+                    .font(.system(size: 11, weight: .bold))
+                Text(label)
+                    .font(.caption)
+                    .fontWeight(.bold)
+            }
+            .foregroundStyle(Color.blue600)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 11)
+            // 글자 픽셀만이 아니라 캡슐 전체(여백 포함)가 눌리게 — 글래스는 히트테스트에 잡히지 않는다.
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .glassEffect(.regular, in: Capsule())
+        .shadow(color: Color.slate900.opacity(0.12), radius: 8, y: 3)
+        .padding(.bottom, 92)
     }
 }
 
