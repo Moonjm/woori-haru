@@ -14,6 +14,8 @@ struct LedgerView: View {
     @State private var showingSearch = false
     /// 연월 선택 시트 — 상단 연월 타이틀 탭으로 연다.
     @State private var showingMonthPicker = false
+    /// 선택된 탭을 다시 탭하면 증가 — 보이는 탭(내역·통계)이 맨 위로 스크롤한다.
+    @State private var scrollToTopSignal = 0
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -75,7 +77,7 @@ struct LedgerView: View {
     @ViewBuilder private var content: some View {
         switch tab {
         case .entries: entriesTab
-        case .stats: LedgerStatsView()
+        case .stats: LedgerStatsView(scrollToTopSignal: scrollToTopSignal)
         case .settings: settingsTab
         }
     }
@@ -94,10 +96,20 @@ struct LedgerView: View {
     // MARK: - 내역 탭
 
     private var entriesTab: some View {
+        ScrollViewReader { proxy in
+            entriesScroll
+                .onChange(of: scrollToTopSignal) {
+                    withAnimation(.snappy) { proxy.scrollTo("ledgerEntriesTop", anchor: .top) }
+                }
+        }
+    }
+
+    private var entriesScroll: some View {
         ScrollView {
             LazyVStack(spacing: 0) {
                 summaryCard
                     .padding(.top, 8)
+                    .id("ledgerEntriesTop")
 
                 if let error = viewModel.errorMessage {
                     Text(error)
@@ -363,7 +375,11 @@ struct LedgerView: View {
     private func tabButton(_ target: LedgerTab, icon: String, label: String) -> some View {
         let selected = tab == target
         return Button {
-            withAnimation(.snappy(duration: 0.2)) { tab = target }
+            if selected {
+                scrollToTopSignal += 1 // 이미 보고 있는 탭 다시 탭 → 맨 위로
+            } else {
+                withAnimation(.snappy(duration: 0.2)) { tab = target }
+            }
         } label: {
             VStack(spacing: 2) {
                 Image(systemName: icon).font(.system(size: 16, weight: .semibold))

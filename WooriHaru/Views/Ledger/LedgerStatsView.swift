@@ -3,6 +3,9 @@ import SwiftUI
 /// 가계부 통계 탭 — /entries/statistics API의 서버 집계를 그대로 표시한다.
 /// 월별(최근 6개월 추이)·연별(12개월 추이)을 전환할 수 있고, 기간을 앞뒤로 이동할 수 있다.
 struct LedgerStatsView: View {
+    /// 하단 탭바에서 통계 탭을 다시 탭하면 증가 — 맨 위로 스크롤한다.
+    var scrollToTopSignal = 0
+
     private enum Scope: String, CaseIterable, Identifiable {
         case monthly = "월별"
         case yearly = "연별"
@@ -23,10 +26,20 @@ struct LedgerStatsView: View {
     private let ledgerService = LedgerService()
 
     var body: some View {
+        ScrollViewReader { proxy in
+            statsScroll
+                .onChange(of: scrollToTopSignal) {
+                    withAnimation(.snappy) { proxy.scrollTo("ledgerStatsTop", anchor: .top) }
+                }
+        }
+    }
+
+    private var statsScroll: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 8) {
                 periodHeader
                     .padding(.top, 4)
+                    .id("ledgerStatsTop")
 
                 if let error = errorMessage {
                     Text(error)
