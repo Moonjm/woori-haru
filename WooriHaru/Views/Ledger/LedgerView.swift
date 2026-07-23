@@ -34,7 +34,7 @@ struct LedgerView: View {
         }
         .animation(.snappy(duration: 0.2), value: viewModel.isAtCurrentMonth)
         .overlay(alignment: .bottomTrailing) {
-            if tab == .entries { addButton }
+            if tab == .entries { searchButton }
         }
         .glassScreenBackground()
         .navigationBarBackButtonHidden(true) // 좌우 스와이프(월 이동)와 겹치는 엣지 제스처 차단
@@ -46,7 +46,8 @@ struct LedgerView: View {
             ToolbarItem(placement: .principal) { principalTitle }
             if tab == .entries {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button { showingSearch = true } label: { Image(systemName: "magnifyingglass") }
+                    // 수동 등록은 드물어서 위로, 자주 쓰는 검색이 FAB(엄지 닿는 위치)로.
+                    Button { showingCreate = true } label: { Image(systemName: "plus") }
                 }
             }
         }
@@ -412,10 +413,10 @@ struct LedgerView: View {
         .buttonStyle(.plain)
     }
 
-    private var addButton: some View {
-        Button { showingCreate = true } label: {
-            Image(systemName: "plus")
-                .font(.system(size: 22, weight: .semibold))
+    private var searchButton: some View {
+        Button { showingSearch = true } label: {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 20, weight: .semibold))
                 .foregroundStyle(.white)
                 .frame(width: 52, height: 52)
                 .background(
