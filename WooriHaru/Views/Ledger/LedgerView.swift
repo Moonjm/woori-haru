@@ -22,6 +22,15 @@ struct LedgerView: View {
             content
             ledgerTabBar
         }
+        .overlay(alignment: .bottom) {
+            // 다른 달을 보는 중에만 탭바 위에 떠 있는 복귀 캡슐 (지도 앱 '현재 위치' 패턴)
+            if tab == .entries && !viewModel.isAtCurrentMonth {
+                currentMonthPill
+                    .padding(.bottom, 72)
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
+        }
+        .animation(.snappy(duration: 0.2), value: viewModel.isAtCurrentMonth)
         .overlay(alignment: .bottomTrailing) {
             if tab == .entries { addButton }
         }
@@ -35,18 +44,7 @@ struct LedgerView: View {
             ToolbarItem(placement: .principal) { principalTitle }
             if tab == .entries {
                 ToolbarItem(placement: .topBarTrailing) {
-                    HStack(spacing: 14) {
-                        // 다른 달을 보는 중에만 나타나는 복귀 버튼 (캘린더의 "오늘" 패턴)
-                        if !viewModel.isAtCurrentMonth {
-                            Button("이번 달") {
-                                viewModel.month = LedgerYearMonth.current()
-                                Task { await viewModel.reload() }
-                            }
-                            .font(.footnote)
-                            .fontWeight(.semibold)
-                        }
-                        Button { showingSearch = true } label: { Image(systemName: "magnifyingglass") }
-                    }
+                    Button { showingSearch = true } label: { Image(systemName: "magnifyingglass") }
                 }
             }
         }
@@ -410,6 +408,28 @@ struct LedgerView: View {
             .contentShape(.rect) // 아이콘·글자 사이 빈틈 없이 버튼 전체가 눌리게
         }
         .buttonStyle(.plain)
+    }
+
+    /// 이번 달로 복귀하는 플로팅 캡슐.
+    private var currentMonthPill: some View {
+        Button {
+            viewModel.month = LedgerYearMonth.current()
+            Task { await viewModel.reload() }
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: "arrow.uturn.backward")
+                    .font(.system(size: 11, weight: .bold))
+                Text("이번 달")
+                    .font(.caption)
+                    .fontWeight(.bold)
+            }
+            .foregroundStyle(Color.blue600)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 9)
+        }
+        .buttonStyle(.plain)
+        .glassEffect(.regular, in: Capsule())
+        .shadow(color: Color.slate900.opacity(0.12), radius: 8, y: 3)
     }
 
     private var addButton: some View {
