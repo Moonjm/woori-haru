@@ -102,7 +102,8 @@ struct LedgerEntryFormView: View {
                 }
                 Divider().padding(.leading, 16)
                 fieldRow("날짜") {
-                    DatePicker("", selection: $entryAt, displayedComponents: [.date])
+                    // 내역 화면이 미래 달 이동을 막으므로, 보이지 않게 될 미래 날짜 저장도 막는다.
+                    DatePicker("", selection: $entryAt, in: ...Date.now, displayedComponents: [.date])
                         .labelsHidden()
                         .environment(\.locale, Locale(identifier: "ko_KR"))
                 }

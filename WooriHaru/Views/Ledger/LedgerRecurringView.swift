@@ -160,7 +160,9 @@ struct LedgerRecurringView: View {
             active: !rule.active
         )
         // 진행 중이던 로드 응답(변경 전 스냅샷)이 나중에 도착해도 반영되지 않게 무효화한다.
+        // 무효화된 로드는 defer에서 isLoading을 못 끄므로 여기서 직접 끈다.
         loadGeneration += 1
+        isLoading = false
         Task {
             do {
                 try await ledgerService.updateRecurringRule(id: rule.id, request)
@@ -176,7 +178,9 @@ struct LedgerRecurringView: View {
 
     private func delete(_ rule: RecurringRule) {
         // 진행 중이던 로드 응답이 삭제된 규칙을 되살리지 못하게 무효화한다.
+        // 무효화된 로드는 defer에서 isLoading을 못 끄므로 여기서 직접 끈다 (마지막 규칙 삭제 시 스피너 고착 방지).
         loadGeneration += 1
+        isLoading = false
         Task {
             do {
                 try await ledgerService.deleteRecurringRule(id: rule.id)

@@ -111,7 +111,9 @@ struct LedgerApiKeysView: View {
         let name = newKeyName.trimmingCharacters(in: .whitespaces)
         guard !name.isEmpty else { return }
         // 진행 중이던 로드 응답(발급 전 스냅샷)이 새 키를 지우지 못하게 무효화한다.
+        // 무효화된 로드는 defer에서 isLoading을 못 끄므로 여기서 직접 끈다.
         loadGeneration += 1
+        isLoading = false
         Task {
             do {
                 issuedKey = try await ledgerService.issueApiKey(name: name)
@@ -124,7 +126,9 @@ struct LedgerApiKeysView: View {
 
     private func delete(_ key: LedgerApiKey) {
         // 진행 중이던 로드 응답이 폐기한 키를 되살리지 못하게 무효화한다.
+        // 무효화된 로드는 defer에서 isLoading을 못 끄므로 여기서 직접 끈다 (마지막 키 폐기 시 스피너 고착 방지).
         loadGeneration += 1
+        isLoading = false
         Task {
             do {
                 try await ledgerService.deleteApiKey(id: key.id)
