@@ -272,6 +272,11 @@ struct LedgerView: View {
                         NavigationLink(value: AppDestination.ledgerApiKeys) {
                             settingsRow(icon: "key", title: "단축어 API 키", subtitle: "카드 문자 자동 수집용 키")
                         }
+                        Divider().padding(.leading, 52)
+                        NavigationLink(value: AppDestination.ledgerInboundFailures) {
+                            settingsRow(icon: "envelope.badge", title: "실패한 문자",
+                                        subtitle: "인식 못 한 카드 문자 재시도")
+                        }
                     }
                 }
 

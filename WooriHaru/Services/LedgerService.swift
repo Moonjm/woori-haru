@@ -68,6 +68,30 @@ struct LedgerService: Sendable {
         return false
     }
 
+    // MARK: - 수신 실패 (파싱 실패 문자)
+
+    func fetchInboundFailures() async throws -> [LedgerInboundFailure] {
+        let response: DataResponse<[LedgerInboundFailure]> = try await api.get("/inbound/failures", query: [:])
+        return response.data ?? []
+    }
+
+    /// 보존된 원문 재처리 — 성공 시 내역이 생성된다. 재실패는 MESSAGE_PARSE_FAILED(400).
+    func retryInbound(id: Int) async throws {
+        try await api.postVoid("/inbound/\(id)/retry")
+    }
+
+    func deleteInboundFailure(id: Int) async throws {
+        try await api.deleteVoid("/inbound/\(id)")
+    }
+
+    /// 재시도했지만 여전히 파싱 불가인지 — 에러 바디의 코드명으로 판별.
+    static func isParseFailedError(_ error: Error) -> Bool {
+        if case let APIError.serverError(_, message) = error {
+            return message?.contains("MESSAGE_PARSE_FAILED") == true
+        }
+        return false
+    }
+
     func updateRecurringRule(id: Int, _ request: RecurringUpdateRequest) async throws {
         try await api.putVoid("/recurring-rules/\(id)", body: request)
     }

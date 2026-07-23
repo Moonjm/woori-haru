@@ -129,6 +129,16 @@ struct IssuedLedgerApiKey: Codable, Identifiable {
     let key: String
 }
 
+/// 파싱에 실패해 보관된 수신 원문 — 재시도 화면용.
+struct LedgerInboundFailure: Codable, Identifiable, Hashable {
+    let id: Int
+    let rawText: String
+    /// 최초 수신 시각 (서버 LocalDateTime 문자열)
+    let receivedAt: String
+
+    var date: Date { LedgerFormat.parseDateTime(receivedAt) ?? .distantPast }
+}
+
 // MARK: - 통계
 
 struct LedgerStatistics: Codable {
