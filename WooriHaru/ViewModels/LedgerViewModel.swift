@@ -110,8 +110,14 @@ final class LedgerViewModel {
         }
     }
 
+    /// 오늘이 속한 달인지 — 미래 달 이동 차단·버튼 비활성 표시에 쓴다.
+    var isAtCurrentMonth: Bool { month >= LedgerYearMonth.current() }
+
     func shiftMonth(_ delta: Int) async {
-        month = month.adding(months: delta)
+        let next = month.adding(months: delta)
+        // 미래 달 내역은 있을 수 없으니 오늘이 속한 달까지만 이동한다.
+        guard next <= LedgerYearMonth.current() else { return }
+        month = next
         await reload()
     }
 }

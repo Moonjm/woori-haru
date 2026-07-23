@@ -45,7 +45,8 @@ struct LedgerView: View {
                 initialYear: viewModel.month.year,
                 initialMonth: viewModel.month.month
             ) { year, month in
-                viewModel.month = LedgerYearMonth(year: year, month: month)
+                // 피커로 미래 달을 골라도 오늘이 속한 달까지로 되돌린다.
+                viewModel.month = min(LedgerYearMonth(year: year, month: month), LedgerYearMonth.current())
                 Task { await viewModel.reload() }
             }
             .presentationDetents([.height(320)])
@@ -249,6 +250,8 @@ struct LedgerView: View {
             Button { Task { await viewModel.shiftMonth(1) } } label: {
                 Image(systemName: "chevron.right").font(.system(size: 13, weight: .bold))
             }
+            .disabled(viewModel.isAtCurrentMonth)
+            .opacity(viewModel.isAtCurrentMonth ? 0.3 : 1)
         }
         .foregroundStyle(Color.slate700)
     }

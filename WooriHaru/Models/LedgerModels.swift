@@ -178,9 +178,13 @@ struct LedgerStatistics: Codable {
 // MARK: - 연월
 
 /// 월 이동을 다루는 값 타입 (연·월만).
-struct LedgerYearMonth: Equatable {
+struct LedgerYearMonth: Equatable, Comparable {
     var year: Int
     var month: Int
+
+    static func < (lhs: LedgerYearMonth, rhs: LedgerYearMonth) -> Bool {
+        (lhs.year, lhs.month) < (rhs.year, rhs.month)
+    }
 
     static func current() -> LedgerYearMonth {
         let c = Calendar.current.dateComponents([.year, .month], from: .now)
