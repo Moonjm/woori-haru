@@ -70,12 +70,17 @@ final class LedgerViewModel {
 
     /// 마지막으로 로드에 성공한 달 — 다른 달 요청 시 이전 데이터를 즉시 비우기 위한 기준.
     private var loadedMonth: LedgerYearMonth?
+    /// 진행 중 reload의 세대 번호 — 같은 달끼리 겹쳐도(새로고침+저장 콜백) 최신 요청만
+    /// 결과 반영과 로딩 해제를 담당하고, 밀려난 응답은 폐기된다.
+    private var reloadGeneration = 0
 
     func load() async {
         await reload()
     }
 
     func reload() async {
+        reloadGeneration += 1
+        let generation = reloadGeneration
         let requested = month
         // 다른 달을 불러오는 동안 이전 달 데이터가 새 달의 것처럼 보이지 않게 즉시 비운다.
         // (같은 달 새로고침은 기존 목록을 유지한 채 갱신)
@@ -84,19 +89,23 @@ final class LedgerViewModel {
             isLoading = true
         }
         defer {
-            if requested == month { isLoading = false }
+            if generation == reloadGeneration { isLoading = false }
         }
         do {
             let list = try await ledgerService.fetchEntries(yearMonth: requested.apiValue)
-            guard requested == month else { return } // 응답 도착 전에 월이 바뀌었으면 폐기
+            guard generation == reloadGeneration else { return } // 밀려난 응답은 폐기
             entries = list
             loadedMonth = requested
             errorMessage = nil
         } catch is CancellationError {
             return
         } catch {
-            guard requested == month else { return }
-            entries = []
+            guard generation == reloadGeneration else { return }
+            // 같은 달 새로고침 실패면 보고 있던 목록은 그대로 두고 에러만 알린다.
+            if requested != loadedMonth {
+                entries = []
+                loadedMonth = nil // 화면이 빈 상태이므로 다음 reload는 로딩 표시부터 시작
+            }
             errorMessage = "내역을 불러오지 못했습니다."
         }
     }
