@@ -145,7 +145,7 @@ struct LedgerStatistics: Codable {
     /// 기준 기간 — 월별이면 "2026-07", 연별이면 "2026"
     let yearMonth: String
     let monthlyTrend: [MonthlyTotal]
-    /// 직전 기간(지난달/지난해) 원화 합계. 구버전 서버 응답에는 없어 옵셔널.
+    /// 직전 기간(지난달/지난해) 총 지출 — 원화 + 외화 환산, 기준 기간 합계와 같은 기준. 구버전 서버 응답에는 없어 옵셔널.
     let previousTotal: Decimal?
     let sourceBreakdown: [SourceTotal]
     let foreignTotals: [CurrencyTotal]
@@ -156,9 +156,13 @@ struct LedgerStatistics: Codable {
     struct MonthlyTotal: Codable, Identifiable {
         let yearMonth: String
         let krwTotal: Decimal
+        /// 외화 지출의 원화 환산 합계 (결제 시점 환율 메모 기준). 구버전 서버 응답에는 없어 옵셔널.
+        let fxKrwTotal: Decimal?
         var id: String { yearMonth }
         /// "2026-07" → 7
         var monthNumber: Int { Int(yearMonth.suffix(2)) ?? 0 }
+        /// 원화 + 외화 환산 총 지출
+        var combinedTotal: Decimal { krwTotal + (fxKrwTotal ?? 0) }
     }
 
     struct SourceTotal: Codable {

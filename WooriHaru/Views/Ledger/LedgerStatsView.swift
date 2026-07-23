@@ -20,6 +20,8 @@ struct LedgerStatsView: View {
     @State private var errorMessage: String?
     /// 차트에서 선택한 월 (yearMonth 문자열). 로드 시 기본값이 정해진다.
     @State private var selectedMonth: String?
+    /// 기간 타이틀 탭으로 여는 선택 시트 — 월별은 연월, 연별은 연도.
+    @State private var showingPeriodPicker = false
     /// 진행 중 로드의 세대 번호 — 기간을 오갔다 되돌아와도 최신 요청만 화면을 갱신한다.
     @State private var loadGeneration = 0
 
@@ -32,6 +34,46 @@ struct LedgerStatsView: View {
                     withAnimation(.snappy) { proxy.scrollTo("ledgerStatsTop", anchor: .top) }
                 }
         }
+        .overlay(alignment: .bottom) {
+            // 다른 기간을 보는 중에만 탭바 위에 떠 있는 복귀 캡슐 — 내역 탭과 동일한 패턴.
+            if !isAtCurrentPeriod {
+                LedgerReturnPill(label: scope == .monthly ? "이번 달" : "올해") { resetToCurrentPeriod() }
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
+        }
+        .animation(.snappy(duration: 0.2), value: isAtCurrentPeriod)
+        .sheet(isPresented: $showingPeriodPicker) {
+            Group {
+                switch scope {
+                case .monthly:
+                    MonthPickerSheet(initialYear: month.year, initialMonth: month.month) { pickedYear, pickedMonth in
+                        // 미래 달을 골라도 오늘이 속한 달까지로 되돌린다 (내역 탭과 동일)
+                        month = min(LedgerYearMonth(year: pickedYear, month: pickedMonth), LedgerYearMonth.current())
+                        reloadForPeriodChange()
+                    }
+                case .yearly:
+                    YearPickerSheet(
+                        initialYear: year,
+                        range: Self.minYear...LedgerYearMonth.current().year
+                    ) { pickedYear in
+                        year = pickedYear
+                        reloadForPeriodChange()
+                    }
+                }
+            }
+            .presentationDetents([.height(320)])
+            .presentationDragIndicator(.visible)
+        }
+    }
+
+    /// 현재 기간(이번 달/올해)으로 즉시 복귀한다.
+    private func resetToCurrentPeriod() {
+        let current = LedgerYearMonth.current()
+        switch scope {
+        case .monthly: month = current
+        case .yearly: year = current.year
+        }
+        reloadForPeriodChange()
     }
 
     private var statsScroll: some View {
@@ -51,18 +93,22 @@ struct LedgerStatsView: View {
                     summaryCard(stats)
                         .padding(.top, 8)
 
-                    sectionHeader(scope == .monthly ? "최근 6개월" : "\(year)년 월별 추이")
-                        .padding(.top, 12)
+                    HStack {
+                        sectionHeader(scope == .monthly ? "최근 6개월" : "\(year)년 월별 추이")
+                        Spacer()
+                        if hasFx(stats) { chartLegend }
+                    }
+                    .padding(.top, 12)
                     chartCard(stats)
 
                     if !stats.topMerchants.isEmpty {
-                        sectionHeader("가맹점 TOP 5").padding(.top, 12)
+                        sectionHeader("구매금액 TOP 5").padding(.top, 12)
                         merchantCard(stats)
                     }
 
                     if !stats.sourceBreakdown.isEmpty {
-                        sectionHeader("어떻게 쓰였나").padding(.top, 12)
-                        sourceCard(stats)
+                        sectionHeader("고정비 · 변동비").padding(.top, 12)
+                        fixedVariableCard(stats)
                     }
 
                     if !stats.foreignTotals.isEmpty {
@@ -141,11 +187,14 @@ struct LedgerStatsView: View {
             }
             .disabled(isAtMinPeriod)
             .opacity(isAtMinPeriod ? 0.3 : 1)
-            Text(periodTitle)
-                .font(.subheadline)
-                .fontWeight(.bold)
-                .monospacedDigit()
-                .contentTransition(.numericText())
+            Button { showingPeriodPicker = true } label: {
+                Text(periodTitle)
+                    .font(.subheadline)
+                    .fontWeight(.bold)
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+            }
+            .buttonStyle(.plain)
             Button { shiftPeriod(1) } label: {
                 Image(systemName: "chevron.right").font(.system(size: 12, weight: .bold))
             }
@@ -263,19 +312,19 @@ struct LedgerStatsView: View {
         }
     }
 
-    /// 기준 기간 원화 합계 — 월별이면 추이 마지막(기준월), 연별이면 12개월 합.
+    /// 기준 기간 총 지출(원화 + 외화 환산) — 월별이면 추이 마지막(기준월), 연별이면 12개월 합.
     private func currentTotal(_ stats: LedgerStatistics) -> Decimal {
         switch scope {
-        case .monthly: return stats.monthlyTrend.last?.krwTotal ?? 0
-        case .yearly: return stats.monthlyTrend.reduce(Decimal.zero) { $0 + $1.krwTotal }
+        case .monthly: return stats.monthlyTrend.last?.combinedTotal ?? 0
+        case .yearly: return stats.monthlyTrend.reduce(Decimal.zero) { $0 + $1.combinedTotal }
         }
     }
 
-    /// 직전 기간 원화 합계 — 서버 값 우선, 구버전 응답이면 추이에서 지난달을 취한다.
+    /// 직전 기간 총 지출 — 서버 값 우선, 구버전 응답이면 추이에서 지난달을 취한다.
     private func previousTotal(_ stats: LedgerStatistics) -> Decimal {
         if let previous = stats.previousTotal { return previous }
         guard scope == .monthly, stats.monthlyTrend.count >= 2 else { return 0 }
-        return stats.monthlyTrend[stats.monthlyTrend.count - 2].krwTotal
+        return stats.monthlyTrend[stats.monthlyTrend.count - 2].combinedTotal
     }
 
     private func deltaPercent(current: Decimal, previous: Decimal) -> Int? {
@@ -298,10 +347,33 @@ struct LedgerStatsView: View {
         .clipShape(Capsule())
     }
 
-    // MARK: - 막대 그래프
+    // MARK: - 막대 그래프 (원화 위에 외화 환산을 쌓는 스택)
+
+    /// 추이에 외화 환산 지출이 있는지 — 범례 표시 여부.
+    private func hasFx(_ stats: LedgerStatistics) -> Bool {
+        stats.monthlyTrend.contains { ($0.fxKrwTotal ?? 0) != 0 }
+    }
+
+    private var chartLegend: some View {
+        HStack(spacing: 10) {
+            legendItem(color: Color.blue600, label: "원화")
+            legendItem(color: Color.purple500, label: "외화")
+        }
+        .padding(.horizontal, 4)
+    }
+
+    private func legendItem(color: Color, label: String) -> some View {
+        HStack(spacing: 4) {
+            Circle().fill(color).frame(width: 7, height: 7)
+            Text(label)
+                .font(.caption2)
+                .fontWeight(.semibold)
+                .foregroundStyle(Color.slate500)
+        }
+    }
 
     private func chartCard(_ stats: LedgerStatistics) -> some View {
-        let maxTotal = stats.monthlyTrend.map(\.krwTotal).max() ?? 0
+        let maxTotal = stats.monthlyTrend.map(\.combinedTotal).max() ?? 0
         let selectedKey = selectedMonth ?? defaultSelectedMonth(stats)
         let selected = stats.monthlyTrend.first { $0.yearMonth == selectedKey }
         return GlassCard {
@@ -313,11 +385,18 @@ struct LedgerStatsView: View {
                             .font(.caption)
                             .fontWeight(.heavy)
                             .foregroundStyle(Color.blue600)
-                        Text(LedgerFormat.amount(selected.krwTotal, currency: "KRW"))
+                        Text(LedgerFormat.amount(selected.combinedTotal, currency: "KRW"))
                             .font(.caption)
                             .fontWeight(.bold)
                             .monospacedDigit()
                             .contentTransition(.numericText())
+                        if let fx = selected.fxKrwTotal, fx != 0 {
+                            Text("외화 \(LedgerFormat.amount(fx, currency: "KRW"))")
+                                .font(.caption2)
+                                .fontWeight(.semibold)
+                                .monospacedDigit()
+                                .foregroundStyle(Color.purple500)
+                        }
                         Spacer()
                     }
                     .animation(.snappy, value: selected.yearMonth)
@@ -326,16 +405,26 @@ struct LedgerStatsView: View {
                 HStack(alignment: .bottom, spacing: scope == .monthly ? 10 : 5) {
                     ForEach(stats.monthlyTrend) { item in
                         let isSelected = item.yearMonth == selectedKey
+                        let fx = item.fxKrwTotal ?? 0
                         VStack(spacing: 5) {
-                            Rectangle()
-                                .fill(
-                                    isSelected
-                                        ? AnyShapeStyle(LinearGradient(colors: [Color.blue500, Color.blue700],
-                                                                       startPoint: .top, endPoint: .bottom))
-                                        : AnyShapeStyle(Color.blue500.opacity(0.25))
-                                )
-                                .frame(height: barHeight(item.krwTotal, max: maxTotal))
-                                .clipShape(UnevenRoundedRectangle(topLeadingRadius: 6, topTrailingRadius: 6))
+                            VStack(spacing: 0) {
+                                // 외화 환산분을 원화 위에 쌓는다 (음수 순액은 표시 생략)
+                                if fx > 0 {
+                                    Rectangle()
+                                        .fill(isSelected ? AnyShapeStyle(Color.purple500)
+                                            : AnyShapeStyle(Color.purple500.opacity(0.3)))
+                                        .frame(height: segmentHeight(fx, max: maxTotal))
+                                }
+                                Rectangle()
+                                    .fill(
+                                        isSelected
+                                            ? AnyShapeStyle(LinearGradient(colors: [Color.blue500, Color.blue700],
+                                                                           startPoint: .top, endPoint: .bottom))
+                                            : AnyShapeStyle(Color.blue500.opacity(0.25))
+                                    )
+                                    .frame(height: barHeight(item.krwTotal, max: maxTotal))
+                            }
+                            .clipShape(UnevenRoundedRectangle(topLeadingRadius: 6, topTrailingRadius: 6))
                             // 12개 막대(연별)는 폭이 좁아 "월" 없이 숫자만 표시
                             Text(scope == .monthly ? "\(item.monthNumber)월" : "\(item.monthNumber)")
                                 .font(.system(size: 9, weight: isSelected ? .heavy : .bold))
@@ -359,14 +448,22 @@ struct LedgerStatsView: View {
         case .monthly:
             return stats.yearMonth
         case .yearly:
-            return (stats.monthlyTrend.last { $0.krwTotal > 0 } ?? stats.monthlyTrend.last)?.yearMonth
+            return (stats.monthlyTrend.last { $0.combinedTotal > 0 } ?? stats.monthlyTrend.last)?.yearMonth
         }
     }
 
+    /// 원화(바닥) 세그먼트 — 빈 달도 최소 높이로 탭 대상이 되게 한다.
     private func barHeight(_ total: Decimal, max maxTotal: Decimal) -> CGFloat {
         guard maxTotal > 0 else { return 4 }
         let ratio = (total as NSDecimalNumber).doubleValue / (maxTotal as NSDecimalNumber).doubleValue
         return Swift.max(4, CGFloat(ratio) * 105)
+    }
+
+    /// 외화(위) 세그먼트 — 없으면 0, 최소 높이 없이 비율 그대로.
+    private func segmentHeight(_ total: Decimal, max maxTotal: Decimal) -> CGFloat {
+        guard maxTotal > 0, total > 0 else { return 0 }
+        let ratio = (total as NSDecimalNumber).doubleValue / (maxTotal as NSDecimalNumber).doubleValue
+        return CGFloat(ratio) * 105
     }
 
     // MARK: - 가맹점 TOP
@@ -408,38 +505,57 @@ struct LedgerStatsView: View {
         }
     }
 
-    // MARK: - 출처 구성
+    // MARK: - 고정비 · 변동비
 
-    private func sourceCard(_ stats: LedgerStatistics) -> some View {
-        let total = stats.sourceBreakdown.reduce(Decimal.zero) { $0 + $1.krwTotal }
+    /// 반복(고정) 지출과 나머지(변동) 지출의 비율 — 분류가 없는 앱에서 유일하게 의미 있는 구성비.
+    private func fixedVariableCard(_ stats: LedgerStatistics) -> some View {
+        let fixed = stats.sourceBreakdown.first { $0.source == .recurring }?.krwTotal ?? 0
+        let variable = stats.sourceBreakdown
+            .filter { $0.source != .recurring }
+            .reduce(Decimal.zero) { $0 + $1.krwTotal }
+        let total = fixed + variable
+        let fixedPercent = percentOf(fixed, total: total)
         return GlassCard {
-            VStack(spacing: 12) {
-                ForEach(stats.sourceBreakdown, id: \.source) { item in
-                    let percent = percentOf(item.krwTotal, total: total)
-                    VStack(spacing: 4) {
-                        HStack {
-                            Text(item.source.label)
-                                .font(.caption)
-                                .fontWeight(.bold)
-                            Spacer()
-                            Text("\(LedgerFormat.amount(item.krwTotal, currency: "KRW")) · \(percent)%")
-                                .font(.caption2)
-                                .fontWeight(.semibold)
-                                .monospacedDigit()
-                                .foregroundStyle(Color.slate500)
+            VStack(spacing: 14) {
+                // 한 줄 비율 바 — 보라(고정) + 파랑(변동)
+                GeometryReader { geo in
+                    HStack(spacing: fixed > 0 && variable > 0 ? 3 : 0) {
+                        if fixed > 0 {
+                            RoundedRectangle(cornerRadius: 5)
+                                .fill(Color.purple500)
+                                .frame(width: max(geo.size.width * CGFloat(fixedPercent) / 100 - 1.5, 0))
                         }
-                        GeometryReader { geo in
-                            ZStack(alignment: .leading) {
-                                Capsule().fill(Color.slate900.opacity(0.06))
-                                Capsule()
-                                    .fill(barColor(item.source))
-                                    .frame(width: geo.size.width * CGFloat(percent) / 100)
-                            }
+                        if variable > 0 {
+                            RoundedRectangle(cornerRadius: 5)
+                                .fill(LinearGradient(colors: [Color.blue500, Color.blue700],
+                                                     startPoint: .leading, endPoint: .trailing))
                         }
-                        .frame(height: 7)
                     }
                 }
+                .frame(height: 10)
+
+                VStack(spacing: 8) {
+                    ratioRow(color: Color.purple500, label: "고정비 (반복)",
+                             amount: fixed, percent: fixedPercent)
+                    ratioRow(color: Color.blue600, label: "변동비",
+                             amount: variable, percent: total > 0 ? 100 - fixedPercent : 0)
+                }
             }
+        }
+    }
+
+    private func ratioRow(color: Color, label: String, amount: Decimal, percent: Int) -> some View {
+        HStack(spacing: 6) {
+            Circle().fill(color).frame(width: 7, height: 7)
+            Text(label)
+                .font(.caption)
+                .fontWeight(.bold)
+            Spacer()
+            Text("\(LedgerFormat.amount(amount, currency: "KRW")) · \(percent)%")
+                .font(.caption2)
+                .fontWeight(.semibold)
+                .monospacedDigit()
+                .foregroundStyle(Color.slate500)
         }
     }
 
@@ -447,18 +563,6 @@ struct LedgerStatsView: View {
         guard total > 0 else { return 0 }
         let ratio = (amount as NSDecimalNumber).doubleValue / (total as NSDecimalNumber).doubleValue
         return Int((ratio * 100).rounded())
-    }
-
-    private func barColor(_ source: EntrySource) -> AnyShapeStyle {
-        switch source {
-        case .sms, .kakaoPay:
-            return AnyShapeStyle(LinearGradient(colors: [Color.blue500, Color.blue700],
-                                                startPoint: .leading, endPoint: .trailing))
-        case .recurring:
-            return AnyShapeStyle(Color.purple500)
-        case .manual:
-            return AnyShapeStyle(Color.slate400)
-        }
     }
 
     // MARK: - 외화
@@ -524,5 +628,68 @@ struct LedgerStatsView: View {
             guard generation == loadGeneration else { return }
             errorMessage = "통계를 불러오지 못했습니다."
         }
+    }
+}
+
+// MARK: - 연도 선택 시트 (연별 통계용)
+
+/// 연별 통계에서 기간 타이틀 탭 시 올라오는 연도 선택 바텀시트 — MonthPickerSheet와 같은 톤.
+private struct YearPickerSheet: View {
+    let initialYear: Int
+    let range: ClosedRange<Int>
+    let onConfirm: (Int) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var selected: Int
+
+    init(initialYear: Int, range: ClosedRange<Int>, onConfirm: @escaping (Int) -> Void) {
+        self.initialYear = initialYear
+        self.range = range
+        self.onConfirm = onConfirm
+        _selected = State(initialValue: initialYear)
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Picker("연도", selection: $selected) {
+                ForEach(Array(range), id: \.self) { Text("\($0)년").tag($0) }
+            }
+            .pickerStyle(.wheel)
+            .frame(height: 220)
+
+            HStack(spacing: 12) {
+                Button { dismiss() } label: {
+                    Text("취소")
+                        .font(.system(size: 16, weight: .semibold))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52)
+                        .foregroundStyle(Color.slate700)
+                        .background(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.slate200, lineWidth: 1)
+                        }
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    onConfirm(selected)
+                    dismiss()
+                } label: {
+                    Text("확인")
+                        .font(.system(size: 16, weight: .semibold))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52)
+                        .foregroundStyle(.white)
+                        .background(Color.slate900)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 8)
+        }
+        .padding(.top, 12)
     }
 }
