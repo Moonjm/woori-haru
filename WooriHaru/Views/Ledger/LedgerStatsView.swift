@@ -17,6 +17,8 @@ struct LedgerStatsView: View {
     @State private var errorMessage: String?
     /// 차트에서 선택한 월 (yearMonth 문자열). 로드 시 기본값이 정해진다.
     @State private var selectedMonth: String?
+    /// 진행 중 로드의 세대 번호 — 기간을 오갔다 되돌아와도 최신 요청만 화면을 갱신한다.
+    @State private var loadGeneration = 0
 
     private let ledgerService = LedgerService()
 
@@ -479,31 +481,31 @@ struct LedgerStatsView: View {
 
     // MARK: - 로드
 
-    /// 지금 화면이 요청한 기간인지 식별하는 키 — 응답 도착 시 기간이 바뀌었으면 폐기한다.
-    private var requestKey: String {
-        scope == .monthly ? "m:\(month.apiValue)" : "y:\(year)"
-    }
-
     private func load() async {
-        let key = requestKey
+        loadGeneration += 1
+        let generation = loadGeneration
+        let requestScope = scope
+        let requestMonth = month
+        let requestYear = year
         isLoading = true
+        // A→B→A처럼 같은 기간으로 되돌아와도 세대 번호가 다르므로 밀려난 응답은 폐기된다.
         defer {
-            if key == requestKey { isLoading = false }
+            if generation == loadGeneration { isLoading = false }
         }
         do {
             let result: LedgerStatistics
-            switch scope {
-            case .monthly: result = try await ledgerService.fetchStatistics(yearMonth: month.apiValue)
-            case .yearly: result = try await ledgerService.fetchStatistics(year: year)
+            switch requestScope {
+            case .monthly: result = try await ledgerService.fetchStatistics(yearMonth: requestMonth.apiValue)
+            case .yearly: result = try await ledgerService.fetchStatistics(year: requestYear)
             }
-            guard key == requestKey else { return }
+            guard generation == loadGeneration else { return }
             stats = result
             selectedMonth = defaultSelectedMonth(result)
             errorMessage = nil
         } catch is CancellationError {
             return
         } catch {
-            guard key == requestKey else { return }
+            guard generation == loadGeneration else { return }
             errorMessage = "통계를 불러오지 못했습니다."
         }
     }

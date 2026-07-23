@@ -290,8 +290,8 @@ private struct FlowLayoutChips: View {
     }
 }
 
-/// 좌→우로 채우다 넘치면 줄바꿈하는 레이아웃.
-private struct LedgerFlowLayout: Layout {
+/// 좌→우로 채우다 넘치면 줄바꿈하는 레이아웃 — 검색 칩, 히어로 카드 외화 배지 등에서 공용.
+struct LedgerFlowLayout: Layout {
     var spacing: CGFloat = 6
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {

@@ -137,13 +137,16 @@ struct LedgerView: View {
                 .animation(.snappy, value: viewModel.monthlyKRWTotal)
 
             if !viewModel.foreignTotals.isEmpty {
-                HStack(spacing: 6) {
+                // 통화가 여러 개여도 잘리지 않게 넘치면 줄바꿈한다.
+                LedgerFlowLayout(spacing: 6) {
                     ForEach(viewModel.foreignTotals, id: \.currency) { item in
                         Text("\(item.currency) \(LedgerFormat.amount(item.amount, currency: item.currency))")
                             .font(.caption2)
                             .fontWeight(.bold)
                             .monospacedDigit()
                             .foregroundStyle(.white)
+                            .lineLimit(1)
+                            .fixedSize()
                             .padding(.horizontal, 10)
                             .padding(.vertical, 5)
                             .background(.white.opacity(0.2), in: Capsule())
@@ -155,6 +158,8 @@ struct LedgerView: View {
                             .fontWeight(.heavy)
                             .monospacedDigit()
                             .foregroundStyle(.white)
+                            .lineLimit(1)
+                            .fixedSize()
                             .padding(.horizontal, 10)
                             .padding(.vertical, 5)
                             .background(.white.opacity(0.32), in: Capsule())
