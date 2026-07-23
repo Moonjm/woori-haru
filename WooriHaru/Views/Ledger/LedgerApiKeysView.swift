@@ -5,6 +5,8 @@ struct LedgerApiKeysView: View {
     @State private var keys: [LedgerApiKey] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
+    /// 진행 중 로드의 세대 번호 — 발급·폐기 뒤에 도착한 낡은 목록 응답이 변경을 되돌리지 못하게 한다.
+    @State private var loadGeneration = 0
 
     @State private var showingIssue = false
     @State private var newKeyName = ""
@@ -86,12 +88,21 @@ struct LedgerApiKeysView: View {
     // MARK: - 네트워크
 
     private func load() async {
+        loadGeneration += 1
+        let generation = loadGeneration
         isLoading = true
-        defer { isLoading = false }
+        defer {
+            if generation == loadGeneration { isLoading = false }
+        }
         do {
-            keys = try await ledgerService.fetchApiKeys()
+            let list = try await ledgerService.fetchApiKeys()
+            guard generation == loadGeneration else { return } // 밀려난 응답은 폐기
+            keys = list
             errorMessage = nil
+        } catch is CancellationError {
+            return
         } catch {
+            guard generation == loadGeneration else { return }
             errorMessage = "API 키를 불러오지 못했습니다."
         }
     }
@@ -99,6 +110,8 @@ struct LedgerApiKeysView: View {
     private func issue() {
         let name = newKeyName.trimmingCharacters(in: .whitespaces)
         guard !name.isEmpty else { return }
+        // 진행 중이던 로드 응답(발급 전 스냅샷)이 새 키를 지우지 못하게 무효화한다.
+        loadGeneration += 1
         Task {
             do {
                 issuedKey = try await ledgerService.issueApiKey(name: name)
@@ -110,6 +123,8 @@ struct LedgerApiKeysView: View {
     }
 
     private func delete(_ key: LedgerApiKey) {
+        // 진행 중이던 로드 응답이 폐기한 키를 되살리지 못하게 무효화한다.
+        loadGeneration += 1
         Task {
             do {
                 try await ledgerService.deleteApiKey(id: key.id)

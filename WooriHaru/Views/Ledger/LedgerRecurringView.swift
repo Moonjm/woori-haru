@@ -5,6 +5,8 @@ struct LedgerRecurringView: View {
     @State private var rules: [RecurringRule] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
+    /// 진행 중 로드의 세대 번호 — 삭제·토글 뒤에 도착한 낡은 목록 응답이 변경을 되돌리지 못하게 한다.
+    @State private var loadGeneration = 0
     @State private var editingRule: RecurringRule?
     @State private var deleteTarget: RecurringRule?
 
@@ -132,12 +134,21 @@ struct LedgerRecurringView: View {
     // MARK: - 네트워크
 
     private func load() async {
+        loadGeneration += 1
+        let generation = loadGeneration
         isLoading = true
-        defer { isLoading = false }
+        defer {
+            if generation == loadGeneration { isLoading = false }
+        }
         do {
-            rules = try await ledgerService.fetchRecurringRules()
+            let list = try await ledgerService.fetchRecurringRules()
+            guard generation == loadGeneration else { return } // 밀려난 응답은 폐기
+            rules = list
             errorMessage = nil
+        } catch is CancellationError {
+            return
         } catch {
+            guard generation == loadGeneration else { return }
             errorMessage = "반복 규칙을 불러오지 못했습니다."
         }
     }
@@ -148,6 +159,8 @@ struct LedgerRecurringView: View {
             type: rule.type, merchant: rule.merchant, description: rule.description,
             active: !rule.active
         )
+        // 진행 중이던 로드 응답(변경 전 스냅샷)이 나중에 도착해도 반영되지 않게 무효화한다.
+        loadGeneration += 1
         Task {
             do {
                 try await ledgerService.updateRecurringRule(id: rule.id, request)
@@ -162,6 +175,8 @@ struct LedgerRecurringView: View {
     }
 
     private func delete(_ rule: RecurringRule) {
+        // 진행 중이던 로드 응답이 삭제된 규칙을 되살리지 못하게 무효화한다.
+        loadGeneration += 1
         Task {
             do {
                 try await ledgerService.deleteRecurringRule(id: rule.id)

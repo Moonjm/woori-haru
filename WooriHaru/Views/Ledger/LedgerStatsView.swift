@@ -176,6 +176,9 @@ struct LedgerStatsView: View {
 
     /// 기간이 바뀌면 이전 기간 데이터가 새 라벨 아래 보이지 않게 비우고 다시 불러온다.
     private func reloadForPeriodChange() {
+        // 새 load Task가 시작되기 전에 이전 요청의 응답이 도착해도 반영되지 않도록
+        // 세대를 여기서 동기적으로 무효화한다.
+        loadGeneration += 1
         stats = nil
         selectedMonth = nil
         errorMessage = nil
