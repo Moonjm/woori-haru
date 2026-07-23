@@ -35,7 +35,18 @@ struct LedgerView: View {
             ToolbarItem(placement: .principal) { principalTitle }
             if tab == .entries {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button { showingSearch = true } label: { Image(systemName: "magnifyingglass") }
+                    HStack(spacing: 14) {
+                        // 다른 달을 보는 중에만 나타나는 복귀 버튼 (캘린더의 "오늘" 패턴)
+                        if !viewModel.isAtCurrentMonth {
+                            Button("이번 달") {
+                                viewModel.month = LedgerYearMonth.current()
+                                Task { await viewModel.reload() }
+                            }
+                            .font(.footnote)
+                            .fontWeight(.semibold)
+                        }
+                        Button { showingSearch = true } label: { Image(systemName: "magnifyingglass") }
+                    }
                 }
             }
         }

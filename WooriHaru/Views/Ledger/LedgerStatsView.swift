@@ -32,6 +32,26 @@ struct LedgerStatsView: View {
                     withAnimation(.snappy) { proxy.scrollTo("ledgerStatsTop", anchor: .top) }
                 }
         }
+        .toolbar {
+            // 다른 기간을 보는 중에만 나타나는 복귀 버튼 (캘린더의 "오늘" 패턴)
+            if !isAtCurrentPeriod {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(scope == .monthly ? "이번 달" : "올해") { resetToCurrentPeriod() }
+                        .font(.footnote)
+                        .fontWeight(.semibold)
+                }
+            }
+        }
+    }
+
+    /// 현재 기간(이번 달/올해)으로 즉시 복귀한다.
+    private func resetToCurrentPeriod() {
+        let current = LedgerYearMonth.current()
+        switch scope {
+        case .monthly: month = current
+        case .yearly: year = current.year
+        }
+        reloadForPeriodChange()
     }
 
     private var statsScroll: some View {
