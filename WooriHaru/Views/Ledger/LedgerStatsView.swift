@@ -51,8 +51,12 @@ struct LedgerStatsView: View {
                     summaryCard(stats)
                         .padding(.top, 8)
 
-                    sectionHeader(scope == .monthly ? "최근 6개월" : "\(year)년 월별 추이")
-                        .padding(.top, 12)
+                    HStack {
+                        sectionHeader(scope == .monthly ? "최근 6개월" : "\(year)년 월별 추이")
+                        Spacer()
+                        if hasFx(stats) { chartLegend }
+                    }
+                    .padding(.top, 12)
                     chartCard(stats)
 
                     if !stats.topMerchants.isEmpty {
@@ -263,19 +267,19 @@ struct LedgerStatsView: View {
         }
     }
 
-    /// 기준 기간 원화 합계 — 월별이면 추이 마지막(기준월), 연별이면 12개월 합.
+    /// 기준 기간 총 지출(원화 + 외화 환산) — 월별이면 추이 마지막(기준월), 연별이면 12개월 합.
     private func currentTotal(_ stats: LedgerStatistics) -> Decimal {
         switch scope {
-        case .monthly: return stats.monthlyTrend.last?.krwTotal ?? 0
-        case .yearly: return stats.monthlyTrend.reduce(Decimal.zero) { $0 + $1.krwTotal }
+        case .monthly: return stats.monthlyTrend.last?.combinedTotal ?? 0
+        case .yearly: return stats.monthlyTrend.reduce(Decimal.zero) { $0 + $1.combinedTotal }
         }
     }
 
-    /// 직전 기간 원화 합계 — 서버 값 우선, 구버전 응답이면 추이에서 지난달을 취한다.
+    /// 직전 기간 총 지출 — 서버 값 우선, 구버전 응답이면 추이에서 지난달을 취한다.
     private func previousTotal(_ stats: LedgerStatistics) -> Decimal {
         if let previous = stats.previousTotal { return previous }
         guard scope == .monthly, stats.monthlyTrend.count >= 2 else { return 0 }
-        return stats.monthlyTrend[stats.monthlyTrend.count - 2].krwTotal
+        return stats.monthlyTrend[stats.monthlyTrend.count - 2].combinedTotal
     }
 
     private func deltaPercent(current: Decimal, previous: Decimal) -> Int? {
@@ -298,10 +302,33 @@ struct LedgerStatsView: View {
         .clipShape(Capsule())
     }
 
-    // MARK: - 막대 그래프
+    // MARK: - 막대 그래프 (원화 위에 외화 환산을 쌓는 스택)
+
+    /// 추이에 외화 환산 지출이 있는지 — 범례 표시 여부.
+    private func hasFx(_ stats: LedgerStatistics) -> Bool {
+        stats.monthlyTrend.contains { ($0.fxKrwTotal ?? 0) != 0 }
+    }
+
+    private var chartLegend: some View {
+        HStack(spacing: 10) {
+            legendItem(color: Color.blue600, label: "원화")
+            legendItem(color: Color.purple500, label: "외화")
+        }
+        .padding(.horizontal, 4)
+    }
+
+    private func legendItem(color: Color, label: String) -> some View {
+        HStack(spacing: 4) {
+            Circle().fill(color).frame(width: 7, height: 7)
+            Text(label)
+                .font(.caption2)
+                .fontWeight(.semibold)
+                .foregroundStyle(Color.slate500)
+        }
+    }
 
     private func chartCard(_ stats: LedgerStatistics) -> some View {
-        let maxTotal = stats.monthlyTrend.map(\.krwTotal).max() ?? 0
+        let maxTotal = stats.monthlyTrend.map(\.combinedTotal).max() ?? 0
         let selectedKey = selectedMonth ?? defaultSelectedMonth(stats)
         let selected = stats.monthlyTrend.first { $0.yearMonth == selectedKey }
         return GlassCard {
@@ -313,11 +340,18 @@ struct LedgerStatsView: View {
                             .font(.caption)
                             .fontWeight(.heavy)
                             .foregroundStyle(Color.blue600)
-                        Text(LedgerFormat.amount(selected.krwTotal, currency: "KRW"))
+                        Text(LedgerFormat.amount(selected.combinedTotal, currency: "KRW"))
                             .font(.caption)
                             .fontWeight(.bold)
                             .monospacedDigit()
                             .contentTransition(.numericText())
+                        if let fx = selected.fxKrwTotal, fx != 0 {
+                            Text("외화 \(LedgerFormat.amount(fx, currency: "KRW"))")
+                                .font(.caption2)
+                                .fontWeight(.semibold)
+                                .monospacedDigit()
+                                .foregroundStyle(Color.purple500)
+                        }
                         Spacer()
                     }
                     .animation(.snappy, value: selected.yearMonth)
@@ -326,16 +360,26 @@ struct LedgerStatsView: View {
                 HStack(alignment: .bottom, spacing: scope == .monthly ? 10 : 5) {
                     ForEach(stats.monthlyTrend) { item in
                         let isSelected = item.yearMonth == selectedKey
+                        let fx = item.fxKrwTotal ?? 0
                         VStack(spacing: 5) {
-                            Rectangle()
-                                .fill(
-                                    isSelected
-                                        ? AnyShapeStyle(LinearGradient(colors: [Color.blue500, Color.blue700],
-                                                                       startPoint: .top, endPoint: .bottom))
-                                        : AnyShapeStyle(Color.blue500.opacity(0.25))
-                                )
-                                .frame(height: barHeight(item.krwTotal, max: maxTotal))
-                                .clipShape(UnevenRoundedRectangle(topLeadingRadius: 6, topTrailingRadius: 6))
+                            VStack(spacing: 0) {
+                                // 외화 환산분을 원화 위에 쌓는다 (음수 순액은 표시 생략)
+                                if fx > 0 {
+                                    Rectangle()
+                                        .fill(isSelected ? AnyShapeStyle(Color.purple500)
+                                            : AnyShapeStyle(Color.purple500.opacity(0.3)))
+                                        .frame(height: segmentHeight(fx, max: maxTotal))
+                                }
+                                Rectangle()
+                                    .fill(
+                                        isSelected
+                                            ? AnyShapeStyle(LinearGradient(colors: [Color.blue500, Color.blue700],
+                                                                           startPoint: .top, endPoint: .bottom))
+                                            : AnyShapeStyle(Color.blue500.opacity(0.25))
+                                    )
+                                    .frame(height: barHeight(item.krwTotal, max: maxTotal))
+                            }
+                            .clipShape(UnevenRoundedRectangle(topLeadingRadius: 6, topTrailingRadius: 6))
                             // 12개 막대(연별)는 폭이 좁아 "월" 없이 숫자만 표시
                             Text(scope == .monthly ? "\(item.monthNumber)월" : "\(item.monthNumber)")
                                 .font(.system(size: 9, weight: isSelected ? .heavy : .bold))
@@ -359,14 +403,22 @@ struct LedgerStatsView: View {
         case .monthly:
             return stats.yearMonth
         case .yearly:
-            return (stats.monthlyTrend.last { $0.krwTotal > 0 } ?? stats.monthlyTrend.last)?.yearMonth
+            return (stats.monthlyTrend.last { $0.combinedTotal > 0 } ?? stats.monthlyTrend.last)?.yearMonth
         }
     }
 
+    /// 원화(바닥) 세그먼트 — 빈 달도 최소 높이로 탭 대상이 되게 한다.
     private func barHeight(_ total: Decimal, max maxTotal: Decimal) -> CGFloat {
         guard maxTotal > 0 else { return 4 }
         let ratio = (total as NSDecimalNumber).doubleValue / (maxTotal as NSDecimalNumber).doubleValue
         return Swift.max(4, CGFloat(ratio) * 105)
+    }
+
+    /// 외화(위) 세그먼트 — 없으면 0, 최소 높이 없이 비율 그대로.
+    private func segmentHeight(_ total: Decimal, max maxTotal: Decimal) -> CGFloat {
+        guard maxTotal > 0, total > 0 else { return 0 }
+        let ratio = (total as NSDecimalNumber).doubleValue / (maxTotal as NSDecimalNumber).doubleValue
+        return CGFloat(ratio) * 105
     }
 
     // MARK: - 가맹점 TOP
