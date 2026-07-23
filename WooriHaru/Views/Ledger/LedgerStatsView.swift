@@ -65,8 +65,8 @@ struct LedgerStatsView: View {
                     }
 
                     if !stats.sourceBreakdown.isEmpty {
-                        sectionHeader("어떻게 쓰였나").padding(.top, 12)
-                        sourceCard(stats)
+                        sectionHeader("고정비 · 변동비").padding(.top, 12)
+                        fixedVariableCard(stats)
                     }
 
                     if !stats.foreignTotals.isEmpty {
@@ -460,38 +460,57 @@ struct LedgerStatsView: View {
         }
     }
 
-    // MARK: - 출처 구성
+    // MARK: - 고정비 · 변동비
 
-    private func sourceCard(_ stats: LedgerStatistics) -> some View {
-        let total = stats.sourceBreakdown.reduce(Decimal.zero) { $0 + $1.krwTotal }
+    /// 반복(고정) 지출과 나머지(변동) 지출의 비율 — 분류가 없는 앱에서 유일하게 의미 있는 구성비.
+    private func fixedVariableCard(_ stats: LedgerStatistics) -> some View {
+        let fixed = stats.sourceBreakdown.first { $0.source == .recurring }?.krwTotal ?? 0
+        let variable = stats.sourceBreakdown
+            .filter { $0.source != .recurring }
+            .reduce(Decimal.zero) { $0 + $1.krwTotal }
+        let total = fixed + variable
+        let fixedPercent = percentOf(fixed, total: total)
         return GlassCard {
-            VStack(spacing: 12) {
-                ForEach(stats.sourceBreakdown, id: \.source) { item in
-                    let percent = percentOf(item.krwTotal, total: total)
-                    VStack(spacing: 4) {
-                        HStack {
-                            Text(item.source.label)
-                                .font(.caption)
-                                .fontWeight(.bold)
-                            Spacer()
-                            Text("\(LedgerFormat.amount(item.krwTotal, currency: "KRW")) · \(percent)%")
-                                .font(.caption2)
-                                .fontWeight(.semibold)
-                                .monospacedDigit()
-                                .foregroundStyle(Color.slate500)
+            VStack(spacing: 14) {
+                // 한 줄 비율 바 — 보라(고정) + 파랑(변동)
+                GeometryReader { geo in
+                    HStack(spacing: fixed > 0 && variable > 0 ? 3 : 0) {
+                        if fixed > 0 {
+                            RoundedRectangle(cornerRadius: 5)
+                                .fill(Color.purple500)
+                                .frame(width: max(geo.size.width * CGFloat(fixedPercent) / 100 - 1.5, 0))
                         }
-                        GeometryReader { geo in
-                            ZStack(alignment: .leading) {
-                                Capsule().fill(Color.slate900.opacity(0.06))
-                                Capsule()
-                                    .fill(barColor(item.source))
-                                    .frame(width: geo.size.width * CGFloat(percent) / 100)
-                            }
+                        if variable > 0 {
+                            RoundedRectangle(cornerRadius: 5)
+                                .fill(LinearGradient(colors: [Color.blue500, Color.blue700],
+                                                     startPoint: .leading, endPoint: .trailing))
                         }
-                        .frame(height: 7)
                     }
                 }
+                .frame(height: 10)
+
+                VStack(spacing: 8) {
+                    ratioRow(color: Color.purple500, label: "고정비 (반복)",
+                             amount: fixed, percent: fixedPercent)
+                    ratioRow(color: Color.blue600, label: "변동비",
+                             amount: variable, percent: total > 0 ? 100 - fixedPercent : 0)
+                }
             }
+        }
+    }
+
+    private func ratioRow(color: Color, label: String, amount: Decimal, percent: Int) -> some View {
+        HStack(spacing: 6) {
+            Circle().fill(color).frame(width: 7, height: 7)
+            Text(label)
+                .font(.caption)
+                .fontWeight(.bold)
+            Spacer()
+            Text("\(LedgerFormat.amount(amount, currency: "KRW")) · \(percent)%")
+                .font(.caption2)
+                .fontWeight(.semibold)
+                .monospacedDigit()
+                .foregroundStyle(Color.slate500)
         }
     }
 
@@ -499,18 +518,6 @@ struct LedgerStatsView: View {
         guard total > 0 else { return 0 }
         let ratio = (amount as NSDecimalNumber).doubleValue / (total as NSDecimalNumber).doubleValue
         return Int((ratio * 100).rounded())
-    }
-
-    private func barColor(_ source: EntrySource) -> AnyShapeStyle {
-        switch source {
-        case .sms, .kakaoPay:
-            return AnyShapeStyle(LinearGradient(colors: [Color.blue500, Color.blue700],
-                                                startPoint: .leading, endPoint: .trailing))
-        case .recurring:
-            return AnyShapeStyle(Color.purple500)
-        case .manual:
-            return AnyShapeStyle(Color.slate400)
-        }
     }
 
     // MARK: - 외화
