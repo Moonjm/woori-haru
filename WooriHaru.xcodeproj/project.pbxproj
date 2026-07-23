@@ -42,6 +42,17 @@
 		D10004 /* CategoryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20004 /* CategoryService.swift */; };
 		D10005 /* PairService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20005 /* PairService.swift */; };
 		D10006 /* PairEventService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20006 /* PairEventService.swift */; };
+		LG10001 /* LedgerModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20001 /* LedgerModels.swift */; };
+		LG10002 /* LedgerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20002 /* LedgerService.swift */; };
+		LG10003 /* LedgerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20003 /* LedgerViewModel.swift */; };
+		LG10004 /* LedgerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20004 /* LedgerView.swift */; };
+		LG10005 /* LedgerEntryFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20005 /* LedgerEntryFormView.swift */; };
+		LG10006 /* LedgerEntryDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20006 /* LedgerEntryDetailView.swift */; };
+		LG10007 /* LedgerRecurringView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20007 /* LedgerRecurringView.swift */; };
+		LG10008 /* LedgerApiKeysView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20008 /* LedgerApiKeysView.swift */; };
+		LG10009 /* LedgerStatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20009 /* LedgerStatsView.swift */; };
+		LG10010 /* LedgerSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20010 /* LedgerSearchView.swift */; };
+		LG10011 /* LedgerInboundFailuresView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20011 /* LedgerInboundFailuresView.swift */; };
 		D10007 /* HolidayService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20007 /* HolidayService.swift */; };
 		E10001 /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20001 /* AuthViewModel.swift */; };
 		E10002 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20002 /* LoginView.swift */; };
@@ -155,6 +166,17 @@
 		D20004 /* CategoryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryService.swift; sourceTree = "<group>"; };
 		D20005 /* PairService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairService.swift; sourceTree = "<group>"; };
 		D20006 /* PairEventService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairEventService.swift; sourceTree = "<group>"; };
+		LG20001 /* LedgerModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerModels.swift; sourceTree = "<group>"; };
+		LG20002 /* LedgerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerService.swift; sourceTree = "<group>"; };
+		LG20003 /* LedgerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerViewModel.swift; sourceTree = "<group>"; };
+		LG20004 /* LedgerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerView.swift; sourceTree = "<group>"; };
+		LG20005 /* LedgerEntryFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerEntryFormView.swift; sourceTree = "<group>"; };
+		LG20006 /* LedgerEntryDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerEntryDetailView.swift; sourceTree = "<group>"; };
+		LG20007 /* LedgerRecurringView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerRecurringView.swift; sourceTree = "<group>"; };
+		LG20008 /* LedgerApiKeysView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerApiKeysView.swift; sourceTree = "<group>"; };
+		LG20009 /* LedgerStatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerStatsView.swift; sourceTree = "<group>"; };
+		LG20010 /* LedgerSearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerSearchView.swift; sourceTree = "<group>"; };
+		LG20011 /* LedgerInboundFailuresView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerInboundFailuresView.swift; sourceTree = "<group>"; };
 		D20007 /* HolidayService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HolidayService.swift; sourceTree = "<group>"; };
 		E20001 /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
 		E20002 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
@@ -340,6 +362,7 @@
 				S20001 /* StorageModels.swift */,
 				S20009 /* StorageType.swift */,
 				S20010 /* ItemCategory.swift */,
+				LG20001 /* LedgerModels.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -361,6 +384,7 @@
 				N20002 /* LiveActivityCoordinator.swift */,
 				AA200006 /* SessionManager.swift */,
 				S20002 /* StorageService.swift */,
+				LG20002 /* LedgerService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -379,6 +403,7 @@
 				L20003 /* StudyTimerViewModel.swift */,
 				L20006 /* StudyRecordViewModel.swift */,
 				S20003 /* StorageViewModel.swift */,
+				LG20003 /* LedgerViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -398,6 +423,7 @@
 				B40012 /* Components */,
 				L40001 /* Study */,
 				S40001 /* Storage */,
+				LG40001 /* Ledger */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -465,6 +491,21 @@
 				E20002 /* LoginView.swift */,
 			);
 			path = Auth;
+			sourceTree = "<group>";
+		};
+		LG40001 /* Ledger */ = {
+			isa = PBXGroup;
+			children = (
+				LG20004 /* LedgerView.swift */,
+				LG20005 /* LedgerEntryFormView.swift */,
+				LG20006 /* LedgerEntryDetailView.swift */,
+				LG20007 /* LedgerRecurringView.swift */,
+				LG20008 /* LedgerApiKeysView.swift */,
+				LG20009 /* LedgerStatsView.swift */,
+				LG20010 /* LedgerSearchView.swift */,
+				LG20011 /* LedgerInboundFailuresView.swift */,
+			);
+			path = Ledger;
 			sourceTree = "<group>";
 		};
 		B40012 /* Components */ = {
@@ -654,6 +695,17 @@
 				D10004 /* CategoryService.swift in Sources */,
 				D10005 /* PairService.swift in Sources */,
 				D10006 /* PairEventService.swift in Sources */,
+				LG10001 /* LedgerModels.swift in Sources */,
+				LG10002 /* LedgerService.swift in Sources */,
+				LG10003 /* LedgerViewModel.swift in Sources */,
+				LG10004 /* LedgerView.swift in Sources */,
+				LG10005 /* LedgerEntryFormView.swift in Sources */,
+				LG10006 /* LedgerEntryDetailView.swift in Sources */,
+				LG10007 /* LedgerRecurringView.swift in Sources */,
+				LG10008 /* LedgerApiKeysView.swift in Sources */,
+				LG10009 /* LedgerStatsView.swift in Sources */,
+				LG10010 /* LedgerSearchView.swift in Sources */,
+				LG10011 /* LedgerInboundFailuresView.swift in Sources */,
 				B10001 /* DDayBadgeService.swift in Sources */,
 				D10007 /* HolidayService.swift in Sources */,
 				E10001 /* AuthViewModel.swift in Sources */,
