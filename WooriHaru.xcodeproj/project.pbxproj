@@ -52,6 +52,11 @@
 		LG10007 /* LedgerRecurringView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20007 /* LedgerRecurringView.swift */; };
 		LG10008 /* LedgerApiKeysView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20008 /* LedgerApiKeysView.swift */; };
 		LG10009 /* LedgerStatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20009 /* LedgerStatsView.swift */; };
+		LG10020 /* LedgerStatsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20020 /* LedgerStatsViewModel.swift */; };
+		LG10021 /* LedgerStatsSummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20021 /* LedgerStatsSummaryCard.swift */; };
+		LG10022 /* LedgerStatsChartCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20022 /* LedgerStatsChartCard.swift */; };
+		LG10023 /* LedgerStatsListCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20023 /* LedgerStatsListCards.swift */; };
+		LG10024 /* YearPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20024 /* YearPickerSheet.swift */; };
 		LG10010 /* LedgerSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20010 /* LedgerSearchView.swift */; };
 		LG10011 /* LedgerInboundFailuresView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20011 /* LedgerInboundFailuresView.swift */; };
 		MC10001 /* MembershipCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = MC20001 /* MembershipCardView.swift */; };
@@ -185,6 +190,11 @@
 		LG20007 /* LedgerRecurringView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerRecurringView.swift; sourceTree = "<group>"; };
 		LG20008 /* LedgerApiKeysView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerApiKeysView.swift; sourceTree = "<group>"; };
 		LG20009 /* LedgerStatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerStatsView.swift; sourceTree = "<group>"; };
+		LG20020 /* LedgerStatsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerStatsViewModel.swift; sourceTree = "<group>"; };
+		LG20021 /* LedgerStatsSummaryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerStatsSummaryCard.swift; sourceTree = "<group>"; };
+		LG20022 /* LedgerStatsChartCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerStatsChartCard.swift; sourceTree = "<group>"; };
+		LG20023 /* LedgerStatsListCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerStatsListCards.swift; sourceTree = "<group>"; };
+		LG20024 /* YearPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YearPickerSheet.swift; sourceTree = "<group>"; };
 		LG20010 /* LedgerSearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerSearchView.swift; sourceTree = "<group>"; };
 		LG20011 /* LedgerInboundFailuresView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerInboundFailuresView.swift; sourceTree = "<group>"; };
 		MC20001 /* MembershipCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MembershipCardView.swift; sourceTree = "<group>"; };
@@ -428,6 +438,7 @@
 				L20006 /* StudyRecordViewModel.swift */,
 				S20003 /* StorageViewModel.swift */,
 				LG20003 /* LedgerViewModel.swift */,
+				LG20020 /* LedgerStatsViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -526,6 +537,10 @@
 				LG20007 /* LedgerRecurringView.swift */,
 				LG20008 /* LedgerApiKeysView.swift */,
 				LG20009 /* LedgerStatsView.swift */,
+				LG20021 /* LedgerStatsSummaryCard.swift */,
+				LG20022 /* LedgerStatsChartCard.swift */,
+				LG20023 /* LedgerStatsListCards.swift */,
+				LG20024 /* YearPickerSheet.swift */,
 				LG20010 /* LedgerSearchView.swift */,
 				LG20011 /* LedgerInboundFailuresView.swift */,
 			);
@@ -756,6 +771,11 @@
 				LG10007 /* LedgerRecurringView.swift in Sources */,
 				LG10008 /* LedgerApiKeysView.swift in Sources */,
 				LG10009 /* LedgerStatsView.swift in Sources */,
+				LG10020 /* LedgerStatsViewModel.swift in Sources */,
+				LG10021 /* LedgerStatsSummaryCard.swift in Sources */,
+				LG10022 /* LedgerStatsChartCard.swift in Sources */,
+				LG10023 /* LedgerStatsListCards.swift in Sources */,
+				LG10024 /* YearPickerSheet.swift in Sources */,
 				LG10010 /* LedgerSearchView.swift in Sources */,
 				LG10011 /* LedgerInboundFailuresView.swift in Sources */,
 				MC10001 /* MembershipCardView.swift in Sources */,
