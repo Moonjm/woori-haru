@@ -32,9 +32,14 @@ final class StatsViewModel {
         self.pairStore = pairStore
     }
 
-    private let recordService = RecordService()
-    private let pairService = PairService()
+    private let recordService: RecordService
+    private let pairService: PairService
     private var loadTask: Task<Void, Never>?
+
+    init(recordService: RecordService = RecordService(), pairService: PairService = PairService()) {
+        self.recordService = recordService
+        self.pairService = pairService
+    }
 
     var periodLabel: String {
         if selectedMonth == 0 { return "\(selectedYear)년" }

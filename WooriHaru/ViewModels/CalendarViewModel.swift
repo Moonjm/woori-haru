@@ -51,11 +51,23 @@ final class CalendarViewModel {
 
     // MARK: - Private
 
-    private let recordService = RecordService()
-    private let holidayService = HolidayService()
-    private let pairService = PairService()  // fetchPartnerRecords용
-    private let pairEventService = PairEventService()
+    private let recordService: RecordService
+    private let holidayService: HolidayService
+    private let pairService: PairService  // fetchPartnerRecords용
+    private let pairEventService: PairEventService
     private let calendar = Calendar.current
+
+    init(
+        recordService: RecordService = RecordService(),
+        holidayService: HolidayService = HolidayService(),
+        pairService: PairService = PairService(),
+        pairEventService: PairEventService = PairEventService()
+    ) {
+        self.recordService = recordService
+        self.holidayService = holidayService
+        self.pairService = pairService
+        self.pairEventService = pairEventService
+    }
     private(set) var pairStore: PairStore!
 
     func configure(pairStore: PairStore) {

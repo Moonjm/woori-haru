@@ -47,7 +47,11 @@ final class StudyTimerViewModel {
     // MARK: - Dependencies
     let notificationScheduler = NotificationScheduler()
     private let liveActivity = LiveActivityCoordinator()
-    private let service = StudyService()
+    private let service: StudyService
+
+    init(service: StudyService = StudyService()) {
+        self.service = service
+    }
     private var activeSessionId: Int?
     private var timer: Timer? {
         willSet { timer?.invalidate() }

@@ -15,10 +15,11 @@ final class AuthViewModel {
     var isLoggedIn = false
     var errorMessage: String?
 
-    private let authService = AuthService()
+    private let authService: AuthService
     private let observerBox = ObserverBox()
 
-    init() {
+    init(authService: AuthService = AuthService()) {
+        self.authService = authService
         observerBox.observer = NotificationCenter.default.addObserver(
             forName: .sessionExpired,
             object: nil,

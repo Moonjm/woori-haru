@@ -72,7 +72,11 @@ final class StudyRecordViewModel {
         self.pauseTypeStore = pauseTypeStore
     }
 
-    private let service = StudyService()
+    private let service: StudyService
+
+    init(service: StudyService = StudyService()) {
+        self.service = service
+    }
 
     // MARK: - Month Label
 

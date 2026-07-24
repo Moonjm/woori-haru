@@ -38,7 +38,11 @@ final class StorageViewModel {
     var itemFormCategory: ItemCategory = .other
     var itemFormSectionId: Int?
 
-    private let service = StorageService()
+    private let service: StorageService
+
+    init(service: StorageService = StorageService()) {
+        self.service = service
+    }
 
     // 품목별 수량 업데이트 태스크 — 연타 시 이전 네트워크 요청을 취소해
     // 응답 순서 뒤바뀜으로 인한 서버 상태 어긋남을 방지한다.
