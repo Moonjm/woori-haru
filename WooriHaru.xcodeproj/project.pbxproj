@@ -99,6 +99,10 @@
 		L10005 /* StudyTimerAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = L20005 /* StudyTimerAttributes.swift */; };
 		L10006 /* StudyRecordViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = L20006 /* StudyRecordViewModel.swift */; };
 		L10007 /* WeeklyStudyRecordSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = L20007 /* WeeklyStudyRecordSection.swift */; };
+		L10010 /* StudyTimerCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = L20010 /* StudyTimerCardView.swift */; };
+		L10011 /* StudySubjectPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = L20011 /* StudySubjectPicker.swift */; };
+		L10012 /* StudyWeeklyGoalCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = L20012 /* StudyWeeklyGoalCard.swift */; };
+		L10013 /* StudyTodayTimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = L20013 /* StudyTodayTimelineView.swift */; };
 		N10001 /* NotificationScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = N20001 /* NotificationScheduler.swift */; };
 		B10001 /* DDayBadgeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20001 /* DDayBadgeService.swift */; };
 		N10002 /* LiveActivityCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = N20002 /* LiveActivityCoordinator.swift */; };
@@ -237,6 +241,10 @@
 		L20005 /* StudyTimerAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyTimerAttributes.swift; sourceTree = "<group>"; };
 		L20006 /* StudyRecordViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyRecordViewModel.swift; sourceTree = "<group>"; };
 		L20007 /* WeeklyStudyRecordSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyStudyRecordSection.swift; sourceTree = "<group>"; };
+		L20010 /* StudyTimerCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyTimerCardView.swift; sourceTree = "<group>"; };
+		L20011 /* StudySubjectPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudySubjectPicker.swift; sourceTree = "<group>"; };
+		L20012 /* StudyWeeklyGoalCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyWeeklyGoalCard.swift; sourceTree = "<group>"; };
+		L20013 /* StudyTodayTimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyTodayTimelineView.swift; sourceTree = "<group>"; };
 		N20001 /* NotificationScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationScheduler.swift; sourceTree = "<group>"; };
 		B20001 /* DDayBadgeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DDayBadgeService.swift; sourceTree = "<group>"; };
 		N20002 /* LiveActivityCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityCoordinator.swift; sourceTree = "<group>"; };
@@ -583,6 +591,10 @@
 			children = (
 				88DD96EC2F61B3A900E60283 /* StudyRecordView.swift */,
 				L20004 /* StudyTimerView.swift */,
+				L20010 /* StudyTimerCardView.swift */,
+				L20011 /* StudySubjectPicker.swift */,
+				L20012 /* StudyWeeklyGoalCard.swift */,
+				L20013 /* StudyTodayTimelineView.swift */,
 				L20007 /* WeeklyStudyRecordSection.swift */,
 			);
 			path = Study;
@@ -820,6 +832,10 @@
 				L10002 /* StudyService.swift in Sources */,
 				L10003 /* StudyTimerViewModel.swift in Sources */,
 				L10004 /* StudyTimerView.swift in Sources */,
+				L10010 /* StudyTimerCardView.swift in Sources */,
+				L10011 /* StudySubjectPicker.swift in Sources */,
+				L10012 /* StudyWeeklyGoalCard.swift in Sources */,
+				L10013 /* StudyTodayTimelineView.swift in Sources */,
 				L10005 /* StudyTimerAttributes.swift in Sources */,
 				L10006 /* StudyRecordViewModel.swift in Sources */,
 				L10007 /* WeeklyStudyRecordSection.swift in Sources */,
