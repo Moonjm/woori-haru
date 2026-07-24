@@ -116,6 +116,13 @@
 			remoteGlobalIDString = 880AD4652F5F071100777742;
 			remoteInfo = StudyTimerWidgetExtension;
 		};
+		TT100006 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A80001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A50001;
+			remoteInfo = WooriHaru;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -232,6 +239,7 @@
 		S20009 /* StorageType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageType.swift; sourceTree = "<group>"; };
 		S20010 /* ItemCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItemCategory.swift; sourceTree = "<group>"; };
 		S20011 /* ItemCategoryPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItemCategoryPickerView.swift; sourceTree = "<group>"; };
+		TT100002 /* WooriHaruTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WooriHaruTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -246,6 +254,7 @@
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		880AD46C2F5F071200777742 /* StudyTimerWidget */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (880AD4802F5F071300777742 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = StudyTimerWidget; sourceTree = "<group>"; };
+		TT100001 /* WooriHaruTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = WooriHaruTests; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -259,6 +268,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		A30001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		TT100004 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -300,6 +316,7 @@
 			children = (
 				A40002 /* WooriHaru */,
 				880AD46C2F5F071200777742 /* StudyTimerWidget */,
+				TT100001 /* WooriHaruTests */,
 				880AD4672F5F071100777742 /* Frameworks */,
 				A40003 /* Products */,
 			);
@@ -329,6 +346,7 @@
 			children = (
 				A20005 /* WooriHaru.app */,
 				880AD4662F5F071100777742 /* StudyTimerWidgetExtension.appex */,
+				TT100002 /* WooriHaruTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -610,6 +628,28 @@
 			productReference = A20005 /* WooriHaru.app */;
 			productType = "com.apple.product-type.application";
 		};
+		TT100005 /* WooriHaruTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = TT100008 /* Build configuration list for PBXNativeTarget "WooriHaruTests" */;
+			buildPhases = (
+				TT100003 /* Sources */,
+				TT100004 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				TT100007 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				TT100001 /* WooriHaruTests */,
+			);
+			name = WooriHaruTests;
+			packageProductDependencies = (
+			);
+			productName = WooriHaruTests;
+			productReference = TT100002 /* WooriHaruTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -625,6 +665,10 @@
 					};
 					A50001 = {
 						CreatedOnToolsVersion = 16.0;
+					};
+					TT100005 = {
+						CreatedOnToolsVersion = 26.6;
+						TestTargetID = A50001;
 					};
 				};
 			};
@@ -646,6 +690,7 @@
 			targets = (
 				A50001 /* WooriHaru */,
 				880AD4652F5F071100777742 /* StudyTimerWidgetExtension */,
+				TT100005 /* WooriHaruTests */,
 			);
 		};
 /* End PBXProject section */
@@ -778,6 +823,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		TT100003 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -785,6 +837,11 @@
 			isa = PBXTargetDependency;
 			target = 880AD4652F5F071100777742 /* StudyTimerWidgetExtension */;
 			targetProxy = 880AD47A2F5F071300777742 /* PBXContainerItemProxy */;
+		};
+		TT100007 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A50001 /* WooriHaru */;
+			targetProxy = TT100006 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -1034,6 +1091,42 @@
 			};
 			name = Release;
 		};
+		TT100009 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.woori.haru.WooriHaruTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/WooriHaru.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/WooriHaru";
+			};
+			name = Debug;
+		};
+		TT100010 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.woori.haru.WooriHaruTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/WooriHaru.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/WooriHaru";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1060,6 +1153,15 @@
 			buildConfigurations = (
 				A90001 /* Debug */,
 				A90002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		TT100008 /* Build configuration list for PBXNativeTarget "WooriHaruTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				TT100009 /* Debug */,
+				TT100010 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

@@ -260,7 +260,8 @@ final class CalendarViewModel {
     // MARK: - Private Helpers
 
     /// Builds the grid of DayCells for a given month start date.
-    private func buildMonthData(_ startOfMonth: Date) -> MonthData {
+    /// internal — 단위 테스트에서 그리드 생성 규칙을 직접 검증한다.
+    func buildMonthData(_ startOfMonth: Date) -> MonthData {
         let year = startOfMonth.year
         let month = startOfMonth.month
         let id = startOfMonth.yearMonth
