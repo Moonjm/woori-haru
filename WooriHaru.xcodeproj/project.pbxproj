@@ -53,6 +53,7 @@
 		LG10009 /* LedgerStatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20009 /* LedgerStatsView.swift */; };
 		LG10010 /* LedgerSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20010 /* LedgerSearchView.swift */; };
 		LG10011 /* LedgerInboundFailuresView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20011 /* LedgerInboundFailuresView.swift */; };
+		MC10001 /* MembershipCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = MC20001 /* MembershipCardView.swift */; };
 		D10007 /* HolidayService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20007 /* HolidayService.swift */; };
 		E10001 /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20001 /* AuthViewModel.swift */; };
 		E10002 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20002 /* LoginView.swift */; };
@@ -177,6 +178,7 @@
 		LG20009 /* LedgerStatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerStatsView.swift; sourceTree = "<group>"; };
 		LG20010 /* LedgerSearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerSearchView.swift; sourceTree = "<group>"; };
 		LG20011 /* LedgerInboundFailuresView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerInboundFailuresView.swift; sourceTree = "<group>"; };
+		MC20001 /* MembershipCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MembershipCardView.swift; sourceTree = "<group>"; };
 		D20007 /* HolidayService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HolidayService.swift; sourceTree = "<group>"; };
 		E20001 /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
 		E20002 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
@@ -277,6 +279,7 @@
 			isa = PBXGroup;
 			children = (
 				8825C7512F5B148A00E46B14 /* ProfileView.swift */,
+				MC20001 /* MembershipCardView.swift */,
 			);
 			path = Profile;
 			sourceTree = "<group>";
@@ -706,6 +709,7 @@
 				LG10009 /* LedgerStatsView.swift in Sources */,
 				LG10010 /* LedgerSearchView.swift in Sources */,
 				LG10011 /* LedgerInboundFailuresView.swift in Sources */,
+				MC10001 /* MembershipCardView.swift in Sources */,
 				B10001 /* DDayBadgeService.swift in Sources */,
 				D10007 /* HolidayService.swift in Sources */,
 				E10001 /* AuthViewModel.swift in Sources */,
