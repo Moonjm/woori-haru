@@ -2,7 +2,6 @@ import CoreImage.CIFilterBuiltins
 import SwiftUI
 
 /// 회원카드 바코드 시트 — 사용자 정보에 저장된 번호로 Code 128 바코드를 생성해 표시한다.
-/// 스캐너가 읽기 쉽도록 표시 중에는 화면 밝기를 최대로 올렸다가 닫히면 복원한다.
 struct MembershipCardView: View {
     @Environment(AuthViewModel.self) private var authVM
     @Environment(\.dismiss) private var dismiss
@@ -10,7 +9,6 @@ struct MembershipCardView: View {
     @State private var numberInput = ""
     @State private var isSaving = false
     @State private var errorMessage: String?
-    @State private var savedBrightness: CGFloat = 1
 
     private var barcodeNumber: String? {
         guard let value = authVM.user?.membershipBarcode, !value.isEmpty else { return nil }
@@ -45,20 +43,6 @@ struct MembershipCardView: View {
                 }
             }
         }
-        .onAppear {
-            guard let screen = Self.activeScreen else { return }
-            savedBrightness = screen.brightness
-            screen.brightness = 1
-        }
-        .onDisappear {
-            Self.activeScreen?.brightness = savedBrightness
-        }
-    }
-
-    /// UIScreen.main이 iOS 26에서 deprecated라 포그라운드 윈도우 씬에서 스크린을 찾는다.
-    private static var activeScreen: UIScreen? {
-        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
-        return (scenes.first { $0.activationState == .foregroundActive } ?? scenes.first)?.screen
     }
 
     // MARK: - 바코드 표시
