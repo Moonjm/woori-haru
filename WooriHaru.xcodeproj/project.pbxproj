@@ -21,6 +21,7 @@
 		88DD96ED2F61B3A900E60283 /* StudyRecordView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88DD96EC2F61B3A900E60283 /* StudyRecordView.swift */; };
 		A10001 /* WooriHaruApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20001 /* WooriHaruApp.swift */; };
 		A10002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20002 /* ContentView.swift */; };
+		QA10001 /* QuickActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = QA20001 /* QuickActions.swift */; };
 		A10003 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20003 /* Assets.xcassets */; };
 		A10004 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20004 /* Preview Assets.xcassets */; };
 		AA100001 /* PairStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200001 /* PairStore.swift */; };
@@ -145,6 +146,7 @@
 		88DD96EC2F61B3A900E60283 /* StudyRecordView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyRecordView.swift; sourceTree = "<group>"; };
 		A20001 /* WooriHaruApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WooriHaruApp.swift; sourceTree = "<group>"; };
 		A20002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		QA20001 /* QuickActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActions.swift; sourceTree = "<group>"; };
 		A20003 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A20004 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		A20005 /* WooriHaru.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WooriHaru.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -309,6 +311,7 @@
 				88C2E2B22F557CCD001249F8 /* Info.plist */,
 				A20001 /* WooriHaruApp.swift */,
 				A20002 /* ContentView.swift */,
+				QA20001 /* QuickActions.swift */,
 				B40001 /* Models */,
 				B40002 /* Services */,
 				AA400001 /* Stores */,
@@ -682,6 +685,7 @@
 			files = (
 				A10002 /* ContentView.swift in Sources */,
 				A10001 /* WooriHaruApp.swift in Sources */,
+				QA10001 /* QuickActions.swift in Sources */,
 				C10001 /* User.swift in Sources */,
 				C10002 /* Category.swift in Sources */,
 				C10003 /* DailyRecord.swift in Sources */,
