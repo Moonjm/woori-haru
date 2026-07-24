@@ -46,12 +46,19 @@ struct MembershipCardView: View {
             }
         }
         .onAppear {
-            savedBrightness = UIScreen.main.brightness
-            UIScreen.main.brightness = 1
+            guard let screen = Self.activeScreen else { return }
+            savedBrightness = screen.brightness
+            screen.brightness = 1
         }
         .onDisappear {
-            UIScreen.main.brightness = savedBrightness
+            Self.activeScreen?.brightness = savedBrightness
         }
+    }
+
+    /// UIScreen.main이 iOS 26에서 deprecated라 포그라운드 윈도우 씬에서 스크린을 찾는다.
+    private static var activeScreen: UIScreen? {
+        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+        return (scenes.first { $0.activationState == .foregroundActive } ?? scenes.first)?.screen
     }
 
     // MARK: - 바코드 표시
