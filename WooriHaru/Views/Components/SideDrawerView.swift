@@ -7,6 +7,7 @@ struct SideDrawerView: View {
     var dragOffset: CGFloat = 0
     @Environment(AuthViewModel.self) private var authVM
     @State private var showLogoutConfirm = false
+    @State private var showMembershipCard = false
 
     private var revealedWidth: CGFloat {
         if isOpen { return Self.width }
@@ -78,6 +79,7 @@ struct SideDrawerView: View {
             VStack(spacing: 0) {
                 drawerItem(icon: "person.2", label: "커플") { isOpen = false; navPath.append(AppDestination.pair) }
                 drawerItem(icon: "chart.bar", label: "통계") { isOpen = false; navPath.append(AppDestination.stats) }
+                drawerItem(icon: "refrigerator", label: "보관함 관리") { isOpen = false; navPath.append(AppDestination.storage) }
                 drawerItem(icon: "person.circle", label: "내 정보") { isOpen = false; navPath.append(AppDestination.profile) }
 
                 if authVM.user?.authority == .admin {
@@ -91,13 +93,16 @@ struct SideDrawerView: View {
             Divider()
 
             HStack(spacing: 0) {
-                shortcutItem(icon: "refrigerator", label: "보관함 관리") { isOpen = false; navPath.append(AppDestination.storage) }
+                shortcutItem(icon: "barcode", label: "회원카드") { isOpen = false; showMembershipCard = true }
                 shortcutItem(icon: "wonsign.circle", label: "가계부") { isOpen = false; navPath.append(AppDestination.ledger) }
                 shortcutItem(icon: "timer", label: "공부 타이머") { isOpen = false; navPath.append(AppDestination.studyTimer) }
             }
             .padding(.horizontal, 8)
             .padding(.top, 10)
             .padding(.bottom, 6)
+        }
+        .sheet(isPresented: $showMembershipCard) {
+            MembershipCardView()
         }
     }
 

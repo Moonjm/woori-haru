@@ -15,6 +15,7 @@ class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
 
 @main
 struct WooriHaruApp: App {
+    @UIApplicationDelegateAdaptor(QuickActionAppDelegate.self) private var appDelegate
     @State private var authVM = AuthViewModel()
     @State private var studyTimerVM = StudyTimerViewModel()
     @State private var pairStore = PairStore()
