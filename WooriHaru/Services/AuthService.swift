@@ -27,8 +27,8 @@ struct AuthService: Sendable {
     }
 
     func updateMe(_ request: UpdateMeRequest) async throws -> User {
-        let response: DataResponse<User> = try await api.patch("/users/me", body: request)
-        guard let user = response.data else { throw APIError.unauthorized }
-        return user
+        // 서버가 204(빈 응답)를 주므로 응답 디코드 없이 저장 후 내 정보를 다시 조회한다.
+        try await api.patchVoid("/users/me", body: request)
+        return try await fetchMe()
     }
 }

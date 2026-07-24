@@ -25,6 +25,8 @@ struct ContentView: View {
     @Environment(SubjectStore.self) private var subjectStore
     @Environment(PauseTypeStore.self) private var pauseTypeStore
     @State private var path = NavigationPath()
+    @State private var quickActionCenter = QuickActionCenter.shared
+    @State private var showMembershipCard = false
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -49,12 +51,35 @@ struct ContentView: View {
                     }
                 }
         }
+        .sheet(isPresented: $showMembershipCard) {
+            MembershipCardView()
+        }
+        .onAppear { consumeQuickAction() }
+        .onChange(of: quickActionCenter.pending) { consumeQuickAction() }
         .task {
             async let pair: () = loadStore { try await pairStore.loadStatus() }
             async let categories: () = loadStore { try await categoryStore.load() }
             async let subjects: () = loadStore { try await subjectStore.load() }
             async let pauseTypes: () = loadStore { try await pauseTypeStore.load() }
             _ = await (pair, categories, subjects, pauseTypes)
+        }
+    }
+
+    /// 홈 화면 퀵 액션 처리 — 화면 어디에 있든 대상 화면으로 바로 이동한다.
+    private func consumeQuickAction() {
+        guard let action = quickActionCenter.pending else { return }
+        quickActionCenter.pending = nil
+        switch action {
+        case .membershipCard:
+            showMembershipCard = true
+        case .ledger:
+            showMembershipCard = false
+            path = NavigationPath()
+            path.append(AppDestination.ledger)
+        case .studyTimer:
+            showMembershipCard = false
+            path = NavigationPath()
+            path.append(AppDestination.studyTimer)
         }
     }
 
