@@ -119,12 +119,16 @@ private struct SwimWorkoutRow: View {
                     Text(workout.dayText)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Color.slate900)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
 
-                    Spacer()
+                    Spacer(minLength: 8)
 
                     Text(workout.timeRangeText)
                         .font(.caption)
                         .foregroundStyle(Color.slate500)
+                        .lineLimit(1)
+                        .fixedSize()
                 }
 
                 HStack(spacing: 16) {

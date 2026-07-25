@@ -101,6 +101,7 @@ final class HealthKitService: SwimWorkoutFetching {
         switch type {
         case .pool: return .pool
         case .openWater: return .openWater
+        case .unknown: return .unknown
         @unknown default: return .unknown
         }
     }

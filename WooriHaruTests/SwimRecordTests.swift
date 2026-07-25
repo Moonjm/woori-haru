@@ -77,6 +77,12 @@ struct SwimWorkoutFormatTests {
         #expect(makeWorkout(location: .unknown, laneLength: nil).locationText == "수영")
     }
 
+    @Test func 날짜에_연도가_포함된다() {
+        // 실행 환경 타임존에 좌우되지 않도록 현재 달력으로 날짜를 만든다
+        let date = Calendar.current.date(from: DateComponents(year: 2026, month: 7, day: 25, hour: 9))!
+        #expect(makeWorkout(start: date).dayText == "2026년 7월 25일 (토)")
+    }
+
     @Test func 칼로리_스트로크_표기() {
         #expect(makeWorkout(energy: 320).energyText == "320kcal")
         #expect(makeWorkout(strokes: 1240).strokeText == "1,240회")

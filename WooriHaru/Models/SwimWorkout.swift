@@ -44,7 +44,7 @@ extension SwimWorkout {
     private static let dayFormatter: DateFormatter = {
         let f = DateFormatter()
         f.locale = Locale(identifier: "ko_KR")
-        f.dateFormat = "M월 d일 (E)"
+        f.dateFormat = "yyyy년 M월 d일 (E)"
         return f
     }()
 
