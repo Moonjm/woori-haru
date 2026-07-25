@@ -105,6 +105,19 @@ extension Date {
 
 // MARK: - Duration Formatting
 
+extension TimeInterval {
+    /// 초를 "1:52" 형태로 변환. 1시간을 넘으면 "1:02:03".
+    /// 분·초가 중요한 운동 기록 표기에 쓴다.
+    var clockText: String {
+        let total = Int(rounded())
+        let h = total / 3600
+        let m = (total % 3600) / 60
+        let s = total % 60
+        if h > 0 { return String(format: "%d:%02d:%02d", h, m, s) }
+        return String(format: "%d:%02d", m, s)
+    }
+}
+
 extension Int {
     /// 초를 "X시간 Y분" / "Y분" / "1분 미만"으로 변환
     var durationText: String {
