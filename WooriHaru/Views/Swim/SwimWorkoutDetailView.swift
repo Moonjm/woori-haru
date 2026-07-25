@@ -1,13 +1,10 @@
 import SwiftUI
 
-/// 수영 기록 1건의 상세. 전체 요약과 50m·100m 구간 기록을 보여준다.
+/// 수영 기록 1건의 상세. 요약·운동 강도·영법별 거리와 자동 세트를 보여준다.
 struct SwimWorkoutDetailView: View {
     let workout: SwimWorkout
     let service: SwimWorkoutFetching
-    @State private var splitUnit: Double = 100
     @State private var effortScore: Double?
-
-    private var splits: [SwimSplit] { workout.splits(every: splitUnit) }
 
     var body: some View {
         ScrollView {
@@ -18,8 +15,6 @@ struct SwimWorkoutDetailView: View {
                 if workout.hasLapData {
                     strokeBreakdownCard
                     autoSetsCard
-                    splitsSection
-                    rawLapCard
                 } else {
                     noLapDataCard
                 }
@@ -172,7 +167,7 @@ struct SwimWorkoutDetailView: View {
     private var autoSetsCard: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: 12) {
-                sectionHeader("자동 세트", note: "턴 포함 · 실제 기록")
+                sectionHeader("자동 세트", note: "턴 포함")
 
                 ForEach(workout.sets) { set in
                     VStack(alignment: .leading, spacing: 3) {
@@ -226,148 +221,16 @@ struct SwimWorkoutDetailView: View {
         }
     }
 
-    // MARK: - Splits
-
-    private var splitsSection: some View {
-        VStack(spacing: 12) {
-            splitUnitPicker
-            splitsCard
-        }
-    }
-
-    private var splitUnitPicker: some View {
-        Picker("구간 단위", selection: $splitUnit) {
-            ForEach(SwimWorkout.splitOptions, id: \.self) { unit in
-                Text("\(Int(unit))m").tag(unit)
-            }
-        }
-        .pickerStyle(.segmented)
-    }
-
-    private var splitsCard: some View {
-        GlassCard {
-            VStack(spacing: 0) {
-                sectionHeader("구간", note: "턴 제외 · 순수 수영 시간")
-                    .padding(.bottom, 10)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                splitHeader
-
-                ForEach(splits) { split in
-                    Divider().padding(.vertical, 2)
-                    splitRow(split)
-                }
-            }
-        }
-    }
-
-    private var splitHeader: some View {
-        HStack {
-            Text("구간")
-                .frame(width: 64, alignment: .leading)
-            Text("기록")
-                .frame(width: 64, alignment: .trailing)
-            Spacer()
-            Text("페이스")
-        }
-        .font(.caption2)
-        .foregroundStyle(Color.slate400)
-        .padding(.bottom, 4)
-    }
-
-    private func splitRow(_ split: SwimSplit) -> some View {
-        HStack {
-            Text(split.distanceText)
-                .font(.caption.weight(.medium))
-                .foregroundStyle(Color.slate700)
-                .frame(width: 64, alignment: .leading)
-
-            Text(split.durationText)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Color.slate900)
-                .frame(width: 64, alignment: .trailing)
-
-            Spacer()
-
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(split.paceText)
-                    .font(.caption)
-                    .foregroundStyle(Color.slate600)
-                if split.strokeStyle != .unknown {
-                    Text(split.strokeStyle.label)
-                        .font(.caption2)
-                        .foregroundStyle(Color.slate400)
-                }
-            }
-        }
-        .padding(.vertical, 6)
-    }
-
-    // MARK: - Raw Laps (진단용)
-
-    /// 워치가 준 랩 데이터를 가공 없이 보여준다. 피트니스 앱 자동 세트와 시간이
-    /// 어긋나는 원인을 찾기 위한 임시 섹션 — 원인 확인 후 걷어낸다.
-    private var rawLapCard: some View {
-        GlassCard {
-            DisclosureGroup {
-                VStack(alignment: .leading, spacing: 8) {
-                    diagnosticRow("랩 개수", "\(workout.laps.count)개")
-                    diagnosticRow("랩 거리 합", "\(Int(workout.lapsTotalDistance.rounded()))m")
-                    diagnosticRow("워크아웃 총 거리", workout.distanceText ?? "-")
-                    diagnosticRow("랩 시간 합", SwimSplit.clockText(workout.lapsTotalDuration))
-                    diagnosticRow("워크아웃 총 시간", SwimSplit.clockText(workout.duration))
-                    diagnosticRow(
-                        "시작~종료 경과",
-                        SwimSplit.clockText(workout.endDate.timeIntervalSince(workout.startDate))
-                    )
-
-                    Divider().padding(.vertical, 4)
-
-                    ForEach(workout.laps) { lap in
-                        HStack {
-                            Text("#\(lap.id + 1)")
-                                .frame(width: 40, alignment: .leading)
-                            Text("+\(SwimSplit.clockText(lap.startDate.timeIntervalSince(workout.startDate)))")
-                                .frame(width: 64, alignment: .leading)
-                            Text(SwimSplit.clockText(lap.duration))
-                                .frame(width: 56, alignment: .trailing)
-                            Spacer()
-                            Text(lap.strokeStyle.label)
-                        }
-                        .font(.caption2.monospacedDigit())
-                        .foregroundStyle(Color.slate600)
-                    }
-                }
-                .padding(.top, 8)
-            } label: {
-                Text("랩 원본 (진단용)")
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(Color.slate500)
-            }
-        }
-    }
-
-    private func diagnosticRow(_ label: String, _ value: String) -> some View {
-        HStack {
-            Text(label)
-                .foregroundStyle(Color.slate500)
-            Spacer()
-            Text(value)
-                .foregroundStyle(Color.slate900)
-        }
-        .font(.caption.monospacedDigit())
-    }
-
     // MARK: - No Lap Data
 
     private var noLapDataCard: some View {
         GlassCard(alignment: .center) {
             VStack(spacing: 8) {
-                Text("구간 기록이 없습니다")
+                Text("세트 기록이 없습니다")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Color.slate700)
                 // 개방 수역은 턴이 없어 랩이 남지 않고, 수영장이어도 레인 길이가 없으면 거리를 못 나눈다.
-                Text("개방 수역에서 기록했거나 레인 길이 정보가 없으면 구간을 나눌 수 없습니다.")
+                Text("개방 수역에서 기록했거나 레인 길이 정보가 없으면 세트를 나눌 수 없습니다.")
                     .font(.caption)
                     .foregroundStyle(Color.slate500)
                     .multilineTextAlignment(.center)

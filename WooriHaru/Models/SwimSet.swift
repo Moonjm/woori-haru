@@ -17,9 +17,9 @@ struct SwimSet: Identifiable, Hashable {
     }
 
     var distanceText: String { "\(Int(distanceMeters.rounded()))m" }
-    var durationText: String { SwimSplit.clockText(duration) }
-    var paceText: String { "\(SwimSplit.clockText(pacePer100m))/100m" }
-    var restText: String? { restDuration.map { SwimSplit.clockText($0) } }
+    var durationText: String { duration.clockText }
+    var paceText: String { "\(pacePer100m.clockText)/100m" }
+    var restText: String? { restDuration?.clockText }
 }
 
 // MARK: - Set Detection
