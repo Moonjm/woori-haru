@@ -37,21 +37,6 @@ final class SwimRecordViewModel {
     /// 한 건도 못 불러온 채 실패한 상태. 다시 시도 안내를 띄운다.
     var showsFailureState: Bool { loadFailed && workouts.isEmpty }
 
-    // MARK: - Summary
-
-    var totalCount: Int { workouts.count }
-
-    var totalDistanceText: String? {
-        let total = workouts.compactMap(\.distanceMeters).reduce(0, +)
-        guard total > 0 else { return nil }
-        if total >= 1000 { return String(format: "%.1fkm", total / 1000) }
-        return "\(Int(total.rounded()))m"
-    }
-
-    var totalDurationText: String {
-        Int(workouts.reduce(0) { $0 + $1.duration }).durationText
-    }
-
     // MARK: - Load
 
     /// 화면 진입용. 상세에서 돌아올 때마다 다시 읽으면 목록이 첫 페이지로 줄어들어

@@ -7,10 +7,6 @@ struct SwimRecordListView: View {
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 12) {
-                if !vm.workouts.isEmpty {
-                    summaryCard
-                }
-
                 ForEach(vm.workouts) { workout in
                     NavigationLink(value: workout) {
                         SwimWorkoutRow(workout: workout)
@@ -57,41 +53,6 @@ struct SwimRecordListView: View {
         } message: {
             Text(vm.errorMessage ?? "")
         }
-    }
-
-    // MARK: - Summary
-
-    private var summaryCard: some View {
-        GlassCard {
-            VStack(spacing: 10) {
-                HStack(spacing: 0) {
-                    summaryItem(label: "횟수", value: "\(vm.totalCount)회")
-                    Divider().frame(height: 32)
-                    summaryItem(label: "총 거리", value: vm.totalDistanceText ?? "-")
-                    Divider().frame(height: 32)
-                    summaryItem(label: "총 시간", value: vm.totalDurationText)
-                }
-
-                // 스크롤할수록 숫자가 커지므로 어디까지의 합인지 밝혀 둔다.
-                if vm.canLoadMore {
-                    Text("지금까지 불러온 기록 기준")
-                        .font(.caption2)
-                        .foregroundStyle(Color.slate400)
-                }
-            }
-        }
-    }
-
-    private func summaryItem(label: String, value: String) -> some View {
-        VStack(spacing: 4) {
-            Text(value)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Color.slate900)
-            Text(label)
-                .font(.caption2)
-                .foregroundStyle(Color.slate500)
-        }
-        .frame(maxWidth: .infinity)
     }
 
     // MARK: - Failure State

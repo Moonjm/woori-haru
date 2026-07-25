@@ -300,7 +300,7 @@ struct SwimSetTests {
 
 @MainActor
 struct SwimRecordViewModelTests {
-    @Test func 로딩_성공시_목록과_요약이_채워진다() async {
+    @Test func 로딩_성공시_목록이_채워진다() async {
         let fetcher = FakeSwimFetcher(workouts: [
             makeWorkout(duration: 1800, distance: 1200),
             makeWorkout(duration: 1200, distance: 800)
@@ -310,9 +310,6 @@ struct SwimRecordViewModelTests {
         await vm.load()
 
         #expect(vm.workouts.count == 2)
-        #expect(vm.totalCount == 2)
-        #expect(vm.totalDistanceText == "2.0km")
-        #expect(vm.totalDurationText == "50분")
         #expect(vm.isLoading == false)
         #expect(vm.errorMessage == nil)
         #expect(vm.showsEmptyState == false)
@@ -332,7 +329,6 @@ struct SwimRecordViewModelTests {
 
         #expect(vm.workouts.isEmpty)
         #expect(vm.showsEmptyState == true)
-        #expect(vm.totalDistanceText == nil)
     }
 
     @Test func 실패시_에러메시지가_설정되고_빈_상태는_뜨지_않는다() async {

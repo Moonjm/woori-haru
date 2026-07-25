@@ -21,7 +21,7 @@ HealthKit 읽기 권한에는 기간 제한이 없어, 앱 설치 이전 기록�
 | Model | `Models/SwimSet.swift` | 휴식 기준 세트 판정 |
 | Service | `Services/HealthKitService.swift` | `SwimWorkoutFetching` 프로토콜 + `HKHealthStore` 구현 |
 | ViewModel | `ViewModels/SwimRecordViewModel.swift` | 로딩/에러/빈 상태, 합계 요약 |
-| View | `Views/Swim/SwimRecordListView.swift` | 요약 카드 + 목록 + 빈 상태 안내 |
+| View | `Views/Swim/SwimRecordListView.swift` | 목록 + 빈 상태·실패 안내 |
 | View | `Views/Swim/SwimWorkoutDetailView.swift` | 기록 1건 상세 — 요약·운동 강도·영법별 거리·자동 세트 |
 
 기존 파일 수정:
@@ -131,5 +131,6 @@ HealthKit 자체 동작은 시뮬레이터에 건강 데이터가 없어 자동�
 조회 실패는 `loadFailed`로 따로 들고 있는다. 에러 알림을 닫으면 `errorMessage`가 지워지는데,
 이걸 빈 상태 판정에 쓰면 실패가 "기록 없음"으로 잘못 보인다.
 
-목록 요약(횟수·총 거리·총 시간)은 **불러온 기록까지의 합**이다. 스크롤할수록 숫자가 커지므로
-더 읽을 게 남아 있는 동안에는 요약 카드에 그 사실을 밝혀 둔다.
+목록 상단에 합계 요약은 두지 않는다. 페이징에서는 스크롤할수록 숫자가 커져 무엇의 합인지
+알 수 없고, 각 행에 이미 거리와 시간이 있어 정보가 겹친다. 기간이 고정된 통계가 필요해지면
+그때 별도로 만든다.
