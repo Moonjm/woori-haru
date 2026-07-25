@@ -11,6 +11,36 @@ struct SwimLap: Identifiable, Hashable {
     let strokeStyle: SwimStrokeStyle
 }
 
+extension SwimLap {
+    /// 랩 이벤트 하나의 원본 값. HealthKit 타입에 묶이지 않게 떼어 둔다.
+    struct Event {
+        let start: Date
+        let duration: TimeInterval
+        let stroke: SwimStrokeStyle
+    }
+
+    /// 랩 이벤트를 SwimLap 배열로 만든다.
+    ///
+    /// 길이 0인 마커가 하나라도 섞여 있으면 아무것도 만들지 않는다. 마커만으로는
+    /// 헤엄친 시간과 벽에서 쉰 시간을 나눌 수 없고, 다음 마커까지를 소요 시간으로
+    /// 메우면 랩 사이 공백이 전부 0이 되어 세트가 하나로 뭉개진다.
+    /// 틀린 기록을 보여주느니 세트를 접는 편이 낫다.
+    static func build(from events: [Event], lapLength: Double) -> [SwimLap] {
+        guard lapLength > 0, !events.isEmpty else { return [] }
+        guard events.allSatisfy({ $0.duration > 0 }) else { return [] }
+
+        return events.indices.map { index in
+            SwimLap(
+                id: index,
+                startDate: events[index].start,
+                duration: events[index].duration,
+                distanceMeters: lapLength,
+                strokeStyle: events[index].stroke
+            )
+        }
+    }
+}
+
 enum SwimStrokeStyle: Int, Hashable {
     case unknown = 0
     case mixed = 1

@@ -177,6 +177,50 @@ struct StrokeBreakdownTests {
     }
 }
 
+// MARK: - Lap Building
+
+struct SwimLapBuildTests {
+    private let start = Date(timeIntervalSince1970: 1_753_400_000)
+
+    private func event(offset: TimeInterval, duration: TimeInterval) -> SwimLap.Event {
+        SwimLap.Event(
+            start: start.addingTimeInterval(offset),
+            duration: duration,
+            stroke: .freestyle
+        )
+    }
+
+    @Test func 정상_랩은_그대로_만들어진다() {
+        let laps = SwimLap.build(
+            from: [event(offset: 0, duration: 60), event(offset: 65, duration: 62)],
+            lapLength: 50
+        )
+
+        #expect(laps.count == 2)
+        #expect(laps[0].duration == 60)
+        #expect(laps[1].distanceMeters == 50)
+    }
+
+    /// 길이 0인 마커를 다음 마커까지로 메우면 랩 사이 공백이 0이 되어
+    /// 세트가 전부 하나로 뭉개진다. 그래서 아예 만들지 않는다.
+    @Test func 길이_0인_마커가_섞이면_랩을_만들지_않는다() {
+        let laps = SwimLap.build(
+            from: [event(offset: 0, duration: 60), event(offset: 200, duration: 0)],
+            lapLength: 50
+        )
+
+        #expect(laps.isEmpty)
+    }
+
+    @Test func 레인_길이를_모르면_랩을_만들지_않는다() {
+        #expect(SwimLap.build(from: [event(offset: 0, duration: 60)], lapLength: 0).isEmpty)
+    }
+
+    @Test func 이벤트가_없으면_빈_배열() {
+        #expect(SwimLap.build(from: [], lapLength: 50).isEmpty)
+    }
+}
+
 // MARK: - Auto Sets
 
 struct SwimSetTests {
@@ -300,7 +344,35 @@ struct SwimRecordViewModelTests {
 
         #expect(vm.errorMessage == "이 기기에서는 건강 데이터를 사용할 수 없습니다.")
         #expect(vm.showsEmptyState == false)
+        #expect(vm.showsFailureState == true)
         #expect(vm.isLoading == false)
+    }
+
+    @Test func 알림을_닫아도_실패가_기록없음으로_바뀌지_않는다() async {
+        let vm = SwimRecordViewModel(
+            service: FakeSwimFetcher(errorToThrow: SwimWorkoutError.healthDataUnavailable)
+        )
+
+        await vm.load()
+        vm.errorMessage = nil // 사용자가 알림을 닫은 상황
+
+        #expect(vm.showsEmptyState == false)
+        #expect(vm.showsFailureState == true)
+    }
+
+    @Test func 재진입해도_목록을_다시_읽지_않는다() async {
+        let fetcher = FakeSwimFetcher(workouts: makePage(count: 10))
+        let vm = SwimRecordViewModel(service: fetcher, pageSize: 3)
+
+        await vm.loadIfNeeded()
+        await vm.loadMoreIfNeeded(currentItem: vm.workouts[2])
+        #expect(vm.workouts.count == 6)
+
+        // 상세에서 돌아와 화면이 다시 나타난 상황
+        await vm.loadIfNeeded()
+
+        #expect(vm.workouts.count == 6) // 첫 페이지로 줄어들지 않는다
+        #expect(fetcher.calls.count == 2)
     }
 
     // MARK: - Paging

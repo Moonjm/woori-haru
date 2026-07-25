@@ -27,6 +27,10 @@ struct SwimRecordListView: View {
                 if vm.showsEmptyState {
                     emptyState
                 }
+
+                if vm.showsFailureState {
+                    failureState
+                }
             }
             .padding(.horizontal, 16)
             .padding(.top, 8)
@@ -44,7 +48,7 @@ struct SwimRecordListView: View {
             }
         }
         .refreshable { await vm.load() }
-        .task { await vm.load() }
+        .task { await vm.loadIfNeeded() }
         .alert("오류", isPresented: .init(
             get: { vm.errorMessage != nil },
             set: { if !$0 { vm.errorMessage = nil } }
@@ -88,6 +92,30 @@ struct SwimRecordListView: View {
                 .foregroundStyle(Color.slate500)
         }
         .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - Failure State
+
+    /// 조회 자체가 실패한 경우. 알림을 닫아도 "기록 없음"으로 오인되지 않게 따로 띄운다.
+    private var failureState: some View {
+        GlassCard(alignment: .center) {
+            VStack(spacing: 12) {
+                Image(systemName: "exclamationmark.triangle")
+                    .font(.largeTitle)
+                    .foregroundStyle(Color.slate400)
+
+                Text("기록을 불러오지 못했습니다")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.slate700)
+
+                Button("다시 시도") {
+                    Task { await vm.load() }
+                }
+                .font(.caption.weight(.medium))
+                .foregroundStyle(Color.blue500)
+            }
+            .padding(.vertical, 12)
+        }
     }
 
     // MARK: - Empty State

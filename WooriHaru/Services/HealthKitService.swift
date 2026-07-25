@@ -150,32 +150,17 @@ final class HealthKitService: SwimWorkoutFetching {
     /// 수영장 기록의 lap 이벤트를 SwimLap으로 옮긴다.
     /// 레인 길이를 모르면 구간 거리를 계산할 수 없어 랩을 만들지 않는다.
     private static func laps(of workout: HKWorkout, lapLength: Double?) -> [SwimLap] {
-        guard let lapLength, lapLength > 0 else { return [] }
-        let events = (workout.workoutEvents ?? []).filter { $0.type == .lap }
-        guard !events.isEmpty else { return [] }
-
-        return events.indices.map { index in
-            let event = events[index]
-            let next = index + 1 < events.count ? events[index + 1] : nil
-            return SwimLap(
-                id: index,
-                startDate: event.dateInterval.start,
-                duration: lapDuration(event, next: next, workoutEnd: workout.endDate),
-                distanceMeters: lapLength,
-                strokeStyle: strokeStyle(of: event)
-            )
-        }
-    }
-
-    /// lap 이벤트가 길이 0인 마커로 오는 경우가 있어, 그럴 땐 다음 랩 시작까지를 소요 시간으로 본다.
-    private static func lapDuration(
-        _ event: HKWorkoutEvent,
-        next: HKWorkoutEvent?,
-        workoutEnd: Date
-    ) -> TimeInterval {
-        if event.dateInterval.duration > 0 { return event.dateInterval.duration }
-        let end = next?.dateInterval.start ?? workoutEnd
-        return max(0, end.timeIntervalSince(event.dateInterval.start))
+        guard let lapLength else { return [] }
+        let events = (workout.workoutEvents ?? [])
+            .filter { $0.type == .lap }
+            .map { event in
+                SwimLap.Event(
+                    start: event.dateInterval.start,
+                    duration: event.dateInterval.duration,
+                    stroke: strokeStyle(of: event)
+                )
+            }
+        return SwimLap.build(from: events, lapLength: lapLength)
     }
 
     private static func strokeStyle(of event: HKWorkoutEvent) -> SwimStrokeStyle {

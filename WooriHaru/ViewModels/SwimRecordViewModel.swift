@@ -11,7 +11,13 @@ final class SwimRecordViewModel {
     private(set) var hasLoaded = false
     /// 마지막 페이지가 꽉 차서 왔으면 더 있을 수 있다고 본다.
     private(set) var canLoadMore = true
+    /// 마지막 조회가 실패했는지. 알림을 닫아도 남아 있어야 "기록 없음"으로 오인되지 않는다.
+    private(set) var loadFailed = false
     var errorMessage: String?
+
+    /// 진행 중인 조회를 무효화하는 표식. 새로고침이 끼어들면 값을 올려
+    /// 뒤늦게 돌아온 이전 결과를 버린다.
+    private var generation = 0
 
     /// 상세 화면이 강도를 따로 조회할 수 있도록 노출한다.
     let service: SwimWorkoutFetching
@@ -25,7 +31,11 @@ final class SwimRecordViewModel {
     var isHealthDataAvailable: Bool { service.isHealthDataAvailable }
 
     /// 권한 거부와 데이터 없음은 HealthKit이 구분해 주지 않아 같은 빈 상태로 다룬다.
-    var showsEmptyState: Bool { hasLoaded && workouts.isEmpty && errorMessage == nil }
+    /// 조회가 실패한 경우는 여기서 빼야 알림을 닫았을 때 "기록 없음"으로 잘못 보이지 않는다.
+    var showsEmptyState: Bool { hasLoaded && workouts.isEmpty && !loadFailed }
+
+    /// 한 건도 못 불러온 채 실패한 상태. 다시 시도 안내를 띄운다.
+    var showsFailureState: Bool { loadFailed && workouts.isEmpty }
 
     // MARK: - Summary
 
@@ -44,18 +54,34 @@ final class SwimRecordViewModel {
 
     // MARK: - Load
 
-    /// 처음부터 다시 읽는다. 화면 진입과 당겨서 새로고침에 쓴다.
+    /// 화면 진입용. 상세에서 돌아올 때마다 다시 읽으면 목록이 첫 페이지로 줄어들어
+    /// 스크롤 위치가 콘텐츠 밖을 가리키게 되므로, 최초 한 번만 읽는다.
+    func loadIfNeeded() async {
+        guard !hasLoaded else { return }
+        await load()
+    }
+
+    /// 처음부터 다시 읽는다. 당겨서 새로고침에 쓴다.
     func load() async {
         guard !isLoading else { return }
+        generation += 1
+        let token = generation
         isLoading = true
+        // 진행 중이던 페이지 로딩은 토큰이 어긋나 결과가 버려진다.
+        isLoadingMore = false
         errorMessage = nil
+        loadFailed = false
+
         do {
             try await service.requestAuthorization()
             let page = try await service.fetchSwimWorkouts(limit: pageSize, before: nil)
+            guard token == generation else { return }
             workouts = page
             canLoadMore = page.count == pageSize
         } catch {
+            guard token == generation else { return }
             errorMessage = error.localizedDescription
+            loadFailed = true
             canLoadMore = false
         }
         hasLoaded = true
@@ -68,17 +94,22 @@ final class SwimRecordViewModel {
         guard currentItem.id == workouts.last?.id else { return }
         guard let cursor = workouts.last?.startDate else { return }
 
+        let token = generation
         isLoadingMore = true
         do {
             let page = try await service.fetchSwimWorkouts(limit: pageSize, before: cursor)
+            // 기다리는 사이 새로고침이 끼어들었으면 이 결과는 이미 낡았다.
+            guard token == generation else { return }
             // 커서와 시작 시각이 같은 기록이 끼어들어도 중복으로 쌓이지 않게 거른다.
             let known = Set(workouts.map(\.id))
             workouts.append(contentsOf: page.filter { !known.contains($0.id) })
             canLoadMore = page.count == pageSize
         } catch {
+            guard token == generation else { return }
             errorMessage = error.localizedDescription
             canLoadMore = false
         }
+        guard token == generation else { return }
         isLoadingMore = false
     }
 }
