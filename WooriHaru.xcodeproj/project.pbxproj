@@ -113,6 +113,7 @@
 		SW10004 /* SwimRecordListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SW20004 /* SwimRecordListView.swift */; };
 		SW10005 /* SwimLap.swift in Sources */ = {isa = PBXBuildFile; fileRef = SW20005 /* SwimLap.swift */; };
 		SW10006 /* SwimWorkoutDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SW20006 /* SwimWorkoutDetailView.swift */; };
+		SW10007 /* SwimSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = SW20007 /* SwimSet.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -253,6 +254,7 @@
 		SW20004 /* SwimRecordListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwimRecordListView.swift; sourceTree = "<group>"; };
 		SW20005 /* SwimLap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwimLap.swift; sourceTree = "<group>"; };
 		SW20006 /* SwimWorkoutDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwimWorkoutDetailView.swift; sourceTree = "<group>"; };
+		SW20007 /* SwimSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwimSet.swift; sourceTree = "<group>"; };
 		SW30001 /* WooriHaru.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = WooriHaru.entitlements; sourceTree = "<group>"; };
 		TT100002 /* WooriHaruTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WooriHaruTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -402,6 +404,7 @@
 				LG20001 /* LedgerModels.swift */,
 				SW20001 /* SwimWorkout.swift */,
 				SW20005 /* SwimLap.swift */,
+				SW20007 /* SwimSet.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -850,6 +853,7 @@
 				SW10004 /* SwimRecordListView.swift in Sources */,
 				SW10005 /* SwimLap.swift in Sources */,
 				SW10006 /* SwimWorkoutDetailView.swift in Sources */,
+				SW10007 /* SwimSet.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

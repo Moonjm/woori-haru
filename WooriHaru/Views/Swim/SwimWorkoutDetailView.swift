@@ -17,8 +17,8 @@ struct SwimWorkoutDetailView: View {
 
                 if workout.hasLapData {
                     strokeBreakdownCard
-                    splitUnitPicker
-                    splitsCard
+                    autoSetsCard
+                    splitsSection
                     rawLapCard
                 } else {
                     noLapDataCard
@@ -166,7 +166,74 @@ struct SwimWorkoutDetailView: View {
         .frame(maxWidth: .infinity)
     }
 
+    // MARK: - Auto Sets
+
+    /// 쉬는 구간으로 나눈 세트. 턴 시간이 포함된 실제 기록이라 피트니스 앱 표기와 같은 기준이다.
+    private var autoSetsCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 12) {
+                sectionHeader("자동 세트", note: "턴 포함 · 실제 기록")
+
+                ForEach(workout.sets) { set in
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack(spacing: 8) {
+                            Text("\(set.id)")
+                                .font(.caption2)
+                                .foregroundStyle(Color.slate400)
+                                .frame(width: 16, alignment: .leading)
+                            Text(set.strokeStyle.label)
+                                .font(.caption)
+                                .foregroundStyle(Color.slate600)
+                            Spacer()
+                            Text(set.distanceText)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(Color.slate900)
+                            Text(set.paceText)
+                                .font(.caption2)
+                                .foregroundStyle(Color.slate400)
+                                .frame(width: 76, alignment: .trailing)
+                        }
+
+                        HStack(spacing: 10) {
+                            Text("수영 \(set.durationText)")
+                                .foregroundStyle(Color.slate700)
+                            if let restText = set.restText {
+                                Text("휴식 \(restText)")
+                                    .foregroundStyle(Color.slate400)
+                            }
+                        }
+                        .font(.caption2.monospacedDigit())
+                        .padding(.leading, 24)
+                    }
+                    .padding(.vertical, 4)
+
+                    if set.id != workout.sets.count {
+                        Divider()
+                    }
+                }
+            }
+        }
+    }
+
+    private func sectionHeader(_ title: String, note: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Text(title)
+                .font(.caption.weight(.medium))
+                .foregroundStyle(Color.slate500)
+            Text(note)
+                .font(.caption2)
+                .foregroundStyle(Color.slate400)
+        }
+    }
+
     // MARK: - Splits
+
+    private var splitsSection: some View {
+        VStack(spacing: 12) {
+            splitUnitPicker
+            splitsCard
+        }
+    }
 
     private var splitUnitPicker: some View {
         Picker("구간 단위", selection: $splitUnit) {
@@ -180,6 +247,10 @@ struct SwimWorkoutDetailView: View {
     private var splitsCard: some View {
         GlassCard {
             VStack(spacing: 0) {
+                sectionHeader("구간", note: "턴 제외 · 순수 수영 시간")
+                    .padding(.bottom, 10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
                 splitHeader
 
                 ForEach(splits) { split in

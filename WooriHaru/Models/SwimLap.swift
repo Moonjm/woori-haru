@@ -144,8 +144,8 @@ extension SwimWorkout {
     /// 랩 거리의 합. 워크아웃 총 거리와 다르면 레인 길이나 랩 개수 해석이 틀린 것이다.
     var lapsTotalDistance: Double { laps.reduce(0) { $0 + $1.distanceMeters } }
 
-    /// 구간 안에서 가장 많이 쓰인 영법. 종류가 섞이면 혼영으로 본다.
-    private static func dominantStroke(_ strokes: [SwimStrokeStyle]) -> SwimStrokeStyle {
+    /// 구간·세트 안에서 가장 많이 쓰인 영법. 종류가 섞이면 혼영으로 본다.
+    static func dominantStroke(_ strokes: [SwimStrokeStyle]) -> SwimStrokeStyle {
         let meaningful = strokes.filter { $0 != .unknown }
         guard let first = meaningful.first else { return .unknown }
         guard meaningful.allSatisfy({ $0 == first }) else { return .mixed }

@@ -215,6 +215,81 @@ struct SwimSplitTests {
     }
 }
 
+// MARK: - Auto Sets
+
+struct SwimSetTests {
+    /// 2026-07-25 실제 워치 기록의 앞부분 12랩 (50m 레인).
+    /// (워크아웃 시작 후 경과 초, 소요 초) — 진단 화면에서 그대로 옮겼다.
+    private static let realLaps: [(offset: TimeInterval, duration: TimeInterval)] = [
+        (44, 66), (113, 68), (188, 66), (258, 69),
+        (466, 61), (533, 65),
+        (761, 63), (830, 64),
+        (1014, 62), (1077, 72),
+        (1336, 57),
+        (1470, 62)
+    ]
+
+    private func realWorkout() -> SwimWorkout {
+        let start = Date(timeIntervalSince1970: 1_753_400_000)
+        let laps = Self.realLaps.indices.map { index in
+            SwimLap(
+                id: index,
+                startDate: start.addingTimeInterval(Self.realLaps[index].offset),
+                duration: Self.realLaps[index].duration,
+                distanceMeters: 50,
+                strokeStyle: .freestyle
+            )
+        }
+        return makeWorkout(start: start, laneLength: 50, laps: laps)
+    }
+
+    @Test func 실제_기록의_세트_구분이_피트니스와_같다() {
+        let sets = realWorkout().sets
+
+        #expect(sets.count == 6)
+        #expect(sets.map(\.distanceText) == ["200m", "100m", "100m", "100m", "50m", "50m"])
+    }
+
+    @Test func 실제_기록의_휴식_시간이_피트니스와_일치한다() {
+        let sets = realWorkout().sets
+
+        // 피트니스 표시: 2:19 / 2:42 / 2:00 / 3:06 / 1:17 / (마지막 없음)
+        #expect(sets.map(\.restText) == ["2:19", "2:43", "2:00", "3:07", "1:17", nil])
+    }
+
+    @Test func 세트_시간은_턴을_포함해_랩_합보다_길다() {
+        let sets = realWorkout().sets
+
+        // 세트2 = 랩 2개(61초 + 65초 = 2:06), 사이 턴 6초 → 2:12
+        #expect(sets[1].durationText == "2:12")
+        #expect(sets[1].paceText == "2:12/100m")
+
+        // 세트5는 랩 1개라 턴이 없어 랩 시간 그대로
+        #expect(sets[4].durationText == "0:57")
+    }
+
+    @Test func 마지막_세트는_휴식이_없다() {
+        #expect(realWorkout().sets.last?.restDuration == nil)
+    }
+
+    @Test func 턴_정도의_짧은_공백은_세트를_나누지_않는다() {
+        let start = Date(timeIntervalSince1970: 1_753_400_000)
+        // 랩 사이 공백 5초 — 턴으로 본다
+        let laps = [
+            SwimLap(id: 0, startDate: start, duration: 60, distanceMeters: 50, strokeStyle: .freestyle),
+            SwimLap(id: 1, startDate: start.addingTimeInterval(65), duration: 60, distanceMeters: 50, strokeStyle: .freestyle)
+        ]
+        let sets = makeWorkout(laneLength: 50, laps: laps).sets
+
+        #expect(sets.count == 1)
+        #expect(sets[0].distanceText == "100m")
+    }
+
+    @Test func 랩이_없으면_세트도_없다() {
+        #expect(makeWorkout(laps: []).sets.isEmpty)
+    }
+}
+
 // MARK: - ViewModel
 
 @MainActor
