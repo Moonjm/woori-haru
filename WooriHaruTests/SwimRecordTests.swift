@@ -9,7 +9,7 @@ private final class FakeSwimFetcher: SwimWorkoutFetching {
     /// 최신순으로 정렬된 전체 기록. 커서·limit에 맞춰 잘라서 돌려준다.
     var workouts: [SwimWorkout]
     var errorToThrow: Error?
-    private(set) var calls: [(limit: Int, before: Date?)] = []
+    private(set) var calls: [(limit: Int, cursor: Date?)] = []
 
     init(isHealthDataAvailable: Bool = true, workouts: [SwimWorkout] = [], errorToThrow: Error? = nil) {
         self.isHealthDataAvailable = isHealthDataAvailable
@@ -21,11 +21,12 @@ private final class FakeSwimFetcher: SwimWorkoutFetching {
         if let errorToThrow { throw errorToThrow }
     }
 
-    func fetchSwimWorkouts(limit: Int, before: Date?) async throws -> [SwimWorkout] {
-        calls.append((limit, before))
+    func fetchSwimWorkouts(limit: Int, startingAtOrBefore: Date?) async throws -> [SwimWorkout] {
+        calls.append((limit, startingAtOrBefore))
         if let errorToThrow { throw errorToThrow }
-        let candidates = before.map { cursor in
-            workouts.filter { $0.startDate < cursor }
+        // 실제 구현과 같이 경계를 포함한다.
+        let candidates = startingAtOrBefore.map { cursor in
+            workouts.filter { $0.startDate <= cursor }
         } ?? workouts
         return Array(candidates.prefix(limit))
     }
@@ -36,6 +37,11 @@ private final class FakeSwimFetcher: SwimWorkoutFetching {
         if let errorToThrow { throw errorToThrow }
         return effortScore
     }
+}
+
+/// 재시도할 값어치가 있는 일반 오류. 미지원 기기와 구분하려고 따로 둔다.
+private struct RetryableError: LocalizedError {
+    var errorDescription: String? { "일시적인 오류입니다." }
 }
 
 private func makeWorkout(
@@ -316,7 +322,7 @@ struct SwimRecordViewModelTests {
         // 첫 페이지는 커서 없이 요청한다
         #expect(fetcher.calls.count == 1)
         #expect(fetcher.calls[0].limit == 30)
-        #expect(fetcher.calls[0].before == nil)
+        #expect(fetcher.calls[0].cursor == nil)
         // 한 페이지를 못 채웠으니 더 없다고 본다
         #expect(vm.canLoadMore == false)
     }
@@ -332,22 +338,18 @@ struct SwimRecordViewModelTests {
     }
 
     @Test func 실패시_에러메시지가_설정되고_빈_상태는_뜨지_않는다() async {
-        let vm = SwimRecordViewModel(
-            service: FakeSwimFetcher(errorToThrow: SwimWorkoutError.healthDataUnavailable)
-        )
+        let vm = SwimRecordViewModel(service: FakeSwimFetcher(errorToThrow: RetryableError()))
 
         await vm.load()
 
-        #expect(vm.errorMessage == "이 기기에서는 건강 데이터를 사용할 수 없습니다.")
+        #expect(vm.errorMessage == "일시적인 오류입니다.")
         #expect(vm.showsEmptyState == false)
         #expect(vm.showsFailureState == true)
         #expect(vm.isLoading == false)
     }
 
     @Test func 알림을_닫아도_실패가_기록없음으로_바뀌지_않는다() async {
-        let vm = SwimRecordViewModel(
-            service: FakeSwimFetcher(errorToThrow: SwimWorkoutError.healthDataUnavailable)
-        )
+        let vm = SwimRecordViewModel(service: FakeSwimFetcher(errorToThrow: RetryableError()))
 
         await vm.load()
         vm.errorMessage = nil // 사용자가 알림을 닫은 상황
@@ -400,9 +402,11 @@ struct SwimRecordViewModelTests {
 
         #expect(vm.workouts.count == 6)
         #expect(vm.workouts.map(\.id) == all.prefix(6).map(\.id))
-        // 두 번째 요청은 직전 마지막 기록의 시작 시각을 커서로 쓴다
+        // 두 번째 요청은 직전 마지막 기록의 시작 시각을 커서로 쓴다.
+        // 경계를 포함하므로 그 기록 한 건이 다시 딸려 오고, 그만큼 limit을 키운다.
         #expect(fetcher.calls.count == 2)
-        #expect(fetcher.calls[1].before == all[2].startDate)
+        #expect(fetcher.calls[1].cursor == all[2].startDate)
+        #expect(fetcher.calls[1].limit == 4)
     }
 
     @Test func 마지막_항목이_아니면_불러오지_않는다() async {
@@ -429,6 +433,68 @@ struct SwimRecordViewModelTests {
         // 더 없다고 판단한 뒤에는 호출 자체를 하지 않는다
         await vm.loadMoreIfNeeded(currentItem: vm.workouts[4])
         #expect(fetcher.calls.count == 2)
+    }
+
+    @Test func 시작_시각이_같은_기록이_페이지_경계에_걸려도_빠지지_않는다() async {
+        // t0 / t1 세 건 / t2 / t3 — 경계(3건)가 t1 무리 한가운데를 자른다
+        let base = Date(timeIntervalSince1970: 1_753_400_000)
+        let t1 = base.addingTimeInterval(-100)
+        let all = [
+            makeWorkout(start: base),
+            makeWorkout(start: t1),
+            makeWorkout(start: t1),
+            makeWorkout(start: t1),
+            makeWorkout(start: base.addingTimeInterval(-200)),
+            makeWorkout(start: base.addingTimeInterval(-300))
+        ]
+        let fetcher = FakeSwimFetcher(workouts: all)
+        let vm = SwimRecordViewModel(service: fetcher, pageSize: 3)
+
+        await vm.load()
+        #expect(vm.workouts.count == 3)
+
+        await vm.loadMoreIfNeeded(currentItem: vm.workouts[2])
+
+        // 경계에 걸린 세 번째 t1 기록이 살아남아야 한다
+        #expect(vm.workouts.count == 6)
+        #expect(Set(vm.workouts.map(\.id)) == Set(all.map(\.id)))
+        // 이미 읽은 t1 두 건만큼 limit을 키워 새 기록 3건을 확보한다
+        #expect(fetcher.calls[1].limit == 5)
+    }
+
+    @Test func 같은_시각_기록만_있어도_진행이_멈추지_않는다() async {
+        // 모든 기록의 시작 시각이 같은 극단적인 경우
+        let sameTime = Date(timeIntervalSince1970: 1_753_400_000)
+        let all = (0..<7).map { _ in makeWorkout(start: sameTime) }
+        let fetcher = FakeSwimFetcher(workouts: all)
+        let vm = SwimRecordViewModel(service: fetcher, pageSize: 3)
+
+        await vm.load()
+        var guardCount = 0
+        while vm.canLoadMore && guardCount < 10 {
+            await vm.loadMoreIfNeeded(currentItem: vm.workouts[vm.workouts.count - 1])
+            guardCount += 1
+        }
+
+        #expect(vm.workouts.count == 7)
+        #expect(vm.canLoadMore == false)
+        #expect(guardCount < 10) // 같은 페이지를 무한히 다시 받지 않는다
+    }
+
+    @Test func 건강데이터_미지원이면_실패가_아니라_빈_상태다() async {
+        let fetcher = FakeSwimFetcher(
+            isHealthDataAvailable: false,
+            errorToThrow: SwimWorkoutError.healthDataUnavailable
+        )
+        let vm = SwimRecordViewModel(service: fetcher)
+
+        await vm.load()
+
+        // 재시도해도 달라지지 않으므로 "다시 시도" 대신 전용 안내로 보낸다
+        #expect(vm.showsFailureState == false)
+        #expect(vm.showsEmptyState == true)
+        #expect(vm.errorMessage == nil)
+        #expect(vm.isHealthDataAvailable == false)
     }
 
     @Test func 새로고침하면_처음부터_다시_읽는다() async {

@@ -17,8 +17,11 @@ protocol SwimWorkoutFetching {
     var isHealthDataAvailable: Bool { get }
     func requestAuthorization() async throws
     /// 수영 워크아웃을 최신순으로 최대 `limit`건 반환.
-    /// `before`를 주면 그 시각보다 이전에 시작한 기록만 가져온다 (페이징 커서).
-    func fetchSwimWorkouts(limit: Int, before: Date?) async throws -> [SwimWorkout]
+    ///
+    /// `startingAtOrBefore`를 주면 그 시각 **이하**에 시작한 기록만 가져온다.
+    /// 경계를 포함하는 이유는, 시작 시각이 같은 기록이 페이지 경계에 걸렸을 때
+    /// 뒤쪽 기록이 통째로 빠지는 걸 막기 위해서다. 이미 본 기록은 호출 쪽에서 거른다.
+    func fetchSwimWorkouts(limit: Int, startingAtOrBefore: Date?) async throws -> [SwimWorkout]
     /// 운동 강도(1~10). 목록 로딩을 무겁게 하지 않으려고 상세 화면에서 따로 조회한다.
     func fetchEffortScore(workoutID: UUID) async throws -> Double?
 }
@@ -46,14 +49,16 @@ final class HealthKitService: SwimWorkoutFetching {
         try await store.requestAuthorization(toShare: [], read: readTypes)
     }
 
-    func fetchSwimWorkouts(limit: Int, before: Date?) async throws -> [SwimWorkout] {
+    func fetchSwimWorkouts(limit: Int, startingAtOrBefore: Date?) async throws -> [SwimWorkout] {
         guard isHealthDataAvailable else { throw SwimWorkoutError.healthDataUnavailable }
 
         // 기간 상한을 두지 않아 건강 앱에 남아 있는 전체 이력이 대상이 된다.
-        // before가 있으면 그보다 이전 기록만 잘라내 다음 페이지를 만든다.
+        // 커서가 있으면 시작 시각이 그 이하인 기록만 남겨 다음 페이지를 만든다.
         var predicates = [HKQuery.predicateForWorkouts(with: .swimming)]
-        if let before {
-            predicates.append(HKQuery.predicateForSamples(withStart: nil, end: before))
+        if let startingAtOrBefore {
+            predicates.append(NSPredicate(
+                format: "%K <= %@", HKPredicateKeyPathStartDate, startingAtOrBefore as NSDate
+            ))
         }
         let predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
         let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
