@@ -18,6 +18,8 @@ protocol SwimWorkoutFetching {
     func requestAuthorization() async throws
     /// 전 기간의 수영 워크아웃을 최신순으로 최대 `limit`건 반환
     func fetchSwimWorkouts(limit: Int) async throws -> [SwimWorkout]
+    /// 운동 강도(1~10). 목록 로딩을 무겁게 하지 않으려고 상세 화면에서 따로 조회한다.
+    func fetchEffortScore(workoutID: UUID) async throws -> Double?
 }
 
 /// 건강 앱에 동기화된 애플워치 수영 기록을 읽어온다. 읽기 전용 — 쓰기 권한은 요청하지 않는다.
@@ -31,7 +33,10 @@ final class HealthKitService: SwimWorkoutFetching {
             HKObjectType.workoutType(),
             HKQuantityType(.distanceSwimming),
             HKQuantityType(.activeEnergyBurned),
-            HKQuantityType(.swimmingStrokeCount)
+            HKQuantityType(.swimmingStrokeCount),
+            HKQuantityType(.heartRate),
+            HKQuantityType(.workoutEffortScore),
+            HKQuantityType(.estimatedWorkoutEffortScore)
         ]
     }
 
@@ -47,12 +52,55 @@ final class HealthKitService: SwimWorkoutFetching {
         let predicate = HKQuery.predicateForWorkouts(with: .swimming)
         let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
 
-        let samples: [HKSample] = try await withCheckedThrowingContinuation { continuation in
+        let found = try await samples(
+            type: .workoutType(),
+            predicate: predicate,
+            limit: limit,
+            sortDescriptors: [sort]
+        )
+
+        return found.compactMap { $0 as? HKWorkout }.map(Self.makeSwimWorkout)
+    }
+
+    func fetchEffortScore(workoutID: UUID) async throws -> Double? {
+        guard isHealthDataAvailable else { throw SwimWorkoutError.healthDataUnavailable }
+
+        let found = try await samples(
+            type: .workoutType(),
+            predicate: HKQuery.predicateForObject(with: workoutID),
+            limit: 1
+        )
+        guard let workout = found.first as? HKWorkout else { return nil }
+
+        // 사용자가 직접 매긴 강도가 있으면 그걸 쓰고, 없으면 워치 추정값으로 넘어간다.
+        let related = HKQuery.predicateForWorkoutEffortSamplesRelated(workout: workout, activity: nil)
+        for identifier in [HKQuantityTypeIdentifier.workoutEffortScore, .estimatedWorkoutEffortScore] {
+            let scores = try await samples(
+                type: HKQuantityType(identifier),
+                predicate: related,
+                limit: 1
+            )
+            if let quantity = (scores.first as? HKQuantitySample)?.quantity {
+                return quantity.doubleValue(for: .appleEffortScore())
+            }
+        }
+        return nil
+    }
+
+    // MARK: - Query
+
+    private func samples(
+        type: HKSampleType,
+        predicate: NSPredicate?,
+        limit: Int,
+        sortDescriptors: [NSSortDescriptor]? = nil
+    ) async throws -> [HKSample] {
+        try await withCheckedThrowingContinuation { continuation in
             let query = HKSampleQuery(
-                sampleType: .workoutType(),
+                sampleType: type,
                 predicate: predicate,
                 limit: limit,
-                sortDescriptors: [sort]
+                sortDescriptors: sortDescriptors
             ) { _, samples, error in
                 if let error {
                     continuation.resume(throwing: error)
@@ -62,8 +110,6 @@ final class HealthKitService: SwimWorkoutFetching {
             }
             store.execute(query)
         }
-
-        return samples.compactMap { $0 as? HKWorkout }.map(Self.makeSwimWorkout)
     }
 
     // MARK: - Mapping
@@ -79,9 +125,20 @@ final class HealthKitService: SwimWorkoutFetching {
             activeEnergyKcal: sum(workout, .activeEnergyBurned, unit: .kilocalorie()),
             strokeCount: sum(workout, .swimmingStrokeCount, unit: .count()).map { Int($0.rounded()) },
             location: location(of: workout),
+            averageHeartRate: heartRate(workout) { $0.averageQuantity() },
+            maxHeartRate: heartRate(workout) { $0.maximumQuantity() },
             laneLengthMeters: lapLength,
             laps: laps(of: workout, lapLength: lapLength)
         )
+    }
+
+    private static func heartRate(
+        _ workout: HKWorkout,
+        _ pick: (HKStatistics) -> HKQuantity?
+    ) -> Double? {
+        guard let stats = workout.statistics(for: HKQuantityType(.heartRate)),
+              let quantity = pick(stats) else { return nil }
+        return quantity.doubleValue(for: .count().unitDivided(by: .minute()))
     }
 
     /// 수영장 기록의 lap 이벤트를 SwimLap으로 옮긴다.

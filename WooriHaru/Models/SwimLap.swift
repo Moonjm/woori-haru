@@ -50,6 +50,24 @@ struct SwimSplit: Identifiable, Hashable {
     }
 }
 
+/// 영법별 거리 집계 결과
+struct StrokeBreakdown: Identifiable, Hashable {
+    var id: SwimStrokeStyle { style }
+    let style: SwimStrokeStyle
+    let meters: Double
+    let duration: TimeInterval
+    /// 가장 많이 한 영법 대비 비율 (0~1). 막대 길이에 쓴다.
+    let ratio: Double
+
+    var metersText: String { "\(Int(meters.rounded()))m" }
+
+    /// 100m 환산 페이스
+    var paceText: String {
+        guard meters > 0 else { return "-" }
+        return "\(SwimSplit.clockText(duration / meters * 100))/100m"
+    }
+}
+
 // MARK: - Splitting
 
 extension SwimWorkout {
@@ -95,6 +113,36 @@ extension SwimWorkout {
 
         return result
     }
+
+    /// 영법별 거리·시간 집계. 많이 한 순서로 정렬하고, 비율은 최대값 대비로 낸다.
+    var strokeBreakdown: [StrokeBreakdown] {
+        var totals: [SwimStrokeStyle: (meters: Double, duration: TimeInterval)] = [:]
+        for lap in laps {
+            let existing = totals[lap.strokeStyle] ?? (0, 0)
+            totals[lap.strokeStyle] = (
+                existing.meters + lap.distanceMeters,
+                existing.duration + lap.duration
+            )
+        }
+        let maxMeters = max(totals.values.map(\.meters).max() ?? 0, 1)
+        return totals
+            .map { style, value in
+                StrokeBreakdown(
+                    style: style,
+                    meters: value.meters,
+                    duration: value.duration,
+                    ratio: value.meters / maxMeters
+                )
+            }
+            .sorted { $0.meters > $1.meters }
+    }
+
+    /// 랩 소요 시간의 합. 워크아웃 전체 시간과 얼마나 벌어지는지 보면
+    /// 벽에서 쉰 시간이 랩에 포함됐는지 아닌지를 알 수 있다.
+    var lapsTotalDuration: TimeInterval { laps.reduce(0) { $0 + $1.duration } }
+
+    /// 랩 거리의 합. 워크아웃 총 거리와 다르면 레인 길이나 랩 개수 해석이 틀린 것이다.
+    var lapsTotalDistance: Double { laps.reduce(0) { $0 + $1.distanceMeters } }
 
     /// 구간 안에서 가장 많이 쓰인 영법. 종류가 섞이면 혼영으로 본다.
     private static func dominantStroke(_ strokes: [SwimStrokeStyle]) -> SwimStrokeStyle {

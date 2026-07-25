@@ -34,6 +34,8 @@ struct SwimWorkout: Identifiable, Hashable {
     let activeEnergyKcal: Double?
     let strokeCount: Int?
     let location: Location
+    let averageHeartRate: Double?
+    let maxHeartRate: Double?
     /// 레인 길이(m). 수영장 기록에만 들어온다.
     let laneLengthMeters: Double?
     /// 레인 한 바퀴 단위 기록. 개방 수역이거나 워치가 랩을 남기지 않았으면 비어 있다.
@@ -93,6 +95,16 @@ extension SwimWorkout {
     var strokeText: String? {
         guard let strokeCount, strokeCount > 0 else { return nil }
         return "\(Self.decimalText(Double(strokeCount)))회"
+    }
+
+    var averageHeartRateText: String? {
+        guard let averageHeartRate, averageHeartRate > 0 else { return nil }
+        return "\(Int(averageHeartRate.rounded()))bpm"
+    }
+
+    var maxHeartRateText: String? {
+        guard let maxHeartRate, maxHeartRate > 0 else { return nil }
+        return "\(Int(maxHeartRate.rounded()))bpm"
     }
 
     /// "수영장 · 25m" 처럼 장소와 레인 길이를 합친 부제

@@ -10,7 +10,8 @@ final class SwimRecordViewModel {
     private(set) var hasLoaded = false
     var errorMessage: String?
 
-    private let service: SwimWorkoutFetching
+    /// 상세 화면이 강도를 따로 조회할 수 있도록 노출한다.
+    let service: SwimWorkoutFetching
     private let limit: Int
 
     init(service: SwimWorkoutFetching = HealthKitService(), limit: Int = 100) {

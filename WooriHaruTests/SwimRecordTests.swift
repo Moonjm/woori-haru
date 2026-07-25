@@ -25,6 +25,13 @@ private final class FakeSwimFetcher: SwimWorkoutFetching {
         if let errorToThrow { throw errorToThrow }
         return workouts
     }
+
+    var effortScore: Double?
+
+    func fetchEffortScore(workoutID: UUID) async throws -> Double? {
+        if let errorToThrow { throw errorToThrow }
+        return effortScore
+    }
 }
 
 private func makeWorkout(
@@ -35,7 +42,9 @@ private func makeWorkout(
     strokes: Int? = 1240,
     location: SwimWorkout.Location = .pool,
     laneLength: Double? = 25,
-    laps: [SwimLap] = []
+    laps: [SwimLap] = [],
+    averageHeartRate: Double? = nil,
+    maxHeartRate: Double? = nil
 ) -> SwimWorkout {
     SwimWorkout(
         id: UUID(),
@@ -46,6 +55,8 @@ private func makeWorkout(
         activeEnergyKcal: energy,
         strokeCount: strokes,
         location: location,
+        averageHeartRate: averageHeartRate,
+        maxHeartRate: maxHeartRate,
         laneLengthMeters: laneLength,
         laps: laps
     )
@@ -172,6 +183,29 @@ struct SwimSplitTests {
             durations: [30, 30], strokes: [.backstroke, .backstroke]
         ))
         #expect(single.splits(every: 50)[0].strokeStyle == .backstroke)
+    }
+
+    @Test func 영법별_거리를_많이_한_순서로_집계한다() {
+        // 자유형 4랩(100m), 평영 2랩(50m)
+        let workout = makeWorkout(laps: makeLaps(
+            durations: [30, 30, 40, 40, 30, 30],
+            strokes: [.breaststroke, .breaststroke, .freestyle, .freestyle, .freestyle, .freestyle]
+        ))
+        let breakdown = workout.strokeBreakdown
+
+        #expect(breakdown.count == 2)
+        #expect(breakdown[0].style == .freestyle)
+        #expect(breakdown[0].metersText == "100m")
+        #expect(breakdown[0].ratio == 1)
+        #expect(breakdown[1].style == .breaststroke)
+        #expect(breakdown[1].metersText == "50m")
+        #expect(breakdown[1].ratio == 0.5)
+    }
+
+    @Test func 영법별_페이스는_100m_환산이다() {
+        // 자유형 2랩 50m를 70초 → 100m 환산 2:20
+        let workout = makeWorkout(laps: makeLaps(durations: [35, 35]))
+        #expect(workout.strokeBreakdown[0].paceText == "2:20/100m")
     }
 
     @Test func 시간_표기는_1시간을_넘으면_시까지_쓴다() {

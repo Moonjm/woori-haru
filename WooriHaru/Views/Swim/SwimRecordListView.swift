@@ -29,7 +29,9 @@ struct SwimRecordListView: View {
         .glassScreenBackground()
         .navigationTitle("수영 기록")
         .navigationBarTitleDisplayMode(.inline)
-        .navigationDestination(for: SwimWorkout.self) { SwimWorkoutDetailView(workout: $0) }
+        .navigationDestination(for: SwimWorkout.self) {
+            SwimWorkoutDetailView(workout: $0, service: vm.service)
+        }
         .overlay {
             if vm.isLoading && vm.workouts.isEmpty {
                 ProgressView()
