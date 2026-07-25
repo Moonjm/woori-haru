@@ -21,7 +21,6 @@
 		88DD96ED2F61B3A900E60283 /* StudyRecordView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88DD96EC2F61B3A900E60283 /* StudyRecordView.swift */; };
 		A10001 /* WooriHaruApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20001 /* WooriHaruApp.swift */; };
 		A10002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20002 /* ContentView.swift */; };
-		QA10001 /* QuickActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = QA20001 /* QuickActions.swift */; };
 		A10003 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20003 /* Assets.xcassets */; };
 		A10004 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20004 /* Preview Assets.xcassets */; };
 		AA100001 /* PairStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200001 /* PairStore.swift */; };
@@ -30,6 +29,7 @@
 		AA100004 /* PauseTypeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200004 /* PauseTypeStore.swift */; };
 		AA100005 /* Logger+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200005 /* Logger+Extensions.swift */; };
 		AA100006 /* SessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200006 /* SessionManager.swift */; };
+		B10001 /* DDayBadgeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20001 /* DDayBadgeService.swift */; };
 		C10001 /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20001 /* User.swift */; };
 		C10002 /* Category.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20002 /* Category.swift */; };
 		C10003 /* DailyRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20003 /* DailyRecord.swift */; };
@@ -43,18 +43,6 @@
 		D10004 /* CategoryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20004 /* CategoryService.swift */; };
 		D10005 /* PairService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20005 /* PairService.swift */; };
 		D10006 /* PairEventService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20006 /* PairEventService.swift */; };
-		LG10001 /* LedgerModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20001 /* LedgerModels.swift */; };
-		LG10002 /* LedgerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20002 /* LedgerService.swift */; };
-		LG10003 /* LedgerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20003 /* LedgerViewModel.swift */; };
-		LG10004 /* LedgerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20004 /* LedgerView.swift */; };
-		LG10005 /* LedgerEntryFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20005 /* LedgerEntryFormView.swift */; };
-		LG10006 /* LedgerEntryDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20006 /* LedgerEntryDetailView.swift */; };
-		LG10007 /* LedgerRecurringView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20007 /* LedgerRecurringView.swift */; };
-		LG10008 /* LedgerApiKeysView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20008 /* LedgerApiKeysView.swift */; };
-		LG10009 /* LedgerStatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20009 /* LedgerStatsView.swift */; };
-		LG10010 /* LedgerSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20010 /* LedgerSearchView.swift */; };
-		LG10011 /* LedgerInboundFailuresView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20011 /* LedgerInboundFailuresView.swift */; };
-		MC10001 /* MembershipCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = MC20001 /* MembershipCardView.swift */; };
 		D10007 /* HolidayService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20007 /* HolidayService.swift */; };
 		E10001 /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20001 /* AuthViewModel.swift */; };
 		E10002 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20002 /* LoginView.swift */; };
@@ -67,19 +55,19 @@
 		F10002 /* Color+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20002 /* Color+Extensions.swift */; };
 		G10001 /* WeekdayHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = G20001 /* WeekdayHeaderView.swift */; };
 		G10002 /* DayCellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = G20002 /* DayCellView.swift */; };
-		MPS10001 /* MonthPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = MPS20001 /* MonthPickerSheet.swift */; };
 		G10003 /* CalendarHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = G20003 /* CalendarHeaderView.swift */; };
+		GLS10001 /* GlassTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = GLS20001 /* GlassTokens.swift */; };
+		GLS10002 /* GlassCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = GLS20002 /* GlassCard.swift */; };
+		GLS10003 /* GlassButtonStyles.swift in Sources */ = {isa = PBXBuildFile; fileRef = GLS20003 /* GlassButtonStyles.swift */; };
+		GLS10004 /* GlassBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = GLS20004 /* GlassBackground.swift */; };
 		H10001 /* OvereatSelectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = H20001 /* OvereatSelectorView.swift */; };
 		H10002 /* RecordListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = H20002 /* RecordListView.swift */; };
 		H10003 /* RecordFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = H20003 /* RecordFormView.swift */; };
 		H10004 /* RecordSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = H20004 /* RecordSheetView.swift */; };
 		I10001 /* MonthGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = I20001 /* MonthGridView.swift */; };
 		I10002 /* CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = I20002 /* CalendarView.swift */; };
+		I10003 /* CalendarScrollLock.swift in Sources */ = {isa = PBXBuildFile; fileRef = I20003 /* CalendarScrollLock.swift */; };
 		I10004 /* SideDrawerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = I20004 /* SideDrawerView.swift */; };
-		GLS10001 /* GlassTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = GLS20001 /* GlassTokens.swift */; };
-		GLS10002 /* GlassCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = GLS20002 /* GlassCard.swift */; };
-		GLS10003 /* GlassButtonStyles.swift in Sources */ = {isa = PBXBuildFile; fileRef = GLS20003 /* GlassButtonStyles.swift */; };
-		GLS10004 /* GlassBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = GLS20004 /* GlassBackground.swift */; };
 		I10005 /* EmojiIconView.swift in Sources */ = {isa = PBXBuildFile; fileRef = I20005 /* EmojiIconView.swift */; };
 		J10001 /* StatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = J20001 /* StatsView.swift */; };
 		J10002 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = J20002 /* SearchView.swift */; };
@@ -94,18 +82,31 @@
 		L10005 /* StudyTimerAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = L20005 /* StudyTimerAttributes.swift */; };
 		L10006 /* StudyRecordViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = L20006 /* StudyRecordViewModel.swift */; };
 		L10007 /* WeeklyStudyRecordSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = L20007 /* WeeklyStudyRecordSection.swift */; };
+		L10010 /* StudyTimerCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = L20010 /* StudyTimerCardView.swift */; };
+		L10011 /* StudySubjectPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = L20011 /* StudySubjectPicker.swift */; };
+		L10012 /* StudyWeeklyGoalCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = L20012 /* StudyWeeklyGoalCard.swift */; };
+		L10013 /* StudyTodayTimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = L20013 /* StudyTodayTimelineView.swift */; };
+		LG10001 /* LedgerModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20001 /* LedgerModels.swift */; };
+		LG10002 /* LedgerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20002 /* LedgerService.swift */; };
+		LG10003 /* LedgerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20003 /* LedgerViewModel.swift */; };
+		LG10004 /* LedgerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20004 /* LedgerView.swift */; };
+		LG10005 /* LedgerEntryFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20005 /* LedgerEntryFormView.swift */; };
+		LG10006 /* LedgerEntryDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20006 /* LedgerEntryDetailView.swift */; };
+		LG10007 /* LedgerRecurringView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20007 /* LedgerRecurringView.swift */; };
+		LG10008 /* LedgerApiKeysView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20008 /* LedgerApiKeysView.swift */; };
+		LG10009 /* LedgerStatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20009 /* LedgerStatsView.swift */; };
+		LG10010 /* LedgerSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20010 /* LedgerSearchView.swift */; };
+		LG10011 /* LedgerInboundFailuresView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20011 /* LedgerInboundFailuresView.swift */; };
+		LG10020 /* LedgerStatsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20020 /* LedgerStatsViewModel.swift */; };
+		LG10021 /* LedgerStatsSummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20021 /* LedgerStatsSummaryCard.swift */; };
+		LG10022 /* LedgerStatsChartCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20022 /* LedgerStatsChartCard.swift */; };
+		LG10023 /* LedgerStatsListCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20023 /* LedgerStatsListCards.swift */; };
+		LG10024 /* YearPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20024 /* YearPickerSheet.swift */; };
+		MC10001 /* MembershipCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = MC20001 /* MembershipCardView.swift */; };
+		MPS10001 /* MonthPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = MPS20001 /* MonthPickerSheet.swift */; };
 		N10001 /* NotificationScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = N20001 /* NotificationScheduler.swift */; };
-		B10001 /* DDayBadgeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20001 /* DDayBadgeService.swift */; };
 		N10002 /* LiveActivityCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = N20002 /* LiveActivityCoordinator.swift */; };
-		S10001 /* StorageModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = S20001 /* StorageModels.swift */; };
-		S10002 /* StorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = S20002 /* StorageService.swift */; };
-		S10003 /* StorageViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = S20003 /* StorageViewModel.swift */; };
-		S10005 /* StorageItemRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = S20005 /* StorageItemRow.swift */; };
-		S10006 /* StorageItemSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = S20006 /* StorageItemSheet.swift */; };
-		S10008 /* StorageMainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = S20008 /* StorageMainView.swift */; };
-		S10009 /* StorageType.swift in Sources */ = {isa = PBXBuildFile; fileRef = S20009 /* StorageType.swift */; };
-		S10010 /* ItemCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = S20010 /* ItemCategory.swift */; };
-		S10011 /* ItemCategoryPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = S20011 /* ItemCategoryPickerView.swift */; };
+		QA10001 /* QuickActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = QA20001 /* QuickActions.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -115,6 +116,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = 880AD4652F5F071100777742;
 			remoteInfo = StudyTimerWidgetExtension;
+		};
+		TT100006 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A80001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A50001;
+			remoteInfo = WooriHaru;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -146,7 +154,6 @@
 		88DD96EC2F61B3A900E60283 /* StudyRecordView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyRecordView.swift; sourceTree = "<group>"; };
 		A20001 /* WooriHaruApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WooriHaruApp.swift; sourceTree = "<group>"; };
 		A20002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		QA20001 /* QuickActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActions.swift; sourceTree = "<group>"; };
 		A20003 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A20004 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		A20005 /* WooriHaru.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WooriHaru.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -156,6 +163,7 @@
 		AA200004 /* PauseTypeStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PauseTypeStore.swift; sourceTree = "<group>"; };
 		AA200005 /* Logger+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Logger+Extensions.swift"; sourceTree = "<group>"; };
 		AA200006 /* SessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionManager.swift; sourceTree = "<group>"; };
+		B20001 /* DDayBadgeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DDayBadgeService.swift; sourceTree = "<group>"; };
 		C20001 /* User.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = User.swift; sourceTree = "<group>"; };
 		C20002 /* Category.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Category.swift; sourceTree = "<group>"; };
 		C20003 /* DailyRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyRecord.swift; sourceTree = "<group>"; };
@@ -169,18 +177,6 @@
 		D20004 /* CategoryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryService.swift; sourceTree = "<group>"; };
 		D20005 /* PairService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairService.swift; sourceTree = "<group>"; };
 		D20006 /* PairEventService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairEventService.swift; sourceTree = "<group>"; };
-		LG20001 /* LedgerModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerModels.swift; sourceTree = "<group>"; };
-		LG20002 /* LedgerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerService.swift; sourceTree = "<group>"; };
-		LG20003 /* LedgerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerViewModel.swift; sourceTree = "<group>"; };
-		LG20004 /* LedgerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerView.swift; sourceTree = "<group>"; };
-		LG20005 /* LedgerEntryFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerEntryFormView.swift; sourceTree = "<group>"; };
-		LG20006 /* LedgerEntryDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerEntryDetailView.swift; sourceTree = "<group>"; };
-		LG20007 /* LedgerRecurringView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerRecurringView.swift; sourceTree = "<group>"; };
-		LG20008 /* LedgerApiKeysView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerApiKeysView.swift; sourceTree = "<group>"; };
-		LG20009 /* LedgerStatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerStatsView.swift; sourceTree = "<group>"; };
-		LG20010 /* LedgerSearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerSearchView.swift; sourceTree = "<group>"; };
-		LG20011 /* LedgerInboundFailuresView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerInboundFailuresView.swift; sourceTree = "<group>"; };
-		MC20001 /* MembershipCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MembershipCardView.swift; sourceTree = "<group>"; };
 		D20007 /* HolidayService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HolidayService.swift; sourceTree = "<group>"; };
 		E20001 /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
 		E20002 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
@@ -193,19 +189,19 @@
 		F20002 /* Color+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Extensions.swift"; sourceTree = "<group>"; };
 		G20001 /* WeekdayHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekdayHeaderView.swift; sourceTree = "<group>"; };
 		G20002 /* DayCellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayCellView.swift; sourceTree = "<group>"; };
-		MPS20001 /* MonthPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonthPickerSheet.swift; sourceTree = "<group>"; };
 		G20003 /* CalendarHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarHeaderView.swift; sourceTree = "<group>"; };
+		GLS20001 /* GlassTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassTokens.swift; sourceTree = "<group>"; };
+		GLS20002 /* GlassCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassCard.swift; sourceTree = "<group>"; };
+		GLS20003 /* GlassButtonStyles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassButtonStyles.swift; sourceTree = "<group>"; };
+		GLS20004 /* GlassBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassBackground.swift; sourceTree = "<group>"; };
 		H20001 /* OvereatSelectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OvereatSelectorView.swift; sourceTree = "<group>"; };
 		H20002 /* RecordListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordListView.swift; sourceTree = "<group>"; };
 		H20003 /* RecordFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordFormView.swift; sourceTree = "<group>"; };
 		H20004 /* RecordSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordSheetView.swift; sourceTree = "<group>"; };
 		I20001 /* MonthGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonthGridView.swift; sourceTree = "<group>"; };
 		I20002 /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarView.swift; sourceTree = "<group>"; };
+		I20003 /* CalendarScrollLock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarScrollLock.swift; sourceTree = "<group>"; };
 		I20004 /* SideDrawerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SideDrawerView.swift; sourceTree = "<group>"; };
-		GLS20001 /* GlassTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassTokens.swift; sourceTree = "<group>"; };
-		GLS20002 /* GlassCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassCard.swift; sourceTree = "<group>"; };
-		GLS20003 /* GlassButtonStyles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassButtonStyles.swift; sourceTree = "<group>"; };
-		GLS20004 /* GlassBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassBackground.swift; sourceTree = "<group>"; };
 		I20005 /* EmojiIconView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmojiIconView.swift; sourceTree = "<group>"; };
 		J20001 /* StatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsView.swift; sourceTree = "<group>"; };
 		J20002 /* SearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchView.swift; sourceTree = "<group>"; };
@@ -220,18 +216,32 @@
 		L20005 /* StudyTimerAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyTimerAttributes.swift; sourceTree = "<group>"; };
 		L20006 /* StudyRecordViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyRecordViewModel.swift; sourceTree = "<group>"; };
 		L20007 /* WeeklyStudyRecordSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyStudyRecordSection.swift; sourceTree = "<group>"; };
+		L20010 /* StudyTimerCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyTimerCardView.swift; sourceTree = "<group>"; };
+		L20011 /* StudySubjectPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudySubjectPicker.swift; sourceTree = "<group>"; };
+		L20012 /* StudyWeeklyGoalCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyWeeklyGoalCard.swift; sourceTree = "<group>"; };
+		L20013 /* StudyTodayTimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyTodayTimelineView.swift; sourceTree = "<group>"; };
+		LG20001 /* LedgerModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerModels.swift; sourceTree = "<group>"; };
+		LG20002 /* LedgerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerService.swift; sourceTree = "<group>"; };
+		LG20003 /* LedgerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerViewModel.swift; sourceTree = "<group>"; };
+		LG20004 /* LedgerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerView.swift; sourceTree = "<group>"; };
+		LG20005 /* LedgerEntryFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerEntryFormView.swift; sourceTree = "<group>"; };
+		LG20006 /* LedgerEntryDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerEntryDetailView.swift; sourceTree = "<group>"; };
+		LG20007 /* LedgerRecurringView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerRecurringView.swift; sourceTree = "<group>"; };
+		LG20008 /* LedgerApiKeysView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerApiKeysView.swift; sourceTree = "<group>"; };
+		LG20009 /* LedgerStatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerStatsView.swift; sourceTree = "<group>"; };
+		LG20010 /* LedgerSearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerSearchView.swift; sourceTree = "<group>"; };
+		LG20011 /* LedgerInboundFailuresView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerInboundFailuresView.swift; sourceTree = "<group>"; };
+		LG20020 /* LedgerStatsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerStatsViewModel.swift; sourceTree = "<group>"; };
+		LG20021 /* LedgerStatsSummaryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerStatsSummaryCard.swift; sourceTree = "<group>"; };
+		LG20022 /* LedgerStatsChartCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerStatsChartCard.swift; sourceTree = "<group>"; };
+		LG20023 /* LedgerStatsListCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerStatsListCards.swift; sourceTree = "<group>"; };
+		LG20024 /* YearPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YearPickerSheet.swift; sourceTree = "<group>"; };
+		MC20001 /* MembershipCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MembershipCardView.swift; sourceTree = "<group>"; };
+		MPS20001 /* MonthPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonthPickerSheet.swift; sourceTree = "<group>"; };
 		N20001 /* NotificationScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationScheduler.swift; sourceTree = "<group>"; };
-		B20001 /* DDayBadgeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DDayBadgeService.swift; sourceTree = "<group>"; };
 		N20002 /* LiveActivityCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityCoordinator.swift; sourceTree = "<group>"; };
-		S20001 /* StorageModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageModels.swift; sourceTree = "<group>"; };
-		S20002 /* StorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageService.swift; sourceTree = "<group>"; };
-		S20003 /* StorageViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageViewModel.swift; sourceTree = "<group>"; };
-		S20005 /* StorageItemRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageItemRow.swift; sourceTree = "<group>"; };
-		S20006 /* StorageItemSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageItemSheet.swift; sourceTree = "<group>"; };
-		S20008 /* StorageMainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageMainView.swift; sourceTree = "<group>"; };
-		S20009 /* StorageType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageType.swift; sourceTree = "<group>"; };
-		S20010 /* ItemCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItemCategory.swift; sourceTree = "<group>"; };
-		S20011 /* ItemCategoryPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItemCategoryPickerView.swift; sourceTree = "<group>"; };
+		QA20001 /* QuickActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActions.swift; sourceTree = "<group>"; };
+		TT100002 /* WooriHaruTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WooriHaruTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -246,6 +256,7 @@
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		880AD46C2F5F071200777742 /* StudyTimerWidget */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (880AD4802F5F071300777742 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = StudyTimerWidget; sourceTree = "<group>"; };
+		TT100001 /* WooriHaruTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = WooriHaruTests; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -259,6 +270,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		A30001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		TT100004 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -300,6 +318,7 @@
 			children = (
 				A40002 /* WooriHaru */,
 				880AD46C2F5F071200777742 /* StudyTimerWidget */,
+				TT100001 /* WooriHaruTests */,
 				880AD4672F5F071100777742 /* Frameworks */,
 				A40003 /* Products */,
 			);
@@ -329,6 +348,7 @@
 			children = (
 				A20005 /* WooriHaru.app */,
 				880AD4662F5F071100777742 /* StudyTimerWidgetExtension.appex */,
+				TT100002 /* WooriHaruTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -365,9 +385,6 @@
 				C20006 /* PairEvent.swift */,
 				L20001 /* StudyModels.swift */,
 				L20005 /* StudyTimerAttributes.swift */,
-				S20001 /* StorageModels.swift */,
-				S20009 /* StorageType.swift */,
-				S20010 /* ItemCategory.swift */,
 				LG20001 /* LedgerModels.swift */,
 			);
 			path = Models;
@@ -389,7 +406,6 @@
 				B20001 /* DDayBadgeService.swift */,
 				N20002 /* LiveActivityCoordinator.swift */,
 				AA200006 /* SessionManager.swift */,
-				S20002 /* StorageService.swift */,
 				LG20002 /* LedgerService.swift */,
 			);
 			path = Services;
@@ -408,8 +424,8 @@
 				K20002 /* PairEventsViewModel.swift */,
 				L20003 /* StudyTimerViewModel.swift */,
 				L20006 /* StudyRecordViewModel.swift */,
-				S20003 /* StorageViewModel.swift */,
 				LG20003 /* LedgerViewModel.swift */,
+				LG20020 /* LedgerStatsViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -428,7 +444,6 @@
 				B40011 /* Auth */,
 				B40012 /* Components */,
 				L40001 /* Study */,
-				S40001 /* Storage */,
 				LG40001 /* Ledger */,
 			);
 			path = Views;
@@ -438,6 +453,7 @@
 			isa = PBXGroup;
 			children = (
 				I20002 /* CalendarView.swift */,
+				I20003 /* CalendarScrollLock.swift */,
 				G20003 /* CalendarHeaderView.swift */,
 				G20002 /* DayCellView.swift */,
 				I20001 /* MonthGridView.swift */,
@@ -499,21 +515,6 @@
 			path = Auth;
 			sourceTree = "<group>";
 		};
-		LG40001 /* Ledger */ = {
-			isa = PBXGroup;
-			children = (
-				LG20004 /* LedgerView.swift */,
-				LG20005 /* LedgerEntryFormView.swift */,
-				LG20006 /* LedgerEntryDetailView.swift */,
-				LG20007 /* LedgerRecurringView.swift */,
-				LG20008 /* LedgerApiKeysView.swift */,
-				LG20009 /* LedgerStatsView.swift */,
-				LG20010 /* LedgerSearchView.swift */,
-				LG20011 /* LedgerInboundFailuresView.swift */,
-			);
-			path = Ledger;
-			sourceTree = "<group>";
-		};
 		B40012 /* Components */ = {
 			isa = PBXGroup;
 			children = (
@@ -522,6 +523,16 @@
 				GLS40001 /* Glass */,
 			);
 			path = Components;
+			sourceTree = "<group>";
+		};
+		B40015 /* Extensions */ = {
+			isa = PBXGroup;
+			children = (
+				F20001 /* Date+Extensions.swift */,
+				F20002 /* Color+Extensions.swift */,
+				AA200005 /* Logger+Extensions.swift */,
+			);
+			path = Extensions;
 			sourceTree = "<group>";
 		};
 		GLS40001 /* Glass */ = {
@@ -535,35 +546,37 @@
 			path = Glass;
 			sourceTree = "<group>";
 		};
-		B40015 /* Extensions */ = {
-			isa = PBXGroup;
-			children = (
-				F20001 /* Date+Extensions.swift */,
-				F20002 /* Color+Extensions.swift */,
-				AA200005 /* Logger+Extensions.swift */,
-			);
-			path = Extensions;
-			sourceTree = "<group>";
-		};
 		L40001 /* Study */ = {
 			isa = PBXGroup;
 			children = (
 				88DD96EC2F61B3A900E60283 /* StudyRecordView.swift */,
 				L20004 /* StudyTimerView.swift */,
+				L20010 /* StudyTimerCardView.swift */,
+				L20011 /* StudySubjectPicker.swift */,
+				L20012 /* StudyWeeklyGoalCard.swift */,
+				L20013 /* StudyTodayTimelineView.swift */,
 				L20007 /* WeeklyStudyRecordSection.swift */,
 			);
 			path = Study;
 			sourceTree = "<group>";
 		};
-		S40001 /* Storage */ = {
+		LG40001 /* Ledger */ = {
 			isa = PBXGroup;
 			children = (
-				S20005 /* StorageItemRow.swift */,
-				S20006 /* StorageItemSheet.swift */,
-				S20008 /* StorageMainView.swift */,
-				S20011 /* ItemCategoryPickerView.swift */,
+				LG20004 /* LedgerView.swift */,
+				LG20005 /* LedgerEntryFormView.swift */,
+				LG20006 /* LedgerEntryDetailView.swift */,
+				LG20007 /* LedgerRecurringView.swift */,
+				LG20008 /* LedgerApiKeysView.swift */,
+				LG20009 /* LedgerStatsView.swift */,
+				LG20021 /* LedgerStatsSummaryCard.swift */,
+				LG20022 /* LedgerStatsChartCard.swift */,
+				LG20023 /* LedgerStatsListCards.swift */,
+				LG20024 /* YearPickerSheet.swift */,
+				LG20010 /* LedgerSearchView.swift */,
+				LG20011 /* LedgerInboundFailuresView.swift */,
 			);
-			path = Storage;
+			path = Ledger;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -610,6 +623,28 @@
 			productReference = A20005 /* WooriHaru.app */;
 			productType = "com.apple.product-type.application";
 		};
+		TT100005 /* WooriHaruTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = TT100008 /* Build configuration list for PBXNativeTarget "WooriHaruTests" */;
+			buildPhases = (
+				TT100003 /* Sources */,
+				TT100004 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				TT100007 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				TT100001 /* WooriHaruTests */,
+			);
+			name = WooriHaruTests;
+			packageProductDependencies = (
+			);
+			productName = WooriHaruTests;
+			productReference = TT100002 /* WooriHaruTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -625,6 +660,10 @@
 					};
 					A50001 = {
 						CreatedOnToolsVersion = 16.0;
+					};
+					TT100005 = {
+						CreatedOnToolsVersion = 26.6;
+						TestTargetID = A50001;
 					};
 				};
 			};
@@ -646,6 +685,7 @@
 			targets = (
 				A50001 /* WooriHaru */,
 				880AD4652F5F071100777742 /* StudyTimerWidgetExtension */,
+				TT100005 /* WooriHaruTests */,
 			);
 		};
 /* End PBXProject section */
@@ -711,6 +751,11 @@
 				LG10007 /* LedgerRecurringView.swift in Sources */,
 				LG10008 /* LedgerApiKeysView.swift in Sources */,
 				LG10009 /* LedgerStatsView.swift in Sources */,
+				LG10020 /* LedgerStatsViewModel.swift in Sources */,
+				LG10021 /* LedgerStatsSummaryCard.swift in Sources */,
+				LG10022 /* LedgerStatsChartCard.swift in Sources */,
+				LG10023 /* LedgerStatsListCards.swift in Sources */,
+				LG10024 /* YearPickerSheet.swift in Sources */,
 				LG10010 /* LedgerSearchView.swift in Sources */,
 				LG10011 /* LedgerInboundFailuresView.swift in Sources */,
 				MC10001 /* MembershipCardView.swift in Sources */,
@@ -737,6 +782,7 @@
 				H10004 /* RecordSheetView.swift in Sources */,
 				I10001 /* MonthGridView.swift in Sources */,
 				I10002 /* CalendarView.swift in Sources */,
+				I10003 /* CalendarScrollLock.swift in Sources */,
 				88DD96ED2F61B3A900E60283 /* StudyRecordView.swift in Sources */,
 				I10004 /* SideDrawerView.swift in Sources */,
 				GLS10001 /* GlassTokens.swift in Sources */,
@@ -755,6 +801,10 @@
 				L10002 /* StudyService.swift in Sources */,
 				L10003 /* StudyTimerViewModel.swift in Sources */,
 				L10004 /* StudyTimerView.swift in Sources */,
+				L10010 /* StudyTimerCardView.swift in Sources */,
+				L10011 /* StudySubjectPicker.swift in Sources */,
+				L10012 /* StudyWeeklyGoalCard.swift in Sources */,
+				L10013 /* StudyTodayTimelineView.swift in Sources */,
 				L10005 /* StudyTimerAttributes.swift in Sources */,
 				L10006 /* StudyRecordViewModel.swift in Sources */,
 				L10007 /* WeeklyStudyRecordSection.swift in Sources */,
@@ -766,15 +816,13 @@
 				AA100004 /* PauseTypeStore.swift in Sources */,
 				AA100005 /* Logger+Extensions.swift in Sources */,
 				AA100006 /* SessionManager.swift in Sources */,
-				S10001 /* StorageModels.swift in Sources */,
-				S10009 /* StorageType.swift in Sources */,
-				S10010 /* ItemCategory.swift in Sources */,
-				S10002 /* StorageService.swift in Sources */,
-				S10003 /* StorageViewModel.swift in Sources */,
-				S10005 /* StorageItemRow.swift in Sources */,
-				S10006 /* StorageItemSheet.swift in Sources */,
-				S10008 /* StorageMainView.swift in Sources */,
-				S10011 /* ItemCategoryPickerView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		TT100003 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -785,6 +833,11 @@
 			isa = PBXTargetDependency;
 			target = 880AD4652F5F071100777742 /* StudyTimerWidgetExtension */;
 			targetProxy = 880AD47A2F5F071300777742 /* PBXContainerItemProxy */;
+		};
+		TT100007 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A50001 /* WooriHaru */;
+			targetProxy = TT100006 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -800,7 +853,7 @@
 				INFOPLIST_FILE = StudyTimerWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = StudyTimerWidget;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -830,7 +883,7 @@
 				INFOPLIST_FILE = StudyTimerWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = StudyTimerWidget;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1034,6 +1087,42 @@
 			};
 			name = Release;
 		};
+		TT100009 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.woori.haru.WooriHaruTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/WooriHaru.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/WooriHaru";
+			};
+			name = Debug;
+		};
+		TT100010 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.woori.haru.WooriHaruTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/WooriHaru.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/WooriHaru";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1060,6 +1149,15 @@
 			buildConfigurations = (
 				A90001 /* Debug */,
 				A90002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		TT100008 /* Build configuration list for PBXNativeTarget "WooriHaruTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				TT100009 /* Debug */,
+				TT100010 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

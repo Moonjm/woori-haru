@@ -12,7 +12,6 @@ enum AppDestination: Hashable {
     case userManagement
     case studyTimer
     case studyRecord
-    case storage
     case ledger
     case ledgerRecurring
     case ledgerApiKeys
@@ -43,7 +42,6 @@ struct ContentView: View {
                     case .userManagement: UserManagementView()
                     case .studyTimer: StudyTimerView()
                     case .studyRecord: StudyRecordView()
-                    case .storage: StorageMainView()
                     case .ledger: LedgerView()
                     case .ledgerRecurring: LedgerRecurringView()
                     case .ledgerApiKeys: LedgerApiKeysView()

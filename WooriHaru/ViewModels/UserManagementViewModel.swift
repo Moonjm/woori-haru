@@ -20,7 +20,11 @@ final class UserManagementViewModel {
     var editPassword: String = ""
     var editAuthority: Authority = .user
 
-    private let userService = UserService()
+    private let userService: UserService
+
+    init(userService: UserService = UserService()) {
+        self.userService = userService
+    }
 
     func loadUsers() async {
         isLoading = true

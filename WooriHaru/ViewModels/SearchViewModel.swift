@@ -20,9 +20,14 @@ final class SearchViewModel {
         self.pairStore = pairStore
     }
 
-    private let recordService = RecordService()
-    private let pairService = PairService()
+    private let recordService: RecordService
+    private let pairService: PairService
     private var allRecords: [DailyRecord] = []
+
+    init(recordService: RecordService = RecordService(), pairService: PairService = PairService()) {
+        self.recordService = recordService
+        self.pairService = pairService
+    }
     private var searchTask: Task<Void, Never>?
 
     /// 전체 기간 검색의 시작 연도 (기록 도입 이전이라도 안전하게 포함)
