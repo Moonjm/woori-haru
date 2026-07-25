@@ -36,6 +36,8 @@ struct SwimWorkout: Identifiable, Hashable {
     let location: Location
     /// 레인 길이(m). 수영장 기록에만 들어온다.
     let laneLengthMeters: Double?
+    /// 레인 한 바퀴 단위 기록. 개방 수역이거나 워치가 랩을 남기지 않았으면 비어 있다.
+    let laps: [SwimLap]
 }
 
 // MARK: - Display Text

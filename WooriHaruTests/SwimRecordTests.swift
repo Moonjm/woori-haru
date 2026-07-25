@@ -34,7 +34,8 @@ private func makeWorkout(
     energy: Double? = 320,
     strokes: Int? = 1240,
     location: SwimWorkout.Location = .pool,
-    laneLength: Double? = 25
+    laneLength: Double? = 25,
+    laps: [SwimLap] = []
 ) -> SwimWorkout {
     SwimWorkout(
         id: UUID(),
@@ -45,8 +46,29 @@ private func makeWorkout(
         activeEnergyKcal: energy,
         strokeCount: strokes,
         location: location,
-        laneLengthMeters: laneLength
+        laneLengthMeters: laneLength,
+        laps: laps
     )
+}
+
+/// 레인 길이 `laneLength`짜리 랩을 `durations` 개수만큼 만든다.
+private func makeLaps(
+    durations: [TimeInterval],
+    laneLength: Double = 25,
+    strokes: [SwimStrokeStyle]? = nil
+) -> [SwimLap] {
+    var start = Date(timeIntervalSince1970: 1_753_400_000)
+    return durations.indices.map { index in
+        let lap = SwimLap(
+            id: index,
+            startDate: start,
+            duration: durations[index],
+            distanceMeters: laneLength,
+            strokeStyle: strokes?[index] ?? .freestyle
+        )
+        start = start.addingTimeInterval(durations[index])
+        return lap
+    }
 }
 
 // MARK: - Model Formatting
@@ -86,6 +108,76 @@ struct SwimWorkoutFormatTests {
     @Test func 칼로리_스트로크_표기() {
         #expect(makeWorkout(energy: 320).energyText == "320kcal")
         #expect(makeWorkout(strokes: 1240).strokeText == "1,240회")
+    }
+}
+
+// MARK: - Splits
+
+struct SwimSplitTests {
+    @Test func 랩이_없으면_구간도_없다() {
+        let workout = makeWorkout(laps: [])
+        #expect(workout.hasLapData == false)
+        #expect(workout.splits(every: 100).isEmpty)
+    }
+
+    @Test func 레인_25m는_100m마다_랩_4개씩_묶인다() {
+        // 25m 랩 8개 = 200m → 100m 구간 2개
+        let workout = makeWorkout(laps: makeLaps(durations: Array(repeating: 30, count: 8)))
+        let splits = workout.splits(every: 100)
+
+        #expect(splits.count == 2)
+        #expect(splits[0].cumulativeMeters == 100)
+        #expect(splits[0].duration == 120)
+        #expect(splits[1].cumulativeMeters == 200)
+    }
+
+    @Test func 구간_단위를_50m로_바꿀_수_있다() {
+        let workout = makeWorkout(laps: makeLaps(durations: Array(repeating: 30, count: 8)))
+        let splits = workout.splits(every: 50)
+
+        #expect(splits.count == 4)
+        #expect(splits[0].cumulativeMeters == 50)
+        #expect(splits[0].duration == 60)
+    }
+
+    @Test func 단위에_못미치는_마지막_구간도_버리지_않는다() {
+        // 25m 랩 6개 = 150m → 100m 구간 1개 + 50m 자투리 1개
+        let workout = makeWorkout(laps: makeLaps(durations: Array(repeating: 30, count: 6)))
+        let splits = workout.splits(every: 100)
+
+        #expect(splits.count == 2)
+        #expect(splits[1].distanceMeters == 50)
+        #expect(splits[1].cumulativeMeters == 150)
+        #expect(splits[1].duration == 60)
+    }
+
+    @Test func 페이스는_100m_환산이다() {
+        // 50m를 60초 → 100m 환산 120초
+        let workout = makeWorkout(laps: makeLaps(durations: [30, 30]))
+        let split = workout.splits(every: 50)[0]
+
+        #expect(split.pacePer100m == 120)
+        #expect(split.paceText == "2:00/100m")
+        #expect(split.durationText == "1:00")
+        #expect(split.distanceText == "50m")
+    }
+
+    @Test func 영법이_섞이면_혼영으로_묶인다() {
+        let mixed = makeWorkout(laps: makeLaps(
+            durations: [30, 30], strokes: [.freestyle, .breaststroke]
+        ))
+        #expect(mixed.splits(every: 50)[0].strokeStyle == .mixed)
+
+        let single = makeWorkout(laps: makeLaps(
+            durations: [30, 30], strokes: [.backstroke, .backstroke]
+        ))
+        #expect(single.splits(every: 50)[0].strokeStyle == .backstroke)
+    }
+
+    @Test func 시간_표기는_1시간을_넘으면_시까지_쓴다() {
+        #expect(SwimSplit.clockText(59) == "0:59")
+        #expect(SwimSplit.clockText(112) == "1:52")
+        #expect(SwimSplit.clockText(3723) == "1:02:03")
     }
 }
 

@@ -12,7 +12,10 @@ struct SwimRecordListView: View {
                 }
 
                 ForEach(vm.workouts) { workout in
-                    SwimWorkoutRow(workout: workout)
+                    NavigationLink(value: workout) {
+                        SwimWorkoutRow(workout: workout)
+                    }
+                    .buttonStyle(.plain)
                 }
 
                 if vm.showsEmptyState {
@@ -26,6 +29,7 @@ struct SwimRecordListView: View {
         .glassScreenBackground()
         .navigationTitle("수영 기록")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(for: SwimWorkout.self) { SwimWorkoutDetailView(workout: $0) }
         .overlay {
             if vm.isLoading && vm.workouts.isEmpty {
                 ProgressView()
