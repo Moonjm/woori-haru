@@ -16,6 +16,12 @@ struct SwimRecordListView: View {
                         SwimWorkoutRow(workout: workout)
                     }
                     .buttonStyle(.plain)
+                    .task { await vm.loadMoreIfNeeded(currentItem: workout) }
+                }
+
+                if vm.isLoadingMore {
+                    ProgressView()
+                        .padding(.vertical, 12)
                 }
 
                 if vm.showsEmptyState {
@@ -53,12 +59,21 @@ struct SwimRecordListView: View {
 
     private var summaryCard: some View {
         GlassCard {
-            HStack(spacing: 0) {
-                summaryItem(label: "횟수", value: "\(vm.totalCount)회")
-                Divider().frame(height: 32)
-                summaryItem(label: "총 거리", value: vm.totalDistanceText ?? "-")
-                Divider().frame(height: 32)
-                summaryItem(label: "총 시간", value: vm.totalDurationText)
+            VStack(spacing: 10) {
+                HStack(spacing: 0) {
+                    summaryItem(label: "횟수", value: "\(vm.totalCount)회")
+                    Divider().frame(height: 32)
+                    summaryItem(label: "총 거리", value: vm.totalDistanceText ?? "-")
+                    Divider().frame(height: 32)
+                    summaryItem(label: "총 시간", value: vm.totalDurationText)
+                }
+
+                // 스크롤할수록 숫자가 커지므로 어디까지의 합인지 밝혀 둔다.
+                if vm.canLoadMore {
+                    Text("지금까지 불러온 기록 기준")
+                        .font(.caption2)
+                        .foregroundStyle(Color.slate400)
+                }
             }
         }
     }

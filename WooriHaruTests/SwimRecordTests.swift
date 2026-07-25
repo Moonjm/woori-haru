@@ -6,9 +6,10 @@ import Testing
 
 private final class FakeSwimFetcher: SwimWorkoutFetching {
     var isHealthDataAvailable: Bool
+    /// 최신순으로 정렬된 전체 기록. 커서·limit에 맞춰 잘라서 돌려준다.
     var workouts: [SwimWorkout]
     var errorToThrow: Error?
-    private(set) var requestedLimit: Int?
+    private(set) var calls: [(limit: Int, before: Date?)] = []
 
     init(isHealthDataAvailable: Bool = true, workouts: [SwimWorkout] = [], errorToThrow: Error? = nil) {
         self.isHealthDataAvailable = isHealthDataAvailable
@@ -20,10 +21,13 @@ private final class FakeSwimFetcher: SwimWorkoutFetching {
         if let errorToThrow { throw errorToThrow }
     }
 
-    func fetchSwimWorkouts(limit: Int) async throws -> [SwimWorkout] {
-        requestedLimit = limit
+    func fetchSwimWorkouts(limit: Int, before: Date?) async throws -> [SwimWorkout] {
+        calls.append((limit, before))
         if let errorToThrow { throw errorToThrow }
-        return workouts
+        let candidates = before.map { cursor in
+            workouts.filter { $0.startDate < cursor }
+        } ?? workouts
+        return Array(candidates.prefix(limit))
     }
 
     var effortScore: Double?
@@ -257,7 +261,7 @@ struct SwimRecordViewModelTests {
             makeWorkout(duration: 1800, distance: 1200),
             makeWorkout(duration: 1200, distance: 800)
         ])
-        let vm = SwimRecordViewModel(service: fetcher, limit: 100)
+        let vm = SwimRecordViewModel(service: fetcher, pageSize: 30)
 
         await vm.load()
 
@@ -268,7 +272,12 @@ struct SwimRecordViewModelTests {
         #expect(vm.isLoading == false)
         #expect(vm.errorMessage == nil)
         #expect(vm.showsEmptyState == false)
-        #expect(fetcher.requestedLimit == 100)
+        // 첫 페이지는 커서 없이 요청한다
+        #expect(fetcher.calls.count == 1)
+        #expect(fetcher.calls[0].limit == 30)
+        #expect(fetcher.calls[0].before == nil)
+        // 한 페이지를 못 채웠으니 더 없다고 본다
+        #expect(vm.canLoadMore == false)
     }
 
     @Test func 결과가_없으면_빈_상태를_보여준다() async {
@@ -292,6 +301,80 @@ struct SwimRecordViewModelTests {
         #expect(vm.errorMessage == "이 기기에서는 건강 데이터를 사용할 수 없습니다.")
         #expect(vm.showsEmptyState == false)
         #expect(vm.isLoading == false)
+    }
+
+    // MARK: - Paging
+
+    /// 최신순으로 `count`건. 하루 간격이라 커서로 자르기 쉽다.
+    private func makePage(count: Int) -> [SwimWorkout] {
+        let newest = Date(timeIntervalSince1970: 1_753_400_000)
+        return (0..<count).map { index in
+            makeWorkout(start: newest.addingTimeInterval(TimeInterval(-index) * 86_400))
+        }
+    }
+
+    @Test func 첫_페이지가_꽉_차면_더_있다고_본다() async {
+        let vm = SwimRecordViewModel(service: FakeSwimFetcher(workouts: makePage(count: 10)), pageSize: 3)
+
+        await vm.load()
+
+        #expect(vm.workouts.count == 3)
+        #expect(vm.canLoadMore == true)
+    }
+
+    @Test func 마지막_항목에_닿으면_다음_페이지를_잇는다() async {
+        let all = makePage(count: 10)
+        let fetcher = FakeSwimFetcher(workouts: all)
+        let vm = SwimRecordViewModel(service: fetcher, pageSize: 3)
+
+        await vm.load()
+        await vm.loadMoreIfNeeded(currentItem: vm.workouts[2])
+
+        #expect(vm.workouts.count == 6)
+        #expect(vm.workouts.map(\.id) == all.prefix(6).map(\.id))
+        // 두 번째 요청은 직전 마지막 기록의 시작 시각을 커서로 쓴다
+        #expect(fetcher.calls.count == 2)
+        #expect(fetcher.calls[1].before == all[2].startDate)
+    }
+
+    @Test func 마지막_항목이_아니면_불러오지_않는다() async {
+        let fetcher = FakeSwimFetcher(workouts: makePage(count: 10))
+        let vm = SwimRecordViewModel(service: fetcher, pageSize: 3)
+
+        await vm.load()
+        await vm.loadMoreIfNeeded(currentItem: vm.workouts[0])
+
+        #expect(vm.workouts.count == 3)
+        #expect(fetcher.calls.count == 1)
+    }
+
+    @Test func 끝까지_읽으면_더_요청하지_않는다() async {
+        let fetcher = FakeSwimFetcher(workouts: makePage(count: 5))
+        let vm = SwimRecordViewModel(service: fetcher, pageSize: 3)
+
+        await vm.load()
+        await vm.loadMoreIfNeeded(currentItem: vm.workouts[2])
+
+        #expect(vm.workouts.count == 5)
+        #expect(vm.canLoadMore == false)
+
+        // 더 없다고 판단한 뒤에는 호출 자체를 하지 않는다
+        await vm.loadMoreIfNeeded(currentItem: vm.workouts[4])
+        #expect(fetcher.calls.count == 2)
+    }
+
+    @Test func 새로고침하면_처음부터_다시_읽는다() async {
+        let fetcher = FakeSwimFetcher(workouts: makePage(count: 10))
+        let vm = SwimRecordViewModel(service: fetcher, pageSize: 3)
+
+        await vm.load()
+        await vm.loadMoreIfNeeded(currentItem: vm.workouts[2])
+        #expect(vm.workouts.count == 6)
+
+        await vm.load()
+
+        #expect(vm.workouts.count == 3)
+        #expect(vm.canLoadMore == true)
     }
 
     @Test func 건강데이터_미지원_기기_여부를_그대로_전달한다() {

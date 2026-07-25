@@ -38,7 +38,7 @@ HealthKit 읽기 권한에는 기간 제한이 없어, 앱 설치 이전 기록�
 ## 데이터 흐름
 
 1. 화면 진입 시 `vm.load()` → `requestAuthorization()` (읽기 타입만)
-2. `HKSampleQuery`로 `.swimming` 워크아웃 조회. predicate에 기간을 두지 않아 전 기간 대상, 시작일 내림차순, 최대 100건
+2. `HKSampleQuery`로 `.swimming` 워크아웃 조회. 시작일 내림차순, 한 번에 30건씩
 3. `HKWorkout` → `SwimWorkout` 매핑. 거리·칼로리·스트로크는 `statistics(for:)`로 합계를 읽는다
    (iOS 18에서 `totalDistance`·`totalEnergyBurned`가 deprecated)
 4. 수영장/개방 수역과 레인 길이는 워크아웃 metadata에서 읽는다
@@ -106,4 +106,18 @@ HealthKit 자체 동작은 시뮬레이터에 건강 데이터가 없어 자동�
 - 시뮬레이터에서는 목록이 비어 보인다. 실제 확인은 실기기에서만 가능
 - Apple Developer 계정의 App ID에 HealthKit capability가 필요하다. 자동 서명이 처리하지만
   첫 실기기 빌드에서 프로비저닝 갱신을 요구할 수 있다
-- 100건 상한. 페이징과 `HKAnchoredObjectQuery` 증분 갱신은 필요해지면 추가한다 (YAGNI)
+- `HKAnchoredObjectQuery` 증분 갱신은 필요해지면 추가한다 (YAGNI)
+
+## 페이징
+
+기간 상한이 없으므로 전체 이력이 대상이다. 한 번에 다 읽지 않고 30건씩 이어 붙인다.
+
+커서는 **직전 페이지 마지막 기록의 시작 시각**이다. 시작일 내림차순 정렬이므로
+`predicateForSamples(withStart: nil, end: 커서)`를 AND로 걸면 그보다 이전 기록만 남는다.
+경계값이 같은 기록이 끼어들어도 UUID로 걸러 중복으로 쌓이지 않게 한다.
+
+한 페이지가 요청한 개수를 못 채우면 끝으로 보고 더 요청하지 않는다. 조회에 실패한 경우도
+같게 처리해 실패를 무한히 재시도하지 않는다.
+
+목록 요약(횟수·총 거리·총 시간)은 **불러온 기록까지의 합**이다. 스크롤할수록 숫자가 커지므로
+더 읽을 게 남아 있는 동안에는 요약 카드에 그 사실을 밝혀 둔다.

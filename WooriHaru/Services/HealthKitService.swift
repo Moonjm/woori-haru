@@ -16,8 +16,9 @@ protocol SwimWorkoutFetching {
     /// 기기가 건강 데이터를 지원하는지 (iPad 등 미지원 기기 대비)
     var isHealthDataAvailable: Bool { get }
     func requestAuthorization() async throws
-    /// 전 기간의 수영 워크아웃을 최신순으로 최대 `limit`건 반환
-    func fetchSwimWorkouts(limit: Int) async throws -> [SwimWorkout]
+    /// 수영 워크아웃을 최신순으로 최대 `limit`건 반환.
+    /// `before`를 주면 그 시각보다 이전에 시작한 기록만 가져온다 (페이징 커서).
+    func fetchSwimWorkouts(limit: Int, before: Date?) async throws -> [SwimWorkout]
     /// 운동 강도(1~10). 목록 로딩을 무겁게 하지 않으려고 상세 화면에서 따로 조회한다.
     func fetchEffortScore(workoutID: UUID) async throws -> Double?
 }
@@ -45,11 +46,16 @@ final class HealthKitService: SwimWorkoutFetching {
         try await store.requestAuthorization(toShare: [], read: readTypes)
     }
 
-    func fetchSwimWorkouts(limit: Int) async throws -> [SwimWorkout] {
+    func fetchSwimWorkouts(limit: Int, before: Date?) async throws -> [SwimWorkout] {
         guard isHealthDataAvailable else { throw SwimWorkoutError.healthDataUnavailable }
 
-        // predicate에 기간을 두지 않아 건강 앱에 남아 있는 전체 이력을 최신순으로 가져온다.
-        let predicate = HKQuery.predicateForWorkouts(with: .swimming)
+        // 기간 상한을 두지 않아 건강 앱에 남아 있는 전체 이력이 대상이 된다.
+        // before가 있으면 그보다 이전 기록만 잘라내 다음 페이지를 만든다.
+        var predicates = [HKQuery.predicateForWorkouts(with: .swimming)]
+        if let before {
+            predicates.append(HKQuery.predicateForSamples(withStart: nil, end: before))
+        }
+        let predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
         let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
 
         let found = try await samples(
