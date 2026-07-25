@@ -11,17 +11,26 @@ enum SwimWorkoutError: LocalizedError {
     }
 }
 
+/// 페이지 하나. 마지막 기록과 시작 시각이 같은 기록은 모두 포함된 상태로 온다.
+struct SwimWorkoutPage {
+    let workouts: [SwimWorkout]
+    /// 조회가 limit을 채웠는지. 다음 페이지가 더 있을 수 있다는 뜻.
+    let mayHaveMore: Bool
+
+    static let empty = SwimWorkoutPage(workouts: [], mayHaveMore: false)
+}
+
 /// 수영 기록 조회 소스. 테스트에서 대체할 수 있도록 프로토콜로 분리한다.
 protocol SwimWorkoutFetching {
     /// 기기가 건강 데이터를 지원하는지 (iPad 등 미지원 기기 대비)
     var isHealthDataAvailable: Bool { get }
     func requestAuthorization() async throws
-    /// 수영 워크아웃을 최신순으로 최대 `limit`건 반환.
+    /// 수영 워크아웃을 최신순으로 `limit`건쯤 반환. `before`를 주면 그 시각보다
+    /// **먼저 시작한** 기록만 대상으로 한다.
     ///
-    /// `startingAtOrBefore`를 주면 그 시각 **이하**에 시작한 기록만 가져온다.
-    /// 경계를 포함하는 이유는, 시작 시각이 같은 기록이 페이지 경계에 걸렸을 때
-    /// 뒤쪽 기록이 통째로 빠지는 걸 막기 위해서다. 이미 본 기록은 호출 쪽에서 거른다.
-    func fetchSwimWorkouts(limit: Int, startingAtOrBefore: Date?) async throws -> [SwimWorkout]
+    /// limit이 시작 시각이 같은 무리 한가운데를 자르면, 그 시각의 기록을 전부 채워
+    /// 넣어 무리가 쪼개지지 않게 한다. 그래서 결과가 limit보다 길 수 있다.
+    func fetchSwimWorkouts(limit: Int, before: Date?) async throws -> SwimWorkoutPage
     /// 운동 강도(1~10). 목록 로딩을 무겁게 하지 않으려고 상세 화면에서 따로 조회한다.
     func fetchEffortScore(workoutID: UUID) async throws -> Double?
 }
@@ -49,28 +58,59 @@ final class HealthKitService: SwimWorkoutFetching {
         try await store.requestAuthorization(toShare: [], read: readTypes)
     }
 
-    func fetchSwimWorkouts(limit: Int, startingAtOrBefore: Date?) async throws -> [SwimWorkout] {
+    func fetchSwimWorkouts(limit: Int, before: Date?) async throws -> SwimWorkoutPage {
         guard isHealthDataAvailable else { throw SwimWorkoutError.healthDataUnavailable }
 
         // 기간 상한을 두지 않아 건강 앱에 남아 있는 전체 이력이 대상이 된다.
-        // 커서가 있으면 시작 시각이 그 이하인 기록만 남겨 다음 페이지를 만든다.
         var predicates = [HKQuery.predicateForWorkouts(with: .swimming)]
-        if let startingAtOrBefore {
+        if let before {
             predicates.append(NSPredicate(
-                format: "%K <= %@", HKPredicateKeyPathStartDate, startingAtOrBefore as NSDate
+                format: "%K < %@", HKPredicateKeyPathStartDate, before as NSDate
             ))
         }
-        let predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
-        let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
+        let page = try await workouts(
+            matching: NSCompoundPredicate(andPredicateWithSubpredicates: predicates),
+            limit: limit
+        )
 
+        // HealthKit은 시작 시각이 같은 샘플들의 순서를 보장하지 않는다. 경계가 그 무리
+        // 한가운데를 자르면 요청할 때마다 다른 일부가 와서, 기록이 빠지거나 이미 본
+        // 것만 반복해 받을 수 있다. 경계 시각의 기록을 통째로 채워 무리를 완성해 두면
+        // 다음 커서가 그 시각을 통째로 건너뛰므로 순서에 기댈 일이 없어진다.
+        guard page.count == limit, let boundary = page.last?.startDate else {
+            return SwimWorkoutPage(
+                workouts: page.map(Self.makeSwimWorkout),
+                mayHaveMore: page.count == limit
+            )
+        }
+
+        let tied = try await workouts(
+            matching: NSCompoundPredicate(andPredicateWithSubpredicates: [
+                HKQuery.predicateForWorkouts(with: .swimming),
+                NSPredicate(format: "%K == %@", HKPredicateKeyPathStartDate, boundary as NSDate)
+            ]),
+            limit: HKObjectQueryNoLimit
+        )
+
+        var merged: [UUID: HKWorkout] = [:]
+        for workout in page + tied { merged[workout.uuid] = workout }
+        return SwimWorkoutPage(
+            workouts: merged.values
+                .sorted { $0.startDate > $1.startDate }
+                .map(Self.makeSwimWorkout),
+            mayHaveMore: true
+        )
+    }
+
+    private func workouts(matching predicate: NSPredicate, limit: Int) async throws -> [HKWorkout] {
+        let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
         let found = try await samples(
             type: .workoutType(),
             predicate: predicate,
             limit: limit,
             sortDescriptors: [sort]
         )
-
-        return found.compactMap { $0 as? HKWorkout }.map(Self.makeSwimWorkout)
+        return found.compactMap { $0 as? HKWorkout }
     }
 
     func fetchEffortScore(workoutID: UUID) async throws -> Double? {

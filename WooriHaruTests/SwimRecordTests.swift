@@ -21,14 +21,25 @@ private final class FakeSwimFetcher: SwimWorkoutFetching {
         if let errorToThrow { throw errorToThrow }
     }
 
-    func fetchSwimWorkouts(limit: Int, startingAtOrBefore: Date?) async throws -> [SwimWorkout] {
-        calls.append((limit, startingAtOrBefore))
+    func fetchSwimWorkouts(limit: Int, before: Date?) async throws -> SwimWorkoutPage {
+        calls.append((limit, before))
         if let errorToThrow { throw errorToThrow }
-        // 실제 구현과 같이 경계를 포함한다.
-        let candidates = startingAtOrBefore.map { cursor in
-            workouts.filter { $0.startDate <= cursor }
+
+        let candidates = before.map { cursor in
+            workouts.filter { $0.startDate < cursor }
         } ?? workouts
-        return Array(candidates.prefix(limit))
+        let page = Array(candidates.prefix(limit))
+
+        // 실제 구현과 같이 경계 시각의 기록을 통째로 채워 무리를 완성한다.
+        guard page.count == limit, let boundary = page.last?.startDate else {
+            return SwimWorkoutPage(workouts: page, mayHaveMore: page.count == limit)
+        }
+        let tied = candidates.filter { $0.startDate == boundary }
+        let known = Set(page.map(\.id))
+        return SwimWorkoutPage(
+            workouts: page + tied.filter { !known.contains($0.id) },
+            mayHaveMore: true
+        )
     }
 
     var effortScore: Double?
@@ -402,11 +413,10 @@ struct SwimRecordViewModelTests {
 
         #expect(vm.workouts.count == 6)
         #expect(vm.workouts.map(\.id) == all.prefix(6).map(\.id))
-        // 두 번째 요청은 직전 마지막 기록의 시작 시각을 커서로 쓴다.
-        // 경계를 포함하므로 그 기록 한 건이 다시 딸려 오고, 그만큼 limit을 키운다.
+        // 두 번째 요청은 직전 마지막 기록의 시작 시각을 커서로 쓴다
         #expect(fetcher.calls.count == 2)
         #expect(fetcher.calls[1].cursor == all[2].startDate)
-        #expect(fetcher.calls[1].limit == 4)
+        #expect(fetcher.calls[1].limit == 3)
     }
 
     @Test func 마지막_항목이_아니면_불러오지_않는다() async {
@@ -450,16 +460,17 @@ struct SwimRecordViewModelTests {
         let fetcher = FakeSwimFetcher(workouts: all)
         let vm = SwimRecordViewModel(service: fetcher, pageSize: 3)
 
+        // 첫 페이지에서 경계에 걸린 t1 무리가 통째로 채워져 3건이 아니라 4건이 온다
         await vm.load()
-        #expect(vm.workouts.count == 3)
+        #expect(vm.workouts.count == 4)
+        #expect(vm.workouts.filter { $0.startDate == t1 }.count == 3)
 
-        await vm.loadMoreIfNeeded(currentItem: vm.workouts[2])
+        await vm.loadMoreIfNeeded(currentItem: vm.workouts[3])
 
-        // 경계에 걸린 세 번째 t1 기록이 살아남아야 한다
         #expect(vm.workouts.count == 6)
         #expect(Set(vm.workouts.map(\.id)) == Set(all.map(\.id)))
-        // 이미 읽은 t1 두 건만큼 limit을 키워 새 기록 3건을 확보한다
-        #expect(fetcher.calls[1].limit == 5)
+        // 무리가 완성돼 있으므로 다음 커서는 그 시각을 통째로 건너뛴다
+        #expect(fetcher.calls[1].cursor == t1)
     }
 
     @Test func 같은_시각_기록만_있어도_진행이_멈추지_않는다() async {
@@ -470,6 +481,9 @@ struct SwimRecordViewModelTests {
         let vm = SwimRecordViewModel(service: fetcher, pageSize: 3)
 
         await vm.load()
+        // 무리를 통째로 채우므로 첫 페이지에서 7건이 다 온다
+        #expect(vm.workouts.count == 7)
+
         var guardCount = 0
         while vm.canLoadMore && guardCount < 10 {
             await vm.loadMoreIfNeeded(currentItem: vm.workouts[vm.workouts.count - 1])
@@ -478,7 +492,7 @@ struct SwimRecordViewModelTests {
 
         #expect(vm.workouts.count == 7)
         #expect(vm.canLoadMore == false)
-        #expect(guardCount < 10) // 같은 페이지를 무한히 다시 받지 않는다
+        #expect(guardCount == 1) // 같은 페이지를 무한히 다시 받지 않는다
     }
 
     @Test func 건강데이터_미지원이면_실패가_아니라_빈_상태다() async {

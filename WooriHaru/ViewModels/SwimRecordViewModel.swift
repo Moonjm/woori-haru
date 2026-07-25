@@ -59,10 +59,10 @@ final class SwimRecordViewModel {
 
         do {
             try await service.requestAuthorization()
-            let page = try await service.fetchSwimWorkouts(limit: pageSize, startingAtOrBefore: nil)
+            let page = try await service.fetchSwimWorkouts(limit: pageSize, before: nil)
             guard token == generation else { return }
-            workouts = page
-            canLoadMore = page.count == pageSize
+            workouts = page.workouts
+            canLoadMore = page.mayHaveMore
         } catch SwimWorkoutError.healthDataUnavailable {
             // 재시도해도 달라지지 않는 조건이라 실패로 두지 않는다.
             // 빈 상태로 보내야 "건강 데이터를 쓸 수 없는 기기입니다" 안내가 뜬다.
@@ -85,21 +85,17 @@ final class SwimRecordViewModel {
         guard currentItem.id == workouts.last?.id else { return }
         guard let cursor = workouts.last?.startDate else { return }
 
-        // 커서는 경계를 포함하므로 이미 읽은 동점 기록이 다시 딸려 온다.
-        // 그만큼 limit을 키워야 이번 페이지에서도 새 기록을 pageSize만큼 확보해
-        // 동점이 아무리 많아도 반드시 앞으로 나아간다.
-        let alreadySeenAtCursor = workouts.filter { $0.startDate == cursor }.count
-        let limit = pageSize + alreadySeenAtCursor
-
+        // 서비스가 경계 시각의 기록을 통째로 채워 주므로, 이미 읽은 마지막 시각은
+        // 배제하고 넘어가면 된다. 동점 무리가 쪼개질 일이 없어 순서에 기대지 않는다.
         let token = generation
         isLoadingMore = true
         do {
-            let page = try await service.fetchSwimWorkouts(limit: limit, startingAtOrBefore: cursor)
+            let page = try await service.fetchSwimWorkouts(limit: pageSize, before: cursor)
             // 기다리는 사이 새로고침이 끼어들었으면 이 결과는 이미 낡았다.
             guard token == generation else { return }
             let known = Set(workouts.map(\.id))
-            workouts.append(contentsOf: page.filter { !known.contains($0.id) })
-            canLoadMore = page.count == limit
+            workouts.append(contentsOf: page.workouts.filter { !known.contains($0.id) })
+            canLoadMore = page.mayHaveMore
         } catch {
             guard token == generation else { return }
             errorMessage = error.localizedDescription
