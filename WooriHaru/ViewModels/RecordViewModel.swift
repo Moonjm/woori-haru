@@ -40,8 +40,13 @@ final class RecordViewModel {
 
     // MARK: - Services
 
-    private let recordService = RecordService()
-    private let pairService = PairService()
+    private let recordService: RecordService
+    private let pairService: PairService
+
+    init(recordService: RecordService = RecordService(), pairService: PairService = PairService()) {
+        self.recordService = recordService
+        self.pairService = pairService
+    }
 
     // MARK: - Data Loading
 

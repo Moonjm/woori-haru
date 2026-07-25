@@ -23,7 +23,11 @@ final class PairEventsViewModel {
 
     // MARK: - Service
 
-    private let pairEventService = PairEventService()
+    private let pairEventService: PairEventService
+
+    init(pairEventService: PairEventService = PairEventService()) {
+        self.pairEventService = pairEventService
+    }
 
     // MARK: - Actions
 

@@ -79,7 +79,6 @@ struct SideDrawerView: View {
             VStack(spacing: 0) {
                 drawerItem(icon: "person.2", label: "커플") { isOpen = false; navPath.append(AppDestination.pair) }
                 drawerItem(icon: "chart.bar", label: "통계") { isOpen = false; navPath.append(AppDestination.stats) }
-                drawerItem(icon: "refrigerator", label: "보관함 관리") { isOpen = false; navPath.append(AppDestination.storage) }
                 drawerItem(icon: "person.circle", label: "내 정보") { isOpen = false; navPath.append(AppDestination.profile) }
 
                 if authVM.user?.authority == .admin {

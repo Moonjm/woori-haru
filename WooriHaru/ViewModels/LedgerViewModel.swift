@@ -16,7 +16,11 @@ final class LedgerViewModel {
 
     // MARK: - Service
 
-    private let ledgerService = LedgerService()
+    private let ledgerService: LedgerService
+
+    init(ledgerService: LedgerService = LedgerService()) {
+        self.ledgerService = ledgerService
+    }
 
     // MARK: - 파생 값
 

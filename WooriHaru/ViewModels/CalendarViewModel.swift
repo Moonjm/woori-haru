@@ -51,11 +51,23 @@ final class CalendarViewModel {
 
     // MARK: - Private
 
-    private let recordService = RecordService()
-    private let holidayService = HolidayService()
-    private let pairService = PairService()  // fetchPartnerRecords용
-    private let pairEventService = PairEventService()
+    private let recordService: RecordService
+    private let holidayService: HolidayService
+    private let pairService: PairService  // fetchPartnerRecords용
+    private let pairEventService: PairEventService
     private let calendar = Calendar.current
+
+    init(
+        recordService: RecordService = RecordService(),
+        holidayService: HolidayService = HolidayService(),
+        pairService: PairService = PairService(),
+        pairEventService: PairEventService = PairEventService()
+    ) {
+        self.recordService = recordService
+        self.holidayService = holidayService
+        self.pairService = pairService
+        self.pairEventService = pairEventService
+    }
     private(set) var pairStore: PairStore!
 
     func configure(pairStore: PairStore) {
@@ -248,7 +260,8 @@ final class CalendarViewModel {
     // MARK: - Private Helpers
 
     /// Builds the grid of DayCells for a given month start date.
-    private func buildMonthData(_ startOfMonth: Date) -> MonthData {
+    /// internal — 단위 테스트에서 그리드 생성 규칙을 직접 검증한다.
+    func buildMonthData(_ startOfMonth: Date) -> MonthData {
         let year = startOfMonth.year
         let month = startOfMonth.month
         let id = startOfMonth.yearMonth
