@@ -107,6 +107,13 @@
 		N10001 /* NotificationScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = N20001 /* NotificationScheduler.swift */; };
 		N10002 /* LiveActivityCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = N20002 /* LiveActivityCoordinator.swift */; };
 		QA10001 /* QuickActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = QA20001 /* QuickActions.swift */; };
+		SW10001 /* SwimWorkout.swift in Sources */ = {isa = PBXBuildFile; fileRef = SW20001 /* SwimWorkout.swift */; };
+		SW10002 /* HealthKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = SW20002 /* HealthKitService.swift */; };
+		SW10003 /* SwimRecordViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = SW20003 /* SwimRecordViewModel.swift */; };
+		SW10004 /* SwimRecordListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SW20004 /* SwimRecordListView.swift */; };
+		SW10005 /* SwimLap.swift in Sources */ = {isa = PBXBuildFile; fileRef = SW20005 /* SwimLap.swift */; };
+		SW10006 /* SwimWorkoutDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SW20006 /* SwimWorkoutDetailView.swift */; };
+		SW10007 /* SwimSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = SW20007 /* SwimSet.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -241,6 +248,14 @@
 		N20001 /* NotificationScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationScheduler.swift; sourceTree = "<group>"; };
 		N20002 /* LiveActivityCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityCoordinator.swift; sourceTree = "<group>"; };
 		QA20001 /* QuickActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActions.swift; sourceTree = "<group>"; };
+		SW20001 /* SwimWorkout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwimWorkout.swift; sourceTree = "<group>"; };
+		SW20002 /* HealthKitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitService.swift; sourceTree = "<group>"; };
+		SW20003 /* SwimRecordViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwimRecordViewModel.swift; sourceTree = "<group>"; };
+		SW20004 /* SwimRecordListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwimRecordListView.swift; sourceTree = "<group>"; };
+		SW20005 /* SwimLap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwimLap.swift; sourceTree = "<group>"; };
+		SW20006 /* SwimWorkoutDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwimWorkoutDetailView.swift; sourceTree = "<group>"; };
+		SW20007 /* SwimSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwimSet.swift; sourceTree = "<group>"; };
+		SW30001 /* WooriHaru.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = WooriHaru.entitlements; sourceTree = "<group>"; };
 		TT100002 /* WooriHaruTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WooriHaruTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -328,6 +343,7 @@
 			isa = PBXGroup;
 			children = (
 				88C2E2B22F557CCD001249F8 /* Info.plist */,
+				SW30001 /* WooriHaru.entitlements */,
 				A20001 /* WooriHaruApp.swift */,
 				A20002 /* ContentView.swift */,
 				QA20001 /* QuickActions.swift */,
@@ -386,6 +402,9 @@
 				L20001 /* StudyModels.swift */,
 				L20005 /* StudyTimerAttributes.swift */,
 				LG20001 /* LedgerModels.swift */,
+				SW20001 /* SwimWorkout.swift */,
+				SW20005 /* SwimLap.swift */,
+				SW20007 /* SwimSet.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -407,6 +426,7 @@
 				N20002 /* LiveActivityCoordinator.swift */,
 				AA200006 /* SessionManager.swift */,
 				LG20002 /* LedgerService.swift */,
+				SW20002 /* HealthKitService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -426,6 +446,7 @@
 				L20006 /* StudyRecordViewModel.swift */,
 				LG20003 /* LedgerViewModel.swift */,
 				LG20020 /* LedgerStatsViewModel.swift */,
+				SW20003 /* SwimRecordViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -445,6 +466,7 @@
 				B40012 /* Components */,
 				L40001 /* Study */,
 				LG40001 /* Ledger */,
+				SW40001 /* Swim */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -577,6 +599,15 @@
 				LG20011 /* LedgerInboundFailuresView.swift */,
 			);
 			path = Ledger;
+			sourceTree = "<group>";
+		};
+		SW40001 /* Swim */ = {
+			isa = PBXGroup;
+			children = (
+				SW20004 /* SwimRecordListView.swift */,
+				SW20006 /* SwimWorkoutDetailView.swift */,
+			);
+			path = Swim;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -816,6 +847,13 @@
 				AA100004 /* PauseTypeStore.swift in Sources */,
 				AA100005 /* Logger+Extensions.swift in Sources */,
 				AA100006 /* SessionManager.swift in Sources */,
+				SW10001 /* SwimWorkout.swift in Sources */,
+				SW10002 /* HealthKitService.swift in Sources */,
+				SW10003 /* SwimRecordViewModel.swift in Sources */,
+				SW10004 /* SwimRecordListView.swift in Sources */,
+				SW10005 /* SwimLap.swift in Sources */,
+				SW10006 /* SwimWorkoutDetailView.swift in Sources */,
+				SW10007 /* SwimSet.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1032,6 +1070,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = WooriHaru/WooriHaru.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_ASSET_PATHS = "\"WooriHaru/Preview Content\"";
@@ -1062,6 +1101,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = WooriHaru/WooriHaru.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_ASSET_PATHS = "\"WooriHaru/Preview Content\"";
