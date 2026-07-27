@@ -55,10 +55,11 @@ struct SideDrawerView: View {
                     Image(systemName: "rectangle.portrait.and.arrow.right")
                         .font(.body)
                         .foregroundStyle(Color.red500)
-                        .frame(width: 36, height: 36)
+                        .frame(width: 44, height: 44)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("로그아웃")
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 16)

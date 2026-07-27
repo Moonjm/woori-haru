@@ -17,6 +17,9 @@ struct LedgerView: View {
     /// 선택된 탭을 다시 탭하면 증가 — 보이는 탭(내역·통계)이 맨 위로 스크롤한다.
     @State private var scrollToTopSignal = 0
 
+    /// 히어로 금액은 Dynamic Type을 따라 커진다 (넘치면 minimumScaleFactor로 축소).
+    @ScaledMetric(relativeTo: .largeTitle) private var summaryAmountSize: CGFloat = 34
+
     var body: some View {
         ZStack(alignment: .bottom) {
             content
@@ -33,6 +36,8 @@ struct LedgerView: View {
             }
         }
         .animation(.snappy(duration: 0.2), value: viewModel.isAtCurrentMonth)
+        // 스와이프·화살표·피커 어느 쪽으로 달을 바꿔도 전환됐다는 촉각 신호를 준다.
+        .sensoryFeedback(.selection, trigger: viewModel.month)
         .overlay(alignment: .bottomTrailing) {
             if tab == .entries { searchButton }
         }
@@ -42,12 +47,14 @@ struct LedgerView: View {
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button { dismiss() } label: { Image(systemName: "chevron.backward") }
+                    .accessibilityLabel("뒤로")
             }
             ToolbarItem(placement: .principal) { principalTitle }
             if tab == .entries {
                 ToolbarItem(placement: .topBarTrailing) {
                     // 수동 등록은 드물어서 위로, 자주 쓰는 검색이 FAB(엄지 닿는 위치)로.
                     Button { showingCreate = true } label: { Image(systemName: "plus") }
+                        .accessibilityLabel("내역 추가")
                 }
             }
         }
@@ -165,8 +172,10 @@ struct LedgerView: View {
                 .fontWeight(.semibold)
                 .foregroundStyle(.white.opacity(0.8))
             Text(LedgerFormat.amount(viewModel.monthlyKRWTotal, currency: "KRW"))
-                .font(.system(size: 34, weight: .heavy))
+                .font(.system(size: summaryAmountSize, weight: .heavy))
                 .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
                 .foregroundStyle(.white)
                 .padding(.top, 4)
                 .contentTransition(.numericText())
@@ -255,7 +264,7 @@ struct LedgerView: View {
         ContentUnavailableView {
             Label("이 달 내역이 없어요", systemImage: "tray")
         } description: {
-            Text("오른쪽 아래 + 로 내역을 추가해 보세요")
+            Text("오른쪽 위 + 로 내역을 추가해 보세요")
         }
     }
 
@@ -271,21 +280,34 @@ struct LedgerView: View {
     }
 
     private var monthSwitcher: some View {
-        HStack(spacing: 14) {
+        // 화살표는 아이콘만 13pt여도 히트 영역은 44pt를 확보한다 (HIG 최소 터치 타깃).
+        HStack(spacing: 0) {
             Button { Task { await viewModel.shiftMonth(-1) } } label: {
-                Image(systemName: "chevron.left").font(.system(size: 13, weight: .bold))
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 13, weight: .bold))
+                    .frame(width: 44, height: 44)
+                    .contentShape(.rect)
             }
+            .accessibilityLabel("이전 달")
             Button { showingMonthPicker = true } label: {
                 Text(viewModel.month.displayLong)
                     .font(.subheadline)
                     .fontWeight(.bold)
                     .monospacedDigit()
                     .contentTransition(.numericText())
+                    .padding(.horizontal, 4)
+                    .frame(height: 44)
+                    .contentShape(.rect)
             }
             .buttonStyle(.plain)
+            .accessibilityHint("연월 선택 열기")
             Button { Task { await viewModel.shiftMonth(1) } } label: {
-                Image(systemName: "chevron.right").font(.system(size: 13, weight: .bold))
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .bold))
+                    .frame(width: 44, height: 44)
+                    .contentShape(.rect)
             }
+            .accessibilityLabel("다음 달")
             .disabled(viewModel.isAtCurrentMonth)
             .opacity(viewModel.isAtCurrentMonth ? 0.3 : 1)
         }
@@ -426,6 +448,7 @@ struct LedgerView: View {
                 )
                 .shadow(color: Color.blue600.opacity(0.45), radius: 10, y: 5)
         }
+        .accessibilityLabel("내역 검색")
         .padding(.trailing, 16)
         .padding(.bottom, 84)
     }

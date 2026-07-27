@@ -20,11 +20,11 @@ struct LoginView: View {
 
                 VStack(spacing: 10) {
                     Text("우리 하루")
-                        .font(.system(size: 34, weight: .semibold))
+                        .font(.largeTitle.weight(.semibold))
                         .foregroundStyle(Color.slate900)
 
                     Text("우리의 하루를 기록해요")
-                        .font(.system(size: 15, weight: .regular))
+                        .font(.subheadline)
                         .foregroundStyle(Color.slate500)
                 }
 
