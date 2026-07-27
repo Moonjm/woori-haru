@@ -136,6 +136,45 @@ struct DayCellView: View {
         .background(.white)
         .contentShape(Rectangle())
         .onTapGesture { if isCurrentMonth { onTap() } }
+        // 이모지·점선이 하나씩 읽히지 않도록 셀 전체를 한 요소로 합쳐 요약해 읽어준다.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityDescription)
+        .accessibilityHint("기록 보기")
+        .accessibilityAddTraits(.isButton)
+        .accessibilityHidden(!isCurrentMonth)
+    }
+
+    /// VoiceOver용 셀 요약 — 날짜 + 공휴일/기념일 + 기록 개수.
+    private var accessibilityDescription: String {
+        var parts = ["\(date.month)월 \(date.day)일"]
+        if date.isToday { parts.append("오늘") }
+        if !displayData.holidayLabels.isEmpty {
+            parts.append(displayData.holidayLabels.joined(separator: ", "))
+        }
+        if !displayData.eventEmojis.isEmpty {
+            parts.append("기념일 \(displayData.eventEmojis.count)개")
+        }
+        let togetherCount = displayData.togetherRows.reduce(0) { $0 + $1.count }
+        if togetherCount > 0 { parts.append("함께한 기록 \(togetherCount)개") }
+        if !displayData.myEmojis.isEmpty { parts.append("내 기록 \(displayData.myEmojis.count)개") }
+        if !displayData.partnerEmojis.isEmpty {
+            parts.append("상대 기록 \(displayData.partnerEmojis.count)개")
+        }
+        if let overeatLevel, let label = Self.overeatLabel(overeatLevel) {
+            parts.append("과식 \(label)")
+        }
+        if parts.count == 1 { parts.append("기록 없음") }
+        return parts.joined(separator: ", ")
+    }
+
+    private static func overeatLabel(_ level: OvereatLevel) -> String? {
+        switch level {
+        case .none: return nil
+        case .mild: return "소"
+        case .moderate: return "중"
+        case .severe: return "대"
+        case .extreme: return "대대"
+        }
     }
 
     @ViewBuilder
@@ -156,7 +195,8 @@ struct DayCellView: View {
         if !isCurrentMonth { return Color.slate400.opacity(0.5) }
         if date.isSunday || !displayData.holidayLabels.isEmpty { return Color.red500 }
         if date.isSaturday { return Color.blue500 }
-        return .primary
+        // 셀 배경이 흰색 고정이므로 .primary(시스템 적응색) 대신 팔레트 색을 명시한다.
+        return Color.slate900
     }
 
     @ViewBuilder
@@ -201,6 +241,7 @@ struct DayCellView: View {
 // MARK: - Rainbow Pig
 
 private struct RainbowPigView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var rotation: Double = 0
 
     private static let rainbowColors: [Color] = [
@@ -234,6 +275,8 @@ private struct RainbowPigView: View {
                     )
             }
             .onAppear {
+                // '동작 줄이기'가 켜져 있으면 무한 회전을 걸지 않는다 (그라데이션은 그대로 유지).
+                guard !reduceMotion else { return }
                 withAnimation(.linear(duration: 2).repeatForever(autoreverses: false)) {
                     rotation = 360
                 }

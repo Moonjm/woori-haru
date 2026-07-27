@@ -25,6 +25,9 @@ struct LedgerStatsView: View {
             }
         }
         .animation(.snappy(duration: 0.2), value: vm.isAtCurrentPeriod)
+        // 스와이프·화살표·피커·월별↔연별 전환 어느 쪽으로 기간을 바꿔도 촉각 신호를 준다.
+        // periodTitle은 scope·month·year를 모두 반영하므로 트리거 하나로 충분하다.
+        .sensoryFeedback(.selection, trigger: vm.periodTitle)
         .sheet(isPresented: $showingPeriodPicker) {
             Group {
                 switch vm.scope {
@@ -155,6 +158,7 @@ struct LedgerStatsView: View {
                         .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
+                .accessibilityAddTraits(vm.scope == item ? [.isSelected] : [])
             }
         }
         .padding(3)
@@ -162,10 +166,16 @@ struct LedgerStatsView: View {
     }
 
     private var periodSwitcher: some View {
-        HStack(spacing: 12) {
+        // 내역 탭 monthSwitcher와 동일하게, 아이콘은 12pt여도 히트 영역은 44pt를 확보한다.
+        let unit = vm.scope == .monthly ? "달" : "해"
+        return HStack(spacing: 0) {
             Button { vm.shiftPeriod(-1) } label: {
-                Image(systemName: "chevron.left").font(.system(size: 12, weight: .bold))
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 12, weight: .bold))
+                    .frame(width: 44, height: 44)
+                    .contentShape(.rect)
             }
+            .accessibilityLabel("이전 \(unit)")
             .disabled(vm.isAtMinPeriod)
             .opacity(vm.isAtMinPeriod ? 0.3 : 1)
             Button { showingPeriodPicker = true } label: {
@@ -174,11 +184,19 @@ struct LedgerStatsView: View {
                     .fontWeight(.bold)
                     .monospacedDigit()
                     .contentTransition(.numericText())
+                    .padding(.horizontal, 4)
+                    .frame(height: 44)
+                    .contentShape(.rect)
             }
             .buttonStyle(.plain)
+            .accessibilityHint(vm.scope == .monthly ? "연월 선택 열기" : "연도 선택 열기")
             Button { vm.shiftPeriod(1) } label: {
-                Image(systemName: "chevron.right").font(.system(size: 12, weight: .bold))
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .bold))
+                    .frame(width: 44, height: 44)
+                    .contentShape(.rect)
             }
+            .accessibilityLabel("다음 \(unit)")
             .disabled(vm.isAtCurrentPeriod)
             .opacity(vm.isAtCurrentPeriod ? 0.3 : 1)
         }

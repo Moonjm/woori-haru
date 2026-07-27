@@ -13,6 +13,7 @@ struct CalendarHeaderView: View {
                     .font(.title2)
                     .foregroundStyle(Color.slate700)
             }
+            .accessibilityLabel("메뉴 열기")
 
             Button(action: onMonthTap) {
                 HStack(spacing: 6) {
@@ -25,6 +26,8 @@ struct CalendarHeaderView: View {
                         .foregroundStyle(Color.slate600)
                 }
             }
+            .accessibilityLabel(monthLabel)
+            .accessibilityHint("연월 선택 열기")
 
             Spacer()
 
@@ -33,6 +36,7 @@ struct CalendarHeaderView: View {
                     .font(.title2)
                     .foregroundStyle(Color.slate700)
             }
+            .accessibilityLabel("검색")
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)

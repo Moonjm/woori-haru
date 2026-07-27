@@ -11,6 +11,9 @@ struct StudyTimerCardView: View {
     @State private var showEarlyPauseConfirm = false
     @State private var showEarlyEndConfirm = false
 
+    /// 타이머 숫자도 Dynamic Type을 따른다 (넘치면 minimumScaleFactor로 축소).
+    @ScaledMetric(relativeTo: .largeTitle) private var elapsedFontSize: CGFloat = 60
+
     var body: some View {
         VStack(spacing: 16) {
             // 상태 표시
@@ -27,7 +30,9 @@ struct StudyTimerCardView: View {
 
             // 타이머 숫자
             Text(vm.elapsedFormatted)
-                .font(.system(size: 60, weight: .light, design: .monospaced))
+                .font(.system(size: elapsedFontSize, weight: .light, design: .monospaced))
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
                 .foregroundStyle(timerNumberColor)
                 .contentTransition(.numericText())
 
@@ -45,6 +50,8 @@ struct StudyTimerCardView: View {
         .frame(maxWidth: .infinity)
         .padding(24)
         .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 20))
+        // 시작·일시정지·재개·종료는 화면을 안 보고도 눌리는 동작이라 촉각 신호를 준다.
+        .sensoryFeedback(.impact(weight: .medium), trigger: vm.timerState)
         .alert("확인", isPresented: $showEarlyPauseConfirm) {
             Button("일시정지", role: .destructive) { Task { await vm.pause() } }
             Button("취소", role: .cancel) {}
