@@ -34,6 +34,8 @@ struct OvereatSelectorView: View {
                                 }
                             }
                     }
+                    .accessibilityLabel("과식 \(label)")
+                    .accessibilityAddTraits(currentLevel == level ? [.isSelected] : [])
                 }
             }
         }
@@ -43,6 +45,8 @@ struct OvereatSelectorView: View {
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color.slate50)
         }
+        // 칩이 작아 오탭하기 쉬운데 시각 변화도 미세하다 — 선택 확정을 촉각으로 알린다.
+        .sensoryFeedback(.selection, trigger: currentLevel)
     }
 
     private func buttonBackground(_ level: OvereatLevel) -> Color {

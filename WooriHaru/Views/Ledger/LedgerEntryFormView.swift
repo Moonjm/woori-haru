@@ -84,7 +84,12 @@ struct LedgerEntryFormView: View {
                         .foregroundStyle(Color.slate500)
                         .padding(9)
                         .background(Color.slate500.opacity(0.12), in: Circle())
+                        // 배지는 30pt지만 히트 영역은 44pt를 확보한다.
+                        .frame(width: 44, height: 44)
+                        .contentShape(.rect)
                 }
+                .accessibilityLabel("부호 바꾸기")
+                .accessibilityValue(amountText.hasPrefix("-") ? "음수" : "양수")
                 Menu {
                     Picker("통화", selection: $currency) {
                         ForEach(LedgerFormat.currencies, id: \.self) { Text($0).tag($0) }
