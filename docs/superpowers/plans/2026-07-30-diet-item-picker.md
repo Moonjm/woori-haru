@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** `MealItemEditView`를 필라이즈식 3탭 + ⊕ 즉시 담기 + 상세 시트 + (새 끼니일 때만) 다중 선택 구조로 다시 짜고, 하루 화면 날짜 스트립에 좌우 스와이프 주 단위 이동을 넣는다.
+**Goal:** `MealItemEditView`를 3탭 + ⊕ 즉시 담기 + 상세 시트 + (새 끼니일 때만) 다중 선택 구조로 다시 짜고, 하루 화면 날짜 스트립에 좌우 스와이프 주 단위 이동을 넣는다.
 
 **Architecture:** 화면은 「출처(`FoodPickSource`) → 행(`FoodPickRow`) → 상세 시트(`FoodDetailSheet`) → 바구니(`MealItemPickViewModel`)」 네 층으로 나뉜다. 출처는 검색 결과(`Food`, 100g당 값)와 자주 드셨어요(`FrequentItem`, 저장된 절대값) **둘뿐이고 환산 함수가 서로 다르므로** 항목을 만드는 순간까지 출처를 그대로 들고 다닌다. 날짜 스트립은 「보이는 주(`visibleWeekAnchor`)」와 「선택 날짜(`selectedDate`)」를 분리해 스와이프에 네트워크가 붙지 않게 한다.
 

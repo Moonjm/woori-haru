@@ -315,9 +315,33 @@ struct DietServiceTests {
 
         #expect(api.getCalls.first?.path == "/diet/foods")
         #expect(api.getCalls.first?.query["q"] == "제육")
-        // **서버 상한인 50이다.** 필터 칩이 받아 온 페이지를 앱에서 거르기 때문에 페이지가
-        // 작으면 상위 결과가 전부 가공식품일 때 「음식」 칩이 빈 목록을 보여준다.
+        // 서버 상한이 50이다.
         #expect(api.getCalls.first?.query["size"] == "50")
+        // **칩이 「전체」면 파라미터를 아예 안 보낸다** — 빈 문자열을 보내면 서버가 400을 준다.
+        #expect(api.getCalls.first?.query["dataset"] == nil)
+    }
+
+    /// **거르기는 페이징 전에 일어나야 한다.** 앱에서 거르면 상위 50건이 전부 가공식품일 때
+    /// 「음식」 칩이 빈 목록이 된다 — 실제로 매칭되는 조리 음식이 뒤에 있는데도 그렇다.
+    @Test func 데이터셋_칩은_쿼리로_나간다() async throws {
+        let api = MockAPIClient()
+        api.stubGet("/diet/foods", result: DataResponse<[Food]>(data: []))
+
+        _ = try await DietService(api: api).searchFoods(query: "제육", dataset: .dish)
+
+        #expect(api.getCalls.first?.query["dataset"] == "DISH")
+    }
+
+    /// `.unknown`은 서버에 없는 값이라 보내면 enum 변환에 실패해 400이 온다.
+    /// **검색이 되기는 해야 하므로 파라미터만 빼고 보낸다.**
+    @Test func 모르는_데이터셋은_쿼리로_보내지_않는다() async throws {
+        let api = MockAPIClient()
+        api.stubGet("/diet/foods", result: DataResponse<[Food]>(data: []))
+
+        _ = try await DietService(api: api).searchFoods(query: "제육", dataset: .unknown)
+
+        #expect(api.getCalls.first?.query["dataset"] == nil)
+        #expect(api.getCalls.first?.query["q"] == "제육")
     }
 
     @Test func 자주_먹는_음식은_days와_size를_붙인다() async throws {

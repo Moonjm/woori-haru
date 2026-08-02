@@ -108,6 +108,8 @@ final class FakeDietService: DietServing, @unchecked Sendable {
     private(set) var fetchedDates: [String] = []
     private(set) var activityCalls: [(date: String, kcal: Int)] = []
     private(set) var searchQueries: [String] = []
+    /// 검색 호출 전체 — 어떤 칩으로 나갔는지까지 본다. `searchQueries`는 검색어만 본다.
+    private(set) var searchCalls: [(query: String, dataset: FoodDataset?)] = []
     private(set) var frequentCallCount = 0
     private(set) var statsRanges: [(from: String, to: String)] = []
     private(set) var savedProfiles: [NutritionProfileRequest] = []
@@ -247,9 +249,12 @@ final class FakeDietService: DietServing, @unchecked Sendable {
         try check("upsertActivity")
     }
 
-    func searchFoods(query: String) async throws -> [Food] {
+    /// **대역은 `dataset`으로 거르지 않는다.** 거르면 「앱이 안 거른다」를 확인하는 테스트가
+    /// 대역의 거르기에 가려 통과해 버린다 — 서버 몫은 서버 테스트에 있다.
+    func searchFoods(query: String, dataset: FoodDataset?) async throws -> [Food] {
         lock.lock()
         searchQueries.append(query)
+        searchCalls.append((query, dataset))
         let gate = searchGates[query]
         let override = foodsByQuery[query]
         lock.unlock()

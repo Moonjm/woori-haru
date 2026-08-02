@@ -26,7 +26,12 @@ protocol DietServing: Sendable {
     func fetchDay(date: String) async throws -> DailyDiet
     func upsertActivity(date: String, activeEnergyKcal: Int) async throws
 
-    func searchFoods(query: String) async throws -> [Food]
+    /// **`dataset`을 서버로 넘긴다.** 앱에서 거르면 상위 50건이 전부 가공식품일 때 「음식」
+    /// 칩이 빈 목록이 된다 — 거르기는 페이징 **전에** 일어나야 한다.
+    ///
+    /// **프로토콜에는 기본값을 두지 않는다** — 두면 기존 호출부가 그대로 컴파일되어
+    /// 「고쳤는데 안 부르는」 상태가 조용히 남는다. 없으면 컴파일러가 호출부를 짚어 준다.
+    func searchFoods(query: String, dataset: FoodDataset?) async throws -> [Food]
     func fetchFrequentItems() async throws -> [FrequentItem]
     func fetchStats(from: String, to: String) async throws -> DietStats
 }
@@ -130,11 +135,17 @@ struct DietService: DietServing {
 
     // MARK: - 식품·통계
 
-    /// **`size`는 서버 상한인 50이다.** 필터 칩이 받아 온 페이지를 앱에서 거르기 때문에
-    /// 페이지가 작으면 「음식」 칩이 빈 목록을 보여준다. 근본 해법은 서버 `dataset`
-    /// 파라미터이고 그건 백엔드 작업이다.
-    func searchFoods(query: String) async throws -> [Food] {
-        let response: DataResponse<[Food]> = try await api.get("/diet/foods", query: ["q": query, "size": "50"])
+    /// **`size`는 서버 상한인 50이다.**
+    ///
+    /// **`dataset`은 서버가 페이징 전에 거른다** — 앱에서 걸렀을 때는 상위 50건이 전부
+    /// 가공식품이면 「음식」 칩이 빈 목록이었다. 뒤에 매칭되는 조리 음식이 있는데도 그랬다.
+    func searchFoods(query: String, dataset: FoodDataset? = nil) async throws -> [Food] {
+        var parameters = ["q": query, "size": "50"]
+        // `.unknown`은 서버에 없는 값이다 — 보내면 enum 변환에 실패해 400이 온다.
+        if let dataset, dataset != .unknown {
+            parameters["dataset"] = dataset.rawValue
+        }
+        let response: DataResponse<[Food]> = try await api.get("/diet/foods", query: parameters)
         return response.data ?? []
     }
 
