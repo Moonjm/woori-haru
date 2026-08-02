@@ -42,6 +42,16 @@ struct SwimWorkout: Identifiable, Hashable {
     let laps: [SwimLap]
 }
 
+/// 워크아웃에 딸린 심박수 통계. **`HKWorkout.statistics(for:)`로는 못 얻는 기록이 있어**
+/// 상세 화면이 별도 질의로 읽는다 — 심박수는 워크아웃 집계 통계가 아니라 워크아웃에 묶인
+/// 샘플로 저장되는 경우가 있고, 그때 목록 매핑에서는 `nil`로 온다.
+struct SwimHeartRate: Equatable, Sendable {
+    let averageBpm: Double?
+    let maxBpm: Double?
+
+    var isEmpty: Bool { averageBpm == nil && maxBpm == nil }
+}
+
 // MARK: - Display Text
 
 extension SwimWorkout {
@@ -97,14 +107,22 @@ extension SwimWorkout {
         return "\(Self.decimalText(Double(strokeCount)))회"
     }
 
-    var averageHeartRateText: String? {
-        guard let averageHeartRate, averageHeartRate > 0 else { return nil }
-        return "\(Int(averageHeartRate.rounded()))bpm"
+    static func bpmText(_ bpm: Double?) -> String? {
+        guard let bpm, bpm > 0 else { return nil }
+        return "\(Int(bpm.rounded()))bpm"
     }
 
-    var maxHeartRateText: String? {
-        guard let maxHeartRate, maxHeartRate > 0 else { return nil }
-        return "\(Int(maxHeartRate.rounded()))bpm"
+    var averageHeartRateText: String? { Self.bpmText(averageHeartRate) }
+    var maxHeartRateText: String? { Self.bpmText(maxHeartRate) }
+
+    /// 상세 화면이 보여줄 심박수. **워크아웃 자체 통계가 우선이고**, 비어 있을 때만 따로
+    /// 읽어 온 값을 쓴다 — `HKWorkout.statistics(for:)`가 심박수를 안 담고 오는 기록이 있어
+    /// 상세 화면이 별도 질의로 메운다(`SwimWorkoutFetching.fetchHeartRate`).
+    func heartRateTexts(fallback: SwimHeartRate?) -> (average: String?, maximum: String?) {
+        (
+            averageHeartRateText ?? Self.bpmText(fallback?.averageBpm),
+            maxHeartRateText ?? Self.bpmText(fallback?.maxBpm)
+        )
     }
 
     /// "수영장 · 25m" 처럼 장소와 레인 길이를 합친 부제

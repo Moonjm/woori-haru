@@ -4,10 +4,14 @@
 <dict>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>NSCameraUsageDescription</key>
+	<string>식사 사진을 찍어 식단을 기록하는 데 사용합니다.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>끼니 사진을 사진 앱에 저장하는 데 사용합니다. 사진첩을 읽지는 않습니다.</string>
 	<key>NSHealthShareUsageDescription</key>
-	<string>애플워치 운동 앱으로 기록한 수영 기록을 목록으로 보여주기 위해 건강 데이터를 읽습니다.</string>
+	<string>애플워치 운동 앱으로 기록한 수영 기록을 목록으로 보여주고, 하루 활동 에너지를 읽어 서버로 보내 식단 피드백을 만드는 데 사용합니다.</string>
 	<key>NSHealthUpdateUsageDescription</key>
-	<string>우리 하루는 건강 데이터를 저장하거나 수정하지 않습니다. 애플워치 수영 기록을 읽어 목록으로 보여주기만 합니다.</string>
+	<string>우리 하루는 건강 데이터를 저장하거나 수정하지 않습니다. 애플워치 수영 기록과 하루 활동 에너지를 읽어 보여주고 식단 피드백에 활용할 뿐입니다.</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
 	<key>CFBundleURLTypes</key>
