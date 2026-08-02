@@ -125,28 +125,24 @@ final class MealItemPickViewModel {
 
     var frequentSources: [FoodPickSource] { frequentItems.map(FoodPickSource.frequent) }
 
-    /// **받아 온 페이지를 앱에서 거른다** — 서버에 `dataset` 파라미터가 없다. 그래서 상위
-    /// 결과가 전부 가공식품이면 「음식」 칩이 빈 목록을 보여준다. `size`를 50(서버 상한)으로
-    /// 올려 완화했고, 근본 해법은 서버 필터라 별도 작업이다.
-    var filteredSearchSources: [FoodPickSource] {
-        let filtered = filter.dataset.map { dataset in
-            searchResults.filter { $0.dataset == dataset }
-        } ?? searchResults
-        return filtered.map(FoodPickSource.food)
-    }
+    /// 검색결과 탭 목록. **서버가 이미 `dataset`으로 거른 결과다** — 여기서 또 거르지 않는다.
+    /// 두 곳에서 거르면 기준이 어긋나는 날 「검색은 됐는데 목록이 빈」 상태가 다시 생긴다.
+    var searchSources: [FoodPickSource] { searchResults.map(FoodPickSource.food) }
 
-    /// 검색결과 탭이 비었을 때 무엇을 보여줄지. **셋을 갈라야 한다** — 스펙이 예고한 대로
-    /// 필터가 받아 온 페이지를 전부 걸러내는 경우가 실제로 자주 생기는데(서버에 `dataset`
-    /// 파라미터가 없어 앱에서 거른다), 그때 「검색해 주세요」를 띄우면 원인이 필터라는 걸
-    /// 알 길이 없다.
+    /// 검색결과 탭이 비었을 때 무엇을 보여줄지. **셋을 가른다** — 아직 검색 전인지, 정말
+    /// 없는지, 칩 때문인지가 사용자에게 다른 다음 행동을 뜻한다.
+    ///
+    /// **기준이 「칩이 걸려 있나」다.** 예전에는 「받아 온 것과 거른 것이 다른가」로 갈랐는데,
+    /// 서버가 거르는 지금은 그 둘이 항상 같아 세 번째 가지가 영영 안 밟힌다.
     var searchEmptyText: String? {
-        guard filteredSearchSources.isEmpty else { return nil }
-        if searchResults.isEmpty {
-            return query.trimmingCharacters(in: .whitespaces).isEmpty
-                ? "찾을 음식을 검색해 주세요."
-                : "검색 결과가 없어요. 다른 이름으로 찾아 보세요."
+        guard searchSources.isEmpty else { return nil }
+        guard !query.trimmingCharacters(in: .whitespaces).isEmpty else {
+            return "찾을 음식을 검색해 주세요."
         }
-        return "이 검색 결과에는 「\(filter.label)」이 없어요. 「전체」로 보거나 검색어를 좁혀 보세요."
+        guard filter == .all else {
+            return "「\(filter.label)」에는 검색 결과가 없어요. 「전체」로 보거나 검색어를 바꿔 보세요."
+        }
+        return "검색 결과가 없어요. 다른 이름으로 찾아 보세요."
     }
 
     /// 상세 시트의 「일일목표 %」 분모. 프로필이 없으면 nil이라 배지가 감춰진다.
@@ -170,6 +166,17 @@ final class MealItemPickViewModel {
             // 「일일목표 %」 배지만 못 보여준다. 담는 것 자체는 프로필과 무관하다.
             profile = nil
         }
+    }
+
+    /// 칩을 고른다. **칩이 곧 쿼리라 다시 검색해야 한다** — 서버가 `dataset`으로 거르므로
+    /// 이미 받아 둔 결과를 다시 쓸 수 없다.
+    ///
+    /// `search()`가 `searchGeneration`을 올리므로 **먼저 나간 칩의 응답이 늦게 돌아와
+    /// 덮어쓰는 일은 그쪽에서 막힌다** — 칩을 빠르게 두 번 누르는 경로가 이번에 새로 생긴다.
+    func selectFilter(_ newFilter: DatasetFilter) async {
+        guard newFilter != filter else { return }
+        filter = newFilter
+        await search()
     }
 
     /// 검색어를 확정하면 **검색결과 탭으로 자동 전환한다** — 결과가 다른 탭 뒤에 숨으면 안 된다.

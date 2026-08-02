@@ -394,7 +394,7 @@ struct MealItemPickViewModelTests {
 
         #expect(vm.tab == .search)
         #expect(service.searchQueries == ["제육"])
-        #expect(vm.filteredSearchSources.count == 1)
+        #expect(vm.searchSources.count == 1)
     }
 
     /// 실패한 뒤 다시 검색해 성공하면 **지난 오류가 남아 있으면 안 된다** — 정상 결과 위에
@@ -414,7 +414,7 @@ struct MealItemPickViewModelTests {
         await vm.search()
 
         #expect(vm.errorMessage == nil)
-        #expect(vm.filteredSearchSources.count == 1)
+        #expect(vm.searchSources.count == 1)
     }
 
     /// **늦게 돌아온 옛 검색이 최신 결과를 덮으면 안 된다.** 먼저 나간 「제」를 게이트로
@@ -436,14 +436,14 @@ struct MealItemPickViewModelTests {
         vm.query = "제육"
         await vm.search()
 
-        #expect(vm.filteredSearchSources.map(\.name) == ["제육볶음"])
+        #expect(vm.searchSources.map(\.name) == ["제육볶음"])
         #expect(!vm.isSearching)
 
         await gate.open()
         await stale.value
 
         // 옛 응답이 돌아온 뒤에도 최신 결과가 그대로여야 한다.
-        #expect(vm.filteredSearchSources.map(\.name) == ["제육볶음"])
+        #expect(vm.searchSources.map(\.name) == ["제육볶음"])
         #expect(!vm.isSearching)
         #expect(service.searchQueries == ["제", "제육"])
     }
@@ -463,43 +463,65 @@ struct MealItemPickViewModelTests {
         vm.query = ""
         await vm.search()
 
-        #expect(vm.filteredSearchSources.isEmpty)
+        #expect(vm.searchSources.isEmpty)
         #expect(!vm.isSearching)
 
         await gate.open()
         await stale.value
 
         // 옛 응답이 돌아와도 비어 있어야 한다.
-        #expect(vm.filteredSearchSources.isEmpty)
+        #expect(vm.searchSources.isEmpty)
         #expect(!vm.isSearching)
     }
 
-    /// **필터 칩은 받아 온 페이지를 앱에서 거른다** — 서버에 `dataset` 파라미터가 없다.
-    @Test func 필터_칩이_데이터셋으로_거른다() async {
+    /// **칩이 곧 쿼리다.** 앱 필터를 지우기만 하고 재검색을 안 붙이면 칩을 눌러도 목록이
+    /// 그대로다 — 이 테스트가 그 미완성을 잡는다.
+    @Test func 칩을_바꾸면_그_데이터셋으로_다시_검색한다() async {
         let (vm, service) = makeVM()
-        service.foods = [
-            makePickFood("제육볶음", code: "D1", dataset: .dish),
-            makePickFood("달걀", code: "R1", dataset: .raw),
-            makePickFood("삼각김밥", code: "P1", dataset: .processed),
-            makePickFood("김치찌개", code: "D2", dataset: .dish)
-        ]
+        service.foods = [makePickFood("제육볶음", code: "D1")]
+        vm.query = "제육"
+        await vm.search()
+
+        #expect(service.searchCalls.count == 1)
+        #expect(service.searchCalls.first?.dataset == nil)
+
+        await vm.selectFilter(.processed)
+
+        #expect(vm.filter == .processed)
+        #expect(service.searchCalls.count == 2)
+        // **인덱스로 읽지 않는다.** `#expect`는 실패해도 멈추지 않으므로, 재검색이 없어
+        // 호출이 1건일 때 `searchCalls[1]`을 읽으면 테스트가 실패가 아니라 **프로세스째
+        // 죽어** 남은 테스트가 판정도 못 받는다(고의 파손 확인에서 실제로 겪었다).
+        #expect(service.searchCalls.last?.dataset == .processed)
+        #expect(service.searchCalls.last?.query == "제육")
+    }
+
+    /// **서버가 거른 결과를 그대로 믿는다.** 대역이 칩과 안 맞는 한 건을 줘도 앱이 지우면 안 된다 —
+    /// 앱이 또 거르면 서버가 페이징 전에 거른 의미가 없어지고, 두 곳의 기준이 어긋나면
+    /// 「검색은 됐는데 목록이 빈」 상태가 다시 생긴다.
+    @Test func 앱은_데이터셋으로_더_거르지_않는다() async {
+        let (vm, service) = makeVM()
+        service.foods = [makePickFood("삼각김밥", code: "P1", dataset: .processed)]
         vm.query = "김"
         await vm.search()
 
-        #expect(vm.filter == .all)
-        #expect(vm.filteredSearchSources.count == 4)
+        await vm.selectFilter(.dish)
 
-        vm.filter = .dish
-        #expect(vm.filteredSearchSources.map(\.name) == ["제육볶음", "김치찌개"])
+        #expect(vm.searchSources.map(\.name) == ["삼각김밥"])
+    }
 
-        vm.filter = .raw
-        #expect(vm.filteredSearchSources.map(\.name) == ["달걀"])
+    /// 칩이 걸린 채 0건이면 **원인이 칩일 수 있다**고 알려 준다 — 「전체」에는 결과가 있을 수 있다.
+    @Test func 칩이_걸린_채_결과가_없으면_전체로_보라고_안내한다() async {
+        let (vm, service) = makeVM()
+        service.foods = []
+        vm.query = "없는음식"
 
-        vm.filter = .processed
-        #expect(vm.filteredSearchSources.map(\.name) == ["삼각김밥"])
+        await vm.selectFilter(.dish)
+        #expect(vm.searchEmptyText == "「음식」에는 검색 결과가 없어요. 「전체」로 보거나 검색어를 바꿔 보세요.")
 
-        vm.filter = .all
-        #expect(vm.filteredSearchSources.count == 4)
+        // 칩이 「전체」면 칩 탓이 아니다 — 원인을 잘못 짚으면 안 된다.
+        await vm.selectFilter(.all)
+        #expect(vm.searchEmptyText == "검색 결과가 없어요. 다른 이름으로 찾아 보세요.")
     }
 
     /// **검색결과 탭의 빈 상태는 셋을 가른다** — 아직 검색 전, 검색했지만 결과가 없음,
@@ -521,19 +543,9 @@ struct MealItemPickViewModelTests {
         #expect(vm.searchEmptyText == "검색 결과가 없어요. 다른 이름으로 찾아 보세요.")
     }
 
-    /// 필터가 받아 온 페이지를 전부 걸러낸 상태 — 결과는 있지만 「음식」 칩에 걸리는 게 없다.
-    @Test func 결과는_있지만_필터가_다_걸러내면_필터_탓임을_알려준다() async {
-        let (vm, service) = makeVM()
-        service.foods = [
-            makePickFood("삼각김밥", code: "P1", dataset: .processed),
-            makePickFood("컵라면", code: "P2", dataset: .processed)
-        ]
-        vm.query = "김"
-        await vm.search()
-        vm.filter = .dish
-
-        #expect(vm.searchEmptyText == "이 검색 결과에는 「음식」이 없어요. 「전체」로 보거나 검색어를 좁혀 보세요.")
-    }
+    // 「받아 온 결과는 있는데 앱 필터가 다 걸러낸」 상태는 **더 이상 생기지 않는다** — 서버가
+    // 그 데이터셋에서 0건을 준 것이라 「그 데이터셋에 없다」가 맞는 말이다. 그 자리를
+    // `칩이_걸린_채_결과가_없으면_전체로_보라고_안내한다`가 대신한다.
 
     @Test func 결과가_있으면_빈_문구가_없다() async {
         let (vm, service) = makeVM()
