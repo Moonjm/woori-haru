@@ -197,7 +197,7 @@ final class MealItemPickViewModel {
         errorMessage = nil
 
         do {
-            let results = try await service.searchFoods(query: keyword)
+            let results = try await service.searchFoods(query: keyword, dataset: filter.dataset)
             guard token == searchGeneration else { return }
             searchResults = results
         } catch is CancellationError {
