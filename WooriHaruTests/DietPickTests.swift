@@ -7,15 +7,21 @@ import Foundation
 func makePickFood(
     _ name: String = "제육볶음",
     code: String = "D9",
+    maker: String? = nil,
     dataset: FoodDataset = .dish,
     known: Bool = true,
-    serving: Double = 250
+    serving: Double = 250,
+    saturatedFat: Double = 2,
+    transFat: Double = 0.1,
+    cholesterol: Double = 30
 ) -> Food {
     Food(
-        code: code, name: name, dataset: dataset,
+        code: code, name: name, maker: maker, dataset: dataset,
         servingSizeG: serving, servingSizeKnown: known,
         kcalPer100g: 150, carbsPer100g: 12, proteinPer100g: 10, fatPer100g: 7,
-        sugarPer100g: 3, sodiumMgPer100g: 400, fiberPer100g: 1.5
+        sugarPer100g: 3, sodiumMgPer100g: 400, fiberPer100g: 1.5,
+        saturatedFatPer100g: saturatedFat, transFatPer100g: transFat,
+        cholesterolMgPer100g: cholesterol
     )
 }
 

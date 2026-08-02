@@ -44,6 +44,7 @@ struct ImageDownsampleTests {
 private func makeFood(
     code: String = "D000001",
     name: String = "제육볶음",
+    maker: String? = nil,
     dataset: FoodDataset = .dish,
     servingSizeG: Double = 250,
     servingSizeKnown: Bool = true,
@@ -53,14 +54,68 @@ private func makeFood(
     fat: Double = 7,
     sugar: Double = 3,
     sodium: Double = 400,
-    fiber: Double = 1.5
+    fiber: Double = 1.5,
+    saturatedFat: Double = 2,
+    transFat: Double = 0.1,
+    cholesterol: Double = 30
 ) -> Food {
     Food(
-        code: code, name: name, dataset: dataset,
+        code: code, name: name, maker: maker, dataset: dataset,
         servingSizeG: servingSizeG, servingSizeKnown: servingSizeKnown,
         kcalPer100g: kcal, carbsPer100g: carbs, proteinPer100g: protein, fatPer100g: fat,
-        sugarPer100g: sugar, sodiumMgPer100g: sodium, fiberPer100g: fiber
+        sugarPer100g: sugar, sodiumMgPer100g: sodium, fiberPer100g: fiber,
+        saturatedFatPer100g: saturatedFat, transFatPer100g: transFat,
+        cholesterolMgPer100g: cholesterol
     )
+}
+
+struct FoodDecodingTests {
+    /// 서버 응답 두 건 — 하나는 아는 데이터셋, 하나는 **아직 모르는 값**.
+    /// `maker` 키는 둘째에서 아예 빠져 있다.
+    private let json = """
+    [
+      {"code":"D1","name":"제육볶음","maker":"백종원","dataset":"DISH",
+       "servingSizeG":250,"servingSizeKnown":true,
+       "kcalPer100g":150,"carbsPer100g":12,"proteinPer100g":10,"fatPer100g":7,
+       "sugarPer100g":3,"sodiumMgPer100g":400,"fiberPer100g":1.5,
+       "saturatedFatPer100g":2.5,"transFatPer100g":0.1,"cholesterolMgPer100g":30},
+      {"code":"U1","name":"내가 등록한 음식","dataset":"USER",
+       "servingSizeG":100,"servingSizeKnown":false,
+       "kcalPer100g":100,"carbsPer100g":1,"proteinPer100g":1,"fatPer100g":1,
+       "sugarPer100g":1,"sodiumMgPer100g":1,"fiberPer100g":1,
+       "saturatedFatPer100g":0,"transFatPer100g":0,"cholesterolMgPer100g":0}
+    ]
+    """
+
+    /// **한 건이라도 모르는 `dataset`이면 `[Food]` 전체가 실패한다.** 서버에 「사용자 등록
+    /// 식품(USER)」 계획이 있고, 그날 이 흡수가 없으면 검색 화면이 통째로 빈 목록이 된다.
+    /// 화면이 죽는 방식이 「그 한 건이 안 보인다」가 아니라 「전부 안 보인다」라 위험하다.
+    @Test func 모르는_데이터셋이_섞여도_목록_전체가_살아난다() throws {
+        let foods = try JSONDecoder().decode([Food].self, from: Data(json.utf8))
+
+        #expect(foods.count == 2)
+        #expect(foods[0].dataset == .dish)
+        #expect(foods[1].dataset == .unknown)
+        // 이름을 모르니 지어내지 않는다.
+        #expect(foods[1].dataset.badge == nil)
+    }
+
+    /// `maker`는 없는 행이 더 많다(음식 68%, 원재료 100%). **키 자체가 빠져도 디코딩된다.**
+    @Test func 브랜드는_없어도_디코딩된다() throws {
+        let foods = try JSONDecoder().decode([Food].self, from: Data(json.utf8))
+
+        #expect(foods[0].maker == "백종원")
+        #expect(foods[1].maker == nil)
+    }
+
+    /// 서버가 값 없는 칸을 0.0으로 채워 보내므로 non-optional로 받는다.
+    @Test func 새_영양소_셋을_읽는다() throws {
+        let foods = try JSONDecoder().decode([Food].self, from: Data(json.utf8))
+
+        #expect(foods[0].saturatedFatPer100g == 2.5)
+        #expect(foods[0].transFatPer100g == 0.1)
+        #expect(foods[0].cholesterolMgPer100g == 30)
+    }
 }
 
 struct NutritionMathTests {
@@ -433,10 +488,11 @@ struct NutrientPassthroughTests {
     /// ① 식품DB 검색 경로 — 100g당 값을 앱이 환산한다.
     @Test func 검색_경로() async {
         let food = Food(
-            code: "D1", name: "제육볶음", dataset: .dish,
+            code: "D1", name: "제육볶음", maker: nil, dataset: .dish,
             servingSizeG: 250, servingSizeKnown: true,
             kcalPer100g: 150, carbsPer100g: 12, proteinPer100g: 10, fatPer100g: 7,
-            sugarPer100g: 3, sodiumMgPer100g: 400, fiberPer100g: 1.5
+            sugarPer100g: 3, sodiumMgPer100g: 400, fiberPer100g: 1.5,
+            saturatedFatPer100g: 2, transFatPer100g: 0.1, cholesterolMgPer100g: 30
         )
         await assertNutrientsSurvive(
             NutritionMath.item(from: food, quantityG: 250),
@@ -529,10 +585,11 @@ struct NutrientPassthroughTests {
     /// 환산이 `FoodPickSource.quickAddItem` 한 곳에서만 일어난다.
     @Test func 즉시_담기_경로() async throws {
         let food = Food(
-            code: "D1", name: "제육볶음", dataset: .dish,
+            code: "D1", name: "제육볶음", maker: nil, dataset: .dish,
             servingSizeG: 250, servingSizeKnown: true,
             kcalPer100g: 150, carbsPer100g: 12, proteinPer100g: 10, fatPer100g: 7,
-            sugarPer100g: 3, sodiumMgPer100g: 400, fiberPer100g: 1.5
+            sugarPer100g: 3, sodiumMgPer100g: 400, fiberPer100g: 1.5,
+            saturatedFatPer100g: 2, transFatPer100g: 0.1, cholesterolMgPer100g: 30
         )
         let item = try #require(FoodPickSource.food(food).quickAddItem)
 
