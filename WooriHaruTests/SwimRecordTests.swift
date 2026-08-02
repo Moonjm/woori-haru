@@ -48,6 +48,15 @@ private final class FakeSwimFetcher: SwimWorkoutFetching {
         if let errorToThrow { throw errorToThrow }
         return effortScore
     }
+
+    var heartRate: SwimHeartRate?
+    private(set) var heartRateCalls: [UUID] = []
+
+    func fetchHeartRate(workoutID: UUID) async throws -> SwimHeartRate? {
+        heartRateCalls.append(workoutID)
+        if let errorToThrow { throw errorToThrow }
+        return heartRate
+    }
 }
 
 /// 재시도할 값어치가 있는 일반 오류. 미지원 기기와 구분하려고 따로 둔다.
@@ -528,5 +537,67 @@ struct SwimRecordViewModelTests {
     @Test func 건강데이터_미지원_기기_여부를_그대로_전달한다() {
         let vm = SwimRecordViewModel(service: FakeSwimFetcher(isHealthDataAvailable: false))
         #expect(vm.isHealthDataAvailable == false)
+    }
+}
+
+/// 심박수는 워크아웃 집계 통계에 없을 수 있어 상세 화면이 따로 읽어 메운다.
+/// **운동 강도와는 무관하다** — 강도가 없어도 심박수만 있으면 보여야 한다.
+@MainActor
+struct SwimHeartRateTests {
+    @Test func bpm은_반올림해_정수로_보여준다() {
+        #expect(SwimWorkout.bpmText(132.4) == "132bpm")
+        #expect(SwimWorkout.bpmText(132.5) == "133bpm")
+    }
+
+    /// 0은 「진짜 0」이 아니라 「없음」이다 — 심박이 0인 운동은 없다.
+    @Test func bpm이_없거나_0이면_감춘다() {
+        #expect(SwimWorkout.bpmText(nil) == nil)
+        #expect(SwimWorkout.bpmText(0) == nil)
+    }
+
+    /// 목록 매핑이 채워 온 값이 있으면 그게 이긴다 — 따로 읽을 이유가 없다.
+    @Test func 워크아웃에_이미_있으면_그_값을_쓴다() {
+        let workout = makeWorkout(averageHeartRate: 140, maxHeartRate: 170)
+        let fallback = SwimHeartRate(averageBpm: 99, maxBpm: 111)
+
+        let texts = workout.heartRateTexts(fallback: fallback)
+
+        #expect(texts.average == "140bpm")
+        #expect(texts.maximum == "170bpm")
+    }
+
+    /// **이 자리가 실제로 나던 문제다** — `HKWorkout.statistics(for:)`가 심박수를 안 담고
+    /// 오면 목록 매핑에서 nil이 되고, 상세 화면이 별도 질의로 메운다.
+    @Test func 워크아웃에_없으면_따로_읽은_값으로_메운다() {
+        let workout = makeWorkout(averageHeartRate: nil, maxHeartRate: nil)
+        let fallback = SwimHeartRate(averageBpm: 138, maxBpm: 165)
+
+        let texts = workout.heartRateTexts(fallback: fallback)
+
+        #expect(texts.average == "138bpm")
+        #expect(texts.maximum == "165bpm")
+    }
+
+    /// 둘 다 없으면 감춘다 — 빈 칸을 그리지 않는다.
+    @Test func 양쪽_다_없으면_아무것도_보여주지_않는다() {
+        let texts = makeWorkout(averageHeartRate: nil, maxHeartRate: nil)
+            .heartRateTexts(fallback: nil)
+
+        #expect(texts.average == nil)
+        #expect(texts.maximum == nil)
+    }
+
+    /// 평균만 있고 최대가 없는 기록도 있다 — 있는 쪽만 보여준다.
+    @Test func 한쪽만_있으면_그쪽만_보여준다() {
+        let texts = makeWorkout(averageHeartRate: nil, maxHeartRate: nil)
+            .heartRateTexts(fallback: SwimHeartRate(averageBpm: 138, maxBpm: nil))
+
+        #expect(texts.average == "138bpm")
+        #expect(texts.maximum == nil)
+    }
+
+    @Test func 둘_다_비었는지_알린다() {
+        #expect(SwimHeartRate(averageBpm: nil, maxBpm: nil).isEmpty)
+        #expect(!SwimHeartRate(averageBpm: 138, maxBpm: nil).isEmpty)
     }
 }

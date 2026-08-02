@@ -5,6 +5,8 @@ struct SwimWorkoutDetailView: View {
     let workout: SwimWorkout
     let service: SwimWorkoutFetching
     @State private var effortScore: Double?
+    /// 목록 매핑이 심박수를 못 채운 기록을 여기서 메운다. 채워져 있으면 조회하지 않는다.
+    @State private var fetchedHeartRate: SwimHeartRate?
 
     var body: some View {
         ScrollView {
@@ -29,6 +31,13 @@ struct SwimWorkoutDetailView: View {
         .task {
             // 강도가 없는 기록도 많다. 실패하면 그냥 섹션을 숨긴다.
             effortScore = try? await service.fetchEffortScore(workoutID: workout.id)
+
+            // **하나라도 비어 있으면 묻는다.** 평균만 있고 최대가 없는 기록이 있는데, 둘 다
+            // 없을 때만 조회하면 그런 기록은 빈 쪽이 영영 안 채워진다
+            // (`heartRateTexts(fallback:)`는 필드별로 메운다).
+            if workout.averageHeartRateText == nil || workout.maxHeartRateText == nil {
+                fetchedHeartRate = try? await service.fetchHeartRate(workoutID: workout.id)
+            }
         }
     }
 
@@ -37,9 +46,8 @@ struct SwimWorkoutDetailView: View {
     /// 심박수와 운동 강도. 셋 다 없으면 섹션을 통째로 숨긴다.
     @ViewBuilder
     private var intensityCard: some View {
-        let hasAny = workout.averageHeartRateText != nil
-            || workout.maxHeartRateText != nil
-            || effortScore != nil
+        let heartRate = workout.heartRateTexts(fallback: fetchedHeartRate)
+        let hasAny = heartRate.average != nil || heartRate.maximum != nil || effortScore != nil
 
         if hasAny {
             GlassCard {
@@ -55,10 +63,10 @@ struct SwimWorkoutDetailView: View {
                                 value: "\(Int(effortScore.rounded()))"
                             )
                         }
-                        if let average = workout.averageHeartRateText {
+                        if let average = heartRate.average {
                             summaryItem(label: "평균 심박", value: average)
                         }
-                        if let maximum = workout.maxHeartRateText {
+                        if let maximum = heartRate.maximum {
                             summaryItem(label: "최대 심박", value: maximum)
                         }
                     }

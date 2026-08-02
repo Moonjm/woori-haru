@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		DT10037 /* PhotoViewerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20037 /* PhotoViewerSheet.swift */; };
+		DT10036 /* PhotoViewerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20036 /* PhotoViewerViewModel.swift */; };
+		DT10035 /* PhotoLibrarySaver.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20035 /* PhotoLibrarySaver.swift */; };
 		880AD4692F5F071200777742 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 880AD4682F5F071100777742 /* WidgetKit.framework */; };
 		880AD46B2F5F071200777742 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 880AD46A2F5F071200777742 /* SwiftUI.framework */; };
 		880AD47C2F5F071300777742 /* StudyTimerWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 880AD4662F5F071100777742 /* StudyTimerWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -44,6 +47,40 @@
 		D10005 /* PairService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20005 /* PairService.swift */; };
 		D10006 /* PairEventService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20006 /* PairEventService.swift */; };
 		D10007 /* HolidayService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20007 /* HolidayService.swift */; };
+		DT10001 /* UIImage+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20001 /* UIImage+Extensions.swift */; };
+		DT10002 /* DietErrorCode.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20002 /* DietErrorCode.swift */; };
+		DT10003 /* Diet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20003 /* Diet.swift */; };
+		DT10004 /* MealAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20004 /* MealAnalysis.swift */; };
+		DT10005 /* NutritionProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20005 /* NutritionProfile.swift */; };
+		DT10006 /* Food.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20006 /* Food.swift */; };
+		DT10007 /* FrequentItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20007 /* FrequentItem.swift */; };
+		DT10008 /* DietStats.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20008 /* DietStats.swift */; };
+		DT10009 /* NutritionMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20009 /* NutritionMath.swift */; };
+		DT10010 /* DietService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20010 /* DietService.swift */; };
+		DT10011 /* NutritionProfileViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20011 /* NutritionProfileViewModel.swift */; };
+		DT10012 /* NutritionProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20012 /* NutritionProfileView.swift */; };
+		DT10013 /* DietDayViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20013 /* DietDayViewModel.swift */; };
+		DT10014 /* DietScoreRing.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20014 /* DietScoreRing.swift */; };
+		DT10015 /* MacroBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20015 /* MacroBar.swift */; };
+		DT10016 /* ScoreBasisCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20016 /* ScoreBasisCard.swift */; };
+		DT10017 /* NutrientLimitRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20017 /* NutrientLimitRow.swift */; };
+		DT10018 /* DietHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20018 /* DietHomeView.swift */; };
+		DT10019 /* MealCaptureViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20019 /* MealCaptureViewModel.swift */; };
+		DT10020 /* MealCaptureSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20020 /* MealCaptureSheet.swift */; };
+		DT10021 /* PhotoStrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20021 /* PhotoStrip.swift */; };
+		DT10022 /* MealConfirmViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20022 /* MealConfirmViewModel.swift */; };
+		DT10023 /* MealConfirmView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20023 /* MealConfirmView.swift */; };
+		DT10024 /* FrequentItemList.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20024 /* FrequentItemList.swift */; };
+		DT10030 /* FoodPickSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20030 /* FoodPickSource.swift */; };
+		DT10031 /* FoodPickRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20031 /* FoodPickRow.swift */; };
+		DT10032 /* FoodDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20032 /* FoodDetailViewModel.swift */; };
+		DT10033 /* FoodDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20033 /* FoodDetailSheet.swift */; };
+		DT10034 /* MealItemPickViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20034 /* MealItemPickViewModel.swift */; };
+		DT10025 /* MealItemEditView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20025 /* MealItemEditView.swift */; };
+		DT10026 /* MealDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20026 /* MealDetailViewModel.swift */; };
+		DT10027 /* MealDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20027 /* MealDetailView.swift */; };
+		DT10028 /* DietStatsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20028 /* DietStatsViewModel.swift */; };
+		DT10029 /* DietStatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20029 /* DietStatsView.swift */; };
 		E10001 /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20001 /* AuthViewModel.swift */; };
 		E10002 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20002 /* LoginView.swift */; };
 		E10003 /* RecordViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20003 /* RecordViewModel.swift */; };
@@ -53,6 +90,7 @@
 		E10007 /* CategoriesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20007 /* CategoriesViewModel.swift */; };
 		F10001 /* Date+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20001 /* Date+Extensions.swift */; };
 		F10002 /* Color+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20002 /* Color+Extensions.swift */; };
+		F10003 /* Double+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20003 /* Double+Extensions.swift */; };
 		G10001 /* WeekdayHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = G20001 /* WeekdayHeaderView.swift */; };
 		G10002 /* DayCellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = G20002 /* DayCellView.swift */; };
 		G10003 /* CalendarHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = G20003 /* CalendarHeaderView.swift */; };
@@ -148,6 +186,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		DT20037 /* PhotoViewerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoViewerSheet.swift; sourceTree = "<group>"; };
+		DT20036 /* PhotoViewerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoViewerViewModel.swift; sourceTree = "<group>"; };
+		DT20035 /* PhotoLibrarySaver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoLibrarySaver.swift; sourceTree = "<group>"; };
 		880AD4662F5F071100777742 /* StudyTimerWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = StudyTimerWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		880AD4682F5F071100777742 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		880AD46A2F5F071200777742 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
@@ -185,6 +226,40 @@
 		D20005 /* PairService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairService.swift; sourceTree = "<group>"; };
 		D20006 /* PairEventService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairEventService.swift; sourceTree = "<group>"; };
 		D20007 /* HolidayService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HolidayService.swift; sourceTree = "<group>"; };
+		DT20001 /* UIImage+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIImage+Extensions.swift"; sourceTree = "<group>"; };
+		DT20002 /* DietErrorCode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DietErrorCode.swift; sourceTree = "<group>"; };
+		DT20003 /* Diet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Diet.swift; sourceTree = "<group>"; };
+		DT20004 /* MealAnalysis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealAnalysis.swift; sourceTree = "<group>"; };
+		DT20005 /* NutritionProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionProfile.swift; sourceTree = "<group>"; };
+		DT20006 /* Food.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Food.swift; sourceTree = "<group>"; };
+		DT20007 /* FrequentItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrequentItem.swift; sourceTree = "<group>"; };
+		DT20008 /* DietStats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DietStats.swift; sourceTree = "<group>"; };
+		DT20009 /* NutritionMath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionMath.swift; sourceTree = "<group>"; };
+		DT20010 /* DietService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DietService.swift; sourceTree = "<group>"; };
+		DT20011 /* NutritionProfileViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionProfileViewModel.swift; sourceTree = "<group>"; };
+		DT20012 /* NutritionProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionProfileView.swift; sourceTree = "<group>"; };
+		DT20013 /* DietDayViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DietDayViewModel.swift; sourceTree = "<group>"; };
+		DT20014 /* DietScoreRing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DietScoreRing.swift; sourceTree = "<group>"; };
+		DT20015 /* MacroBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacroBar.swift; sourceTree = "<group>"; };
+		DT20016 /* ScoreBasisCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScoreBasisCard.swift; sourceTree = "<group>"; };
+		DT20017 /* NutrientLimitRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutrientLimitRow.swift; sourceTree = "<group>"; };
+		DT20018 /* DietHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DietHomeView.swift; sourceTree = "<group>"; };
+		DT20019 /* MealCaptureViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealCaptureViewModel.swift; sourceTree = "<group>"; };
+		DT20020 /* MealCaptureSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealCaptureSheet.swift; sourceTree = "<group>"; };
+		DT20021 /* PhotoStrip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoStrip.swift; sourceTree = "<group>"; };
+		DT20022 /* MealConfirmViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealConfirmViewModel.swift; sourceTree = "<group>"; };
+		DT20023 /* MealConfirmView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealConfirmView.swift; sourceTree = "<group>"; };
+		DT20024 /* FrequentItemList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrequentItemList.swift; sourceTree = "<group>"; };
+		DT20030 /* FoodPickSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodPickSource.swift; sourceTree = "<group>"; };
+		DT20031 /* FoodPickRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodPickRow.swift; sourceTree = "<group>"; };
+		DT20032 /* FoodDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodDetailViewModel.swift; sourceTree = "<group>"; };
+		DT20033 /* FoodDetailSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodDetailSheet.swift; sourceTree = "<group>"; };
+		DT20034 /* MealItemPickViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealItemPickViewModel.swift; sourceTree = "<group>"; };
+		DT20025 /* MealItemEditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealItemEditView.swift; sourceTree = "<group>"; };
+		DT20026 /* MealDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealDetailViewModel.swift; sourceTree = "<group>"; };
+		DT20027 /* MealDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealDetailView.swift; sourceTree = "<group>"; };
+		DT20028 /* DietStatsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DietStatsViewModel.swift; sourceTree = "<group>"; };
+		DT20029 /* DietStatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DietStatsView.swift; sourceTree = "<group>"; };
 		E20001 /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
 		E20002 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 		E20003 /* RecordViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordViewModel.swift; sourceTree = "<group>"; };
@@ -194,6 +269,7 @@
 		E20007 /* CategoriesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoriesViewModel.swift; sourceTree = "<group>"; };
 		F20001 /* Date+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Date+Extensions.swift"; sourceTree = "<group>"; };
 		F20002 /* Color+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Extensions.swift"; sourceTree = "<group>"; };
+		F20003 /* Double+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Double+Extensions.swift"; sourceTree = "<group>"; };
 		G20001 /* WeekdayHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekdayHeaderView.swift; sourceTree = "<group>"; };
 		G20002 /* DayCellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayCellView.swift; sourceTree = "<group>"; };
 		G20003 /* CalendarHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarHeaderView.swift; sourceTree = "<group>"; };
@@ -405,6 +481,15 @@
 				SW20001 /* SwimWorkout.swift */,
 				SW20005 /* SwimLap.swift */,
 				SW20007 /* SwimSet.swift */,
+				DT20002 /* DietErrorCode.swift */,
+				DT20003 /* Diet.swift */,
+				DT20004 /* MealAnalysis.swift */,
+				DT20005 /* NutritionProfile.swift */,
+				DT20006 /* Food.swift */,
+				DT20007 /* FrequentItem.swift */,
+				DT20008 /* DietStats.swift */,
+				DT20009 /* NutritionMath.swift */,
+				DT20030 /* FoodPickSource.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -412,6 +497,7 @@
 		B40002 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				DT20035 /* PhotoLibrarySaver.swift */,
 				8825C75B2F5B1A4C00E46B14 /* UserService.swift */,
 				D20001 /* APIClient.swift */,
 				D20002 /* AuthService.swift */,
@@ -427,6 +513,7 @@
 				AA200006 /* SessionManager.swift */,
 				LG20002 /* LedgerService.swift */,
 				SW20002 /* HealthKitService.swift */,
+				DT20010 /* DietService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -434,6 +521,7 @@
 		B40003 /* ViewModels */ = {
 			isa = PBXGroup;
 			children = (
+				DT20036 /* PhotoViewerViewModel.swift */,
 				8825C7592F5B1A4400E46B14 /* UserManagementViewModel.swift */,
 				E20001 /* AuthViewModel.swift */,
 				E20004 /* CalendarViewModel.swift */,
@@ -447,6 +535,14 @@
 				LG20003 /* LedgerViewModel.swift */,
 				LG20020 /* LedgerStatsViewModel.swift */,
 				SW20003 /* SwimRecordViewModel.swift */,
+				DT20011 /* NutritionProfileViewModel.swift */,
+				DT20013 /* DietDayViewModel.swift */,
+				DT20022 /* MealConfirmViewModel.swift */,
+				DT20019 /* MealCaptureViewModel.swift */,
+				DT20026 /* MealDetailViewModel.swift */,
+				DT20028 /* DietStatsViewModel.swift */,
+				DT20032 /* FoodDetailViewModel.swift */,
+				DT20034 /* MealItemPickViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -467,6 +563,7 @@
 				L40001 /* Study */,
 				LG40001 /* Ledger */,
 				SW40001 /* Swim */,
+				DT40001 /* Diet */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -552,9 +649,42 @@
 			children = (
 				F20001 /* Date+Extensions.swift */,
 				F20002 /* Color+Extensions.swift */,
+				F20003 /* Double+Extensions.swift */,
 				AA200005 /* Logger+Extensions.swift */,
+				DT20001 /* UIImage+Extensions.swift */,
 			);
 			path = Extensions;
+			sourceTree = "<group>";
+		};
+		DT40001 /* Diet */ = {
+			isa = PBXGroup;
+			children = (
+				DT20037 /* PhotoViewerSheet.swift */,
+				DT40002 /* Components */,
+				DT20012 /* NutritionProfileView.swift */,
+				DT20018 /* DietHomeView.swift */,
+				DT20025 /* MealItemEditView.swift */,
+				DT20023 /* MealConfirmView.swift */,
+				DT20020 /* MealCaptureSheet.swift */,
+				DT20027 /* MealDetailView.swift */,
+				DT20029 /* DietStatsView.swift */,
+				DT20033 /* FoodDetailSheet.swift */,
+			);
+			path = Diet;
+			sourceTree = "<group>";
+		};
+		DT40002 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				DT20014 /* DietScoreRing.swift */,
+				DT20015 /* MacroBar.swift */,
+				DT20016 /* ScoreBasisCard.swift */,
+				DT20017 /* NutrientLimitRow.swift */,
+				DT20024 /* FrequentItemList.swift */,
+				DT20021 /* PhotoStrip.swift */,
+				DT20031 /* FoodPickRow.swift */,
+			);
+			path = Components;
 			sourceTree = "<group>";
 		};
 		GLS40001 /* Glass */ = {
@@ -754,6 +884,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DT10037 /* PhotoViewerSheet.swift in Sources */,
+				DT10036 /* PhotoViewerViewModel.swift in Sources */,
+				DT10035 /* PhotoLibrarySaver.swift in Sources */,
 				A10002 /* ContentView.swift in Sources */,
 				A10001 /* WooriHaruApp.swift in Sources */,
 				QA10001 /* QuickActions.swift in Sources */,
@@ -803,6 +936,41 @@
 				E10002 /* LoginView.swift in Sources */,
 				F10001 /* Date+Extensions.swift in Sources */,
 				F10002 /* Color+Extensions.swift in Sources */,
+				F10003 /* Double+Extensions.swift in Sources */,
+				DT10001 /* UIImage+Extensions.swift in Sources */,
+				DT10002 /* DietErrorCode.swift in Sources */,
+				DT10003 /* Diet.swift in Sources */,
+				DT10004 /* MealAnalysis.swift in Sources */,
+				DT10005 /* NutritionProfile.swift in Sources */,
+				DT10006 /* Food.swift in Sources */,
+				DT10007 /* FrequentItem.swift in Sources */,
+				DT10008 /* DietStats.swift in Sources */,
+				DT10009 /* NutritionMath.swift in Sources */,
+				DT10030 /* FoodPickSource.swift in Sources */,
+				DT10031 /* FoodPickRow.swift in Sources */,
+				DT10032 /* FoodDetailViewModel.swift in Sources */,
+				DT10033 /* FoodDetailSheet.swift in Sources */,
+				DT10034 /* MealItemPickViewModel.swift in Sources */,
+				DT10010 /* DietService.swift in Sources */,
+				DT10011 /* NutritionProfileViewModel.swift in Sources */,
+				DT10012 /* NutritionProfileView.swift in Sources */,
+				DT10013 /* DietDayViewModel.swift in Sources */,
+				DT10014 /* DietScoreRing.swift in Sources */,
+				DT10015 /* MacroBar.swift in Sources */,
+				DT10016 /* ScoreBasisCard.swift in Sources */,
+				DT10017 /* NutrientLimitRow.swift in Sources */,
+				DT10018 /* DietHomeView.swift in Sources */,
+				DT10024 /* FrequentItemList.swift in Sources */,
+				DT10025 /* MealItemEditView.swift in Sources */,
+				DT10021 /* PhotoStrip.swift in Sources */,
+				DT10022 /* MealConfirmViewModel.swift in Sources */,
+				DT10023 /* MealConfirmView.swift in Sources */,
+				DT10019 /* MealCaptureViewModel.swift in Sources */,
+				DT10020 /* MealCaptureSheet.swift in Sources */,
+				DT10026 /* MealDetailViewModel.swift in Sources */,
+				DT10027 /* MealDetailView.swift in Sources */,
+				DT10028 /* DietStatsViewModel.swift in Sources */,
+				DT10029 /* DietStatsView.swift in Sources */,
 				G10001 /* WeekdayHeaderView.swift in Sources */,
 				G10002 /* DayCellView.swift in Sources */,
 				MPS10001 /* MonthPickerSheet.swift in Sources */,
