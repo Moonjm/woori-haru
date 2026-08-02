@@ -29,6 +29,43 @@ struct MealConfirmViewModelTests {
         #expect(vm.mergeNoticeText == nil)
     }
 
+    /// 안내만으로는 놓친다 — **저장을 누른 순간에 한 번 더 묻는다.** 합쳐진 뒤에는 어느
+    /// 항목이 이번 것이었는지 구분되지 않아 되돌릴 수 없다.
+    @Test func 합쳐지는_저장은_확인을_한_번_받는다() async {
+        let service = FakeDietService()
+        service.days = [makeDay(date: "2026-07-29", meals: [makeMeal(mealType: .breakfast)])]
+        let vm = MealConfirmViewModel(
+            date: Date.from("2026-07-29")!, mealType: .breakfast, analysis: nil, service: service
+        )
+
+        await vm.loadExistingMeals()
+
+        #expect(vm.mergesIntoExisting)
+        #expect(vm.mergeConfirmMessage?.contains("아침") == true)
+
+        // **합쳐지지 않는 저장은 묻지 않는다** — 1탭이어야 한다. 확인이 번거로우면 저장
+        // 없이 나가고, 그러면 LLM 비용은 나갔는데 기록이 남지 않는다.
+        vm.mealType = .dinner
+        #expect(!vm.mergesIntoExisting)
+        #expect(vm.mergeConfirmMessage == nil)
+    }
+
+    /// 간식은 합쳐지지 않으므로 **묻지도 않는다.** 이 확인이 없으면 「전부 묻는다」로 잘못
+    /// 짜도 위 테스트가 통과한다.
+    @Test func 간식은_이미_있어도_확인을_받지_않는다() async {
+        let service = FakeDietService()
+        service.days = [makeDay(date: "2026-07-29", meals: [makeMeal(mealType: .snack)])]
+        let vm = MealConfirmViewModel(
+            date: Date.from("2026-07-29")!, mealType: .snack, analysis: nil, service: service
+        )
+
+        await vm.loadExistingMeals()
+
+        #expect(vm.existingMealTypes.contains(.snack))
+        #expect(!vm.mergesIntoExisting)
+        #expect(vm.mergeConfirmMessage == nil)
+    }
+
     /// **간식은 묶지 않는다** — 본래 여러 번이라 합치면 점수가 뒤섞인다.
     /// 이 테스트가 없으면 「전부 묶인다」로 잘못 안내해도 통과한다.
     @Test func 간식은_이미_있어도_합쳐진다고_알리지_않는다() async {
