@@ -56,14 +56,27 @@ final class MealConfirmViewModel {
         }
     }
 
-    /// 그날 이미 기록해 둔 끼니 종류. **안내 한 줄에만 쓴다** — 저장 동작에는 영향이 없다.
+    /// 그날 이미 기록해 둔 끼니 종류. **안내와 확인에만 쓴다** — 저장 동작 자체는 서버가
+    /// 정한다(같은 날 같은 끼니를 합치는 것은 서버 규칙이고 앱이 고를 수 있는 게 아니다).
     private(set) var existingMealTypes: Set<MealType> = []
+
+    /// 저장하면 기존 끼니에 합쳐지는 상태인가. 간식은 본래 여러 번이라 묶지 않는다.
+    var mergesIntoExisting: Bool {
+        mealType.mergesWithinDay && existingMealTypes.contains(mealType)
+    }
 
     /// 저장 버튼을 누르기 전에 무슨 일이 일어날지 알려 준다. 서버가 같은 날 같은 끼니를
     /// 하나로 묶으므로(간식 제외), 새 카드가 생기는 줄 알았다가 합쳐지면 당황한다.
     var mergeNoticeText: String? {
-        guard mealType.mergesWithinDay, existingMealTypes.contains(mealType) else { return nil }
-        return "이미 기록한 \(mealType.label)에 합쳐져요."
+        mergesIntoExisting ? "이미 기록한 \(mealType.label)에 합쳐져요." : nil
+    }
+
+    /// 저장을 누른 순간 한 번 더 묻는 문장. **위의 안내와 문장이 다르다** — 안내는 「무슨 일이
+    /// 일어날지」를 미리 알려 주는 것이고, 이것은 「그대로 진행할지」를 묻는 것이다. 합치기는
+    /// 되돌리기가 없다(합쳐진 뒤에는 어느 항목이 이번 것이었는지 구분되지 않는다).
+    var mergeConfirmMessage: String? {
+        guard mergesIntoExisting else { return nil }
+        return "저장하면 이미 기록한 \(mealType.label)에 합쳐져요. 따로 남기려면 취소하고 다른 끼니를 골라 주세요."
     }
 
     /// **실패해도 조용히 넘어간다** — 안내 한 줄이 없을 뿐이고, 여기까지 오는 데 이미 LLM

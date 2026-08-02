@@ -19,6 +19,9 @@ struct MealConfirmView: View {
 
     @State private var vm: MealConfirmViewModel
     @State private var showDiscardAlert = false
+    /// 기존 끼니에 합쳐지는 저장인지 한 번 묻는다. **되돌릴 수 없다** — 합쳐진 뒤에는
+    /// 어느 항목이 이번에 넣은 것이었는지 구분되지 않는다.
+    @State private var showMergeAlert = false
     @State private var editTarget: EditTarget?
     @State private var showProfile = false
     /// **화면과 함께 죽어야 한다.** 그냥 `Task { }`로 띄우면 저장 없이 나가도 재시도가
@@ -119,8 +122,16 @@ struct MealConfirmView: View {
                 }
             }
             ToolbarItem(placement: .confirmationAction) {
-                Button("저장") { Task { await save() } }
-                    .disabled(!vm.canSave)
+                Button("저장") {
+                    // **합쳐지는 경우에만 한 번 묻는다.** 그 외에는 1탭을 지킨다 — 확인이
+                    // 번거로우면 저장 없이 나가고, 그러면 LLM 비용은 나갔는데 기록이 없다.
+                    if vm.mergesIntoExisting {
+                        showMergeAlert = true
+                    } else {
+                        Task { await save() }
+                    }
+                }
+                .disabled(!vm.canSave)
             }
         }
         .sheet(item: $editTarget) { target in
@@ -139,6 +150,12 @@ struct MealConfirmView: View {
         }
         .navigationDestination(isPresented: $showProfile) {
             NutritionProfileView()
+        }
+        .alert("이미 기록한 \(vm.mealType.label)이 있어요", isPresented: $showMergeAlert) {
+            Button("합치기") { Task { await save() } }
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text(vm.mergeConfirmMessage ?? "")
         }
         .alert("저장하지 않고 나갈까요?", isPresented: $showDiscardAlert) {
             Button("나가기", role: .destructive) { dismiss() }
