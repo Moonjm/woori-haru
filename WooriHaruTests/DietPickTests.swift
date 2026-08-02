@@ -108,6 +108,18 @@ struct FoodPickSourceTests {
         #expect(item.fiberG == 4.8)
     }
 
+    /// **브랜드는 검색 결과에만 있다.** `FrequentItem`은 저장된 `MealItem`에서 만들어지는데
+    /// 서버가 브랜드를 끼니에 저장하지 않는다 — `dataset`이 없는 것과 같은 이유다.
+    @Test func 브랜드는_검색_결과에만_붙는다() {
+        let branded = FoodPickSource.food(makePickFood("피자_뉴욕 오리진", maker: "도미노피자"))
+        let plain = FoodPickSource.food(makePickFood("제육볶음"))
+        let frequent = FoodPickSource.frequent(makeFrequent())
+
+        #expect(branded.brandText == "도미노피자")
+        #expect(plain.brandText == nil)
+        #expect(frequent.brandText == nil)
+    }
+
     /// 목록에서 서로 다른 행으로 구분돼야 한다 — 코드는 데이터셋 안에서만 유일하다.
     @Test func 출처가_다르면_아이디가_다르다() {
         let food = FoodPickSource.food(makePickFood(code: "X1", dataset: .dish))
