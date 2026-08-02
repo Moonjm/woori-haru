@@ -117,7 +117,8 @@ struct MealItemEditView: View {
                 ForEach(MealItemPickViewModel.DatasetFilter.allCases) { option in
                     let isOn = vm.filter == option
                     Button {
-                        vm.filter = option
+                        // **칩이 곧 쿼리다** — 서버가 거르므로 다시 검색해야 목록이 바뀐다.
+                        Task { await vm.selectFilter(option) }
                     } label: {
                         Text(option.label)
                             .font(.caption)
@@ -141,7 +142,7 @@ struct MealItemEditView: View {
         case .frequent:
             pickList(vm.frequentSources, emptyText: "아직 자주 드신 음식이 없어요.")
         case .search:
-            pickList(vm.filteredSearchSources, emptyText: vm.searchEmptyText ?? "")
+            pickList(vm.searchSources, emptyText: vm.searchEmptyText ?? "")
         case .manual:
             manualForm
         }
