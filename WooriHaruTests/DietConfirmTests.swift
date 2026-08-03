@@ -29,6 +29,96 @@ struct MealConfirmViewModelTests {
         #expect(vm.mergeNoticeText == nil)
     }
 
+    /// 안내만으로는 놓친다 — **저장을 누른 순간에 한 번 더 묻는다.** 합쳐진 뒤에는 어느
+    /// 항목이 이번 것이었는지 구분되지 않아 되돌릴 수 없다.
+    @Test func 합쳐지는_저장은_확인을_한_번_받는다() async {
+        let service = FakeDietService()
+        service.days = [makeDay(date: "2026-07-29", meals: [makeMeal(mealType: .breakfast)])]
+        let vm = MealConfirmViewModel(
+            date: Date.from("2026-07-29")!, mealType: .breakfast, analysis: nil, service: service
+        )
+
+        await vm.loadExistingMeals()
+
+        #expect(vm.mergesIntoExisting)
+        guard case let .confirm(title, message) = await vm.resolveSaveAction() else {
+            Issue.record("합쳐지는 저장은 확인을 받아야 한다")
+            return
+        }
+        #expect(title.contains("아침"))
+        #expect(message.contains("합쳐져요"))
+
+        // **합쳐지지 않는 저장은 묻지 않는다** — 1탭이어야 한다. 확인이 번거로우면 저장
+        // 없이 나가고, 그러면 LLM 비용은 나갔는데 기록이 남지 않는다.
+        vm.mealType = .dinner
+        #expect(!vm.mergesIntoExisting)
+        #expect(await vm.resolveSaveAction() == .save)
+    }
+
+    /// **조회가 느리면 보호 장치가 조용히 없어진다.** 확인 화면이 열리자마자 저장을 누르면
+    /// `existingMealTypes`가 아직 빈 채라, 기다리지 않으면 확인 없이 되돌릴 수 없는 병합이
+    /// 일어난다. 「저장은 됐는데 왜 합쳐졌지」가 되는 자리다.
+    @Test func 조회가_끝나기_전에_저장을_눌러도_확인을_받는다() async {
+        let service = FakeDietService()
+        service.days = [makeDay(date: "2026-07-29", meals: [makeMeal(mealType: .breakfast)])]
+        let gate = AsyncGate()
+        service.fetchDayGates = ["2026-07-29": gate]
+        let vm = MealConfirmViewModel(
+            date: Date.from("2026-07-29")!, mealType: .breakfast, analysis: nil, service: service
+        )
+
+        // 화면이 열리며 조회가 시작되지만 아직 안 끝났다.
+        let opening = Task { await vm.loadExistingMeals() }
+        await gate.waitUntilBlocked()
+        #expect(!vm.mergesIntoExisting)
+
+        // 그 상태에서 저장을 누른다 — 기다렸다가 확인을 띄워야 한다.
+        let deciding = Task { await vm.resolveSaveAction() }
+        await gate.open()
+        await opening.value
+
+        #expect(await deciding.value != .save)
+    }
+
+    /// **「없다」와 「모른다」는 다르다.** 조회가 실패했는데 조용히 저장하면, 접속이 잠깐 끊긴
+    /// 것만으로 이 기능이 통째로 없는 것과 같아진다.
+    @Test func 조회에_실패하면_모른다고_말하고_확인을_받는다() async {
+        let service = FakeDietService()
+        service.errors["fetchDay"] = dietServerError("INTERNAL_ERROR", status: 500)
+        let vm = MealConfirmViewModel(
+            date: Date.from("2026-07-29")!, mealType: .breakfast, analysis: nil, service: service
+        )
+
+        await vm.loadExistingMeals()
+
+        #expect(vm.existingLookupFailed)
+        guard case let .confirm(title, _) = await vm.resolveSaveAction() else {
+            Issue.record("확인할 수 없었으면 물어봐야 한다")
+            return
+        }
+        #expect(title.contains("확인하지 못했어요"))
+
+        // 간식은 애초에 합쳐지지 않으므로 조회가 실패해도 물어볼 것이 없다.
+        vm.mealType = .snack
+        #expect(await vm.resolveSaveAction() == .save)
+    }
+
+    /// 간식은 합쳐지지 않으므로 **묻지도 않는다.** 이 확인이 없으면 「전부 묻는다」로 잘못
+    /// 짜도 위 테스트가 통과한다.
+    @Test func 간식은_이미_있어도_확인을_받지_않는다() async {
+        let service = FakeDietService()
+        service.days = [makeDay(date: "2026-07-29", meals: [makeMeal(mealType: .snack)])]
+        let vm = MealConfirmViewModel(
+            date: Date.from("2026-07-29")!, mealType: .snack, analysis: nil, service: service
+        )
+
+        await vm.loadExistingMeals()
+
+        #expect(vm.existingMealTypes.contains(.snack))
+        #expect(!vm.mergesIntoExisting)
+        #expect(await vm.resolveSaveAction() == .save)
+    }
+
     /// **간식은 묶지 않는다** — 본래 여러 번이라 합치면 점수가 뒤섞인다.
     /// 이 테스트가 없으면 「전부 묶인다」로 잘못 안내해도 통과한다.
     @Test func 간식은_이미_있어도_합쳐진다고_알리지_않는다() async {
@@ -235,6 +325,32 @@ struct MealConfirmViewModelTests {
         #expect(scaled.kcal == 75)
         #expect(scaled.sodiumMg == 225)
         #expect(scaled.fiberG == 0.5)
+    }
+
+    /// **인식이 실패한 그룹에도 「음식 추가」가 열려 있다.** 포기하고 손으로 넣은 뒤 재시도를
+    /// 눌렀는데 성공하면, 그룹을 통째로 갈아 끼우는 구현에서는 그 입력이 소리 없이 사라진다.
+    ///
+    /// 겹쳐 담길 수는 있지만 **겹친 것은 눈에 보이고 지울 수 있는 반면, 사라진 것은 알 길이 없다.**
+    @Test func 재시도_결과가_직접_넣은_항목을_지우지_않는다() {
+        let vm = makeVM(partialFailureAnalysis())
+        let failedGroup = vm.groups[1]
+        #expect(failedGroup.items.isEmpty)
+
+        // 인식이 안 되니 직접 넣는다.
+        vm.addItem(NutritionMath.manualItem(
+            name: "김치찌개", quantityG: 400, kcal: 320, carbsG: 20, proteinG: 18, fatG: 19,
+            sugarG: 5, sodiumMg: 1800, fiberG: 3
+        ), to: failedGroup.id)
+        #expect(vm.groups[1].items.map(\.foodName) == ["김치찌개"])
+
+        // 그 뒤 재시도가 성공한다.
+        vm.applyRetriedAnalysis(makeAnalysis(photos: [
+            AnalyzedPhoto(fileId: 11, url: "u1", failed: false, items: [analyzedItem("제육볶음")]),
+            AnalyzedPhoto(fileId: 12, url: "u2", failed: false, items: [analyzedItem("된장찌개")])
+        ]))
+
+        #expect(!vm.groups[1].failed)
+        #expect(vm.groups[1].items.map(\.foodName) == ["된장찌개", "김치찌개"])
     }
 
     /// **재시도로 다른 사진이 살아나도, 사용자가 고치던 사진의 편집은 그대로 남아야 한다.**

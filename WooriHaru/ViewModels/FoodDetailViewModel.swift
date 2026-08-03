@@ -107,11 +107,22 @@ final class FoodDetailViewModel {
     var quantityG: Double? {
         switch unit {
         case .serving:
+            // g 모드와 같은 한계를 건다 — 인분 쪽만 열어 두면 단위를 바꾸는 것만으로
+            // 검증을 우회하게 된다.
             guard let servingSizeG else { return nil }
             let quantity = servingSizeG * servings
-            return quantity > 0 ? quantity : nil
+            guard quantity.isFinite,
+                  quantity > 0,
+                  quantity <= DietInputLimits.maxQuantityG else { return nil }
+            return quantity
         case .gram:
-            guard let quantity = Double(gramText), quantity > 0 else { return nil }
+            // **`> 0`만으로는 부족하다.** `Double("inf")`도 `Double("1e309")`도 이 검사를
+            // 통과하고, 그 값으로 만든 열량이 `kcalText`의 `Int(...)`에서 트랩을 걸어
+            // **앱이 그 자리에서 죽는다.** 무한대만 막아도 `1e300`이 그대로 남는다.
+            guard let quantity = Double(gramText),
+                  quantity.isFinite,
+                  quantity > 0,
+                  quantity <= DietInputLimits.maxQuantityG else { return nil }
             return quantity
         }
     }
@@ -127,7 +138,16 @@ final class FoodDetailViewModel {
     func decreaseGram() { setGram((currentGram ?? Self.minimumGram) - Self.gramStep) }
     func selectQuickGram(_ gram: Double) { setGram(gram) }
 
-    private var currentGram: Double? { Double(gramText) }
+    /// 스테퍼와 단위 전환이 쓰는 값. **`quantityG`와 같은 한계를 건다** — 여기가 검증을 안 하면
+    /// 붙여넣은 `1e300`이 스테퍼를 타고 들어와 인분 수를 터무니없게 만들고, 화면이 그것을
+    /// 그리다 죽는다. 범위를 벗어나면 nil이라 +/− 는 25g부터 다시 세고 인분은 1로 돌아간다.
+    private var currentGram: Double? {
+        guard let value = Double(gramText),
+              value.isFinite,
+              value > 0,
+              value <= DietInputLimits.maxQuantityG else { return nil }
+        return value
+    }
 
     private func setGram(_ value: Double) {
         gramText = max(Self.minimumGram, value).trimmedText
@@ -171,15 +191,47 @@ final class FoodDetailViewModel {
     }
 
     /// 참고 화면에 없는 **식이섬유**가 우리에게는 있어 한 줄이 더 붙는다.
+    ///
+    /// 포화지방·트랜스지방·콜레스테롤은 **검색 결과에만 있다** — `MealItemRequest`에 없고
+    /// `Food`에 100g당으로만 있어서 `item`이 아니라 출처에서 직접 환산한다. 자주 드셨어요는
+    /// 저장된 항목이라 값이 없고, **0으로 그리면 「없음」이 아니라 「진짜 0」으로 읽히므로**
+    /// 줄 자체를 감춘다.
     var nutrientRows: [NutrientRow] {
         guard let item else { return [] }
         return [
             NutrientRow(name: "탄수화물", valueText: formattedGram(item.carbsG), isSub: false),
             NutrientRow(name: "당류", valueText: formattedGram(item.sugarG), isSub: true),
             NutrientRow(name: "단백질", valueText: formattedGram(item.proteinG), isSub: false),
-            NutrientRow(name: "지방", valueText: formattedGram(item.fatG), isSub: false),
+            NutrientRow(name: "지방", valueText: formattedGram(item.fatG), isSub: false)
+        ] + fatDetailRows + [
             NutrientRow(name: "나트륨", valueText: "\(Int(item.sodiumMg.rounded()).formatted())mg", isSub: false),
             NutrientRow(name: "식이섬유", valueText: formattedGram(item.fiberG), isSub: false)
+        ]
+    }
+
+    /// 지방 아래 들여쓰는 두 줄과 콜레스테롤. 검색 결과에서만 나온다.
+    ///
+    /// **서버가 값 없는 칸을 0.0으로 채워 보내므로 「진짜 0」과 구분되지 않는다.** 검색
+    /// 결과에서는 그대로 0으로 보여 준다 — 원본이 그렇게 왔다는 뜻이고, 그 이상은 알 수 없다.
+    private var fatDetailRows: [NutrientRow] {
+        guard case let .food(food) = source, let quantityG else { return [] }
+        let cholesterol = NutritionMath.scale(per100g: food.cholesterolMgPer100g, quantityG: quantityG)
+        return [
+            NutrientRow(
+                name: "포화지방",
+                valueText: formattedGram(NutritionMath.scale(per100g: food.saturatedFatPer100g, quantityG: quantityG)),
+                isSub: true
+            ),
+            NutrientRow(
+                name: "트랜스지방",
+                valueText: formattedGram(NutritionMath.scale(per100g: food.transFatPer100g, quantityG: quantityG)),
+                isSub: true
+            ),
+            NutrientRow(
+                name: "콜레스테롤",
+                valueText: "\(Int(cholesterol.rounded()).formatted())mg",
+                isSub: false
+            )
         ]
     }
 

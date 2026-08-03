@@ -32,6 +32,17 @@ enum FoodPickSource: Identifiable, Hashable {
         }
     }
 
+    /// 「도미노피자」. **검색 결과에만 있다** — 자주 드셨어요는 저장된 항목이라 브랜드가 없다.
+    ///
+    /// 식품명에 브랜드가 안 들어 있어서(`피자_뉴욕 오리진 피자 오리지널 (L)`) 이 값이 없으면
+    /// 「도미노」로 검색해 나온 결과를 보고도 왜 나왔는지 알 수 없다.
+    var brandText: String? {
+        switch self {
+        case let .food(food): food.maker
+        case .frequent: nil
+        }
+    }
+
     /// 행 둘째 줄. 「1인분 (250g)」 · 「100g 기준」 · 「200g · 7회」
     var detailText: String {
         switch self {

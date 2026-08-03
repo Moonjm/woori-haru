@@ -31,6 +31,16 @@ struct FoodPickRow: View {
                                 .background(Color.slate100, in: Capsule())
                         }
 
+                        // **이름 줄이 아니라 여기다** — 이름이 `피자_뉴욕 오리진 피자
+                        // 오리지널 (L)`처럼 길어서 한 줄에 합치면 둘 다 잘린다. 배지와 달리
+                        // 캡슐을 두르지 않는다(브랜드는 분류가 아니라 정보다).
+                        if let brand = source.brandText {
+                            Text(brand)
+                                .font(.caption2)
+                                .foregroundStyle(Color.blue500)
+                                .lineLimit(1)
+                        }
+
                         if pickedCount > 0 {
                             Text("담김 \(pickedCount)")
                                 .font(.caption2.weight(.semibold))

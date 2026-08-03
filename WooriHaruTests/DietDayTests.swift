@@ -561,6 +561,36 @@ struct DietDayViewModelTests {
         #expect(vm.day == nil)
     }
 
+    /// **하루 조회가 실패해도 프로필 결과는 살아 있어야 한다.** 둘을 튜플로 함께 `try` 하면
+    /// 성공한 프로필까지 버려져 `needsProfile`이 false로 남고, 화면이 「목표부터 정하기」 대신
+    /// 기록 메뉴를 연다 — 사용자가 사진 인식(유료)까지 다 하고 확정에서 거절된다.
+    @Test func 하루_조회가_실패해도_프로필_없음을_알아챈다() async {
+        let service = FakeDietService()
+        service.profile = nil   // 프로필 조회는 성공하고 「없음」을 돌려준다
+        service.errors["fetchDay"] = dietServerError("SERVER_ERROR", status: 500)
+        let vm = makeVM(service)
+
+        await vm.load()
+
+        #expect(vm.needsProfile)
+        #expect(vm.loadFailed)
+    }
+
+    /// 프로필 조회만 실패한 경우는 반대다 — **모르는 것을 「없다」로 단정하면** 프로필이 있는
+    /// 사용자에게 입력 화면을 들이민다. 하루 화면도 막지 않는다(프로필은 목표 막대에만 쓴다).
+    @Test func 프로필_조회만_실패하면_없다고_단정하지_않는다() async {
+        let service = FakeDietService()
+        service.errors["fetchProfile"] = dietServerError("SERVER_ERROR", status: 500)
+        service.days = [makeDay()]
+        let vm = makeVM(service)
+
+        await vm.load()
+
+        #expect(!vm.needsProfile)
+        #expect(vm.day?.dayScore == 74)
+        #expect(!vm.loadFailed)
+    }
+
     /// 실패 뒤 다시 시도해 성공하면 실패 표시가 꺼져야 재시도 카드가 사라진다.
     @Test func 재조회가_성공하면_loadFailed를_끈다() async {
         let service = FakeDietService()
@@ -664,6 +694,33 @@ struct MealDetailViewModelTests {
         #expect(!second)
         #expect(service.updatedItems.count == 1)
         #expect(vm.errorMessage != nil)
+    }
+
+    /// **첫 조회가 실패하면 화면이 통째로 비어 있다.** 그때 `meal`이 nil이라 `isStale`은
+    /// false로 남는데, 화면이 그것만 보면 다시 불러올 길이 없어 알럿을 닫는 순간 빈 화면에
+    /// 갇힌다 — 나갔다 들어오는 것 말고는 방법이 없다.
+    @Test func 첫_조회가_실패해도_다시_불러올_길을_남긴다() async {
+        let service = FakeDietService()
+        service.errors["fetchMeal"] = dietServerError("INTERNAL_ERROR", status: 500)
+        let vm = makeVM(service)
+
+        await vm.load()
+
+        #expect(vm.meal == nil)
+        #expect(!vm.isStale)
+        #expect(vm.loadFailed)
+        #expect(vm.loadFailureText == "끼니를 불러오지 못했어요.")
+
+        // 낡은 경우와 문구가 달라야 한다 — 앞은 아무것도 못 받았고 뒤는 받아 둔 게 낡았다.
+        service.errors["fetchMeal"] = nil
+        service.meals = [makeMeal()]
+        await vm.load()
+        #expect(vm.loadFailureText == nil)
+
+        service.errors["fetchMeal"] = dietServerError("INTERNAL_ERROR", status: 500)
+        await vm.load()
+        #expect(vm.isStale)
+        #expect(vm.loadFailureText == "최신 상태를 불러오지 못했어요. 지금 보이는 내용이 서버와 다를 수 있어요.")
     }
 
     /// 다시 불러오는 데 성공하면 편집이 풀린다 — 안 풀리면 화면을 나갔다 오는 수밖에 없다.

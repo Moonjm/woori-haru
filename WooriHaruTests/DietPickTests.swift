@@ -7,15 +7,21 @@ import Foundation
 func makePickFood(
     _ name: String = "제육볶음",
     code: String = "D9",
+    maker: String? = nil,
     dataset: FoodDataset = .dish,
     known: Bool = true,
-    serving: Double = 250
+    serving: Double = 250,
+    saturatedFat: Double = 2,
+    transFat: Double = 0.1,
+    cholesterol: Double = 30
 ) -> Food {
     Food(
-        code: code, name: name, dataset: dataset,
+        code: code, name: name, maker: maker, dataset: dataset,
         servingSizeG: serving, servingSizeKnown: known,
         kcalPer100g: 150, carbsPer100g: 12, proteinPer100g: 10, fatPer100g: 7,
-        sugarPer100g: 3, sodiumMgPer100g: 400, fiberPer100g: 1.5
+        sugarPer100g: 3, sodiumMgPer100g: 400, fiberPer100g: 1.5,
+        saturatedFatPer100g: saturatedFat, transFatPer100g: transFat,
+        cholesterolMgPer100g: cholesterol
     )
 }
 
@@ -100,6 +106,18 @@ struct FoodPickSourceTests {
         #expect(item.sugarG == 21)
         #expect(item.sodiumMg == 2)
         #expect(item.fiberG == 4.8)
+    }
+
+    /// **브랜드는 검색 결과에만 있다.** `FrequentItem`은 저장된 `MealItem`에서 만들어지는데
+    /// 서버가 브랜드를 끼니에 저장하지 않는다 — `dataset`이 없는 것과 같은 이유다.
+    @Test func 브랜드는_검색_결과에만_붙는다() {
+        let branded = FoodPickSource.food(makePickFood("피자_뉴욕 오리진", maker: "도미노피자"))
+        let plain = FoodPickSource.food(makePickFood("제육볶음"))
+        let frequent = FoodPickSource.frequent(makeFrequent())
+
+        #expect(branded.brandText == "도미노피자")
+        #expect(plain.brandText == nil)
+        #expect(frequent.brandText == nil)
     }
 
     /// 목록에서 서로 다른 행으로 구분돼야 한다 — 코드는 데이터셋 안에서만 유일하다.
@@ -198,6 +216,56 @@ struct FoodDetailViewModelTests {
         #expect(item.kcal == 150)
         #expect(item.sodiumMg == 400)
         #expect(item.fiberG == 1.5)
+    }
+
+    /// **`> 0`만으로는 부족하다.** `inf`도 `1e300`도 통과하고, 그 값으로 만든 열량이
+    /// `kcalText`의 `Int(...)`에서 트랩을 걸어 **앱이 그 자리에서 죽는다.**
+    /// `isFinite`만 넣으면 `1e300`이 그대로 남는다.
+    @Test func 터무니없는_그램수는_담기지_않는다() {
+        let vm = FoodDetailViewModel(source: .food(makePickFood("달걀", known: false)))
+
+        for bad in ["inf", "1e300", "1e309"] {
+            vm.gramText = bad
+            #expect(vm.quantityG == nil, "\(bad)이 통과했다")
+            #expect(vm.item == nil)
+            #expect(!vm.canAdd)
+            // 죽지 않고 그려져야 한다.
+            #expect(vm.kcalText == "0kcal")
+        }
+
+        vm.gramText = "100"
+        #expect(vm.canAdd)
+    }
+
+    /// **읽는 쪽만 막으면 부족하다.** 스테퍼는 `currentGram`을 쓰는데, 거기가 검증을 안 하면
+    /// 붙여넣은 값이 그대로 들어와 `trimmedText`의 `Int(...)`에서 트랩을 건다.
+    @Test func 터무니없는_값을_붙여넣고_스테퍼를_눌러도_죽지_않는다() {
+        let vm = FoodDetailViewModel(source: .food(makePickFood("달걀", known: false)))
+
+        for bad in ["inf", "1e300"] {
+            vm.gramText = bad
+            vm.increaseGram()
+            // 범위 밖이었으므로 25g부터 다시 센다.
+            #expect(vm.gramText == "25")
+
+            vm.gramText = bad
+            vm.decreaseGram()
+            #expect(vm.gramText == "25")
+        }
+    }
+
+    /// 단위 전환도 같은 값을 쓴다 — **인분으로 바꾸는 것만으로 g 모드 검증을 우회하면 안 된다.**
+    @Test func 터무니없는_값에서_인분으로_바꿔도_죽지_않는다() {
+        let vm = FoodDetailViewModel(source: .food(makePickFood(known: true, serving: 250)))
+        vm.setUnit(.gram)
+        vm.gramText = "1e300"
+
+        vm.setUnit(.serving)
+
+        #expect(vm.unit == .serving)
+        #expect(vm.servings == 1)
+        #expect(vm.servingsText == "1인분")
+        #expect(vm.quantityG == 250)
     }
 
     /// **1인분 모드에서는 칩이 안 보인다** — 1인분을 아는 항목의 화면을 어지럽히지 않는다.
@@ -314,19 +382,50 @@ struct FoodDetailViewModelTests {
         #expect(withoutTarget.dailyGoalPercentText == nil)
     }
 
-    /// 영양소 표는 7줄이다 — 참고 화면에 없는 **식이섬유**가 우리에게는 있다.
-    @Test func 영양소_표는_당류를_탄수화물_아래_들여쓴다() {
+    /// 참고 화면에 없는 **식이섬유**가 우리에게는 있다. 당류는 탄수화물 아래, 포화·트랜스지방은
+    /// 지방 아래로 들여쓴다.
+    ///
+    /// **인덱스로 읽지 않는다** — 줄이 하나 늘 때마다 뒤 인덱스가 전부 밀려, 실패해도 멈추지
+    /// 않는 `#expect` 뒤에서 범위를 벗어나면 테스트가 프로세스째 죽는다.
+    @Test func 영양소_표는_하위_영양소를_들여쓴다() {
         let vm = FoodDetailViewModel(source: .food(makePickFood(known: true, serving: 250)))
 
         let rows = vm.nutrientRows
-        #expect(rows.map(\.name) == ["탄수화물", "당류", "단백질", "지방", "나트륨", "식이섬유"])
-        #expect(rows[1].isSub)
-        #expect(!rows[0].isSub)
-        #expect(rows[0].valueText == "30g")
-        #expect(rows[1].valueText == "7.5g")
-        #expect(rows[4].valueText == "1,000mg")
-        #expect(rows[5].valueText == "3.8g")
+        #expect(rows.map(\.name) == [
+            "탄수화물", "당류", "단백질", "지방", "포화지방", "트랜스지방", "콜레스테롤", "나트륨", "식이섬유"
+        ])
+
+        let indented = Set(rows.filter(\.isSub).map(\.name))
+        #expect(indented == ["당류", "포화지방", "트랜스지방"])
+
+        let values = Dictionary(uniqueKeysWithValues: rows.map { ($0.name, $0.valueText) })
+        #expect(values["탄수화물"] == "30g")
+        #expect(values["당류"] == "7.5g")
+        #expect(values["나트륨"] == "1,000mg")
+        #expect(values["식이섬유"] == "3.8g")
         #expect(vm.kcalText == "375kcal")
+    }
+
+    /// **셋은 `Food`에만 100g당으로 있다** — `MealItemRequest`에 없으므로 `item`이 아니라
+    /// 출처에서 직접 환산해야 한다. 콜레스테롤은 mg다.
+    @Test func 검색_결과는_포화지방_트랜스지방_콜레스테롤을_보여준다() {
+        let vm = FoodDetailViewModel(source: .food(makePickFood(
+            known: true, serving: 200, saturatedFat: 3, transFat: 0.4, cholesterol: 50
+        )))
+
+        // 1인분 200g = 100g당 값의 2배.
+        let values = Dictionary(uniqueKeysWithValues: vm.nutrientRows.map { ($0.name, $0.valueText) })
+        #expect(values["포화지방"] == "6g")
+        #expect(values["트랜스지방"] == "0.8g")
+        #expect(values["콜레스테롤"] == "100mg")
+    }
+
+    /// **자주 드셨어요에는 이 값이 없다.** 서버가 끼니에 저장하지 않는다 — 0으로 그리면
+    /// 「없음」이 아니라 「진짜 0」으로 읽혀서, 포화지방 0인 음식으로 오해한다.
+    @Test func 자주_드셨어요에는_세_줄이_없다() {
+        let vm = FoodDetailViewModel(source: .frequent(makeFrequent()))
+
+        #expect(vm.nutrientRows.map(\.name) == ["탄수화물", "당류", "단백질", "지방", "나트륨", "식이섬유"])
     }
 
     /// **주의 영양소 3필드가 상세 시트 경로에서도 살아 있어야 한다.**
@@ -388,7 +487,7 @@ struct MealItemPickViewModelTests {
 
         #expect(vm.tab == .search)
         #expect(service.searchQueries == ["제육"])
-        #expect(vm.filteredSearchSources.count == 1)
+        #expect(vm.searchSources.count == 1)
     }
 
     /// 실패한 뒤 다시 검색해 성공하면 **지난 오류가 남아 있으면 안 된다** — 정상 결과 위에
@@ -408,7 +507,7 @@ struct MealItemPickViewModelTests {
         await vm.search()
 
         #expect(vm.errorMessage == nil)
-        #expect(vm.filteredSearchSources.count == 1)
+        #expect(vm.searchSources.count == 1)
     }
 
     /// **늦게 돌아온 옛 검색이 최신 결과를 덮으면 안 된다.** 먼저 나간 「제」를 게이트로
@@ -430,14 +529,14 @@ struct MealItemPickViewModelTests {
         vm.query = "제육"
         await vm.search()
 
-        #expect(vm.filteredSearchSources.map(\.name) == ["제육볶음"])
+        #expect(vm.searchSources.map(\.name) == ["제육볶음"])
         #expect(!vm.isSearching)
 
         await gate.open()
         await stale.value
 
         // 옛 응답이 돌아온 뒤에도 최신 결과가 그대로여야 한다.
-        #expect(vm.filteredSearchSources.map(\.name) == ["제육볶음"])
+        #expect(vm.searchSources.map(\.name) == ["제육볶음"])
         #expect(!vm.isSearching)
         #expect(service.searchQueries == ["제", "제육"])
     }
@@ -457,43 +556,85 @@ struct MealItemPickViewModelTests {
         vm.query = ""
         await vm.search()
 
-        #expect(vm.filteredSearchSources.isEmpty)
+        #expect(vm.searchSources.isEmpty)
         #expect(!vm.isSearching)
 
         await gate.open()
         await stale.value
 
         // 옛 응답이 돌아와도 비어 있어야 한다.
-        #expect(vm.filteredSearchSources.isEmpty)
+        #expect(vm.searchSources.isEmpty)
         #expect(!vm.isSearching)
     }
 
-    /// **필터 칩은 받아 온 페이지를 앱에서 거른다** — 서버에 `dataset` 파라미터가 없다.
-    @Test func 필터_칩이_데이터셋으로_거른다() async {
+    /// **칩이 곧 쿼리다.** 앱 필터를 지우기만 하고 재검색을 안 붙이면 칩을 눌러도 목록이
+    /// 그대로다 — 이 테스트가 그 미완성을 잡는다.
+    @Test func 칩을_바꾸면_그_데이터셋으로_다시_검색한다() async {
         let (vm, service) = makeVM()
-        service.foods = [
-            makePickFood("제육볶음", code: "D1", dataset: .dish),
-            makePickFood("달걀", code: "R1", dataset: .raw),
-            makePickFood("삼각김밥", code: "P1", dataset: .processed),
-            makePickFood("김치찌개", code: "D2", dataset: .dish)
-        ]
+        service.foods = [makePickFood("제육볶음", code: "D1")]
+        vm.query = "제육"
+        await vm.search()
+
+        #expect(service.searchCalls.count == 1)
+        #expect(service.searchCalls.first?.dataset == nil)
+
+        await vm.selectFilter(.processed)
+
+        #expect(vm.filter == .processed)
+        #expect(service.searchCalls.count == 2)
+        // **인덱스로 읽지 않는다.** `#expect`는 실패해도 멈추지 않으므로, 재검색이 없어
+        // 호출이 1건일 때 `searchCalls[1]`을 읽으면 테스트가 실패가 아니라 **프로세스째
+        // 죽어** 남은 테스트가 판정도 못 받는다(고의 파손 확인에서 실제로 겪었다).
+        #expect(service.searchCalls.last?.dataset == .processed)
+        #expect(service.searchCalls.last?.query == "제육")
+    }
+
+    /// **서버가 거른 결과를 그대로 믿는다.** 대역이 칩과 안 맞는 한 건을 줘도 앱이 지우면 안 된다 —
+    /// 앱이 또 거르면 서버가 페이징 전에 거른 의미가 없어지고, 두 곳의 기준이 어긋나면
+    /// 「검색은 됐는데 목록이 빈」 상태가 다시 생긴다.
+    @Test func 앱은_데이터셋으로_더_거르지_않는다() async {
+        let (vm, service) = makeVM()
+        service.foods = [makePickFood("삼각김밥", code: "P1", dataset: .processed)]
         vm.query = "김"
         await vm.search()
 
-        #expect(vm.filter == .all)
-        #expect(vm.filteredSearchSources.count == 4)
+        await vm.selectFilter(.dish)
 
-        vm.filter = .dish
-        #expect(vm.filteredSearchSources.map(\.name) == ["제육볶음", "김치찌개"])
+        #expect(vm.searchSources.map(\.name) == ["삼각김밥"])
+    }
 
-        vm.filter = .raw
-        #expect(vm.filteredSearchSources.map(\.name) == ["달걀"])
+    /// **새 검색이 시작되면 예전 결과를 버린다.** 안 버리면 요청이 도는 동안, 그리고 실패하면
+    /// 영영, 새 칩 라벨 아래에 이전 결과가 남는다 — 「원재료」를 눌렀는데 가공식품이 목록에
+    /// 있고 그걸 담을 수 있다.
+    @Test func 검색이_실패하면_예전_결과를_남기지_않는다() async {
+        let (vm, service) = makeVM()
+        service.foods = [makePickFood("삼각김밥", code: "P1", dataset: .processed)]
+        vm.query = "김"
+        await vm.search()
+        #expect(vm.searchSources.count == 1)
 
-        vm.filter = .processed
-        #expect(vm.filteredSearchSources.map(\.name) == ["삼각김밥"])
+        service.errors["searchFoods"] = dietServerError("INTERNAL_ERROR", status: 500)
+        await vm.selectFilter(.raw)
 
-        vm.filter = .all
-        #expect(vm.filteredSearchSources.count == 4)
+        #expect(vm.searchSources.isEmpty)
+        #expect(vm.errorMessage != nil)
+        // **「없다」가 아니라 「못 받았다」라고 해야 한다** — 알럿은 닫으면 사라지는데 목록은
+        // 남아서, 「검색 결과가 없어요」를 띄우면 그 음식이 식품DB에 없다고 믿게 된다.
+        #expect(vm.searchEmptyText == "검색에 실패했어요. 잠시 후 다시 시도해 주세요.")
+    }
+
+    /// 칩이 걸린 채 0건이면 **원인이 칩일 수 있다**고 알려 준다 — 「전체」에는 결과가 있을 수 있다.
+    @Test func 칩이_걸린_채_결과가_없으면_전체로_보라고_안내한다() async {
+        let (vm, service) = makeVM()
+        service.foods = []
+        vm.query = "없는음식"
+
+        await vm.selectFilter(.dish)
+        #expect(vm.searchEmptyText == "「음식」에는 검색 결과가 없어요. 「전체」로 보거나 검색어를 바꿔 보세요.")
+
+        // 칩이 「전체」면 칩 탓이 아니다 — 원인을 잘못 짚으면 안 된다.
+        await vm.selectFilter(.all)
+        #expect(vm.searchEmptyText == "검색 결과가 없어요. 다른 이름으로 찾아 보세요.")
     }
 
     /// **검색결과 탭의 빈 상태는 셋을 가른다** — 아직 검색 전, 검색했지만 결과가 없음,
@@ -515,19 +656,9 @@ struct MealItemPickViewModelTests {
         #expect(vm.searchEmptyText == "검색 결과가 없어요. 다른 이름으로 찾아 보세요.")
     }
 
-    /// 필터가 받아 온 페이지를 전부 걸러낸 상태 — 결과는 있지만 「음식」 칩에 걸리는 게 없다.
-    @Test func 결과는_있지만_필터가_다_걸러내면_필터_탓임을_알려준다() async {
-        let (vm, service) = makeVM()
-        service.foods = [
-            makePickFood("삼각김밥", code: "P1", dataset: .processed),
-            makePickFood("컵라면", code: "P2", dataset: .processed)
-        ]
-        vm.query = "김"
-        await vm.search()
-        vm.filter = .dish
-
-        #expect(vm.searchEmptyText == "이 검색 결과에는 「음식」이 없어요. 「전체」로 보거나 검색어를 좁혀 보세요.")
-    }
+    // 「받아 온 결과는 있는데 앱 필터가 다 걸러낸」 상태는 **더 이상 생기지 않는다** — 서버가
+    // 그 데이터셋에서 0건을 준 것이라 「그 데이터셋에 없다」가 맞는 말이다. 그 자리를
+    // `칩이_걸린_채_결과가_없으면_전체로_보라고_안내한다`가 대신한다.
 
     @Test func 결과가_있으면_빈_문구가_없다() async {
         let (vm, service) = makeVM()
@@ -648,6 +779,82 @@ struct MealItemPickViewModelTests {
 
         vm.manualQuantity = "230"
         #expect(vm.acceptManual() != nil)
+    }
+
+    /// **잘못 적힌 칸을 0으로 갈아 끼우면 안 된다.** 화면에는 적은 대로 남아 있어서 사용자는
+    /// 자기 값이 들어간 줄 아는데, 저장된 것은 「나트륨 0mg」이다.
+    @Test func 잘못_적힌_영양소는_0으로_바꾸지_않는다() {
+        let (vm, _) = makeVM(.addOne)
+        vm.manualName = "포장 김밥"
+        vm.manualQuantity = "230"
+        vm.manualKcal = "430"
+
+        vm.manualSodium = "98O"   // 0이 아니라 알파벳 O
+        #expect(vm.buildManualItem() == nil)
+        #expect(vm.manualHint == "영양소는 0 이상 숫자로 넣어 주세요.")
+
+        vm.manualSodium = "980"
+        #expect(vm.buildManualItem() != nil)
+        #expect(vm.manualHint == nil)
+    }
+
+    /// **음수는 서버가 거절하는데, 그러면 그 항목이 아니라 끼니 전체가 저장되지 않는다.**
+    @Test func 음수_영양소는_담을_수_없다() {
+        let (vm, _) = makeVM(.addOne)
+        vm.manualName = "포장 김밥"
+        vm.manualQuantity = "230"
+
+        vm.manualCarbs = "-5"
+        #expect(vm.buildManualItem() == nil)
+
+        vm.manualCarbs = "5"
+        #expect(vm.buildManualItem() != nil)
+    }
+
+    /// **빈 칸은 0이다** — 안 적은 것이지 잘못 적은 것이 아니다. 이 구분이 없으면 식이섬유를
+    /// 비워 둔 사용자가 아무것도 담을 수 없게 된다.
+    @Test func 비워_둔_영양소_칸은_0으로_본다() throws {
+        let (vm, _) = makeVM(.addOne)
+        vm.manualName = "포장 김밥"
+        vm.manualQuantity = "230"
+        vm.manualKcal = "430"
+        // 나머지 칸은 그대로 비워 둔다.
+
+        let item = try #require(vm.buildManualItem())
+        #expect(item.kcal == 430)
+        #expect(item.fiberG == 0)
+        #expect(item.sodiumMg == 0)
+    }
+
+    /// `Double("inf")`는 `> 0`을 통과한다. 그 값은 JSON 인코딩에서 터져 **저장 자체가 실패한다.**
+    ///
+    /// **`1e300`도 막아야 한다** — 유한하지만 화면이 합계를 `Int(...)`로 그릴 때 트랩이 걸려
+    /// 앱이 죽는다. `isFinite`만 넣으면 이 값이 그대로 통과한다.
+    @Test func 터무니없는_수량은_담을_수_없다() {
+        let (vm, _) = makeVM(.addOne)
+        vm.manualName = "포장 김밥"
+
+        for bad in ["inf", "1e300", "1e309"] {
+            vm.manualQuantity = bad
+            #expect(vm.buildManualItem() == nil, "\(bad)이 통과했다")
+            #expect(vm.manualHint == "수량을 0보다 큰 숫자로 넣어 주세요.")
+        }
+
+        vm.manualQuantity = "230"
+        #expect(vm.buildManualItem() != nil)
+    }
+
+    /// 영양소 칸도 같다 — 100,000kcal짜리 항목이 확인 화면 합계를 `Int(...)`로 그리다 죽인다.
+    @Test func 터무니없는_영양소는_담을_수_없다() {
+        let (vm, _) = makeVM(.addOne)
+        vm.manualName = "포장 김밥"
+        vm.manualQuantity = "230"
+
+        vm.manualKcal = "1e300"
+        #expect(vm.buildManualItem() == nil)
+
+        vm.manualKcal = "430"
+        #expect(vm.buildManualItem() != nil)
     }
 
     /// **여러 개 모드에서 직접 등록을 담으면 칸을 비운다** — 다음 항목이 앞 항목의

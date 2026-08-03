@@ -93,6 +93,9 @@ final class MealItemPickViewModel {
     private(set) var frequentItems: [FrequentItem] = []
     private(set) var searchResults: [Food] = []
     private(set) var isSearching = false
+    /// 마지막 검색이 실패했다. **결과 0건과 구분해야 한다** — 알럿은 닫히고 나면 사라지는데
+    /// 목록은 남아, 그때 「검색 결과가 없어요」를 띄우면 원인을 잘못 짚게 된다.
+    private(set) var searchFailed = false
     private(set) var profile: NutritionProfile?
     /// 여러 개 모드에서 모아 둔 항목. 한 개 모드에서는 항상 비어 있다.
     private(set) var picked: [PickedItem] = []
@@ -125,28 +128,29 @@ final class MealItemPickViewModel {
 
     var frequentSources: [FoodPickSource] { frequentItems.map(FoodPickSource.frequent) }
 
-    /// **받아 온 페이지를 앱에서 거른다** — 서버에 `dataset` 파라미터가 없다. 그래서 상위
-    /// 결과가 전부 가공식품이면 「음식」 칩이 빈 목록을 보여준다. `size`를 50(서버 상한)으로
-    /// 올려 완화했고, 근본 해법은 서버 필터라 별도 작업이다.
-    var filteredSearchSources: [FoodPickSource] {
-        let filtered = filter.dataset.map { dataset in
-            searchResults.filter { $0.dataset == dataset }
-        } ?? searchResults
-        return filtered.map(FoodPickSource.food)
-    }
+    /// 검색결과 탭 목록. **서버가 이미 `dataset`으로 거른 결과다** — 여기서 또 거르지 않는다.
+    /// 두 곳에서 거르면 기준이 어긋나는 날 「검색은 됐는데 목록이 빈」 상태가 다시 생긴다.
+    var searchSources: [FoodPickSource] { searchResults.map(FoodPickSource.food) }
 
-    /// 검색결과 탭이 비었을 때 무엇을 보여줄지. **셋을 갈라야 한다** — 스펙이 예고한 대로
-    /// 필터가 받아 온 페이지를 전부 걸러내는 경우가 실제로 자주 생기는데(서버에 `dataset`
-    /// 파라미터가 없어 앱에서 거른다), 그때 「검색해 주세요」를 띄우면 원인이 필터라는 걸
-    /// 알 길이 없다.
+    /// 검색결과 탭이 비었을 때 무엇을 보여줄지. **셋을 가른다** — 아직 검색 전인지, 정말
+    /// 없는지, 칩 때문인지가 사용자에게 다른 다음 행동을 뜻한다.
+    ///
+    /// **기준이 「칩이 걸려 있나」다.** 예전에는 「받아 온 것과 거른 것이 다른가」로 갈랐는데,
+    /// 서버가 거르는 지금은 그 둘이 항상 같아 세 번째 가지가 영영 안 밟힌다.
     var searchEmptyText: String? {
-        guard filteredSearchSources.isEmpty else { return nil }
-        if searchResults.isEmpty {
-            return query.trimmingCharacters(in: .whitespaces).isEmpty
-                ? "찾을 음식을 검색해 주세요."
-                : "검색 결과가 없어요. 다른 이름으로 찾아 보세요."
+        guard searchSources.isEmpty else { return nil }
+        guard !query.trimmingCharacters(in: .whitespaces).isEmpty else {
+            return "찾을 음식을 검색해 주세요."
         }
-        return "이 검색 결과에는 「\(filter.label)」이 없어요. 「전체」로 보거나 검색어를 좁혀 보세요."
+        // **「없다」와 「못 받았다」를 구분한다.** 실패한 뒤에도 「검색 결과가 없어요」를 띄우면
+        // 사용자가 그 음식이 식품DB에 없다고 믿고 직접 등록으로 간다.
+        guard !searchFailed else {
+            return "검색에 실패했어요. 잠시 후 다시 시도해 주세요."
+        }
+        guard filter == .all else {
+            return "「\(filter.label)」에는 검색 결과가 없어요. 「전체」로 보거나 검색어를 바꿔 보세요."
+        }
+        return "검색 결과가 없어요. 다른 이름으로 찾아 보세요."
     }
 
     /// 상세 시트의 「일일목표 %」 분모. 프로필이 없으면 nil이라 배지가 감춰진다.
@@ -172,6 +176,17 @@ final class MealItemPickViewModel {
         }
     }
 
+    /// 칩을 고른다. **칩이 곧 쿼리라 다시 검색해야 한다** — 서버가 `dataset`으로 거르므로
+    /// 이미 받아 둔 결과를 다시 쓸 수 없다.
+    ///
+    /// `search()`가 `searchGeneration`을 올리므로 **먼저 나간 칩의 응답이 늦게 돌아와
+    /// 덮어쓰는 일은 그쪽에서 막힌다** — 칩을 빠르게 두 번 누르는 경로가 이번에 새로 생긴다.
+    func selectFilter(_ newFilter: DatasetFilter) async {
+        guard newFilter != filter else { return }
+        filter = newFilter
+        await search()
+    }
+
     /// 검색어를 확정하면 **검색결과 탭으로 자동 전환한다** — 결과가 다른 탭 뒤에 숨으면 안 된다.
     func search() async {
         // 앞선 검색이 아직 안 끝났는데 새 검색어를 넣을 수 있다. 토큰이 다르면 늦게 돌아온
@@ -195,9 +210,16 @@ final class MealItemPickViewModel {
         // 새 조회를 시작할 때 지난 오류를 지운다 — 안 지우면 실패 뒤 성공한 검색에서
         // 정상 결과 위에 낡은 오류가 계속 떠 있는다(`DietDayViewModel.load()`와 같은 처리).
         errorMessage = nil
+        searchFailed = false
+
+        // **예전 결과를 여기서 버린다.** 안 버리면 이 요청이 도는 동안, 그리고 실패하면 영영,
+        // 새 검색어·칩 라벨 아래에 이전 결과가 그대로 남는다 — 「원재료」를 눌렀는데 가공식품
+        // 목록이 남아 있고 그걸 담을 수 있다. 서버가 거르게 된 뒤로 생긴 창이다(앱이 거를
+        // 때는 칩과 목록이 어긋날 수 없었다).
+        searchResults = []
 
         do {
-            let results = try await service.searchFoods(query: keyword)
+            let results = try await service.searchFoods(query: keyword, dataset: filter.dataset)
             guard token == searchGeneration else { return }
             searchResults = results
         } catch is CancellationError {
@@ -208,6 +230,7 @@ final class MealItemPickViewModel {
         } catch {
             guard token == searchGeneration else { return }
             errorMessage = error.localizedDescription
+            searchFailed = true
         }
 
         // **`defer`로 끄면 안 된다** — 먼저 나간 옛 검색이 돌아오면서 최신 검색이 아직
@@ -263,18 +286,58 @@ final class MealItemPickViewModel {
     /// 등록 화면에 있는 동안 모든 칸이 그대로 보이므로 남아 있는 편이 맞다.
     func buildManualItem() -> MealItemRequest? {
         let name = manualName.trimmingCharacters(in: .whitespaces)
-        guard !name.isEmpty, let quantity = Double(manualQuantity), quantity > 0 else { return nil }
+        guard !name.isEmpty, let quantity = manualQuantityG else { return nil }
+        guard let kcal = manualNutrient(manualKcal),
+              let carbs = manualNutrient(manualCarbs),
+              let protein = manualNutrient(manualProtein),
+              let fat = manualNutrient(manualFat),
+              let sugar = manualNutrient(manualSugar),
+              let sodium = manualNutrient(manualSodium),
+              let fiber = manualNutrient(manualFiber) else { return nil }
+
         return NutritionMath.manualItem(
             name: name,
             quantityG: quantity,
-            kcal: Double(manualKcal) ?? 0,
-            carbsG: Double(manualCarbs) ?? 0,
-            proteinG: Double(manualProtein) ?? 0,
-            fatG: Double(manualFat) ?? 0,
-            sugarG: Double(manualSugar) ?? 0,
-            sodiumMg: Double(manualSodium) ?? 0,
-            fiberG: Double(manualFiber) ?? 0
+            kcal: kcal, carbsG: carbs, proteinG: protein, fatG: fat,
+            sugarG: sugar, sodiumMg: sodium, fiberG: fiber
         )
+    }
+
+    /// **`isFinite`와 상한을 함께 본다.** `Double("inf")`는 `> 0`을 통과해 JSON 인코딩에서
+    /// 터지고, `1e300`은 유한한데도 화면이 합계를 `Int(...)`로 그릴 때 트랩을 건다.
+    private var manualQuantityG: Double? {
+        guard let value = Double(manualQuantity.trimmingCharacters(in: .whitespaces)),
+              value.isFinite, value > 0, value <= DietInputLimits.maxQuantityG else { return nil }
+        return value
+    }
+
+    /// 영양소 칸 하나를 읽는다. **빈 칸은 0이다**(안 적은 것) — 하지만 **잘못 적힌 칸을 0으로
+    /// 갈아 끼우지는 않는다.**
+    ///
+    /// 예전에는 `Double(text) ?? 0`이라 오타 하나가 「나트륨 0mg」으로 조용히 저장됐다.
+    /// 사용자는 자기가 적은 값이 들어간 줄 안다 — 화면에는 적은 대로 남아 있으니까.
+    /// 음수도 여기서 막는다. 서버가 거절하면 **그 항목이 아니라 끼니 전체가 저장되지 않는다.**
+    private func manualNutrient(_ text: String) -> Double? {
+        let trimmed = text.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return 0 }
+        guard let value = Double(trimmed),
+              value.isFinite,
+              value >= 0,
+              value <= DietInputLimits.maxNutrientValue else { return nil }
+        return value
+    }
+
+    /// 「추가하기」가 안 눌리는 이유. **버튼만 잠그면 왜 안 되는지 알 수 없다** — 특히 영양소
+    /// 칸은 아래쪽이라 화면 밖에 있을 수 있다.
+    var manualHint: String? {
+        guard buildManualItem() == nil else { return nil }
+        guard !manualName.trimmingCharacters(in: .whitespaces).isEmpty else {
+            return "음식 이름을 넣어 주세요."
+        }
+        guard manualQuantityG != nil else {
+            return "수량을 0보다 큰 숫자로 넣어 주세요."
+        }
+        return "영양소는 0 이상 숫자로 넣어 주세요."
     }
 
     func clearManualInput() {
