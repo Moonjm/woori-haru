@@ -118,14 +118,29 @@ final class DietDayViewModel {
         // 자리에서 같이 꺼야 화면이 무한 로딩으로 남지 않는다.
         isFeedbackPending = false
 
-        do {
-            async let profileResult = service.fetchProfile()
-            async let dayResult = service.fetchDay(date: selectedDate.dateString)
-            let (loadedProfile, loadedDay) = try await (profileResult, dayResult)
-            guard token == generation else { return }
+        async let profileResult = service.fetchProfile()
+        async let dayResult = service.fetchDay(date: selectedDate.dateString)
 
+        // **둘을 따로 받는다.** 튜플로 함께 `try` 하면 하루 조회가 실패할 때 성공한 프로필
+        // 결과까지 버려진다 — 프로필이 없는 첫 진입에서 하루 조회가 한 번 실패하면
+        // `needsProfile`이 false로 남아, 화면이 「목표부터 정하기」 대신 기록 메뉴를 연다.
+        // 그러면 사용자가 사진 인식(유료)까지 다 하고 확정 단계에서 거절된다.
+        do {
+            let loadedProfile = try await profileResult
+            guard token == generation else { return }
             profile = loadedProfile
             needsProfile = loadedProfile == nil
+        } catch is CancellationError {
+            return
+        } catch {
+            // **프로필 조회만 실패했으면 `needsProfile`을 건드리지 않는다** — 모르는 것을
+            // 「없다」로 단정하면 프로필이 있는 사용자에게 입력 화면을 들이민다. 하루 화면도
+            // 막지 않는다(프로필은 목표 막대에만 쓴다).
+        }
+
+        do {
+            let loadedDay = try await dayResult
+            guard token == generation else { return }
             apply(loadedDay)
             loadFailed = false
             startFeedbackPollingIfNeeded(token: token)
