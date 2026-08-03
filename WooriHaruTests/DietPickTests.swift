@@ -13,7 +13,8 @@ func makePickFood(
     serving: Double = 250,
     saturatedFat: Double = 2,
     transFat: Double = 0.1,
-    cholesterol: Double = 30
+    cholesterol: Double = 30,
+    estimatedFields: [String]? = nil
 ) -> Food {
     Food(
         code: code, name: name, maker: maker, dataset: dataset,
@@ -21,7 +22,8 @@ func makePickFood(
         kcalPer100g: 150, carbsPer100g: 12, proteinPer100g: 10, fatPer100g: 7,
         sugarPer100g: 3, sodiumMgPer100g: 400, fiberPer100g: 1.5,
         saturatedFatPer100g: saturatedFat, transFatPer100g: transFat,
-        cholesterolMgPer100g: cholesterol
+        cholesterolMgPer100g: cholesterol,
+        estimatedFields: estimatedFields
     )
 }
 
@@ -128,6 +130,32 @@ struct FoodPickSourceTests {
 
         #expect(food.id != sameCodeOtherDataset.id)
         #expect(food.id != frequent.id)
+    }
+
+    /// **한 행 안에서 공식값과 추정값이 섞인다.** `["fat"]`인 행이 647건, 그 반대가 105건
+    /// 있다 — 시트 전체에 「추정」을 한 번 달면 공식값인 탄수화물까지 의심받는다.
+    @Test func 추정_표시는_해당_영양소에만_붙는다() {
+        let source = FoodPickSource.food(makePickFood(estimatedFields: ["fat"]))
+
+        #expect(!source.isEstimated("carbs"))
+        #expect(source.isEstimated("fat"))
+    }
+
+    /// 서버가 값을 늘려도 앱이 죽지 않는다 — 모르는 값은 그냥 안 맞을 뿐이다.
+    @Test func 모르는_추정_값이_섞여도_아는_것만_붙는다() {
+        let source = FoodPickSource.food(makePickFood(estimatedFields: ["carbs", "calcium"]))
+
+        #expect(source.isEstimated("carbs"))
+        #expect(!source.isEstimated("calcium2"))
+    }
+
+    /// **`false`가 「원본 값」이라는 뜻이 아니라 「모른다」는 뜻이다.** 저장된 항목의 출처를
+    /// 되짚을 방법이 서버에도 없다.
+    @Test func 자주_드셨어요는_출처를_모른다() {
+        let source = FoodPickSource.frequent(makeFrequent())
+
+        #expect(!source.isEstimated("carbs"))
+        #expect(!source.isEstimated("fat"))
     }
 }
 
@@ -438,6 +466,23 @@ struct FoodDetailViewModelTests {
         #expect(item.sugarG == 3)
         #expect(item.sodiumMg == 400)
         #expect(item.fiberG == 1.5)
+    }
+
+    /// 탄수화물·지방 두 줄만 참일 수 있다. **나머지는 서버가 출처를 기록하지 않으므로 항상
+    /// 거짓이다** — 당류·나트륨에 붙으면 없는 정보를 지어낸 것이다.
+    @Test func 추정_배지는_탄수화물과_지방_줄에만_붙는다() {
+        let vm = FoodDetailViewModel(source: .food(makePickFood(
+            known: true, serving: 100, estimatedFields: ["fat"]
+        )))
+
+        let estimated = Set(vm.nutrientRows.filter(\.isEstimated).map(\.name))
+        #expect(estimated == ["지방"])
+    }
+
+    @Test func 추정이_없으면_아무_줄에도_안_붙는다() {
+        let vm = FoodDetailViewModel(source: .food(makePickFood(known: true, serving: 100)))
+
+        #expect(vm.nutrientRows.allSatisfy { !$0.isEstimated })
     }
 }
 

@@ -57,7 +57,8 @@ private func makeFood(
     fiber: Double = 1.5,
     saturatedFat: Double = 2,
     transFat: Double = 0.1,
-    cholesterol: Double = 30
+    cholesterol: Double = 30,
+    estimatedFields: [String]? = nil
 ) -> Food {
     Food(
         code: code, name: name, maker: maker, dataset: dataset,
@@ -65,7 +66,8 @@ private func makeFood(
         kcalPer100g: kcal, carbsPer100g: carbs, proteinPer100g: protein, fatPer100g: fat,
         sugarPer100g: sugar, sodiumMgPer100g: sodium, fiberPer100g: fiber,
         saturatedFatPer100g: saturatedFat, transFatPer100g: transFat,
-        cholesterolMgPer100g: cholesterol
+        cholesterolMgPer100g: cholesterol,
+        estimatedFields: estimatedFields
     )
 }
 
@@ -132,6 +134,30 @@ struct FoodDecodingTests {
         #expect(foods[0].saturatedFatPer100g == 2.5)
         #expect(foods[0].transFatPer100g == 0.1)
         #expect(foods[0].cholesterolMgPer100g == 30)
+    }
+
+    /// **옵셔널이어야 한다.** non-optional로 받으면 서버가 이 키를 안 주는 순간 `[Food]`
+    /// 배열 전체가 디코딩에 실패해 검색 화면이 빈 목록이 된다 — 배포 순서가 묶인다.
+    @Test func 추정_필드_키가_없어도_디코딩된다() throws {
+        let foods = try JSONDecoder().decode([Food].self, from: Data(json.utf8))
+
+        // 위 픽스처에는 estimatedFields가 아예 없다.
+        #expect(foods.count == 2)
+        #expect(foods.first?.estimatedFields == nil)
+    }
+
+    @Test func 추정_필드를_읽는다() throws {
+        let json = """
+        [{"code":"D1","name":"리아 두툼새우","dataset":"DISH",
+          "servingSizeG":100,"servingSizeKnown":true,
+          "kcalPer100g":200,"carbsPer100g":18.31,"proteinPer100g":10,"fatPer100g":7,
+          "sugarPer100g":3,"sodiumMgPer100g":400,"fiberPer100g":1.5,
+          "saturatedFatPer100g":2,"transFatPer100g":0,"cholesterolMgPer100g":30,
+          "estimatedFields":["carbs","fat"]}]
+        """
+        let foods = try JSONDecoder().decode([Food].self, from: Data(json.utf8))
+
+        #expect(foods.first?.estimatedFields == ["carbs", "fat"])
     }
 }
 
@@ -533,7 +559,8 @@ struct NutrientPassthroughTests {
             servingSizeG: 250, servingSizeKnown: true,
             kcalPer100g: 150, carbsPer100g: 12, proteinPer100g: 10, fatPer100g: 7,
             sugarPer100g: 3, sodiumMgPer100g: 400, fiberPer100g: 1.5,
-            saturatedFatPer100g: 2, transFatPer100g: 0.1, cholesterolMgPer100g: 30
+            saturatedFatPer100g: 2, transFatPer100g: 0.1, cholesterolMgPer100g: 30,
+            estimatedFields: nil
         )
         await assertNutrientsSurvive(
             NutritionMath.item(from: food, quantityG: 250),
@@ -630,7 +657,8 @@ struct NutrientPassthroughTests {
             servingSizeG: 250, servingSizeKnown: true,
             kcalPer100g: 150, carbsPer100g: 12, proteinPer100g: 10, fatPer100g: 7,
             sugarPer100g: 3, sodiumMgPer100g: 400, fiberPer100g: 1.5,
-            saturatedFatPer100g: 2, transFatPer100g: 0.1, cholesterolMgPer100g: 30
+            saturatedFatPer100g: 2, transFatPer100g: 0.1, cholesterolMgPer100g: 30,
+            estimatedFields: nil
         )
         let item = try #require(FoodPickSource.food(food).quickAddItem)
 

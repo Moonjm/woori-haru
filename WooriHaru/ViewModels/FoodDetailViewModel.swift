@@ -182,10 +182,12 @@ final class FoodDetailViewModel {
     var nutrientRows: [NutrientRow] {
         guard let item else { return [] }
         return [
-            NutrientRow(name: "탄수화물", valueText: formattedGram(item.carbsG), isSub: false),
+            NutrientRow(name: "탄수화물", valueText: formattedGram(item.carbsG), isSub: false,
+                        isEstimated: source.isEstimated("carbs")),
             NutrientRow(name: "당류", valueText: formattedGram(item.sugarG), isSub: true),
             NutrientRow(name: "단백질", valueText: formattedGram(item.proteinG), isSub: false),
-            NutrientRow(name: "지방", valueText: formattedGram(item.fatG), isSub: false)
+            NutrientRow(name: "지방", valueText: formattedGram(item.fatG), isSub: false,
+                        isEstimated: source.isEstimated("fat"))
         ] + fatDetailRows + [
             NutrientRow(name: "나트륨", valueText: "\(Int(item.sodiumMg.rounded()).formatted())mg", isSub: false),
             NutrientRow(name: "식이섬유", valueText: formattedGram(item.fiberG), isSub: false)
