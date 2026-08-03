@@ -107,9 +107,14 @@ final class FoodDetailViewModel {
     var quantityG: Double? {
         switch unit {
         case .serving:
+            // g 모드와 같은 한계를 건다 — 인분 쪽만 열어 두면 단위를 바꾸는 것만으로
+            // 검증을 우회하게 된다.
             guard let servingSizeG else { return nil }
             let quantity = servingSizeG * servings
-            return quantity > 0 ? quantity : nil
+            guard quantity.isFinite,
+                  quantity > 0,
+                  quantity <= DietInputLimits.maxQuantityG else { return nil }
+            return quantity
         case .gram:
             // **`> 0`만으로는 부족하다.** `Double("inf")`도 `Double("1e309")`도 이 검사를
             // 통과하고, 그 값으로 만든 열량이 `kcalText`의 `Int(...)`에서 트랩을 걸어
@@ -133,7 +138,16 @@ final class FoodDetailViewModel {
     func decreaseGram() { setGram((currentGram ?? Self.minimumGram) - Self.gramStep) }
     func selectQuickGram(_ gram: Double) { setGram(gram) }
 
-    private var currentGram: Double? { Double(gramText) }
+    /// 스테퍼와 단위 전환이 쓰는 값. **`quantityG`와 같은 한계를 건다** — 여기가 검증을 안 하면
+    /// 붙여넣은 `1e300`이 스테퍼를 타고 들어와 인분 수를 터무니없게 만들고, 화면이 그것을
+    /// 그리다 죽는다. 범위를 벗어나면 nil이라 +/− 는 25g부터 다시 세고 인분은 1로 돌아간다.
+    private var currentGram: Double? {
+        guard let value = Double(gramText),
+              value.isFinite,
+              value > 0,
+              value <= DietInputLimits.maxQuantityG else { return nil }
+        return value
+    }
 
     private func setGram(_ value: Double) {
         gramText = max(Self.minimumGram, value).trimmedText

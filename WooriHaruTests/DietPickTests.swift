@@ -237,6 +237,37 @@ struct FoodDetailViewModelTests {
         #expect(vm.canAdd)
     }
 
+    /// **읽는 쪽만 막으면 부족하다.** 스테퍼는 `currentGram`을 쓰는데, 거기가 검증을 안 하면
+    /// 붙여넣은 값이 그대로 들어와 `trimmedText`의 `Int(...)`에서 트랩을 건다.
+    @Test func 터무니없는_값을_붙여넣고_스테퍼를_눌러도_죽지_않는다() {
+        let vm = FoodDetailViewModel(source: .food(makePickFood("달걀", known: false)))
+
+        for bad in ["inf", "1e300"] {
+            vm.gramText = bad
+            vm.increaseGram()
+            // 범위 밖이었으므로 25g부터 다시 센다.
+            #expect(vm.gramText == "25")
+
+            vm.gramText = bad
+            vm.decreaseGram()
+            #expect(vm.gramText == "25")
+        }
+    }
+
+    /// 단위 전환도 같은 값을 쓴다 — **인분으로 바꾸는 것만으로 g 모드 검증을 우회하면 안 된다.**
+    @Test func 터무니없는_값에서_인분으로_바꿔도_죽지_않는다() {
+        let vm = FoodDetailViewModel(source: .food(makePickFood(known: true, serving: 250)))
+        vm.setUnit(.gram)
+        vm.gramText = "1e300"
+
+        vm.setUnit(.serving)
+
+        #expect(vm.unit == .serving)
+        #expect(vm.servings == 1)
+        #expect(vm.servingsText == "1인분")
+        #expect(vm.quantityG == 250)
+    }
+
     /// **1인분 모드에서는 칩이 안 보인다** — 1인분을 아는 항목의 화면을 어지럽히지 않는다.
     @Test func 인분_모드에서는_빠른_선택_칩이_보이지_않는다() {
         let vm = FoodDetailViewModel(source: .food(makePickFood(known: true, serving: 250)))

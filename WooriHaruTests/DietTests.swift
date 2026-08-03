@@ -69,6 +69,23 @@ private func makeFood(
     )
 }
 
+struct DoubleTrimmedTextTests {
+    @Test func 소수점_이하가_0이면_정수로_보여준다() {
+        #expect(175.0.trimmedText == "175")
+        #expect(68.5.trimmedText == "68.5")
+        #expect(0.0.trimmedText == "0")
+    }
+
+    /// **`Int(self)`는 `Int.max`를 넘으면 트랩이다.** `1e300`은 `rounded()`와 같아서 정수 갈래를
+    /// 그대로 타고 들어와 앱을 죽인다 — 붙여넣기로 실제로 닿는 자리다.
+    @Test func Int_범위_밖에서는_죽지_않는다() {
+        #expect(!(1e300).trimmedText.isEmpty)
+        #expect(!Double.infinity.trimmedText.isEmpty)
+        #expect(!(-Double.infinity).trimmedText.isEmpty)
+        #expect(!Double.nan.trimmedText.isEmpty)
+    }
+}
+
 struct FoodDecodingTests {
     /// 서버 응답 두 건 — 하나는 아는 데이터셋, 하나는 **아직 모르는 값**.
     /// `maker` 키는 둘째에서 아예 빠져 있다.
