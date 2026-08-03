@@ -731,6 +731,64 @@ struct MealItemPickViewModelTests {
         #expect(vm.acceptManual() != nil)
     }
 
+    /// **잘못 적힌 칸을 0으로 갈아 끼우면 안 된다.** 화면에는 적은 대로 남아 있어서 사용자는
+    /// 자기 값이 들어간 줄 아는데, 저장된 것은 「나트륨 0mg」이다.
+    @Test func 잘못_적힌_영양소는_0으로_바꾸지_않는다() {
+        let (vm, _) = makeVM(.addOne)
+        vm.manualName = "포장 김밥"
+        vm.manualQuantity = "230"
+        vm.manualKcal = "430"
+
+        vm.manualSodium = "98O"   // 0이 아니라 알파벳 O
+        #expect(vm.buildManualItem() == nil)
+        #expect(vm.manualHint == "영양소는 0 이상 숫자로 넣어 주세요.")
+
+        vm.manualSodium = "980"
+        #expect(vm.buildManualItem() != nil)
+        #expect(vm.manualHint == nil)
+    }
+
+    /// **음수는 서버가 거절하는데, 그러면 그 항목이 아니라 끼니 전체가 저장되지 않는다.**
+    @Test func 음수_영양소는_담을_수_없다() {
+        let (vm, _) = makeVM(.addOne)
+        vm.manualName = "포장 김밥"
+        vm.manualQuantity = "230"
+
+        vm.manualCarbs = "-5"
+        #expect(vm.buildManualItem() == nil)
+
+        vm.manualCarbs = "5"
+        #expect(vm.buildManualItem() != nil)
+    }
+
+    /// **빈 칸은 0이다** — 안 적은 것이지 잘못 적은 것이 아니다. 이 구분이 없으면 식이섬유를
+    /// 비워 둔 사용자가 아무것도 담을 수 없게 된다.
+    @Test func 비워_둔_영양소_칸은_0으로_본다() throws {
+        let (vm, _) = makeVM(.addOne)
+        vm.manualName = "포장 김밥"
+        vm.manualQuantity = "230"
+        vm.manualKcal = "430"
+        // 나머지 칸은 그대로 비워 둔다.
+
+        let item = try #require(vm.buildManualItem())
+        #expect(item.kcal == 430)
+        #expect(item.fiberG == 0)
+        #expect(item.sodiumMg == 0)
+    }
+
+    /// `Double("inf")`는 `> 0`을 통과한다. 그 값은 JSON 인코딩에서 터져 **저장 자체가 실패한다.**
+    @Test func 무한대_수량은_담을_수_없다() {
+        let (vm, _) = makeVM(.addOne)
+        vm.manualName = "포장 김밥"
+
+        vm.manualQuantity = "inf"
+        #expect(vm.buildManualItem() == nil)
+        #expect(vm.manualHint == "수량을 0보다 큰 숫자로 넣어 주세요.")
+
+        vm.manualQuantity = "230"
+        #expect(vm.buildManualItem() != nil)
+    }
+
     /// **여러 개 모드에서 직접 등록을 담으면 칸을 비운다** — 다음 항목이 앞 항목의
     /// 영양소를 물려받으면 이름만 다른 값이 조용히 담긴다.
     @Test func 직접_등록을_담으면_다음_입력을_위해_칸을_비운다() {

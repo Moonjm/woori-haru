@@ -286,18 +286,55 @@ final class MealItemPickViewModel {
     /// 등록 화면에 있는 동안 모든 칸이 그대로 보이므로 남아 있는 편이 맞다.
     func buildManualItem() -> MealItemRequest? {
         let name = manualName.trimmingCharacters(in: .whitespaces)
-        guard !name.isEmpty, let quantity = Double(manualQuantity), quantity > 0 else { return nil }
+        guard !name.isEmpty, let quantity = manualQuantityG else { return nil }
+        guard let kcal = manualNutrient(manualKcal),
+              let carbs = manualNutrient(manualCarbs),
+              let protein = manualNutrient(manualProtein),
+              let fat = manualNutrient(manualFat),
+              let sugar = manualNutrient(manualSugar),
+              let sodium = manualNutrient(manualSodium),
+              let fiber = manualNutrient(manualFiber) else { return nil }
+
         return NutritionMath.manualItem(
             name: name,
             quantityG: quantity,
-            kcal: Double(manualKcal) ?? 0,
-            carbsG: Double(manualCarbs) ?? 0,
-            proteinG: Double(manualProtein) ?? 0,
-            fatG: Double(manualFat) ?? 0,
-            sugarG: Double(manualSugar) ?? 0,
-            sodiumMg: Double(manualSodium) ?? 0,
-            fiberG: Double(manualFiber) ?? 0
+            kcal: kcal, carbsG: carbs, proteinG: protein, fatG: fat,
+            sugarG: sugar, sodiumMg: sodium, fiberG: fiber
         )
+    }
+
+    /// **`isFinite`까지 본다** — `Double("inf")`는 `> 0`을 통과하고, 그 값은 JSON 인코딩에서
+    /// 터져 저장 자체가 실패한다.
+    private var manualQuantityG: Double? {
+        guard let value = Double(manualQuantity.trimmingCharacters(in: .whitespaces)),
+              value.isFinite, value > 0 else { return nil }
+        return value
+    }
+
+    /// 영양소 칸 하나를 읽는다. **빈 칸은 0이다**(안 적은 것) — 하지만 **잘못 적힌 칸을 0으로
+    /// 갈아 끼우지는 않는다.**
+    ///
+    /// 예전에는 `Double(text) ?? 0`이라 오타 하나가 「나트륨 0mg」으로 조용히 저장됐다.
+    /// 사용자는 자기가 적은 값이 들어간 줄 안다 — 화면에는 적은 대로 남아 있으니까.
+    /// 음수도 여기서 막는다. 서버가 거절하면 **그 항목이 아니라 끼니 전체가 저장되지 않는다.**
+    private func manualNutrient(_ text: String) -> Double? {
+        let trimmed = text.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return 0 }
+        guard let value = Double(trimmed), value.isFinite, value >= 0 else { return nil }
+        return value
+    }
+
+    /// 「추가하기」가 안 눌리는 이유. **버튼만 잠그면 왜 안 되는지 알 수 없다** — 특히 영양소
+    /// 칸은 아래쪽이라 화면 밖에 있을 수 있다.
+    var manualHint: String? {
+        guard buildManualItem() == nil else { return nil }
+        guard !manualName.trimmingCharacters(in: .whitespaces).isEmpty else {
+            return "음식 이름을 넣어 주세요."
+        }
+        guard manualQuantityG != nil else {
+            return "수량을 0보다 큰 숫자로 넣어 주세요."
+        }
+        return "영양소는 0 이상 숫자로 넣어 주세요."
     }
 
     func clearManualInput() {
