@@ -327,6 +327,32 @@ struct MealConfirmViewModelTests {
         #expect(scaled.fiberG == 0.5)
     }
 
+    /// **인식이 실패한 그룹에도 「음식 추가」가 열려 있다.** 포기하고 손으로 넣은 뒤 재시도를
+    /// 눌렀는데 성공하면, 그룹을 통째로 갈아 끼우는 구현에서는 그 입력이 소리 없이 사라진다.
+    ///
+    /// 겹쳐 담길 수는 있지만 **겹친 것은 눈에 보이고 지울 수 있는 반면, 사라진 것은 알 길이 없다.**
+    @Test func 재시도_결과가_직접_넣은_항목을_지우지_않는다() {
+        let vm = makeVM(partialFailureAnalysis())
+        let failedGroup = vm.groups[1]
+        #expect(failedGroup.items.isEmpty)
+
+        // 인식이 안 되니 직접 넣는다.
+        vm.addItem(NutritionMath.manualItem(
+            name: "김치찌개", quantityG: 400, kcal: 320, carbsG: 20, proteinG: 18, fatG: 19,
+            sugarG: 5, sodiumMg: 1800, fiberG: 3
+        ), to: failedGroup.id)
+        #expect(vm.groups[1].items.map(\.foodName) == ["김치찌개"])
+
+        // 그 뒤 재시도가 성공한다.
+        vm.applyRetriedAnalysis(makeAnalysis(photos: [
+            AnalyzedPhoto(fileId: 11, url: "u1", failed: false, items: [analyzedItem("제육볶음")]),
+            AnalyzedPhoto(fileId: 12, url: "u2", failed: false, items: [analyzedItem("된장찌개")])
+        ]))
+
+        #expect(!vm.groups[1].failed)
+        #expect(vm.groups[1].items.map(\.foodName) == ["된장찌개", "김치찌개"])
+    }
+
     /// **재시도로 다른 사진이 살아나도, 사용자가 고치던 사진의 편집은 그대로 남아야 한다.**
     /// 사진 1을 고치는 중에 사진 2의 재시도 결과가 도착해도 사진 1은 건드리지 않는다.
     @Test func 재시도_결과는_실패했던_사진에만_반영되고_편집중인_사진은_그대로다() {

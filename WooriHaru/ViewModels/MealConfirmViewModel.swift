@@ -204,12 +204,19 @@ final class MealConfirmViewModel {
         for photo in analysis.photos {
             guard let index = groups.firstIndex(where: { $0.fileId == photo.fileId }),
                   groups[index].failed, !photo.failed else { continue }
+            // **직접 넣은 항목을 지우지 않는다.** 인식이 실패한 그룹에도 「음식 추가」가
+            // 열려 있어서, 사용자가 포기하고 손으로 넣은 뒤 재시도를 누르는 경로가 있다.
+            // 그룹을 통째로 갈아 끼우면 그 입력이 소리 없이 사라진다.
+            //
+            // 겹쳐서 담길 수는 있다(손으로 넣은 것과 인식한 것이 같은 음식일 때). 하지만
+            // **겹친 것은 눈에 보이고 지울 수 있는 반면, 사라진 것은 알 길이 없다.**
+            let editedByUser = groups[index].items
             groups[index] = PhotoGroup(
                 id: groups[index].id,
                 fileId: photo.fileId,
                 url: photo.url,
                 failed: false,
-                items: photo.items.map(NutritionMath.request(from:))
+                items: photo.items.map(NutritionMath.request(from:)) + editedByUser
             )
         }
     }
