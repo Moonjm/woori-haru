@@ -80,6 +80,7 @@
 		DT10033 /* FoodDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20033 /* FoodDetailSheet.swift */; };
 		DT10034 /* MealItemPickViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20034 /* MealItemPickViewModel.swift */; };
 		DT10025 /* MealItemEditView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20025 /* MealItemEditView.swift */; };
+		DT10043 /* MealItemQuantitySheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20043 /* MealItemQuantitySheet.swift */; };
 		DT10026 /* MealDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20026 /* MealDetailViewModel.swift */; };
 		DT10042 /* MealItemQuantityViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20042 /* MealItemQuantityViewModel.swift */; };
 		DT10027 /* MealDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20027 /* MealDetailView.swift */; };
@@ -263,6 +264,7 @@
 		DT20033 /* FoodDetailSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodDetailSheet.swift; sourceTree = "<group>"; };
 		DT20034 /* MealItemPickViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealItemPickViewModel.swift; sourceTree = "<group>"; };
 		DT20025 /* MealItemEditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealItemEditView.swift; sourceTree = "<group>"; };
+		DT20043 /* MealItemQuantitySheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealItemQuantitySheet.swift; sourceTree = "<group>"; };
 		DT20026 /* MealDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealDetailViewModel.swift; sourceTree = "<group>"; };
 		DT20042 /* MealItemQuantityViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealItemQuantityViewModel.swift; sourceTree = "<group>"; };
 		DT20027 /* MealDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealDetailView.swift; sourceTree = "<group>"; };
@@ -676,6 +678,7 @@
 				DT20012 /* NutritionProfileView.swift */,
 				DT20018 /* DietHomeView.swift */,
 				DT20025 /* MealItemEditView.swift */,
+				DT20043 /* MealItemQuantitySheet.swift */,
 				DT20023 /* MealConfirmView.swift */,
 				DT20020 /* MealCaptureSheet.swift */,
 				DT20027 /* MealDetailView.swift */,
@@ -977,6 +980,7 @@
 				DT10018 /* DietHomeView.swift in Sources */,
 				DT10024 /* FrequentItemList.swift in Sources */,
 				DT10025 /* MealItemEditView.swift in Sources */,
+				DT10043 /* MealItemQuantitySheet.swift in Sources */,
 				DT10021 /* PhotoStrip.swift in Sources */,
 				DT10022 /* MealConfirmViewModel.swift in Sources */,
 				DT10023 /* MealConfirmView.swift in Sources */,
