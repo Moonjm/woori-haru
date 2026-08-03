@@ -140,7 +140,7 @@ struct FoodDetailSheet: View {
 
     private var quickGramChips: some View {
         HStack(spacing: 6) {
-            ForEach(FoodDetailViewModel.quickGrams, id: \.self) { gram in
+            ForEach(GramStepper.quickGrams, id: \.self) { gram in
                 Button {
                     vm.selectQuickGram(gram)
                 } label: {

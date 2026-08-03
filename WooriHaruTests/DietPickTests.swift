@@ -206,7 +206,7 @@ struct FoodDetailViewModelTests {
         let vm = FoodDetailViewModel(source: .food(makePickFood("달걀", known: false, serving: 200)))
 
         #expect(vm.showsQuickGramChips)
-        #expect(FoodDetailViewModel.quickGrams == [50, 100, 200])
+        #expect(GramStepper.quickGrams == [50, 100, 200])
 
         vm.selectQuickGram(100)
 
