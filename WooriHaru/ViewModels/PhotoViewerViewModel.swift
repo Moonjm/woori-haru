@@ -3,10 +3,16 @@ import UIKit
 /// 사진 내려받기의 응답 검사. **`URLSession.data(from:)`은 404·403에도 성공으로 돌아온다** —
 /// 그때 본문은 이미지가 아니라 서버가 뱉은 오류 문서다. 걸러 내지 않으면 그 바이트를 사진으로
 /// 알고 화면에 빈 자리를 그리고, 사진 앱에 저장까지 하게 된다.
+/// **`@Sendable`은 뷰모델이 이 함수들을 값으로 받기 때문에 붙인다.** `PhotoViewerViewModel`의
+/// 기본 인자가 `@Sendable` 함수 타입인데, 이름만 적어 넘기는 참조(`PhotoDownload.fetch`)는
+/// 앱 타깃의 Swift 5 모드에서 `@Sendable`로 추론되지 않아 「data races」 경고가 난다
+/// (SE-0418 `InferSendableFromCaptures`가 꺼져 있다 — 위젯 타깃만 켜져 있다).
+///
+/// 붙여도 되는 이유는 **둘 다 상태가 없기 때문이다** — 인자만 보고 답을 낸다.
 enum PhotoDownload {
     /// 상태 코드가 2xx여도 본문이 이미지라는 보장은 없다 — 중간 프록시가 끼워 넣은 안내
     /// 페이지가 200으로 온다. **받은 바이트를 실제로 열어 봐야 안다.**
-    static func isImage(_ data: Data) -> Bool {
+    @Sendable static func isImage(_ data: Data) -> Bool {
         UIImage(data: data) != nil
     }
 
@@ -17,7 +23,7 @@ enum PhotoDownload {
         }
     }
 
-    static func fetch(_ url: URL) async throws -> Data {
+    @Sendable static func fetch(_ url: URL) async throws -> Data {
         let (data, response) = try await URLSession.shared.data(from: url)
         try validate(response)
         return data
