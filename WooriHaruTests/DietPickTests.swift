@@ -218,6 +218,25 @@ struct FoodDetailViewModelTests {
         #expect(item.fiberG == 1.5)
     }
 
+    /// **`> 0`만으로는 부족하다.** `inf`도 `1e300`도 통과하고, 그 값으로 만든 열량이
+    /// `kcalText`의 `Int(...)`에서 트랩을 걸어 **앱이 그 자리에서 죽는다.**
+    /// `isFinite`만 넣으면 `1e300`이 그대로 남는다.
+    @Test func 터무니없는_그램수는_담기지_않는다() {
+        let vm = FoodDetailViewModel(source: .food(makePickFood("달걀", known: false)))
+
+        for bad in ["inf", "1e300", "1e309"] {
+            vm.gramText = bad
+            #expect(vm.quantityG == nil, "\(bad)이 통과했다")
+            #expect(vm.item == nil)
+            #expect(!vm.canAdd)
+            // 죽지 않고 그려져야 한다.
+            #expect(vm.kcalText == "0kcal")
+        }
+
+        vm.gramText = "100"
+        #expect(vm.canAdd)
+    }
+
     /// **1인분 모드에서는 칩이 안 보인다** — 1인분을 아는 항목의 화면을 어지럽히지 않는다.
     @Test func 인분_모드에서는_빠른_선택_칩이_보이지_않는다() {
         let vm = FoodDetailViewModel(source: .food(makePickFood(known: true, serving: 250)))
@@ -777,15 +796,33 @@ struct MealItemPickViewModelTests {
     }
 
     /// `Double("inf")`는 `> 0`을 통과한다. 그 값은 JSON 인코딩에서 터져 **저장 자체가 실패한다.**
-    @Test func 무한대_수량은_담을_수_없다() {
+    ///
+    /// **`1e300`도 막아야 한다** — 유한하지만 화면이 합계를 `Int(...)`로 그릴 때 트랩이 걸려
+    /// 앱이 죽는다. `isFinite`만 넣으면 이 값이 그대로 통과한다.
+    @Test func 터무니없는_수량은_담을_수_없다() {
         let (vm, _) = makeVM(.addOne)
         vm.manualName = "포장 김밥"
 
-        vm.manualQuantity = "inf"
-        #expect(vm.buildManualItem() == nil)
-        #expect(vm.manualHint == "수량을 0보다 큰 숫자로 넣어 주세요.")
+        for bad in ["inf", "1e300", "1e309"] {
+            vm.manualQuantity = bad
+            #expect(vm.buildManualItem() == nil, "\(bad)이 통과했다")
+            #expect(vm.manualHint == "수량을 0보다 큰 숫자로 넣어 주세요.")
+        }
 
         vm.manualQuantity = "230"
+        #expect(vm.buildManualItem() != nil)
+    }
+
+    /// 영양소 칸도 같다 — 100,000kcal짜리 항목이 확인 화면 합계를 `Int(...)`로 그리다 죽인다.
+    @Test func 터무니없는_영양소는_담을_수_없다() {
+        let (vm, _) = makeVM(.addOne)
+        vm.manualName = "포장 김밥"
+        vm.manualQuantity = "230"
+
+        vm.manualKcal = "1e300"
+        #expect(vm.buildManualItem() == nil)
+
+        vm.manualKcal = "430"
         #expect(vm.buildManualItem() != nil)
     }
 

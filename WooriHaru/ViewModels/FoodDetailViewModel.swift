@@ -111,7 +111,13 @@ final class FoodDetailViewModel {
             let quantity = servingSizeG * servings
             return quantity > 0 ? quantity : nil
         case .gram:
-            guard let quantity = Double(gramText), quantity > 0 else { return nil }
+            // **`> 0`만으로는 부족하다.** `Double("inf")`도 `Double("1e309")`도 이 검사를
+            // 통과하고, 그 값으로 만든 열량이 `kcalText`의 `Int(...)`에서 트랩을 걸어
+            // **앱이 그 자리에서 죽는다.** 무한대만 막아도 `1e300`이 그대로 남는다.
+            guard let quantity = Double(gramText),
+                  quantity.isFinite,
+                  quantity > 0,
+                  quantity <= DietInputLimits.maxQuantityG else { return nil }
             return quantity
         }
     }
