@@ -208,6 +208,18 @@ final class MealDetailViewModel {
         return await replaceItems(changed)
     }
 
+    /// 수량 시트용 저장. **결과에 이유를 담아 돌려준다** — 시트가 상세 화면을 덮고 있어
+    /// 상세가 띄우는 오류 알럿이 화면에 나타나지 않는다(사진 뷰어에서 같은 것을 겪었다).
+    func saveQuantity(_ item: MealItem, with replacement: MealItemRequest) async -> QuantitySaveOutcome {
+        guard await replaceItem(item, with: replacement) else {
+            // **상세 쪽 값을 지운다** — 안 지우면 시트를 닫은 뒤 같은 오류가 한 번 더 뜬다.
+            let message = errorMessage ?? "저장하지 못했어요."
+            errorMessage = nil
+            return .failed(message)
+        }
+        return .saved
+    }
+
     /// 사진 주소를 다시 받는다. **presigned URL은 10분 만료다** — 상세를 열어 둔 채 시간이
     /// 지나면 전체화면 보기가 실패하는데, 같은 주소로 다시 내려받아 봐야 같은 실패다.
     /// 끼니를 다시 조회해 그 사진의 새 주소를 돌려준다. 그 사이 사라진 사진이면 nil.

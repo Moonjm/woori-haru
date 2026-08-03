@@ -73,12 +73,16 @@
 		DT10023 /* MealConfirmView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20023 /* MealConfirmView.swift */; };
 		DT10024 /* FrequentItemList.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20024 /* FrequentItemList.swift */; };
 		DT10030 /* FoodPickSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20030 /* FoodPickSource.swift */; };
+		DT10041 /* GramStepper.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20041 /* GramStepper.swift */; };
+		DT10040 /* NutrientRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20040 /* NutrientRow.swift */; };
 		DT10031 /* FoodPickRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20031 /* FoodPickRow.swift */; };
 		DT10032 /* FoodDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20032 /* FoodDetailViewModel.swift */; };
 		DT10033 /* FoodDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20033 /* FoodDetailSheet.swift */; };
 		DT10034 /* MealItemPickViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20034 /* MealItemPickViewModel.swift */; };
 		DT10025 /* MealItemEditView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20025 /* MealItemEditView.swift */; };
+		DT10043 /* MealItemQuantitySheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20043 /* MealItemQuantitySheet.swift */; };
 		DT10026 /* MealDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20026 /* MealDetailViewModel.swift */; };
+		DT10042 /* MealItemQuantityViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20042 /* MealItemQuantityViewModel.swift */; };
 		DT10027 /* MealDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20027 /* MealDetailView.swift */; };
 		DT10028 /* DietStatsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20028 /* DietStatsViewModel.swift */; };
 		DT10029 /* DietStatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20029 /* DietStatsView.swift */; };
@@ -253,12 +257,16 @@
 		DT20023 /* MealConfirmView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealConfirmView.swift; sourceTree = "<group>"; };
 		DT20024 /* FrequentItemList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrequentItemList.swift; sourceTree = "<group>"; };
 		DT20030 /* FoodPickSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodPickSource.swift; sourceTree = "<group>"; };
+		DT20041 /* GramStepper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GramStepper.swift; sourceTree = "<group>"; };
+		DT20040 /* NutrientRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutrientRow.swift; sourceTree = "<group>"; };
 		DT20031 /* FoodPickRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodPickRow.swift; sourceTree = "<group>"; };
 		DT20032 /* FoodDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodDetailViewModel.swift; sourceTree = "<group>"; };
 		DT20033 /* FoodDetailSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodDetailSheet.swift; sourceTree = "<group>"; };
 		DT20034 /* MealItemPickViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealItemPickViewModel.swift; sourceTree = "<group>"; };
 		DT20025 /* MealItemEditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealItemEditView.swift; sourceTree = "<group>"; };
+		DT20043 /* MealItemQuantitySheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealItemQuantitySheet.swift; sourceTree = "<group>"; };
 		DT20026 /* MealDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealDetailViewModel.swift; sourceTree = "<group>"; };
+		DT20042 /* MealItemQuantityViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealItemQuantityViewModel.swift; sourceTree = "<group>"; };
 		DT20027 /* MealDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealDetailView.swift; sourceTree = "<group>"; };
 		DT20028 /* DietStatsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DietStatsViewModel.swift; sourceTree = "<group>"; };
 		DT20029 /* DietStatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DietStatsView.swift; sourceTree = "<group>"; };
@@ -493,6 +501,8 @@
 				DT20009 /* NutritionMath.swift */,
 				DT20099 /* DietInputLimits.swift */,
 				DT20030 /* FoodPickSource.swift */,
+				DT20041 /* GramStepper.swift */,
+				DT20040 /* NutrientRow.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -543,6 +553,7 @@
 				DT20022 /* MealConfirmViewModel.swift */,
 				DT20019 /* MealCaptureViewModel.swift */,
 				DT20026 /* MealDetailViewModel.swift */,
+				DT20042 /* MealItemQuantityViewModel.swift */,
 				DT20028 /* DietStatsViewModel.swift */,
 				DT20032 /* FoodDetailViewModel.swift */,
 				DT20034 /* MealItemPickViewModel.swift */,
@@ -667,6 +678,7 @@
 				DT20012 /* NutritionProfileView.swift */,
 				DT20018 /* DietHomeView.swift */,
 				DT20025 /* MealItemEditView.swift */,
+				DT20043 /* MealItemQuantitySheet.swift */,
 				DT20023 /* MealConfirmView.swift */,
 				DT20020 /* MealCaptureSheet.swift */,
 				DT20027 /* MealDetailView.swift */,
@@ -951,6 +963,8 @@
 				DT10009 /* NutritionMath.swift in Sources */,
 				DT10099 /* DietInputLimits.swift in Sources */,
 				DT10030 /* FoodPickSource.swift in Sources */,
+				DT10041 /* GramStepper.swift in Sources */,
+				DT10040 /* NutrientRow.swift in Sources */,
 				DT10031 /* FoodPickRow.swift in Sources */,
 				DT10032 /* FoodDetailViewModel.swift in Sources */,
 				DT10033 /* FoodDetailSheet.swift in Sources */,
@@ -966,12 +980,14 @@
 				DT10018 /* DietHomeView.swift in Sources */,
 				DT10024 /* FrequentItemList.swift in Sources */,
 				DT10025 /* MealItemEditView.swift in Sources */,
+				DT10043 /* MealItemQuantitySheet.swift in Sources */,
 				DT10021 /* PhotoStrip.swift in Sources */,
 				DT10022 /* MealConfirmViewModel.swift in Sources */,
 				DT10023 /* MealConfirmView.swift in Sources */,
 				DT10019 /* MealCaptureViewModel.swift in Sources */,
 				DT10020 /* MealCaptureSheet.swift in Sources */,
 				DT10026 /* MealDetailViewModel.swift in Sources */,
+				DT10042 /* MealItemQuantityViewModel.swift in Sources */,
 				DT10027 /* MealDetailView.swift in Sources */,
 				DT10028 /* DietStatsViewModel.swift in Sources */,
 				DT10029 /* DietStatsView.swift in Sources */,

@@ -56,6 +56,17 @@ struct Food: Codable, Hashable, Identifiable {
     let transFatPer100g: Double
     let cholesterolMgPer100g: Double
 
+    /// 서버가 잔여 열량에서 계산해 채운 필드(`["carbs","fat"]`). 비었으면 전부 원본 값이다.
+    ///
+    /// 프랜차이즈 영양성분표는 어린이 기호식품 의무표시 항목(열량·단백질·나트륨·당류·
+    /// 포화지방)만 싣는다. 탄수화물·총지방이 아예 없어서 서버가 같은 분류의 음식에서
+    /// 탄:지 비율을 빌려 채운다.
+    ///
+    /// **옵셔널이다** — non-optional로 받으면 서버 배포 전에 앱이 나가는 순간 검색 결과
+    /// 배열 전체가 디코딩에 실패한다. 빈 배열과 nil을 화면에서 구분하지 않는다(둘 다
+    /// 「추정 없음」이다).
+    let estimatedFields: [String]?
+
     /// 코드는 데이터셋 안에서만 유일하다.
     ///
     /// **알려진 한계:** `.unknown`끼리는 `"unknown-"`을 공유한다. 서버가 데이터셋을 둘 이상

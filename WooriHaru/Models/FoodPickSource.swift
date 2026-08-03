@@ -43,6 +43,17 @@ enum FoodPickSource: Identifiable, Hashable {
         }
     }
 
+    /// 이 영양소가 추정으로 채워진 값인가. **검색 결과에만 있다** — 자주 드셨어요는 저장된
+    /// 항목이라 출처를 모른다(`badge`·`brandText`와 같은 이유).
+    ///
+    /// `.frequent`의 `false`는 **「원본 값」이 아니라 「모른다」**는 뜻이다.
+    func isEstimated(_ field: String) -> Bool {
+        switch self {
+        case let .food(food): food.estimatedFields?.contains(field) == true
+        case .frequent: false
+        }
+    }
+
     /// 행 둘째 줄. 「1인분 (250g)」 · 「100g 기준」 · 「200g · 7회」
     var detailText: String {
         switch self {

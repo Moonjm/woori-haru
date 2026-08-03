@@ -140,7 +140,7 @@ struct FoodDetailSheet: View {
 
     private var quickGramChips: some View {
         HStack(spacing: 6) {
-            ForEach(FoodDetailViewModel.quickGrams, id: \.self) { gram in
+            ForEach(GramStepper.quickGrams, id: \.self) { gram in
                 Button {
                     vm.selectQuickGram(gram)
                 } label: {
@@ -188,7 +188,27 @@ struct FoodDetailSheet: View {
                         Text(row.valueText)
                             .font(.caption.weight(.medium))
                             .foregroundStyle(Color.slate700)
+                        // **줄마다 붙인다** — 한 행 안에서 공식값과 추정값이 섞이므로 시트
+                        // 전체에 한 번 달면 공식값인 줄까지 의심받는다.
+                        if row.isEstimated {
+                            Text("추정")
+                                .font(.caption2)
+                                .foregroundStyle(Color.slate400)
+                                .padding(.horizontal, 4)
+                                .padding(.vertical, 1)
+                                .background(Color.slate100, in: Capsule())
+                        }
                     }
+                }
+
+                // **배지만으로는 무슨 뜻인지 알 수 없다.** 「부정확」·「주의」처럼 값을
+                // 깎아내리는 말을 쓰지 않는다 — 알아야 할 것은 값이 틀렸다는 게 아니라
+                // 출처가 다르다는 것이다.
+                if vm.nutrientRows.contains(where: \.isEstimated) {
+                    Text("「추정」은 브랜드가 공개하지 않아 열량에서 계산한 값이에요.")
+                        .font(.caption2)
+                        .foregroundStyle(Color.slate400)
+                        .padding(.top, 4)
                 }
             }
         }
