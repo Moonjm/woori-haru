@@ -1005,3 +1005,104 @@ struct MealConfirmEditTargetTests {
         #expect(target.pickMode == .replace(item))
     }
 }
+
+// MARK: - 끼니 항목 수량 수정
+
+@MainActor
+struct MealItemQuantityViewModelTests {
+    private func makeVM(quantityG: Double = 250) -> MealItemQuantityViewModel {
+        let item = makeMealItem(quantityG: quantityG)
+        let original = MealItemRequest(
+            foodName: item.foodName, foodCode: item.foodCode, quantityG: item.quantityG,
+            kcal: item.kcal, carbsG: item.carbsG, proteinG: item.proteinG, fatG: item.fatG,
+            sugarG: item.sugarG, sodiumMg: item.sodiumMg, fiberG: item.fiberG, source: item.source
+        )
+        return MealItemQuantityViewModel(item: item, original: original)
+    }
+
+    @Test func 수량을_두_배로_하면_영양소가_두_배가_된다() throws {
+        let vm = makeVM(quantityG: 250)
+        vm.gramText = "500"
+
+        let edited = try #require(vm.edited)
+        #expect(edited.quantityG == 500)
+        #expect(edited.kcal == 750)
+        #expect(edited.carbsG == 60)
+        #expect(edited.proteinG == 50)
+        #expect(edited.fatG == 34)
+        #expect(edited.sugarG == 14)
+        #expect(edited.sodiumMg == 2000)
+        #expect(edited.fiberG == 6)
+    }
+
+    /// **값이 그대로면 저장하지 않는다.** 저장 한 번에 LLM 호출 한 번이 나가므로, 열었다
+    /// 그냥 닫는 사용자가 매번 비용을 내면 안 된다.
+    @Test func 값이_그대로면_저장할_수_없다() {
+        let vm = makeVM(quantityG: 250)
+
+        #expect(!vm.canSave)
+
+        vm.gramText = "275"
+        #expect(vm.canSave)
+
+        // 되돌리면 다시 잠긴다.
+        vm.gramText = "250"
+        #expect(!vm.canSave)
+    }
+
+    @Test func 비었거나_0이면_저장할_수_없다() {
+        let vm = makeVM()
+
+        vm.gramText = ""
+        #expect(vm.edited == nil)
+        #expect(!vm.canSave)
+
+        vm.gramText = "0"
+        #expect(vm.edited == nil)
+        #expect(!vm.canSave)
+    }
+
+    /// **검색 상세 시트에서 앱이 죽던 자리와 같다.** `> 0`만 보면 `inf`도 `1e300`도 통과하고,
+    /// 그 값으로 만든 열량이 `kcalText`의 `Int(...)`에서 트랩을 건다 — 두 번째 시트에 같은
+    /// 구멍을 복사하지 않는다.
+    @Test func 터무니없는_그램수는_저장할_수_없다() {
+        let vm = makeVM()
+
+        for bad in ["inf", "1e300", "1e309"] {
+            vm.gramText = bad
+            #expect(vm.edited == nil, "\(bad)이 통과했다")
+            #expect(!vm.canSave)
+            // 죽지 않고 그려져야 한다.
+            #expect(vm.kcalText == "0kcal")
+        }
+    }
+
+    /// 검색 상세 시트와 같은 격자다 — 두 시트가 다르게 움직이면 안 된다.
+    @Test func 스테퍼는_25g_단위이고_25g_아래로_안_내려간다() {
+        let vm = makeVM(quantityG: 250)
+
+        vm.increase()
+        #expect(vm.gramText == "275")
+
+        vm.gramText = "25"
+        vm.decrease()
+        #expect(vm.gramText == "25")
+    }
+
+    /// **하한이 입력까지 막지는 않는다** — 스테퍼로 못 내려갈 뿐이다(검색 상세와 같은 규칙).
+    @Test func 하한_아래도_타이핑할_수_있다() throws {
+        let vm = makeVM()
+        vm.gramText = "10"
+
+        #expect(try #require(vm.edited).quantityG == 10)
+    }
+
+    /// 저장된 항목에는 출처가 없다 — 「원본 값」이 아니라 **「모른다」**는 뜻이다.
+    @Test func 저장된_항목에는_추정_표시가_없다() {
+        let vm = makeVM()
+        vm.gramText = "300"
+
+        #expect(vm.nutrientRows.map(\.name) == ["탄수화물", "당류", "단백질", "지방", "나트륨", "식이섬유"])
+        #expect(vm.nutrientRows.allSatisfy { !$0.isEstimated })
+    }
+}
