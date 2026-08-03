@@ -24,7 +24,19 @@ final class MealDetailViewModel {
     /// 만든 목록이 방금 성공한 변경을 덮어쓴다(항목 전체 교체 방식이라 그렇다).
     /// 다시 읽어 오기 전까지 편집을 받지 않고, 화면은 다시 불러올 길을 띄운다.
     private(set) var isStale = false
+    /// 마지막 조회가 실패했다. **`isStale`보다 넓다** — 첫 조회가 실패하면 `meal`이 nil이라
+    /// `isStale`은 false로 남는데, 그때가 오히려 사용자가 빈 화면에 갇히는 경우다.
+    private(set) var loadFailed = false
     var errorMessage: String?
+
+    /// 다시 불러오기 배너에 쓸 문구. **끼니가 있느냐 없느냐로 말이 달라진다** — 앞은 「보이는
+    /// 게 낡았을 수 있다」이고 뒤는 「아무것도 못 받았다」다.
+    var loadFailureText: String? {
+        guard loadFailed else { return nil }
+        return meal == nil
+            ? "끼니를 불러오지 못했어요."
+            : "최신 상태를 불러오지 못했어요. 지금 보이는 내용이 서버와 다를 수 있어요."
+    }
 
     private var generation = 0
     private var feedbackTask: Task<Void, Never>?
@@ -81,6 +93,7 @@ final class MealDetailViewModel {
             guard token == generation else { return }
             meal = loaded
             isStale = false
+            loadFailed = false
             startFeedbackPollingIfNeeded(token: token)
         } catch is CancellationError {
             return
@@ -89,8 +102,12 @@ final class MealDetailViewModel {
             errorMessage = error.dietErrorCode == .resourceNotFound
                 ? "찾을 수 없습니다."
                 : error.localizedDescription
+            loadFailed = true
             // 화면에 끼니가 남아 있는데 조회에 실패했다 — 보이는 것이 서버 상태와 같다고
             // 보장할 수 없다. 특히 저장 직후 재조회가 실패한 경우가 위험하다(아래 참조).
+            //
+            // **끼니가 아예 없는 경우는 여기 안 걸린다.** 그래서 화면이 `isStale`만 보면
+            // 첫 조회 실패는 아무 길도 안 남긴다 — `loadFailed`를 따로 세우는 이유다.
             isStale = meal != nil
         }
     }

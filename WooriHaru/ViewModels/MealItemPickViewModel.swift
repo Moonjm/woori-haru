@@ -93,6 +93,9 @@ final class MealItemPickViewModel {
     private(set) var frequentItems: [FrequentItem] = []
     private(set) var searchResults: [Food] = []
     private(set) var isSearching = false
+    /// 마지막 검색이 실패했다. **결과 0건과 구분해야 한다** — 알럿은 닫히고 나면 사라지는데
+    /// 목록은 남아, 그때 「검색 결과가 없어요」를 띄우면 원인을 잘못 짚게 된다.
+    private(set) var searchFailed = false
     private(set) var profile: NutritionProfile?
     /// 여러 개 모드에서 모아 둔 항목. 한 개 모드에서는 항상 비어 있다.
     private(set) var picked: [PickedItem] = []
@@ -138,6 +141,11 @@ final class MealItemPickViewModel {
         guard searchSources.isEmpty else { return nil }
         guard !query.trimmingCharacters(in: .whitespaces).isEmpty else {
             return "찾을 음식을 검색해 주세요."
+        }
+        // **「없다」와 「못 받았다」를 구분한다.** 실패한 뒤에도 「검색 결과가 없어요」를 띄우면
+        // 사용자가 그 음식이 식품DB에 없다고 믿고 직접 등록으로 간다.
+        guard !searchFailed else {
+            return "검색에 실패했어요. 잠시 후 다시 시도해 주세요."
         }
         guard filter == .all else {
             return "「\(filter.label)」에는 검색 결과가 없어요. 「전체」로 보거나 검색어를 바꿔 보세요."
@@ -202,6 +210,13 @@ final class MealItemPickViewModel {
         // 새 조회를 시작할 때 지난 오류를 지운다 — 안 지우면 실패 뒤 성공한 검색에서
         // 정상 결과 위에 낡은 오류가 계속 떠 있는다(`DietDayViewModel.load()`와 같은 처리).
         errorMessage = nil
+        searchFailed = false
+
+        // **예전 결과를 여기서 버린다.** 안 버리면 이 요청이 도는 동안, 그리고 실패하면 영영,
+        // 새 검색어·칩 라벨 아래에 이전 결과가 그대로 남는다 — 「원재료」를 눌렀는데 가공식품
+        // 목록이 남아 있고 그걸 담을 수 있다. 서버가 거르게 된 뒤로 생긴 창이다(앱이 거를
+        // 때는 칩과 목록이 어긋날 수 없었다).
+        searchResults = []
 
         do {
             let results = try await service.searchFoods(query: keyword, dataset: filter.dataset)
@@ -215,6 +230,7 @@ final class MealItemPickViewModel {
         } catch {
             guard token == searchGeneration else { return }
             errorMessage = error.localizedDescription
+            searchFailed = true
         }
 
         // **`defer`로 끄면 안 된다** — 먼저 나간 옛 검색이 돌아오면서 최신 검색이 아직
