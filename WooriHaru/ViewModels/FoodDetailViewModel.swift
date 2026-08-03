@@ -21,29 +21,12 @@ final class FoodDetailViewModel {
         }
     }
 
-    struct NutrientRow: Identifiable, Equatable {
-        let name: String
-        let valueText: String
-        /// 탄수화물 아래 당류처럼 한 단계 들여쓰는 줄
-        let isSub: Bool
-
-        var id: String { name }
-    }
-
-    /// g 모드 빠른 선택. **1인분을 모르는 항목은 지금 반드시 타이핑해야 하는데** 검색 결과의
-    /// 상당수가 여기 해당한다(원재료 전부·가공식품 31%·음식 21%). 칩 셋이 그 타이핑을 없앤다.
-    static let quickGrams: [Double] = [50, 100, 200]
-
     /// 인분 스테퍼 한 칸과 하한. 「반 그릇」이 실제로 가장 흔한 조정이다.
+    ///
+    /// **여기에만 있다** — 인분은 1인분 크기를 아는 검색 결과에만 있는 개념이라 끼니 항목
+    /// 수량 수정과 나눠 쓸 것이 없다(g 쪽은 `GramStepper`).
     static let servingStep: Double = 0.5
     static let minimumServings: Double = 0.5
-    /// g 스테퍼 한 칸과 하한. **0으로 내려가면 영양소가 전부 0으로 굳는다.**
-    ///
-    /// 10g씩은 100g을 맞추는 데 열 번을 눌러야 해서 실제로는 타이핑하게 된다. 25g은 빠른
-    /// 선택 칩(50·100·200)과 같은 격자라 칩으로 대강 맞추고 스테퍼로 다듬는 흐름이 된다.
-    /// **더 잘게 넣고 싶으면 직접 타이핑할 수 있다** — 스테퍼 하한이 입력까지 막지는 않는다.
-    static let gramStep: Double = 25
-    static let minimumGram: Double = 25
 
     let source: FoodPickSource
     private(set) var unit: Unit
@@ -134,8 +117,8 @@ final class FoodDetailViewModel {
         servings = max(Self.minimumServings, servings - Self.servingStep)
     }
 
-    func increaseGram() { setGram((currentGram ?? 0) + Self.gramStep) }
-    func decreaseGram() { setGram((currentGram ?? Self.minimumGram) - Self.gramStep) }
+    func increaseGram() { setGram((currentGram ?? 0) + GramStepper.step) }
+    func decreaseGram() { setGram((currentGram ?? GramStepper.minimum) - GramStepper.step) }
     func selectQuickGram(_ gram: Double) { setGram(gram) }
 
     /// 스테퍼와 단위 전환이 쓰는 값. **`quantityG`와 같은 한계를 건다** — 여기가 검증을 안 하면
@@ -150,7 +133,7 @@ final class FoodDetailViewModel {
     }
 
     private func setGram(_ value: Double) {
-        gramText = max(Self.minimumGram, value).trimmedText
+        gramText = max(GramStepper.minimum, value).trimmedText
     }
 
     /// 단위를 바꾼다. **숫자가 튀지 않게 지금 수량을 옮겨 담는다.** g에서 인분으로 갈 때는
@@ -199,10 +182,12 @@ final class FoodDetailViewModel {
     var nutrientRows: [NutrientRow] {
         guard let item else { return [] }
         return [
-            NutrientRow(name: "탄수화물", valueText: formattedGram(item.carbsG), isSub: false),
+            NutrientRow(name: "탄수화물", valueText: formattedGram(item.carbsG), isSub: false,
+                        isEstimated: source.isEstimated("carbs")),
             NutrientRow(name: "당류", valueText: formattedGram(item.sugarG), isSub: true),
             NutrientRow(name: "단백질", valueText: formattedGram(item.proteinG), isSub: false),
-            NutrientRow(name: "지방", valueText: formattedGram(item.fatG), isSub: false)
+            NutrientRow(name: "지방", valueText: formattedGram(item.fatG), isSub: false,
+                        isEstimated: source.isEstimated("fat"))
         ] + fatDetailRows + [
             NutrientRow(name: "나트륨", valueText: "\(Int(item.sodiumMg.rounded()).formatted())mg", isSub: false),
             NutrientRow(name: "식이섬유", valueText: formattedGram(item.fiberG), isSub: false)

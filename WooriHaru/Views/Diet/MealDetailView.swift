@@ -8,18 +8,29 @@ struct MealDetailView: View {
 
     @State private var vm: MealDetailViewModel
     @State private var showDeleteAlert = false
-    @State private var editingTarget: EditingTarget?
+    @State private var editRoute: ItemEditRoute?
     @State private var showAddItem = false
     /// 전체화면으로 보고 있는 사진.
     @State private var viewingPhoto: StripPhoto?
     @Environment(\.dismiss) private var dismiss
 
-    /// 교체 시트가 열릴 때 필요한 것 둘 — 어느 항목이고(`item`), 무엇으로 채워 열지(`current`).
-    /// **둘을 함께 담아야** 대상을 못 찾는 순간에 내용 없는 빈 시트가 뜨는 일이 없다.
-    private struct EditingTarget: Identifiable {
-        let item: MealItem
-        let current: MealItemRequest
-        var id: Int { item.id }
+    /// 연필이 여는 두 시트. **하나의 `sheet(item:)`으로 합친다** — 수량 시트에서 「다른
+    /// 음식으로 교체」를 누르면 시트를 갈아 끼워야 하는데, **SwiftUI에서 닫히는 도중에 새
+    /// 시트를 띄우면 조용히 삼켜진다**(아무 일도 안 일어나고 오류도 없다). 같은 상태의
+    /// `id`만 바뀌면 SwiftUI가 알아서 갈아 끼운다.
+    ///
+    /// 어느 항목이고(`item`), 무엇으로 채워 열지(`current`)를 **함께 담는다** — 대상을 못
+    /// 찾는 순간에 내용 없는 빈 시트가 뜨는 일이 없다.
+    private enum ItemEditRoute: Identifiable {
+        case quantity(MealItem, MealItemRequest)
+        case replace(MealItem, MealItemRequest)
+
+        var id: String {
+            switch self {
+            case let .quantity(item, _): "quantity-\(item.id)"
+            case let .replace(item, _): "replace-\(item.id)"
+            }
+        }
     }
 
     init(mealId: Int, service: any DietServing = DietService(), onChanged: @escaping () -> Void) {
@@ -73,20 +84,40 @@ struct MealDetailView: View {
                 return .deleted
             }
         }
-        .sheet(item: $editingTarget) { target in
-            // 이미 저장된 끼니를 고치는 자리라 **하나씩 확인하며 바꾸는 편이 안전하다.**
-            // 다중 선택은 범위 밖이다(설계 문서 「범위 밖」 참조).
-            MealItemEditView(mode: .replace(target.current)) { picked in
-                if let replacement = picked.first {
-                    Task {
-                        // 성공했을 때만 하루 화면을 재조회시킨다 — 가드가 막았거나 서버가
-                        // 거절하면 아무것도 안 바뀐 채로 화면만 깜빡인다.
-                        if await vm.replaceItem(target.item, with: replacement) {
-                            onChanged()
+        .sheet(item: $editRoute) { route in
+            switch route {
+            case let .quantity(item, current):
+                MealItemQuantitySheet(
+                    item: item,
+                    original: current,
+                    onSave: { edited in
+                        let outcome = await vm.saveQuantity(item, with: edited)
+                        // 성공했을 때만 하루 화면을 재조회시킨다 — 실패했는데 재조회하면
+                        // 아무것도 안 바뀐 채로 화면만 깜빡인다.
+                        if outcome == .saved { onChanged() }
+                        return outcome
+                    },
+                    onReplace: {
+                        // **닫지 않고 갈아 끼운다** — 닫히는 도중에 새 시트를 띄우면
+                        // SwiftUI가 조용히 삼킨다. 바꾸던 그램수는 버린다(음식이 바뀐다).
+                        editRoute = .replace(item, current)
+                    }
+                )
+            case let .replace(item, current):
+                // 이미 저장된 끼니를 고치는 자리라 **하나씩 확인하며 바꾸는 편이 안전하다.**
+                // 다중 선택은 범위 밖이다(설계 문서 「범위 밖」 참조).
+                MealItemEditView(mode: .replace(current)) { picked in
+                    if let replacement = picked.first {
+                        Task {
+                            // 성공했을 때만 하루 화면을 재조회시킨다 — 가드가 막았거나 서버가
+                            // 거절하면 아무것도 안 바뀐 채로 화면만 깜빡인다.
+                            if await vm.replaceItem(item, with: replacement) {
+                                onChanged()
+                            }
                         }
                     }
+                    editRoute = nil
                 }
-                editingTarget = nil
             }
         }
         .sheet(isPresented: $showAddItem) {
@@ -184,8 +215,10 @@ struct MealDetailView: View {
                         Spacer()
 
                         Button {
+                            // 연필은 **수량 시트**를 연다 — 대부분의 수정이 「양이 다르다」다.
+                            // 음식 자체를 바꾸려면 시트 안에서 교체로 넘어간다.
                             if let current = vm.editableItem(matching: item) {
-                                editingTarget = EditingTarget(item: item, current: current)
+                                editRoute = .quantity(item, current)
                             }
                         } label: {
                             Image(systemName: "pencil").foregroundStyle(Color.blue500)

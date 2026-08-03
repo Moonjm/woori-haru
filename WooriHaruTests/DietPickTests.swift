@@ -13,7 +13,8 @@ func makePickFood(
     serving: Double = 250,
     saturatedFat: Double = 2,
     transFat: Double = 0.1,
-    cholesterol: Double = 30
+    cholesterol: Double = 30,
+    estimatedFields: [String]? = nil
 ) -> Food {
     Food(
         code: code, name: name, maker: maker, dataset: dataset,
@@ -21,7 +22,8 @@ func makePickFood(
         kcalPer100g: 150, carbsPer100g: 12, proteinPer100g: 10, fatPer100g: 7,
         sugarPer100g: 3, sodiumMgPer100g: 400, fiberPer100g: 1.5,
         saturatedFatPer100g: saturatedFat, transFatPer100g: transFat,
-        cholesterolMgPer100g: cholesterol
+        cholesterolMgPer100g: cholesterol,
+        estimatedFields: estimatedFields
     )
 }
 
@@ -129,6 +131,32 @@ struct FoodPickSourceTests {
         #expect(food.id != sameCodeOtherDataset.id)
         #expect(food.id != frequent.id)
     }
+
+    /// **한 행 안에서 공식값과 추정값이 섞인다.** `["fat"]`인 행이 647건, 그 반대가 105건
+    /// 있다 — 시트 전체에 「추정」을 한 번 달면 공식값인 탄수화물까지 의심받는다.
+    @Test func 추정_표시는_해당_영양소에만_붙는다() {
+        let source = FoodPickSource.food(makePickFood(estimatedFields: ["fat"]))
+
+        #expect(!source.isEstimated("carbs"))
+        #expect(source.isEstimated("fat"))
+    }
+
+    /// 서버가 값을 늘려도 앱이 죽지 않는다 — 모르는 값은 그냥 안 맞을 뿐이다.
+    @Test func 모르는_추정_값이_섞여도_아는_것만_붙는다() {
+        let source = FoodPickSource.food(makePickFood(estimatedFields: ["carbs", "calcium"]))
+
+        #expect(source.isEstimated("carbs"))
+        #expect(!source.isEstimated("calcium2"))
+    }
+
+    /// **`false`가 「원본 값」이라는 뜻이 아니라 「모른다」는 뜻이다.** 저장된 항목의 출처를
+    /// 되짚을 방법이 서버에도 없다.
+    @Test func 자주_드셨어요는_출처를_모른다() {
+        let source = FoodPickSource.frequent(makeFrequent())
+
+        #expect(!source.isEstimated("carbs"))
+        #expect(!source.isEstimated("fat"))
+    }
 }
 
 // MARK: - 상세 시트
@@ -206,7 +234,7 @@ struct FoodDetailViewModelTests {
         let vm = FoodDetailViewModel(source: .food(makePickFood("달걀", known: false, serving: 200)))
 
         #expect(vm.showsQuickGramChips)
-        #expect(FoodDetailViewModel.quickGrams == [50, 100, 200])
+        #expect(GramStepper.quickGrams == [50, 100, 200])
 
         vm.selectQuickGram(100)
 
@@ -438,6 +466,23 @@ struct FoodDetailViewModelTests {
         #expect(item.sugarG == 3)
         #expect(item.sodiumMg == 400)
         #expect(item.fiberG == 1.5)
+    }
+
+    /// 탄수화물·지방 두 줄만 참일 수 있다. **나머지는 서버가 출처를 기록하지 않으므로 항상
+    /// 거짓이다** — 당류·나트륨에 붙으면 없는 정보를 지어낸 것이다.
+    @Test func 추정_배지는_탄수화물과_지방_줄에만_붙는다() {
+        let vm = FoodDetailViewModel(source: .food(makePickFood(
+            known: true, serving: 100, estimatedFields: ["fat"]
+        )))
+
+        let estimated = Set(vm.nutrientRows.filter(\.isEstimated).map(\.name))
+        #expect(estimated == ["지방"])
+    }
+
+    @Test func 추정이_없으면_아무_줄에도_안_붙는다() {
+        let vm = FoodDetailViewModel(source: .food(makePickFood(known: true, serving: 100)))
+
+        #expect(vm.nutrientRows.allSatisfy { !$0.isEstimated })
     }
 }
 
@@ -958,5 +1003,106 @@ struct MealConfirmEditTargetTests {
         let target = MealConfirmView.EditTarget(groupId: 0, item: item)
 
         #expect(target.pickMode == .replace(item))
+    }
+}
+
+// MARK: - 끼니 항목 수량 수정
+
+@MainActor
+struct MealItemQuantityViewModelTests {
+    private func makeVM(quantityG: Double = 250) -> MealItemQuantityViewModel {
+        let item = makeMealItem(quantityG: quantityG)
+        let original = MealItemRequest(
+            foodName: item.foodName, foodCode: item.foodCode, quantityG: item.quantityG,
+            kcal: item.kcal, carbsG: item.carbsG, proteinG: item.proteinG, fatG: item.fatG,
+            sugarG: item.sugarG, sodiumMg: item.sodiumMg, fiberG: item.fiberG, source: item.source
+        )
+        return MealItemQuantityViewModel(item: item, original: original)
+    }
+
+    @Test func 수량을_두_배로_하면_영양소가_두_배가_된다() throws {
+        let vm = makeVM(quantityG: 250)
+        vm.gramText = "500"
+
+        let edited = try #require(vm.edited)
+        #expect(edited.quantityG == 500)
+        #expect(edited.kcal == 750)
+        #expect(edited.carbsG == 60)
+        #expect(edited.proteinG == 50)
+        #expect(edited.fatG == 34)
+        #expect(edited.sugarG == 14)
+        #expect(edited.sodiumMg == 2000)
+        #expect(edited.fiberG == 6)
+    }
+
+    /// **값이 그대로면 저장하지 않는다.** 저장 한 번에 LLM 호출 한 번이 나가므로, 열었다
+    /// 그냥 닫는 사용자가 매번 비용을 내면 안 된다.
+    @Test func 값이_그대로면_저장할_수_없다() {
+        let vm = makeVM(quantityG: 250)
+
+        #expect(!vm.canSave)
+
+        vm.gramText = "275"
+        #expect(vm.canSave)
+
+        // 되돌리면 다시 잠긴다.
+        vm.gramText = "250"
+        #expect(!vm.canSave)
+    }
+
+    @Test func 비었거나_0이면_저장할_수_없다() {
+        let vm = makeVM()
+
+        vm.gramText = ""
+        #expect(vm.edited == nil)
+        #expect(!vm.canSave)
+
+        vm.gramText = "0"
+        #expect(vm.edited == nil)
+        #expect(!vm.canSave)
+    }
+
+    /// **검색 상세 시트에서 앱이 죽던 자리와 같다.** `> 0`만 보면 `inf`도 `1e300`도 통과하고,
+    /// 그 값으로 만든 열량이 `kcalText`의 `Int(...)`에서 트랩을 건다 — 두 번째 시트에 같은
+    /// 구멍을 복사하지 않는다.
+    @Test func 터무니없는_그램수는_저장할_수_없다() {
+        let vm = makeVM()
+
+        for bad in ["inf", "1e300", "1e309"] {
+            vm.gramText = bad
+            #expect(vm.edited == nil, "\(bad)이 통과했다")
+            #expect(!vm.canSave)
+            // 죽지 않고 그려져야 한다.
+            #expect(vm.kcalText == "0kcal")
+        }
+    }
+
+    /// 검색 상세 시트와 같은 격자다 — 두 시트가 다르게 움직이면 안 된다.
+    @Test func 스테퍼는_25g_단위이고_25g_아래로_안_내려간다() {
+        let vm = makeVM(quantityG: 250)
+
+        vm.increase()
+        #expect(vm.gramText == "275")
+
+        vm.gramText = "25"
+        vm.decrease()
+        #expect(vm.gramText == "25")
+    }
+
+    /// **하한이 입력까지 막지는 않는다** — 스테퍼로 못 내려갈 뿐이다(검색 상세와 같은 규칙).
+    @Test func 하한_아래도_타이핑할_수_있다() throws {
+        let vm = makeVM()
+        vm.gramText = "10"
+
+        #expect(try #require(vm.edited).quantityG == 10)
+    }
+
+    /// 저장된 항목에는 출처가 없다 — 「원본 값」이 아니라 **「모른다」**는 뜻이다.
+    @Test func 저장된_항목에는_추정_표시가_없다() {
+        let vm = makeVM()
+        vm.gramText = "300"
+
+        #expect(vm.nutrientRows.map(\.name) == ["탄수화물", "당류", "단백질", "지방", "나트륨", "식이섬유"])
+        #expect(vm.nutrientRows.allSatisfy { !$0.isEstimated })
     }
 }

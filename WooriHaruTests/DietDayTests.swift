@@ -666,6 +666,30 @@ struct MealDetailViewModelTests {
         )
     }
 
+    /// **실패 이유가 시트까지 와야 한다.** 시트가 상세를 덮고 있어 상세의 알럿은 안 보인다 —
+    /// 그냥 닫아 버리면 사용자는 저장된 줄 알고 나간다.
+    @Test func 수량_저장에_실패하면_이유를_담아_돌려준다() async {
+        let service = FakeDietService()
+        service.meals = [makeMeal()]
+        let vm = makeVM(service)
+        await vm.load()
+        guard let item = vm.meal?.items.first, let edited = vm.editableItem(matching: item) else {
+            Issue.record("항목을 찾지 못했다")
+            return
+        }
+
+        service.errors["updateMealItems"] = dietServerError("INTERNAL_ERROR", status: 500)
+        let outcome = await vm.saveQuantity(item, with: edited)
+
+        guard case let .failed(message) = outcome else {
+            Issue.record("실패를 담아 돌려줘야 한다: \(outcome)")
+            return
+        }
+        #expect(!message.isEmpty)
+        // 시트가 띄웠으므로 상세에 남겨 두면 닫은 뒤 한 번 더 뜬다.
+        #expect(vm.errorMessage == nil)
+    }
+
     /// 저장은 성공했는데 그 뒤 재조회가 실패하면 화면의 끼니가 서버 상태와 다르다.
     /// **그 상태에서 또 편집을 받으면 낡은 `editableItems`로 만든 목록이 방금 성공한 변경을
     /// 덮어쓴다** — 항목 전체 교체 방식이라 그렇다. 다시 읽기 전까지 편집을 막아야 한다.
