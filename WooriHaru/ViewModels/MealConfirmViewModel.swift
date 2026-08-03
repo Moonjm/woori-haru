@@ -71,19 +71,71 @@ final class MealConfirmViewModel {
         mergesIntoExisting ? "이미 기록한 \(mealType.label)에 합쳐져요." : nil
     }
 
-    /// 저장을 누른 순간 한 번 더 묻는 문장. **위의 안내와 문장이 다르다** — 안내는 「무슨 일이
-    /// 일어날지」를 미리 알려 주는 것이고, 이것은 「그대로 진행할지」를 묻는 것이다. 합치기는
-    /// 되돌리기가 없다(합쳐진 뒤에는 어느 항목이 이번 것이었는지 구분되지 않는다).
-    var mergeConfirmMessage: String? {
-        guard mergesIntoExisting else { return nil }
-        return "저장하면 이미 기록한 \(mealType.label)에 합쳐져요. 따로 남기려면 취소하고 다른 끼니를 골라 주세요."
+    /// 그날 조회가 실패했다. **「합쳐질 끼니가 없다」와 구분해야 한다** — 앞은 안심해도 되는
+    /// 상태이고 이것은 아무것도 모르는 상태다.
+    private(set) var existingLookupFailed = false
+    /// 저장을 누르고 조회를 기다리는 중. 버튼이 멈춘 것처럼 보이지 않게 한다.
+    private(set) var isResolvingSave = false
+
+    /// 진행 중인 그날 조회. **저장 판단이 이 결과에 걸려 있으므로 손에 쥐고 있어야 한다** —
+    /// 화면이 열리자마자 시작하고, 저장을 누른 시점에 아직 안 끝났으면 기다린다.
+    private var existingLookup: Task<Void, Never>?
+
+    /// 저장 버튼을 눌렀을 때 할 일.
+    enum SaveAction: Equatable {
+        /// 알럿을 띄운다. 문구를 여기서 정한다 — 「합쳐진다」와 「모르겠다」가 다른 말이다.
+        case confirm(title: String, message: String)
+        case save
     }
 
-    /// **실패해도 조용히 넘어간다** — 안내 한 줄이 없을 뿐이고, 여기까지 오는 데 이미 LLM
-    /// 비용과 대기시간이 들었다. 이 조회 때문에 확인 화면이 막히면 안 된다.
+    /// 화면이 열릴 때 시작한다. **`await`로 붙잡지 않는다** — 여기까지 오는 데 이미 LLM
+    /// 비용과 대기시간이 들었으므로 이 조회가 화면을 막으면 안 된다.
     func loadExistingMeals() async {
-        guard let day = try? await service.fetchDay(date: date.dateString) else { return }
-        existingMealTypes = Set(day.meals.map(\.mealType))
+        startExistingLookup()
+        await existingLookup?.value
+    }
+
+    private func startExistingLookup() {
+        guard existingLookup == nil else { return }
+        existingLookup = Task { [weak self] in
+            guard let self else { return }
+            do {
+                let day = try await service.fetchDay(date: date.dateString)
+                existingMealTypes = Set(day.meals.map(\.mealType))
+                existingLookupFailed = false
+            } catch {
+                existingLookupFailed = true
+            }
+        }
+    }
+
+    /// 저장을 눌렀다. **조회를 기다린 뒤에 정한다.**
+    ///
+    /// 기다리지 않으면 조회가 느릴 때 `existingMealTypes`가 빈 채로 남아, 빠르게 누른
+    /// 사용자가 확인 없이 저장한다 — **보호 장치가 없어지는 쪽으로 조용히 실패한다.**
+    /// 되돌릴 수 없는 병합이라 그 방향의 실패가 특히 나쁘다.
+    ///
+    /// 조회 자체가 실패했으면 **모르는 채로 넘어가지 않고 물어본다.** 「없다」와 「모른다」를
+    /// 같게 다루면 접속이 잠깐 끊긴 것만으로 이 기능이 통째로 없는 것과 같아진다.
+    func resolveSaveAction() async -> SaveAction {
+        startExistingLookup()
+        isResolvingSave = true
+        defer { isResolvingSave = false }
+        await existingLookup?.value
+
+        if mergesIntoExisting {
+            return .confirm(
+                title: "이미 기록한 \(mealType.label)이 있어요",
+                message: "저장하면 이미 기록한 \(mealType.label)에 합쳐져요. 따로 남기려면 취소하고 다른 끼니를 골라 주세요."
+            )
+        }
+        if existingLookupFailed, mealType.mergesWithinDay {
+            return .confirm(
+                title: "이미 기록한 \(mealType.label)이 있는지 확인하지 못했어요",
+                message: "있다면 저장할 때 합쳐지고, 합쳐진 뒤에는 되돌릴 수 없어요."
+            )
+        }
+        return .save
     }
 
     var hasPhotos: Bool { groups.contains { $0.fileId != nil } }
@@ -97,8 +149,9 @@ final class MealConfirmViewModel {
     var totalProteinG: Double { allItems.reduce(0) { $0 + $1.proteinG } }
     var totalFatG: Double { allItems.reduce(0) { $0 + $1.fatG } }
 
-    /// 서버가 빈 배열을 거절한다.
-    var canSave: Bool { !allItems.isEmpty && !isSaving }
+    /// 서버가 빈 배열을 거절한다. 조회를 기다리는 동안에도 잠근다 — 연타로 두 번 눌리면
+    /// 알럿이 두 번 뜬다.
+    var canSave: Bool { !allItems.isEmpty && !isSaving && !isResolvingSave }
 
     // MARK: - 편집
 
