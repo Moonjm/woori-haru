@@ -303,11 +303,11 @@ final class MealItemPickViewModel {
         )
     }
 
-    /// **`isFinite`까지 본다** — `Double("inf")`는 `> 0`을 통과하고, 그 값은 JSON 인코딩에서
-    /// 터져 저장 자체가 실패한다.
+    /// **`isFinite`와 상한을 함께 본다.** `Double("inf")`는 `> 0`을 통과해 JSON 인코딩에서
+    /// 터지고, `1e300`은 유한한데도 화면이 합계를 `Int(...)`로 그릴 때 트랩을 건다.
     private var manualQuantityG: Double? {
         guard let value = Double(manualQuantity.trimmingCharacters(in: .whitespaces)),
-              value.isFinite, value > 0 else { return nil }
+              value.isFinite, value > 0, value <= DietInputLimits.maxQuantityG else { return nil }
         return value
     }
 
@@ -320,7 +320,10 @@ final class MealItemPickViewModel {
     private func manualNutrient(_ text: String) -> Double? {
         let trimmed = text.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return 0 }
-        guard let value = Double(trimmed), value.isFinite, value >= 0 else { return nil }
+        guard let value = Double(trimmed),
+              value.isFinite,
+              value >= 0,
+              value <= DietInputLimits.maxNutrientValue else { return nil }
         return value
     }
 
