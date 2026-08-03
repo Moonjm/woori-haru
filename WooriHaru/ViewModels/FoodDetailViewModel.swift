@@ -171,15 +171,47 @@ final class FoodDetailViewModel {
     }
 
     /// 참고 화면에 없는 **식이섬유**가 우리에게는 있어 한 줄이 더 붙는다.
+    ///
+    /// 포화지방·트랜스지방·콜레스테롤은 **검색 결과에만 있다** — `MealItemRequest`에 없고
+    /// `Food`에 100g당으로만 있어서 `item`이 아니라 출처에서 직접 환산한다. 자주 드셨어요는
+    /// 저장된 항목이라 값이 없고, **0으로 그리면 「없음」이 아니라 「진짜 0」으로 읽히므로**
+    /// 줄 자체를 감춘다.
     var nutrientRows: [NutrientRow] {
         guard let item else { return [] }
         return [
             NutrientRow(name: "탄수화물", valueText: formattedGram(item.carbsG), isSub: false),
             NutrientRow(name: "당류", valueText: formattedGram(item.sugarG), isSub: true),
             NutrientRow(name: "단백질", valueText: formattedGram(item.proteinG), isSub: false),
-            NutrientRow(name: "지방", valueText: formattedGram(item.fatG), isSub: false),
+            NutrientRow(name: "지방", valueText: formattedGram(item.fatG), isSub: false)
+        ] + fatDetailRows + [
             NutrientRow(name: "나트륨", valueText: "\(Int(item.sodiumMg.rounded()).formatted())mg", isSub: false),
             NutrientRow(name: "식이섬유", valueText: formattedGram(item.fiberG), isSub: false)
+        ]
+    }
+
+    /// 지방 아래 들여쓰는 두 줄과 콜레스테롤. 검색 결과에서만 나온다.
+    ///
+    /// **서버가 값 없는 칸을 0.0으로 채워 보내므로 「진짜 0」과 구분되지 않는다.** 검색
+    /// 결과에서는 그대로 0으로 보여 준다 — 원본이 그렇게 왔다는 뜻이고, 그 이상은 알 수 없다.
+    private var fatDetailRows: [NutrientRow] {
+        guard case let .food(food) = source, let quantityG else { return [] }
+        let cholesterol = NutritionMath.scale(per100g: food.cholesterolMgPer100g, quantityG: quantityG)
+        return [
+            NutrientRow(
+                name: "포화지방",
+                valueText: formattedGram(NutritionMath.scale(per100g: food.saturatedFatPer100g, quantityG: quantityG)),
+                isSub: true
+            ),
+            NutrientRow(
+                name: "트랜스지방",
+                valueText: formattedGram(NutritionMath.scale(per100g: food.transFatPer100g, quantityG: quantityG)),
+                isSub: true
+            ),
+            NutrientRow(
+                name: "콜레스테롤",
+                valueText: "\(Int(cholesterol.rounded()).formatted())mg",
+                isSub: false
+            )
         ]
     }
 

@@ -332,19 +332,50 @@ struct FoodDetailViewModelTests {
         #expect(withoutTarget.dailyGoalPercentText == nil)
     }
 
-    /// 영양소 표는 7줄이다 — 참고 화면에 없는 **식이섬유**가 우리에게는 있다.
-    @Test func 영양소_표는_당류를_탄수화물_아래_들여쓴다() {
+    /// 참고 화면에 없는 **식이섬유**가 우리에게는 있다. 당류는 탄수화물 아래, 포화·트랜스지방은
+    /// 지방 아래로 들여쓴다.
+    ///
+    /// **인덱스로 읽지 않는다** — 줄이 하나 늘 때마다 뒤 인덱스가 전부 밀려, 실패해도 멈추지
+    /// 않는 `#expect` 뒤에서 범위를 벗어나면 테스트가 프로세스째 죽는다.
+    @Test func 영양소_표는_하위_영양소를_들여쓴다() {
         let vm = FoodDetailViewModel(source: .food(makePickFood(known: true, serving: 250)))
 
         let rows = vm.nutrientRows
-        #expect(rows.map(\.name) == ["탄수화물", "당류", "단백질", "지방", "나트륨", "식이섬유"])
-        #expect(rows[1].isSub)
-        #expect(!rows[0].isSub)
-        #expect(rows[0].valueText == "30g")
-        #expect(rows[1].valueText == "7.5g")
-        #expect(rows[4].valueText == "1,000mg")
-        #expect(rows[5].valueText == "3.8g")
+        #expect(rows.map(\.name) == [
+            "탄수화물", "당류", "단백질", "지방", "포화지방", "트랜스지방", "콜레스테롤", "나트륨", "식이섬유"
+        ])
+
+        let indented = Set(rows.filter(\.isSub).map(\.name))
+        #expect(indented == ["당류", "포화지방", "트랜스지방"])
+
+        let values = Dictionary(uniqueKeysWithValues: rows.map { ($0.name, $0.valueText) })
+        #expect(values["탄수화물"] == "30g")
+        #expect(values["당류"] == "7.5g")
+        #expect(values["나트륨"] == "1,000mg")
+        #expect(values["식이섬유"] == "3.8g")
         #expect(vm.kcalText == "375kcal")
+    }
+
+    /// **셋은 `Food`에만 100g당으로 있다** — `MealItemRequest`에 없으므로 `item`이 아니라
+    /// 출처에서 직접 환산해야 한다. 콜레스테롤은 mg다.
+    @Test func 검색_결과는_포화지방_트랜스지방_콜레스테롤을_보여준다() {
+        let vm = FoodDetailViewModel(source: .food(makePickFood(
+            known: true, serving: 200, saturatedFat: 3, transFat: 0.4, cholesterol: 50
+        )))
+
+        // 1인분 200g = 100g당 값의 2배.
+        let values = Dictionary(uniqueKeysWithValues: vm.nutrientRows.map { ($0.name, $0.valueText) })
+        #expect(values["포화지방"] == "6g")
+        #expect(values["트랜스지방"] == "0.8g")
+        #expect(values["콜레스테롤"] == "100mg")
+    }
+
+    /// **자주 드셨어요에는 이 값이 없다.** 서버가 끼니에 저장하지 않는다 — 0으로 그리면
+    /// 「없음」이 아니라 「진짜 0」으로 읽혀서, 포화지방 0인 음식으로 오해한다.
+    @Test func 자주_드셨어요에는_세_줄이_없다() {
+        let vm = FoodDetailViewModel(source: .frequent(makeFrequent()))
+
+        #expect(vm.nutrientRows.map(\.name) == ["탄수화물", "당류", "단백질", "지방", "나트륨", "식이섬유"])
     }
 
     /// **주의 영양소 3필드가 상세 시트 경로에서도 살아 있어야 한다.**
