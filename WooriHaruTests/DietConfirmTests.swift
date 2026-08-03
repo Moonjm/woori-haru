@@ -41,13 +41,66 @@ struct MealConfirmViewModelTests {
         await vm.loadExistingMeals()
 
         #expect(vm.mergesIntoExisting)
-        #expect(vm.mergeConfirmMessage?.contains("아침") == true)
+        guard case let .confirm(title, message) = await vm.resolveSaveAction() else {
+            Issue.record("합쳐지는 저장은 확인을 받아야 한다")
+            return
+        }
+        #expect(title.contains("아침"))
+        #expect(message.contains("합쳐져요"))
 
         // **합쳐지지 않는 저장은 묻지 않는다** — 1탭이어야 한다. 확인이 번거로우면 저장
         // 없이 나가고, 그러면 LLM 비용은 나갔는데 기록이 남지 않는다.
         vm.mealType = .dinner
         #expect(!vm.mergesIntoExisting)
-        #expect(vm.mergeConfirmMessage == nil)
+        #expect(await vm.resolveSaveAction() == .save)
+    }
+
+    /// **조회가 느리면 보호 장치가 조용히 없어진다.** 확인 화면이 열리자마자 저장을 누르면
+    /// `existingMealTypes`가 아직 빈 채라, 기다리지 않으면 확인 없이 되돌릴 수 없는 병합이
+    /// 일어난다. 「저장은 됐는데 왜 합쳐졌지」가 되는 자리다.
+    @Test func 조회가_끝나기_전에_저장을_눌러도_확인을_받는다() async {
+        let service = FakeDietService()
+        service.days = [makeDay(date: "2026-07-29", meals: [makeMeal(mealType: .breakfast)])]
+        let gate = AsyncGate()
+        service.fetchDayGates = ["2026-07-29": gate]
+        let vm = MealConfirmViewModel(
+            date: Date.from("2026-07-29")!, mealType: .breakfast, analysis: nil, service: service
+        )
+
+        // 화면이 열리며 조회가 시작되지만 아직 안 끝났다.
+        let opening = Task { await vm.loadExistingMeals() }
+        await gate.waitUntilBlocked()
+        #expect(!vm.mergesIntoExisting)
+
+        // 그 상태에서 저장을 누른다 — 기다렸다가 확인을 띄워야 한다.
+        let deciding = Task { await vm.resolveSaveAction() }
+        await gate.open()
+        await opening.value
+
+        #expect(await deciding.value != .save)
+    }
+
+    /// **「없다」와 「모른다」는 다르다.** 조회가 실패했는데 조용히 저장하면, 접속이 잠깐 끊긴
+    /// 것만으로 이 기능이 통째로 없는 것과 같아진다.
+    @Test func 조회에_실패하면_모른다고_말하고_확인을_받는다() async {
+        let service = FakeDietService()
+        service.errors["fetchDay"] = dietServerError("INTERNAL_ERROR", status: 500)
+        let vm = MealConfirmViewModel(
+            date: Date.from("2026-07-29")!, mealType: .breakfast, analysis: nil, service: service
+        )
+
+        await vm.loadExistingMeals()
+
+        #expect(vm.existingLookupFailed)
+        guard case let .confirm(title, _) = await vm.resolveSaveAction() else {
+            Issue.record("확인할 수 없었으면 물어봐야 한다")
+            return
+        }
+        #expect(title.contains("확인하지 못했어요"))
+
+        // 간식은 애초에 합쳐지지 않으므로 조회가 실패해도 물어볼 것이 없다.
+        vm.mealType = .snack
+        #expect(await vm.resolveSaveAction() == .save)
     }
 
     /// 간식은 합쳐지지 않으므로 **묻지도 않는다.** 이 확인이 없으면 「전부 묻는다」로 잘못
@@ -63,7 +116,7 @@ struct MealConfirmViewModelTests {
 
         #expect(vm.existingMealTypes.contains(.snack))
         #expect(!vm.mergesIntoExisting)
-        #expect(vm.mergeConfirmMessage == nil)
+        #expect(await vm.resolveSaveAction() == .save)
     }
 
     /// **간식은 묶지 않는다** — 본래 여러 번이라 합치면 점수가 뒤섞인다.
