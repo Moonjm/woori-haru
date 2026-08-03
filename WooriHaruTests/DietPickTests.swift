@@ -553,6 +553,26 @@ struct MealItemPickViewModelTests {
         #expect(vm.searchSources.map(\.name) == ["삼각김밥"])
     }
 
+    /// **새 검색이 시작되면 예전 결과를 버린다.** 안 버리면 요청이 도는 동안, 그리고 실패하면
+    /// 영영, 새 칩 라벨 아래에 이전 결과가 남는다 — 「원재료」를 눌렀는데 가공식품이 목록에
+    /// 있고 그걸 담을 수 있다.
+    @Test func 검색이_실패하면_예전_결과를_남기지_않는다() async {
+        let (vm, service) = makeVM()
+        service.foods = [makePickFood("삼각김밥", code: "P1", dataset: .processed)]
+        vm.query = "김"
+        await vm.search()
+        #expect(vm.searchSources.count == 1)
+
+        service.errors["searchFoods"] = dietServerError("INTERNAL_ERROR", status: 500)
+        await vm.selectFilter(.raw)
+
+        #expect(vm.searchSources.isEmpty)
+        #expect(vm.errorMessage != nil)
+        // **「없다」가 아니라 「못 받았다」라고 해야 한다** — 알럿은 닫으면 사라지는데 목록은
+        // 남아서, 「검색 결과가 없어요」를 띄우면 그 음식이 식품DB에 없다고 믿게 된다.
+        #expect(vm.searchEmptyText == "검색에 실패했어요. 잠시 후 다시 시도해 주세요.")
+    }
+
     /// 칩이 걸린 채 0건이면 **원인이 칩일 수 있다**고 알려 준다 — 「전체」에는 결과가 있을 수 있다.
     @Test func 칩이_걸린_채_결과가_없으면_전체로_보라고_안내한다() async {
         let (vm, service) = makeVM()

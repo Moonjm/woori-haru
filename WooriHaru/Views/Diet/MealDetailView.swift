@@ -31,7 +31,10 @@ struct MealDetailView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: GlassTokens.cardSpacing) {
-                if vm.isStale { staleBanner }
+                // **`isStale`이 아니라 `loadFailed`로 띄운다** — 첫 조회가 실패하면 `meal`이
+                // nil이라 `isStale`은 false로 남고, 그때가 오히려 다시 불러올 길이 꼭 필요한
+                // 경우다(알럿을 닫으면 빈 화면에 갇힌다).
+                if let failure = vm.loadFailureText { staleBanner(failure) }
 
                 if let meal = vm.meal {
                     PhotoStrip(photos: meal.photos.map { StripPhoto(id: $0.fileId, url: $0.url) }) { photo in
@@ -121,14 +124,14 @@ struct MealDetailView: View {
         }
     }
 
-    /// 재조회가 실패해 화면이 낡았을 때. **편집이 막혀 있으므로 다시 불러올 길을 줘야 한다** —
-    /// 안 그러면 화면을 나갔다 들어오는 것 말고는 방법이 없다.
-    private var staleBanner: some View {
+    /// 조회가 실패했을 때. **다시 불러올 길을 줘야 한다** — 안 그러면 화면을 나갔다 들어오는
+    /// 것 말고는 방법이 없다. 첫 조회가 실패한 경우가 특히 그렇다(화면이 통째로 비어 있다).
+    private func staleBanner(_ message: String) -> some View {
         GlassCard {
             HStack(spacing: 10) {
                 Image(systemName: "exclamationmark.triangle")
                     .foregroundStyle(Color.orange400)
-                Text("최신 상태를 불러오지 못했어요. 지금 보이는 내용이 서버와 다를 수 있어요.")
+                Text(message)
                     .font(.caption)
                     .foregroundStyle(Color.slate700)
                     .fixedSize(horizontal: false, vertical: true)

@@ -666,6 +666,33 @@ struct MealDetailViewModelTests {
         #expect(vm.errorMessage != nil)
     }
 
+    /// **첫 조회가 실패하면 화면이 통째로 비어 있다.** 그때 `meal`이 nil이라 `isStale`은
+    /// false로 남는데, 화면이 그것만 보면 다시 불러올 길이 없어 알럿을 닫는 순간 빈 화면에
+    /// 갇힌다 — 나갔다 들어오는 것 말고는 방법이 없다.
+    @Test func 첫_조회가_실패해도_다시_불러올_길을_남긴다() async {
+        let service = FakeDietService()
+        service.errors["fetchMeal"] = dietServerError("INTERNAL_ERROR", status: 500)
+        let vm = makeVM(service)
+
+        await vm.load()
+
+        #expect(vm.meal == nil)
+        #expect(!vm.isStale)
+        #expect(vm.loadFailed)
+        #expect(vm.loadFailureText == "끼니를 불러오지 못했어요.")
+
+        // 낡은 경우와 문구가 달라야 한다 — 앞은 아무것도 못 받았고 뒤는 받아 둔 게 낡았다.
+        service.errors["fetchMeal"] = nil
+        service.meals = [makeMeal()]
+        await vm.load()
+        #expect(vm.loadFailureText == nil)
+
+        service.errors["fetchMeal"] = dietServerError("INTERNAL_ERROR", status: 500)
+        await vm.load()
+        #expect(vm.isStale)
+        #expect(vm.loadFailureText == "최신 상태를 불러오지 못했어요. 지금 보이는 내용이 서버와 다를 수 있어요.")
+    }
+
     /// 다시 불러오는 데 성공하면 편집이 풀린다 — 안 풀리면 화면을 나갔다 오는 수밖에 없다.
     @Test func 다시_불러오면_편집이_풀린다() async {
         let service = FakeDietService()
