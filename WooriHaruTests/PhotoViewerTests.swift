@@ -236,3 +236,41 @@ private actor DownloadCounter {
         return count
     }
 }
+
+// MARK: - 아래로 끌어 닫기
+
+struct PhotoDragDismissTests {
+    @Test func 아래로_충분히_끌면_닫는다() {
+        #expect(PhotoDragDismiss.shouldDismiss(translationY: 150, velocityY: 0))
+    }
+
+    @Test func 조금만_끌면_안_닫는다() {
+        #expect(!PhotoDragDismiss.shouldDismiss(translationY: 40, velocityY: 0))
+    }
+
+    /// **부호를 잘못 보면 위로 끌 때 닫힌다.** 위는 무시하기로 한 방향이다.
+    @Test func 위로는_아무리_끌어도_안_닫는다() {
+        #expect(!PhotoDragDismiss.shouldDismiss(translationY: -400, velocityY: -3000))
+        // **위로 끌다 아래로 튕겨도 안 닫는다.** 속도만 보면 여기서 새어 나간다 — 손을 떼는
+        // 순간의 방향이 아래일 뿐 사용자가 끈 방향은 위다.
+        #expect(!PhotoDragDismiss.shouldDismiss(translationY: -50, velocityY: 1500))
+    }
+
+    /// **거리만 보면 이 경우가 조용히 빠진다.** 휙 튕기는 동작이 「안 닫히는 버그」로 느껴진다.
+    @Test func 빠르게_튕기면_거리가_짧아도_닫는다() {
+        #expect(PhotoDragDismiss.shouldDismiss(translationY: 40, velocityY: 1500))
+    }
+
+    /// **완전 투명까지 가면 안 된다** — fullScreenCover 뒤의 시스템 배경색이 드러나
+    /// 라이트 모드에서 흰색이 튀어나온다.
+    @Test func 배경은_하한_아래로_안_내려간다() {
+        #expect(PhotoDragDismiss.backgroundOpacity(translationY: 5000) == PhotoDragDismiss.minimumBackgroundOpacity)
+        #expect(PhotoDragDismiss.backgroundOpacity(translationY: 0) == 1)
+    }
+
+    /// 위로 끌면 화면이 따라 움직이지 않는다 — 따라오게 해 놓고 안 닫는 것이 가장 나쁘다.
+    @Test func 위로_끌면_화면이_안_움직인다() {
+        #expect(PhotoDragDismiss.offsetY(translationY: -200) == 0)
+        #expect(PhotoDragDismiss.offsetY(translationY: 80) == 80)
+    }
+}

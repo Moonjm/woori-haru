@@ -214,6 +214,14 @@ struct MealItemRequest: Codable, Hashable, Identifiable {
     }
 }
 
+/// `PATCH /diet/meals/{id}` 본문. **끼니 타입 한 칸뿐이다** — 항목을 같이 보내지 않는다.
+///
+/// 항목을 안 보내기 때문에 **낡은 화면에서도 이 요청은 안전하다** — 항목 교체(`PUT`)와 달리
+/// 덮어쓸 목록 자체가 없다.
+struct MealTypeRequest: Encodable {
+    let mealType: MealType
+}
+
 /// `analysisId`가 `nil`이면 사진 없이 기록한다 — `encodeIfPresent`라 키 자체가 빠진다.
 struct MealConfirmRequest: Encodable {
     let date: String
