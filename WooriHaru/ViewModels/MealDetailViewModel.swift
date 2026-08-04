@@ -1,5 +1,22 @@
 import Foundation
 
+/// 타입을 골랐을 때 화면이 할 일. **문구를 뷰모델에서 정한다** — 「합쳐진다」와 「모르겠다」가
+/// 다른 말이라, 뷰가 하나의 문구로 뭉뚱그리면 사용자가 무엇을 승인하는지 모른다
+/// (`MealConfirmViewModel.SaveAction`과 같은 모양이고 같은 이유다).
+enum MealTypeChangeAction: Equatable {
+    case confirm(title: String, message: String)
+    case change
+}
+
+/// 타입을 바꾼 결과.
+enum MealTypeChangeOutcome: Equatable {
+    /// 화면에 남는다 — 제목만 바뀐다.
+    case changed
+    /// **보던 끼니가 사라졌다.** 상세를 닫고 하루로 돌아간다.
+    case merged
+    case failed
+}
+
 /// 끼니 상세 — 항목 수정·항목 삭제·**끼니 삭제**, 그리고 끼니 피드백 폴링.
 ///
 /// **피드백 폴링은 화면을 붙잡지 않는다.** 확정 응답 시점에 점수·항목은 이미 확정돼 있다.
@@ -206,6 +223,62 @@ final class MealDetailViewModel {
         var changed = editableItems
         changed[index] = replacement
         return await replaceItems(changed)
+    }
+
+    /// 타입을 고른 뒤 **보내기 전에** 부른다. nil이면 아무것도 하지 않는다(같은 타입).
+    ///
+    /// **그날을 조회해 합쳐질지 먼저 본다.** 판단은 확정 저장과 같다
+    /// (`MealConfirmViewModel.resolveSaveAction`) — 조회가 실패했으면 **모르는 채로 넘어가지
+    /// 않고 물어본다.** 「없다」와 「모른다」를 같게 다루면 접속이 잠깐 끊긴 것만으로 보호
+    /// 장치가 사라진다.
+    func resolveTypeChange(to newType: MealType) async -> MealTypeChangeAction? {
+        guard let meal, meal.mealType != newType else { return nil }
+        // 간식은 본래 여러 번이라 합쳐지지 않는다 — 물어볼 것이 없다.
+        guard newType.mergesWithinDay else { return .change }
+
+        do {
+            let day = try await service.fetchDay(date: meal.date)
+            // **자기 자신은 뺀다** — 그날 목록에는 지금 보고 있는 끼니도 들어 있다.
+            guard day.meals.contains(where: { $0.mealType == newType && $0.id != meal.id }) else {
+                return .change
+            }
+            return .confirm(
+                title: "이미 기록한 \(newType.label)이 있어요",
+                message: "이미 기록한 \(newType.label)에 합쳐져요. 사진도 함께 옮겨져요. 합쳐진 뒤에는 되돌릴 수 없어요."
+            )
+        } catch {
+            return .confirm(
+                title: "이미 기록한 \(newType.label)이 있는지 확인하지 못했어요",
+                message: "있다면 합쳐지고, 합쳐진 뒤에는 되돌릴 수 없어요."
+            )
+        }
+    }
+
+    /// 실제로 보낸다. **`resolveTypeChange`가 `.change`를 줬거나 사용자가 확인을 누른 뒤**에만
+    /// 부른다.
+    ///
+    /// **돌려받은 id가 원래와 다르면 합쳐진 것이다** — 항목·사진이 대상 끼니로 옮겨지고 이
+    /// 끼니는 서버에서 사라졌다. 그 자리에서 다시 조회하면 404라 `load()`를 부르지 않는다.
+    ///
+    /// **`isStale`을 검사하지 않는다.** 항목 편집은 낡은 목록을 통째로 보내서 막지만, 여기는
+    /// **항목을 아예 안 보낸다** — 덮어쓸 목록이 없다.
+    func changeMealType(to newType: MealType) async -> MealTypeChangeOutcome {
+        guard let meal, meal.mealType != newType, !isSaving else { return .failed }
+
+        isSaving = true
+        defer { isSaving = false }
+
+        do {
+            let survivorId = try await service.changeMealType(id: meal.id, to: newType)
+            guard survivorId == meal.id else { return .merged }
+            await load()
+            return .changed
+        } catch is CancellationError {
+            return .failed
+        } catch {
+            errorMessage = error.localizedDescription
+            return .failed
+        }
     }
 
     /// 수량 시트용 저장. **결과에 이유를 담아 돌려준다** — 시트가 상세 화면을 덮고 있어
