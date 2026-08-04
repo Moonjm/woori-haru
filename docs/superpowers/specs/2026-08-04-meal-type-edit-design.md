@@ -43,7 +43,7 @@
 `mealId`가 그 순간 죽는다. 응답을 `204 No Content`로 두면 앱이 그 사실을 알 수 없어, 화면이
 사라진 끼니를 다시 조회하다 404를 받는다.
 
-**→ 응답에 살아남은 끼니 id를 담는다.**
+**→ `Location` 헤더에 살아남은 끼니를 가리킨다.** 본문에 담지 않는 이유는 아래 「응답」 참조.
 
 ### 함정 3 — **타입은 점수에 안 들어가고 피드백에는 들어간다**
 
@@ -65,13 +65,27 @@
 { "mealType": "DINNER" }
 ```
 
-응답 본문:
+응답:
 
-```json
-{ "mealId": 42 }
+```
+200 OK
+Location: /diet/meals/42
 ```
 
-`mealId`는 **살아남은 끼니**다. 합쳐졌으면 대상 끼니의 id이고, 아니면 요청한 id 그대로다.
+`Location`이 가리키는 것은 **살아남은 끼니**다. 합쳐졌으면 대상 끼니이고, 아니면 요청한 id
+그대로다. **본문은 비운다.**
+
+**본문 대신 헤더인 이유는 이 저장소의 관례다.** 끼니 확정·분석 생성·사진 업로드가 전부
+`@ResponseCreated("/diet/meals/{id}")`로 `Location`에 id를 싣고, 앱의 `APIClient.postCreated`가
+그것을 읽는다. 본문 봉투(`DataResponseBody`)는 **데이터를 돌려줄 때만** 쓴다 — id 하나를 위해
+새 응답 DTO를 만들 이유가 없다.
+
+의미도 이쪽이 정확하다. 「이 요청의 결과로 볼 리소스는 여기」라는 뜻이라, **원래 리소스가
+사라진 상황**에 특히 맞는다(303 See Other의 정신).
+
+> **서버 쪽에 남기는 판단 하나:** `@ResponseCreated`는 이름이 「만들었다」인데 `PATCH`는 만들지
+> 않는다. 다만 `confirm`도 이미 `ResponseEntity.ok`(200)로 쓰고 있어 생성 전용은 아니다. 이름을
+> 그대로 쓸지 `@ResponseLocation` 같은 것을 새로 둘지는 `toy-back`이 정한다 — **동작은 같다.**
 
 소유권은 기존 `requireOwned`로 검사한다 — 남의 끼니 id로 타입을 바꾸는 길이 열리면 안 된다.
 없는 id는 기존 `RESOURCE_NOT_FOUND`(404)를 준다.
@@ -143,8 +157,12 @@ repository.findFirstByUserAndDateAndMealTypeOrderByCreatedAtAscIdAsc(user, date,
 
 ### 응답을 받은 뒤
 
-**응답 id가 원래 id와 다르면 상세를 닫고 하루로 돌아간다.** 합쳐졌으므로 보던 끼니는 없어졌다.
-끼니 삭제가 이미 그렇게 `dismiss()`한다.
+**`APIClient`에 `patchCreated`를 더한다.** `Location`에서 id를 뽑는 헬퍼가 지금은 POST 전용이다
+(`postCreated`·`postMultipartCreated`). 뽑는 방식은 그대로 본뜬다 — 헤더가 없거나 끝 조각이 숫자가
+아니면 `APIError.serverError`를 던진다. `MockAPIClient`도 `postCreatedResults`를 본떠 받는다.
+
+**돌려받은 id가 원래 id와 다르면 상세를 닫고 하루로 돌아간다.** 합쳐졌으므로 보던 끼니는
+없어졌다. 끼니 삭제가 이미 그렇게 `dismiss()`한다.
 
 같은 화면을 대상 끼니로 갈아끼우는 방법도 있지만 `MealDetailView.mealId`가 `let`이라 화면 구조를
 흔들어야 하고, **「합쳤다」는 사실을 화면 전환으로 느끼는 편이 정직하다** — 제목만 슬쩍 바뀌면
@@ -186,7 +204,7 @@ repository.findFirstByUserAndDateAndMealTypeOrderByCreatedAtAscIdAsc(user, date,
 - 같은 타입이면 **요청이 안 나간다**
 - 합쳐질 상황을 알아본다 / 안 합쳐질 상황과 구분한다
 - **그날 조회 실패는 다른 문구다**(「합쳐진다」 ≠ 「모르겠다」)
-- 합쳐졌으면 화면을 닫으라는 신호가 온다(응답 id ≠ 원래 id)
+- 합쳐졌으면 화면을 닫으라는 신호가 온다(돌려받은 id ≠ 원래 id)
 - 안 합쳐졌으면 화면에 남고 제목이 바뀐다
 - 실패하면 `errorMessage`가 차고 화면은 그대로다
 - **저녁 → 간식은 합치지 않는다**(함정 1의 비대칭)
