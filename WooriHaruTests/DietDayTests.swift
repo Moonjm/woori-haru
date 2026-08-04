@@ -310,6 +310,53 @@ struct DietDayViewModelTests {
         #expect(vm.day?.dayScore == 55)
     }
 
+    /// **위 테스트가 못 덮는 창이 있다.** 위는 `select`가 끝까지 진행되는 경우라 그 안의
+    /// `load()`가 generation을 올려 준다. 그런데 `select`는 조회 **전에** `syncActivity()`를
+    /// 기다리고, 그 대기는 HealthKit 권한·조회에 서버 업서트까지 걸쳐 있어 창이 넓다.
+    ///
+    /// 그 창에서 이전 날짜의 응답이 도착하면 **`select`가 방금 비운 `day`를 되채운다.**
+    /// 화면은 「새 날짜 라벨 + 옛 날짜 끼니」가 되고, 카드가 `NavigationLink`라 사용자가 그
+    /// 끼니를 이 날짜 것으로 알고 열어 고치거나 지운다 — `day = nil`이 막으려던 바로 그 일이다.
+    @Test func 날짜를_바꾸는_도중에_도착한_이전_응답은_화면을_되채우지_않는다() async {
+        let service = FakeDietService()
+        service.profile = makeProfile()
+        service.days = [
+            makeDay(date: "2026-07-29", feedback: "A"),
+            makeDay(date: "2026-07-28", dayScore: 55, feedback: "B")
+        ]
+        let dayGate = AsyncGate()
+        service.fetchDayGates["2026-07-29"] = dayGate
+        let energy = FakeActiveEnergyFetcher()
+        let energyGate = AsyncGate()
+        energy.gate = energyGate
+        let vm = DietDayViewModel(
+            service: service,
+            energyFetcher: energy,
+            date: Date.from("2026-07-29")!,
+            pollInterval: .milliseconds(1),
+            pollTimeout: .seconds(5)
+        )
+
+        let loadTask = Task { await vm.load() }
+        await dayGate.waitUntilBlocked() // A의 fetchDay가 멈춘 걸 확인하고서야 날짜를 바꾼다.
+
+        // 날짜를 바꾼다 — `syncActivity()`의 HealthKit 조회에서 멈춘다.
+        let selectTask = Task { await vm.select(Date.from("2026-07-28")!) }
+        await energyGate.waitUntilBlocked()
+
+        // 그 사이 A의 응답이 도착한다.
+        await dayGate.open()
+        await loadTask.value
+
+        // **여기가 판정이다.** 되채워졌다면 화면에 29일 데이터가 28일 라벨로 붙어 있다.
+        #expect(vm.day == nil)
+
+        // 풀어 주면 B가 정상적으로 실린다.
+        await energyGate.open()
+        await selectTask.value
+        #expect(vm.day?.date == "2026-07-28")
+    }
+
     /// 진입할 때마다 편하게 올려도 된다 — 서버가 이 값으로 피드백을 재생성하지 않는다.
     @Test func 활동_에너지를_올린다() async {
         let service = FakeDietService()
