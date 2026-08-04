@@ -21,6 +21,9 @@ struct PhotoViewerSheet: View {
     @State private var lastOffset: CGSize = .zero
     @State private var showDeleteAlert = false
     @State private var isDeleting = false
+    /// 아래로 끌어 닫는 중의 세로 이동. **확대 팬(`offset`)과 섞지 않는다** — 둘은 서로 다른
+    /// 상황에서만 움직이고, 한 값에 담으면 확대 상태를 벗어날 때 화면이 튄다.
+    @State private var dismissDragY: CGFloat = 0
     /// 삭제 실패 이유. 상세 화면의 알럿은 이 화면에 가려 보이지 않으므로 여기서 띄운다.
     @State private var deleteError: String?
     @Environment(\.dismiss) private var dismiss
@@ -38,7 +41,9 @@ struct PhotoViewerSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.black.ignoresSafeArea()
+                Color.black
+                    .opacity(PhotoDragDismiss.backgroundOpacity(translationY: dismissDragY))
+                    .ignoresSafeArea()
                 content
             }
             .toolbar { toolbarContent }
@@ -103,11 +108,12 @@ struct PhotoViewerSheet: View {
             Image(uiImage: image)
                 .resizable()
                 .scaledToFit()
-                .scaleEffect(scale)
-                .offset(offset)
+                .scaleEffect(scale * PhotoDragDismiss.imageScale(translationY: dismissDragY))
+                .offset(x: offset.width, y: offset.height + PhotoDragDismiss.offsetY(translationY: dismissDragY))
                 .gesture(magnification)
-                // 확대했을 때만 끌 수 있다 — 원래 크기에서 끌리면 화면이 헛돈다.
-                .gesture(scale > 1 ? drag : nil)
+                // 확대했을 때는 끌어서 사진을 옮기고, 원래 크기에서는 끌어서 닫는다.
+                // **한 자리를 나눠 쓴다** — 원래 크기에서 팬을 열어 두면 화면이 헛돌았다.
+                .gesture(scale > 1 ? AnyGesture(drag.map { _ in () }) : AnyGesture(dismissDrag.map { _ in () }))
                 .onTapGesture(count: 2) { resetZoom() }
         } else if vm.isLoading {
             ProgressView().tint(.white)
@@ -195,6 +201,26 @@ struct PhotoViewerSheet: View {
                 )
             }
             .onEnded { _ in lastOffset = offset }
+    }
+
+    /// 원래 크기에서 아래로 끌어 닫는다. **위로 끄는 것은 화면에도 안 비친다**
+    /// (`PhotoDragDismiss.offsetY`) — 따라오게 해 놓고 안 닫는 것이 가장 나쁘다.
+    private var dismissDrag: some Gesture {
+        DragGesture()
+            .onChanged { value in
+                dismissDragY = value.translation.height
+            }
+            .onEnded { value in
+                // 거리만 보면 휙 튕기는 동작이 빠진다 — 사용자는 그것도 닫히길 기대한다.
+                if PhotoDragDismiss.shouldDismiss(
+                    translationY: value.translation.height,
+                    velocityY: value.velocity.height
+                ) {
+                    dismiss()
+                } else {
+                    withAnimation(.snappy) { dismissDragY = 0 }
+                }
+            }
     }
 
     private func resetZoom() {

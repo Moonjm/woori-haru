@@ -75,6 +75,7 @@
 		DT10030 /* FoodPickSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20030 /* FoodPickSource.swift */; };
 		DT10041 /* GramStepper.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20041 /* GramStepper.swift */; };
 		DT10040 /* NutrientRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20040 /* NutrientRow.swift */; };
+		DT10044 /* PhotoDragDismiss.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20044 /* PhotoDragDismiss.swift */; };
 		DT10031 /* FoodPickRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20031 /* FoodPickRow.swift */; };
 		DT10032 /* FoodDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20032 /* FoodDetailViewModel.swift */; };
 		DT10033 /* FoodDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20033 /* FoodDetailSheet.swift */; };
@@ -259,6 +260,7 @@
 		DT20030 /* FoodPickSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodPickSource.swift; sourceTree = "<group>"; };
 		DT20041 /* GramStepper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GramStepper.swift; sourceTree = "<group>"; };
 		DT20040 /* NutrientRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutrientRow.swift; sourceTree = "<group>"; };
+		DT20044 /* PhotoDragDismiss.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoDragDismiss.swift; sourceTree = "<group>"; };
 		DT20031 /* FoodPickRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodPickRow.swift; sourceTree = "<group>"; };
 		DT20032 /* FoodDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodDetailViewModel.swift; sourceTree = "<group>"; };
 		DT20033 /* FoodDetailSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodDetailSheet.swift; sourceTree = "<group>"; };
@@ -503,6 +505,7 @@
 				DT20030 /* FoodPickSource.swift */,
 				DT20041 /* GramStepper.swift */,
 				DT20040 /* NutrientRow.swift */,
+				DT20044 /* PhotoDragDismiss.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -965,6 +968,7 @@
 				DT10030 /* FoodPickSource.swift in Sources */,
 				DT10041 /* GramStepper.swift in Sources */,
 				DT10040 /* NutrientRow.swift in Sources */,
+				DT10044 /* PhotoDragDismiss.swift in Sources */,
 				DT10031 /* FoodPickRow.swift in Sources */,
 				DT10032 /* FoodDetailViewModel.swift in Sources */,
 				DT10033 /* FoodDetailSheet.swift in Sources */,
