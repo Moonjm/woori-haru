@@ -12,7 +12,18 @@ struct MealDetailView: View {
     @State private var showAddItem = false
     /// 전체화면으로 보고 있는 사진.
     @State private var viewingPhoto: StripPhoto?
+    /// 확인을 기다리는 타입 변경. **고른 타입을 함께 들고 있어야** 확인을 누른 뒤 무엇으로
+    /// 바꿀지 알 수 있다 — `isPresented:`로 하면 그 보관을 빠뜨렸을 때 **엉뚱한 타입으로
+    /// 바뀐다.**
+    @State private var pendingTypeChange: PendingTypeChange?
     @Environment(\.dismiss) private var dismiss
+
+    private struct PendingTypeChange: Identifiable {
+        let newType: MealType
+        let title: String
+        let message: String
+        var id: String { newType.rawValue }
+    }
 
     /// 연필이 여는 두 시트. **하나의 `sheet(item:)`으로 합친다** — 수량 시트에서 「다른
     /// 음식으로 교체」를 누르면 시트를 갈아 끼워야 하는데, **SwiftUI에서 닫히는 도중에 새
@@ -63,6 +74,24 @@ struct MealDetailView: View {
         .glassScreenBackground()
         .navigationTitle(vm.meal?.mealType.label ?? "끼니")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    // 저녁을 먹고 간식으로 저장하는 실수가 흔한데 되돌릴 길이 없었다 —
+                    // 끼니를 통째로 지우고 다시 만들면 사진 바이트가 앱에 없어 사진이 사라진다.
+                    Picker("끼니 바꾸기", selection: Binding(
+                        get: { vm.meal?.mealType ?? .lunch },
+                        set: { selectType($0) }
+                    )) {
+                        ForEach(MealType.allCases) { Text($0.label).tag($0) }
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+                .accessibilityLabel("끼니 바꾸기")
+                .disabled(vm.meal == nil || vm.isSaving)
+            }
+        }
         .task { await vm.load() }
         .overlay { if vm.isLoading && vm.meal == nil { ProgressView() } }
         .fullScreenCover(item: $viewingPhoto) { photo in
@@ -152,6 +181,43 @@ struct MealDetailView: View {
             Button("확인", role: .cancel) {}
         } message: {
             Text(vm.errorMessage ?? "")
+        }
+        .alert(item: $pendingTypeChange) { pending in
+            Alert(
+                title: Text(pending.title),
+                message: Text(pending.message),
+                primaryButton: .default(Text("바꾸기")) {
+                    Task { await send(pending.newType) }
+                },
+                secondaryButton: .cancel(Text("취소"))
+            )
+        }
+    }
+
+    /// 고른 즉시 보내지 않는다 — **합쳐질 상황이면 먼저 묻는다.**
+    private func selectType(_ newType: MealType) {
+        Task {
+            guard let action = await vm.resolveTypeChange(to: newType) else { return }
+            switch action {
+            case let .confirm(title, message):
+                pendingTypeChange = PendingTypeChange(newType: newType, title: title, message: message)
+            case .change:
+                await send(newType)
+            }
+        }
+    }
+
+    private func send(_ newType: MealType) async {
+        switch await vm.changeMealType(to: newType) {
+        case .changed:
+            onChanged()
+        case .merged:
+            // 보던 끼니가 사라졌다 — 끼니 삭제와 같이 닫는다.
+            onChanged()
+            dismiss()
+        case .failed:
+            // 상세의 오류 알럿이 띄운다. 이 화면을 덮는 시트가 없어 그대로 보인다.
+            break
         }
     }
 
