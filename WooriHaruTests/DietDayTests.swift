@@ -310,6 +310,53 @@ struct DietDayViewModelTests {
         #expect(vm.day?.dayScore == 55)
     }
 
+    /// **위 테스트가 못 덮는 창이 있다.** 위는 `select`가 끝까지 진행되는 경우라 그 안의
+    /// `load()`가 generation을 올려 준다. 그런데 `select`는 조회 **전에** `syncActivity()`를
+    /// 기다리고, 그 대기는 HealthKit 권한·조회에 서버 업서트까지 걸쳐 있어 창이 넓다.
+    ///
+    /// 그 창에서 이전 날짜의 응답이 도착하면 **`select`가 방금 비운 `day`를 되채운다.**
+    /// 화면은 「새 날짜 라벨 + 옛 날짜 끼니」가 되고, 카드가 `NavigationLink`라 사용자가 그
+    /// 끼니를 이 날짜 것으로 알고 열어 고치거나 지운다 — `day = nil`이 막으려던 바로 그 일이다.
+    @Test func 날짜를_바꾸는_도중에_도착한_이전_응답은_화면을_되채우지_않는다() async {
+        let service = FakeDietService()
+        service.profile = makeProfile()
+        service.days = [
+            makeDay(date: "2026-07-29", feedback: "A"),
+            makeDay(date: "2026-07-28", dayScore: 55, feedback: "B")
+        ]
+        let dayGate = AsyncGate()
+        service.fetchDayGates["2026-07-29"] = dayGate
+        let energy = FakeActiveEnergyFetcher()
+        let energyGate = AsyncGate()
+        energy.gate = energyGate
+        let vm = DietDayViewModel(
+            service: service,
+            energyFetcher: energy,
+            date: Date.from("2026-07-29")!,
+            pollInterval: .milliseconds(1),
+            pollTimeout: .seconds(5)
+        )
+
+        let loadTask = Task { await vm.load() }
+        await dayGate.waitUntilBlocked() // A의 fetchDay가 멈춘 걸 확인하고서야 날짜를 바꾼다.
+
+        // 날짜를 바꾼다 — `syncActivity()`의 HealthKit 조회에서 멈춘다.
+        let selectTask = Task { await vm.select(Date.from("2026-07-28")!) }
+        await energyGate.waitUntilBlocked()
+
+        // 그 사이 A의 응답이 도착한다.
+        await dayGate.open()
+        await loadTask.value
+
+        // **여기가 판정이다.** 되채워졌다면 화면에 29일 데이터가 28일 라벨로 붙어 있다.
+        #expect(vm.day == nil)
+
+        // 풀어 주면 B가 정상적으로 실린다.
+        await energyGate.open()
+        await selectTask.value
+        #expect(vm.day?.date == "2026-07-28")
+    }
+
     /// 진입할 때마다 편하게 올려도 된다 — 서버가 이 값으로 피드백을 재생성하지 않는다.
     @Test func 활동_에너지를_올린다() async {
         let service = FakeDietService()
@@ -664,6 +711,169 @@ struct MealDetailViewModelTests {
             mealId: 1, service: service,
             pollInterval: .milliseconds(1), pollTimeout: .milliseconds(30)
         )
+    }
+
+    // MARK: - 끼니 타입 수정
+
+    /// **같은 타입이면 아무것도 하지 않는다.** 저장 한 번에 LLM 호출 한 번이 나가므로,
+    /// 메뉴에서 지금 타입을 눌렀다고 유료 호출이 나가면 안 된다.
+    @Test func 같은_타입이면_아무것도_안_한다() async {
+        let service = FakeDietService()
+        service.meals = [makeMeal(mealType: .snack)]
+        let vm = makeVM(service)
+        await vm.load()
+
+        #expect(await vm.resolveTypeChange(to: .snack) == nil)
+        #expect(service.changedMealTypes.isEmpty)
+    }
+
+    /// **합쳐질 상황은 확인을 받는다.** 되돌릴 수 없는 병합이라 조용히 지나가면 안 된다.
+    @Test func 합쳐질_상황이면_확인을_요구한다() async {
+        let service = FakeDietService()
+        service.meals = [makeMeal(mealType: .snack)]
+        // 그날에 이미 저녁이 있다.
+        service.days = [makeDay(meals: [makeMeal(id: 9, mealType: .dinner)])]
+        let vm = makeVM(service)
+        await vm.load()
+
+        let action = await vm.resolveTypeChange(to: .dinner)
+
+        guard case let .confirm(_, message) = action else {
+            Issue.record("확인을 요구해야 한다: \(String(describing: action))")
+            return
+        }
+        #expect(message.contains("합쳐져요"))
+        // 아직 보내지 않는다 — 사용자가 확인을 눌러야 나간다.
+        #expect(service.changedMealTypes.isEmpty)
+    }
+
+    /// 합쳐질 것이 없으면 묻지 않는다 — 잃는 것도 놀랄 것도 없다.
+    @Test func 합쳐질_것이_없으면_바로_보낸다() async {
+        let service = FakeDietService()
+        service.meals = [makeMeal(mealType: .snack)]
+        service.days = [makeDay(meals: [makeMeal(mealType: .snack)])]
+        let vm = makeVM(service)
+        await vm.load()
+
+        #expect(await vm.resolveTypeChange(to: .dinner) == .change)
+    }
+
+    /// **저녁 → 간식은 묻지 않는다.** 간식은 본래 여러 번이라 합쳐지지 않는다
+    /// (`MealType.mergesWithinDay`). 합치기를 대칭으로 생각하면 여기서 틀린다.
+    @Test func 간식으로_바꿀_때는_묻지_않는다() async {
+        let service = FakeDietService()
+        service.meals = [makeMeal(mealType: .dinner)]
+        // 그날에 이미 간식이 있어도 합쳐지지 않는다.
+        service.days = [makeDay(meals: [makeMeal(id: 9, mealType: .snack)])]
+        let vm = makeVM(service)
+        await vm.load()
+
+        #expect(await vm.resolveTypeChange(to: .snack) == .change)
+    }
+
+    /// **「합쳐진다」와 「모르겠다」는 다른 말이다.** 같은 문구를 쓰면 사용자가 확인 버튼을
+    /// 누를 때 무엇을 승인하는지 모른다.
+    @Test func 그날_조회에_실패하면_다른_문구로_묻는다() async {
+        let service = FakeDietService()
+        service.meals = [makeMeal(mealType: .snack)]
+        service.errors["fetchDay"] = dietServerError("INTERNAL_ERROR", status: 500)
+        let vm = makeVM(service)
+        await vm.load()
+
+        let action = await vm.resolveTypeChange(to: .dinner)
+
+        guard case let .confirm(_, message) = action else {
+            Issue.record("확인을 요구해야 한다: \(String(describing: action))")
+            return
+        }
+        #expect(message.contains("있다면"))
+        #expect(!message.contains("합쳐져요"))
+    }
+
+    /// **판정 중에는 다시 고를 수 없다.** 판정은 `fetchDay` 왕복이라 창이 넓은데, 그동안
+    /// `isSaving`은 꺼져 있어 메뉴가 열려 있다. 두 판정이 겹치면 **먼저 끝난 쪽이 저장을
+    /// 잡고, 나중 것은 `isSaving` 가드에 막혀 조용히 사라진다** — 사용자가 마지막에 고른
+    /// 것이 말없이 뒤집힌다.
+    ///
+    /// `MealConfirmViewModel.isResolvingSave`와 같은 패턴이다.
+    ///
+    /// **가드를 지우면 이 테스트는 빨개지는 게 아니라 멈춘다.** 두 번째 판정이 같은 닫힌
+    /// 게이트로 들어가 영영 기다리기 때문이다 — 고의 파손으로 확인할 때 그 점을 알고 있어야
+    /// 「테스트가 안 돈다」로 오해하지 않는다.
+    @Test func 판정_중에는_다시_고를_수_없다() async {
+        let service = FakeDietService()
+        service.meals = [makeMeal(mealType: .snack)]
+        service.days = [makeDay(meals: [makeMeal(id: 9, mealType: .dinner)])]
+        let gate = AsyncGate()
+        service.fetchDayGates["2026-07-29"] = gate
+        let vm = makeVM(service)
+        await vm.load()
+
+        let first = Task { await vm.resolveTypeChange(to: .dinner) }
+        await gate.waitUntilBlocked() // 첫 판정이 fetchDay에서 멈춘 걸 확인하고서야 넘어간다.
+
+        #expect(vm.isResolvingTypeChange)
+        // 겹쳐 고른 것은 무시한다 — 먼저 고른 것이 이긴다.
+        #expect(await vm.resolveTypeChange(to: .breakfast) == nil)
+
+        await gate.open()
+        _ = await first.value
+        #expect(!vm.isResolvingTypeChange)
+    }
+
+    /// **돌려받은 id가 다르면 합쳐진 것이다.** 보던 끼니가 사라졌으므로 화면을 닫아야 한다.
+    @Test func 합쳐졌으면_닫으라고_알린다() async {
+        let service = FakeDietService()
+        service.meals = [makeMeal(id: 1, mealType: .snack)]
+        service.changedMealTypeSurvivorId = 42
+        let vm = makeVM(service)
+        await vm.load()
+
+        #expect(await vm.changeMealType(to: .dinner) == .merged)
+    }
+
+    @Test func 안_합쳐졌으면_화면에_남는다() async {
+        let service = FakeDietService()
+        service.meals = [makeMeal(id: 1, mealType: .snack), makeMeal(id: 1, mealType: .dinner)]
+        let vm = makeVM(service)
+        await vm.load()
+
+        #expect(await vm.changeMealType(to: .dinner) == .changed)
+        // 다시 조회해 제목이 바뀐다.
+        #expect(vm.meal?.mealType == .dinner)
+    }
+
+    /// **낡은 화면에서도 타입은 바꿀 수 있다.** 항목 편집은 목록을 통째로 보내기 때문에 막지만
+    /// (`저장_뒤_재조회가_실패하면_다음_편집을_받지_않는다`), 타입 변경은 **항목을 아예 안
+    /// 보낸다** — 되살릴 목록 자체가 없다.
+    @Test func 낡은_화면에서도_타입을_바꿀_수_있다() async {
+        let service = FakeDietService()
+        let kept = makeMealItem(id: 1, name: "밥")
+        let target = makeMealItem(id: 2, name: "제육볶음")
+        service.meals = [makeMeal(id: 1, mealType: .snack, items: [kept, target])]
+        let vm = makeVM(service)
+        await vm.load()
+
+        // 저장은 성공하고 그 뒤 재조회만 실패한다 — 이것이 isStale이다.
+        service.errors["fetchMeal"] = dietServerError("INTERNAL_ERROR", status: 500)
+        _ = await vm.deleteItem(target)
+        #expect(vm.isStale)
+
+        let outcome = await vm.changeMealType(to: .dinner)
+
+        #expect(outcome != .failed)
+        #expect(service.changedMealTypes.count == 1)
+    }
+
+    @Test func 실패하면_화면에_남고_오류가_뜬다() async {
+        let service = FakeDietService()
+        service.meals = [makeMeal(mealType: .snack)]
+        service.errors["changeMealType"] = dietServerError("INTERNAL_ERROR", status: 500)
+        let vm = makeVM(service)
+        await vm.load()
+
+        #expect(await vm.changeMealType(to: .dinner) == .failed)
+        #expect(vm.errorMessage != nil)
     }
 
     /// **실패 이유가 시트까지 와야 한다.** 시트가 상세를 덮고 있어 상세의 알럿은 안 보인다 —

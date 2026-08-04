@@ -18,6 +18,10 @@ protocol DietServing: Sendable {
     func confirmMeal(_ request: MealConfirmRequest) async throws -> Int
     func fetchMeal(id: Int) async throws -> Meal
     func updateMealItems(id: Int, items: [MealItemRequest]) async throws
+    /// 저장된 끼니의 타입을 바꾼다. **돌려주는 것은 「살아남은 끼니」의 id다** — 대상 타입에
+    /// 기존 끼니가 있으면 서버가 항목·사진을 그쪽으로 옮기고 이 끼니를 지운다. 그때 돌아오는
+    /// id는 요청한 id와 **다르다.**
+    func changeMealType(id: Int, to mealType: MealType) async throws -> Int
     func deleteMeal(id: Int) async throws
     /// 사진 한 장만 지운다. **끼니는 남는다** — 항목·점수·피드백도 그대로다(사진이 줄어도
     /// 먹은 것은 그대로라 서버가 재계산하지 않는다). 마지막 한 장을 지워도 막지 않는다.
@@ -109,6 +113,10 @@ struct DietService: DietServing {
 
     func updateMealItems(id: Int, items: [MealItemRequest]) async throws {
         try await api.putVoid("/diet/meals/\(id)/items", body: MealItemsRequest(items: items))
+    }
+
+    func changeMealType(id: Int, to mealType: MealType) async throws -> Int {
+        try await api.patchCreated("/diet/meals/\(id)", body: MealTypeRequest(mealType: mealType))
     }
 
     func deleteMeal(id: Int) async throws {
