@@ -89,7 +89,9 @@ struct MealDetailView: View {
                     Image(systemName: "ellipsis.circle")
                 }
                 .accessibilityLabel("끼니 바꾸기")
-                .disabled(vm.meal == nil || vm.isSaving)
+                // **`isResolvingTypeChange`도 봐야 한다.** 판정(`fetchDay`)이 도는 동안
+                // `isSaving`은 아직 꺼져 있어, 그 창에서 또 고르면 나중 선택이 조용히 사라진다.
+                .disabled(vm.meal == nil || vm.isSaving || vm.isResolvingTypeChange)
             }
         }
         .task { await vm.load() }

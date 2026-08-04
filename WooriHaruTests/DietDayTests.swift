@@ -790,6 +790,37 @@ struct MealDetailViewModelTests {
         #expect(!message.contains("합쳐져요"))
     }
 
+    /// **판정 중에는 다시 고를 수 없다.** 판정은 `fetchDay` 왕복이라 창이 넓은데, 그동안
+    /// `isSaving`은 꺼져 있어 메뉴가 열려 있다. 두 판정이 겹치면 **먼저 끝난 쪽이 저장을
+    /// 잡고, 나중 것은 `isSaving` 가드에 막혀 조용히 사라진다** — 사용자가 마지막에 고른
+    /// 것이 말없이 뒤집힌다.
+    ///
+    /// `MealConfirmViewModel.isResolvingSave`와 같은 패턴이다.
+    ///
+    /// **가드를 지우면 이 테스트는 빨개지는 게 아니라 멈춘다.** 두 번째 판정이 같은 닫힌
+    /// 게이트로 들어가 영영 기다리기 때문이다 — 고의 파손으로 확인할 때 그 점을 알고 있어야
+    /// 「테스트가 안 돈다」로 오해하지 않는다.
+    @Test func 판정_중에는_다시_고를_수_없다() async {
+        let service = FakeDietService()
+        service.meals = [makeMeal(mealType: .snack)]
+        service.days = [makeDay(meals: [makeMeal(id: 9, mealType: .dinner)])]
+        let gate = AsyncGate()
+        service.fetchDayGates["2026-07-29"] = gate
+        let vm = makeVM(service)
+        await vm.load()
+
+        let first = Task { await vm.resolveTypeChange(to: .dinner) }
+        await gate.waitUntilBlocked() // 첫 판정이 fetchDay에서 멈춘 걸 확인하고서야 넘어간다.
+
+        #expect(vm.isResolvingTypeChange)
+        // 겹쳐 고른 것은 무시한다 — 먼저 고른 것이 이긴다.
+        #expect(await vm.resolveTypeChange(to: .breakfast) == nil)
+
+        await gate.open()
+        _ = await first.value
+        #expect(!vm.isResolvingTypeChange)
+    }
+
     /// **돌려받은 id가 다르면 합쳐진 것이다.** 보던 끼니가 사라졌으므로 화면을 닫아야 한다.
     @Test func 합쳐졌으면_닫으라고_알린다() async {
         let service = FakeDietService()

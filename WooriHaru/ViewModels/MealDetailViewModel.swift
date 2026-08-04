@@ -44,6 +44,15 @@ final class MealDetailViewModel {
     /// 마지막 조회가 실패했다. **`isStale`보다 넓다** — 첫 조회가 실패하면 `meal`이 nil이라
     /// `isStale`은 false로 남는데, 그때가 오히려 사용자가 빈 화면에 갇히는 경우다.
     private(set) var loadFailed = false
+    /// 끼니 타입 변경 **판정**이 진행 중이다(`fetchDay` 왕복).
+    ///
+    /// **`isSaving`으로는 부족하다.** 그것은 실제 전송이 시작돼야 켜지는데, 판정은 그 전에
+    /// 네트워크 한 번을 왕복한다. 그 사이 메뉴가 열려 있으면 두 판정이 겹치고, **먼저 끝난
+    /// 쪽이 저장을 잡아 나중에 고른 것이 `isSaving` 가드에 막혀 조용히 사라진다** —
+    /// 사용자가 마지막에 고른 것이 말없이 뒤집힌다.
+    ///
+    /// `MealConfirmViewModel.isResolvingSave`와 같은 이유로 둔다.
+    private(set) var isResolvingTypeChange = false
     var errorMessage: String?
 
     /// 다시 불러오기 배너에 쓸 문구. **끼니가 있느냐 없느냐로 말이 달라진다** — 앞은 「보이는
@@ -233,8 +242,14 @@ final class MealDetailViewModel {
     /// 장치가 사라진다.
     func resolveTypeChange(to newType: MealType) async -> MealTypeChangeAction? {
         guard let meal, meal.mealType != newType else { return nil }
+        // **겹쳐 고른 것은 무시한다 — 먼저 고른 것이 이긴다.** 화면이 메뉴를 잠그지만
+        // (`isResolvingTypeChange`), 여기서도 막아야 계약이 화면에 기대지 않는다.
+        guard !isResolvingTypeChange else { return nil }
         // 간식은 본래 여러 번이라 합쳐지지 않는다 — 물어볼 것이 없다.
         guard newType.mergesWithinDay else { return .change }
+
+        isResolvingTypeChange = true
+        defer { isResolvingTypeChange = false }
 
         do {
             let day = try await service.fetchDay(date: meal.date)
