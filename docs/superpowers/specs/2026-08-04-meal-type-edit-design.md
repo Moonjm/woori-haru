@@ -1,7 +1,8 @@
 # 저장된 끼니의 타입 수정 (iOS + 서버) 설계
 
 작성일: 2026-08-04
-짝 저장소: `toy-back` — **서버 작업이 있다.** 새 엔드포인트 하나(`PATCH /diet/meals/{id}`)가 필요하다.
+짝 저장소: `toy-back` — **서버가 먼저 나가야 한다.** 서버 설계는 그쪽
+`docs/superpowers/specs/2026-08-04-meal-type-edit-design.md`에 따로 있다. 이 문서는 **앱만** 다룬다.
 
 ## 배경
 
