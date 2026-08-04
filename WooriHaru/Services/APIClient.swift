@@ -28,6 +28,12 @@ protocol APIClientProtocol: Sendable {
     func post<T: Decodable>(_ path: String, body: (any Encodable)?) async throws -> T
     func postVoid(_ path: String, body: (any Encodable)?) async throws
     func postCreated(_ path: String, body: (any Encodable)?) async throws -> Int
+    /// `PATCH` 응답의 `Location`에서 id를 뽑는다. **본문이 아니라 헤더다** — 끼니 확정·분석
+    /// 생성·사진 업로드가 이미 같은 방식이라 새 응답 DTO를 만들지 않는다.
+    ///
+    /// **상태코드를 보지 않는다.** 앞의 셋은 201로 오고 이쪽은 200으로 오는데, 둘을 구분할
+    /// 이유가 없다(`rawFetchWithResponse`가 이미 `200...299`만 통과시킨다).
+    func patchCreated(_ path: String, body: (any Encodable)?) async throws -> Int
     func put<T: Decodable>(_ path: String, body: (any Encodable)?) async throws -> T
     func putVoid(_ path: String, body: (any Encodable)?) async throws
     func patch<T: Decodable>(_ path: String, body: (any Encodable)?) async throws -> T
@@ -52,6 +58,10 @@ extension APIClientProtocol {
 
     func postVoid(_ path: String) async throws {
         try await postVoid(path, body: nil)
+    }
+
+    func patchCreated(_ path: String) async throws -> Int {
+        try await patchCreated(path, body: nil)
     }
 
     func postCreated(_ path: String) async throws -> Int {
@@ -99,6 +109,16 @@ final class APIClient: APIClientProtocol, Sendable {
 
     func postCreated(_ path: String, body: (any Encodable)? = nil) async throws -> Int {
         let (_, response) = try await rawFetchWithResponse("POST", path: path, body: body)
+        guard let location = response.value(forHTTPHeaderField: "Location"),
+              let idString = location.split(separator: "/").last,
+              let id = Int(idString) else {
+            throw APIError.serverError(statusCode: response.statusCode, message: "Location 헤더에서 ID를 찾을 수 없습니다")
+        }
+        return id
+    }
+
+    func patchCreated(_ path: String, body: (any Encodable)? = nil) async throws -> Int {
+        let (_, response) = try await rawFetchWithResponse("PATCH", path: path, body: body)
         guard let location = response.value(forHTTPHeaderField: "Location"),
               let idString = location.split(separator: "/").last,
               let id = Int(idString) else {

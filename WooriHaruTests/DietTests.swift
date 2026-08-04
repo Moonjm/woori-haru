@@ -693,3 +693,44 @@ struct NutrientPassthroughTests {
         }
     }
 }
+
+// MARK: - 끼니 타입 수정
+
+struct MealTypeChangeServiceTests {
+    /// **경로와 본문이 서버 계약과 맞아야 한다.** 어긋나면 실기기에서 400이나 404로만 보이고
+    /// 앱 로그에는 이유가 안 남는다.
+    @Test func 경로와_본문이_맞다() async throws {
+        let api = MockAPIClient()
+        api.stubPatchCreated("/diet/meals/7", result: 7)
+        let service = DietService(api: api)
+
+        _ = try await service.changeMealType(id: 7, to: .dinner)
+
+        let call = try #require(api.patchCreatedCalls.first)
+        #expect(call.path == "/diet/meals/7")
+        let body = try #require(call.body as? MealTypeRequest)
+        #expect(body.mealType == .dinner)
+    }
+
+    /// **살아남은 끼니 id를 그대로 준다.** 합쳐지면 서버가 다른 id를 주고, 화면은 그 차이로
+    /// 「합쳐졌다」를 안다.
+    @Test func 합쳐지면_다른_id가_온다() async throws {
+        let api = MockAPIClient()
+        api.stubPatchCreated("/diet/meals/7", result: 42)
+        let service = DietService(api: api)
+
+        let survivor = try await service.changeMealType(id: 7, to: .dinner)
+
+        #expect(survivor == 42)
+    }
+
+    @Test func 서버_오류는_그대로_던진다() async {
+        let api = MockAPIClient()
+        api.setError(dietServerError("INTERNAL_ERROR", status: 500), for: "PATCH /diet/meals/7")
+        let service = DietService(api: api)
+
+        await #expect(throws: (any Error).self) {
+            _ = try await service.changeMealType(id: 7, to: .dinner)
+        }
+    }
+}

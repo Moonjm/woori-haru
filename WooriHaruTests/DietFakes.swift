@@ -50,6 +50,9 @@ final class FakeDietService: DietServing, @unchecked Sendable {
     var profile: NutritionProfile?
     var analyses: [MealAnalysis] = []
     var meals: [Meal] = []
+    /// 타입 변경이 돌려줄 「살아남은 id」. **nil이면 요청한 id를 그대로 준다**(안 합쳐진 경우).
+    var changedMealTypeSurvivorId: Int?
+    private(set) var changedMealTypes: [(id: Int, mealType: MealType)] = []
     var days: [DailyDiet] = []
     var foods: [Food] = []
     /// 키는 `searchFoods`에 넘어온 검색어. 있으면 그 검색어만 `foods` 대신 이 값을 준다 —
@@ -209,6 +212,13 @@ final class FakeDietService: DietServing, @unchecked Sendable {
         lock.lock(); updatedItems.append((id, items)); lock.unlock()
         if let gate = updateMealItemsGate { await gate.hold() }
         try check("updateMealItems")
+    }
+
+    func changeMealType(id: Int, to mealType: MealType) async throws -> Int {
+        lock.lock(); changedMealTypes.append((id, mealType)); lock.unlock()
+        try check("changeMealType")
+        lock.lock(); defer { lock.unlock() }
+        return changedMealTypeSurvivorId ?? id
     }
 
     func deleteMeal(id: Int) async throws {

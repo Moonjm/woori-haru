@@ -14,6 +14,7 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
     private var getResults: [String: Any] = [:]
     private var postResults: [String: Any] = [:]
     private var postCreatedResults: [String: Int] = [:]
+    private var patchCreatedResults: [String: Int] = [:]
     private var multipartResults: [Int] = []
     private var errors: [String: Error] = [:]
     private var putVoidError: Error?
@@ -21,6 +22,7 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
     private var recordedGetCalls: [(path: String, query: [String: String])] = []
     private var recordedPostCalls: [(path: String, body: (any Encodable)?)] = []
     private var recordedPostCreatedCalls: [(path: String, body: (any Encodable)?)] = []
+    private var recordedPatchCreatedCalls: [(path: String, body: (any Encodable)?)] = []
     private var recordedMultipartCalls: [(path: String, byteCount: Int)] = []
     private var recordedPutVoidCalls: [(path: String, body: (any Encodable)?)] = []
     private var recordedDeleteCalls: [String] = []
@@ -41,6 +43,11 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
     func stubPostCreated(_ path: String, result: Int) {
         lock.lock(); defer { lock.unlock() }
         postCreatedResults[path] = result
+    }
+
+    func stubPatchCreated(_ path: String, result: Int) {
+        lock.lock(); defer { lock.unlock() }
+        patchCreatedResults[path] = result
     }
 
     /// 업로드가 돌려줄 fileId를 올린 순서대로 등록한다. 등록한 수보다 많이 부르면 unstubbed다.
@@ -77,6 +84,11 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
     var postCreatedCalls: [(path: String, body: (any Encodable)?)] {
         lock.lock(); defer { lock.unlock() }
         return recordedPostCreatedCalls
+    }
+
+    var patchCreatedCalls: [(path: String, body: (any Encodable)?)] {
+        lock.lock(); defer { lock.unlock() }
+        return recordedPatchCreatedCalls
     }
 
     var multipartCalls: [(path: String, byteCount: Int)] {
@@ -134,6 +146,18 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
         lock.unlock()
         if let error { throw error }
         guard let id = result else { throw MockAPIError.unstubbed("POST \(path)") }
+        return id
+    }
+
+    /// 오류 키는 `"PATCH 경로"`다 — `postCreated`가 `"POST 경로"`를 쓰는 것과 같은 규칙이다.
+    func patchCreated(_ path: String, body: (any Encodable)?) async throws -> Int {
+        lock.lock()
+        recordedPatchCreatedCalls.append((path, body))
+        let error = errors["PATCH \(path)"]
+        let result = patchCreatedResults[path]
+        lock.unlock()
+        if let error { throw error }
+        guard let id = result else { throw MockAPIError.unstubbed("PATCH \(path)") }
         return id
     }
 
