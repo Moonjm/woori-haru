@@ -844,6 +844,90 @@ struct DietChatLockTests {
         #expect(vm.pendingMessages.isEmpty)
     }
 
+    /// **접수하는 순간 소유권을 잡는다.** 접수와 실제 전송 사이에는 화면의 `Task` 경계가
+    /// 있어서, 그 창이 열려 있으면 첫 장 교체가 끼어들어 GET·POST가 다시 겹친다.
+    @Test func 접수와_전송_사이에_첫_장을_갈아끼우지_않는다() async {
+        let service = FakeDietService()
+        service.chatPages = [
+            ChatPage(messages: [], nextCursor: nil),
+            ChatPage(messages: [makeChatMessage(id: 20)], nextCursor: nil)
+        ]
+        service.chatAnswers = [makeChatMessage(id: 9, role: .assistant, content: "답")]
+        let vm = makeTodayViewModel(service: service)
+        await vm.load()
+
+        let accepted = vm.accept("점심 왜 낮아?")
+        #expect(accepted != nil)
+        #expect(vm.isSending)
+
+        await vm.reload()
+        #expect(service.chatPageCursors.count == 1)
+
+        if let accepted { await vm.deliverAccepted(accepted.id) }
+        #expect(streamTexts(vm) == ["점심 왜 낮아?", "답"])
+    }
+
+    /// 그 창에서 두 번째 접수가 통과하면 전송 두 건이 겹친다.
+    @Test func 접수와_전송_사이에_다시_접수되지_않는다() async {
+        let service = FakeDietService()
+        service.chatPages = [ChatPage(messages: [], nextCursor: nil)]
+        service.chatAnswers = [makeChatMessage(id: 9, role: .assistant, content: "답")]
+        let vm = makeTodayViewModel(service: service)
+        await vm.load()
+
+        let first = vm.accept("첫 질문")
+        let second = vm.accept("두 번째 질문")
+
+        #expect(first != nil)
+        #expect(second == nil)
+        #expect(vm.pendingMessages.map(\.text) == ["첫 질문"])
+
+        if let first { await vm.deliverAccepted(first.id) }
+    }
+
+    /// 재시도도 같은 예약을 거쳐야 한다 — 두 길이 같은 잠금을 쓰지 않으면 서로를 못 막는다.
+    @Test func 접수와_전송_사이에_재시도가_끼어들지_않는다() async {
+        let service = FakeDietService()
+        service.chatPages = [ChatPage(messages: [], nextCursor: nil)]
+        service.errors["askChat"] = APIError.networkError(URLError(.notConnectedToInternet))
+        let vm = makeTodayViewModel(service: service)
+        await vm.load()
+        await vm.send("실패한 질문")
+        let failedId = vm.pendingMessages[0].id
+        #expect(canRetryOnly(vm))
+
+        service.errors["askChat"] = nil
+        service.chatAnswers = [makeChatMessage(id: 9, role: .assistant, content: "답")]
+        let accepted = vm.accept("새 질문")
+
+        #expect(!vm.canRetry(vm.pendingMessages[0]))
+        await vm.retry(failedId)
+        #expect(service.askedChats.count == 1)
+
+        if let accepted { await vm.deliverAccepted(accepted.id) }
+        #expect(service.askedChats.map(\.message) == ["실패한 질문", "새 질문"])
+    }
+
+    /// **예약된 것만 보낸다.** 예약이 끝난 뒤 같은 id로 다시 들어오면 아무것도 하지 않는다 —
+    /// 두 전송의 종료 순서가 뒤집혀도 서로의 잠금을 풀지 못한다.
+    @Test func 예약이_아닌_전송은_실행되지_않는다() async {
+        let service = FakeDietService()
+        service.chatPages = [ChatPage(messages: [], nextCursor: nil)]
+        service.chatAnswers = [makeChatMessage(id: 9, role: .assistant, content: "답")]
+        let vm = makeTodayViewModel(service: service)
+        await vm.load()
+
+        let accepted = vm.accept("점심 왜 낮아?")
+        #expect(accepted != nil)
+        await vm.deliverAccepted(accepted?.id ?? UUID())
+        #expect(service.askedChats.count == 1)
+        #expect(!vm.isSending)
+
+        // 예약이 이미 풀렸다 — 늦게 도착한 두 번째 실행은 통과하지 못한다.
+        await vm.deliverAccepted(accepted?.id ?? UUID())
+        #expect(service.askedChats.count == 1)
+    }
+
     /// **서버 설정 문제에는 재시도를 두지 않는다** — 배포가 바뀌기 전에는 눌러도 그대로다.
     @Test func 설정_실패에는_다시_시도가_붙지_않는다() async {
         let service = FakeDietService()

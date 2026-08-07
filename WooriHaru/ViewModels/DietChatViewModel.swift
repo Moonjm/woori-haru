@@ -83,7 +83,15 @@ final class DietChatViewModel {
     /// 다음 장 조회가 실패했다. **스피너를 계속 돌리지 않는다** — 실패한 뒤에도 돌면 영영
     /// 불러오는 중인 것처럼 보인다. 그 자리에 다시 시도할 길을 둔다.
     private(set) var nextPageFailed = false
-    private(set) var isSending = false
+    /// 지금 서버로 보내기로 **예약된** 말풍선.
+    ///
+    /// **접수하는 순간 동기적으로 잡는다.** 접수(`accept`)와 실제 전송(`deliverAccepted`)
+    /// 사이에는 화면의 `Task` 경계가 있는데, 그 창에서 잠금이 풀려 있으면 그 사이에 다른
+    /// 전송·재시도·첫 장 교체가 끼어들고, 먼저 끝난 쪽의 `defer`가 나머지가 진행 중인데도
+    /// 잠금을 풀어 버린다.
+    private(set) var activeDeliveryId: UUID?
+
+    var isSending: Bool { activeDeliveryId != nil }
     /// 페이지 조회 실패만 담는다. **전송 실패는 여기 오지 않는다** — 말풍선에 「다시 시도」가
     /// 붙으므로 알럿까지 띄우면 같은 사실을 두 번 말한다.
     var errorMessage: String?
@@ -453,9 +461,14 @@ final class DietChatViewModel {
             anchorMessageId: greatestSeenServerId
         )
         pendingMessages.append(message)
+        // **여기서 소유권을 잡는다.** 화면이 다음 줄에서 `Task`로 넘어가는데, 그 창이
+        // 열려 있으면 그 사이에 다른 전송·재시도·첫 장 교체가 끼어든다.
+        activeDeliveryId = message.id
         return message
     }
 
+    /// `accept`가 잡아 둔 예약을 실제로 실행한다. **그 id만 실행된다** — 다른 id로 들어오면
+    /// 아무것도 하지 않는다.
     func deliverAccepted(_ id: UUID) async {
         await deliver(id)
     }
@@ -486,13 +499,18 @@ final class DietChatViewModel {
               canRetry(pendingMessages[index]) else { return }
         pendingMessages[index].failed = false
         pendingMessages[index].failureReason = nil
+        // 새 전송과 같은 예약을 거친다 — 두 길이 같은 잠금을 쓰지 않으면 서로를 못 막는다.
+        activeDeliveryId = id
         await deliver(id)
     }
 
+    /// **예약된 것만 보낸다.** 예약을 확인하지 않으면 두 전송이 겹치고, 먼저 끝난 쪽의
+    /// `defer`가 나머지가 진행 중인데도 잠금을 풀어 버린다.
     private func deliver(_ id: UUID) async {
-        guard let message = pendingMessages.first(where: { $0.id == id }) else { return }
-        isSending = true
-        defer { isSending = false }
+        guard activeDeliveryId == id,
+              let message = pendingMessages.first(where: { $0.id == id }) else { return }
+        // 그 사이 다른 것이 예약을 가져갔으면 그쪽 잠금을 풀지 않는다.
+        defer { if activeDeliveryId == id { activeDeliveryId = nil } }
 
         do {
             let answer = try await service.askChat(date: message.date, message: message.text)
