@@ -44,15 +44,6 @@ private func hasAwaitingReply(_ rows: [ChatRow]) -> Bool {
     }
 }
 
-/// 지금보다 뒤인 서버 시각. 「이 메시지는 방금 쓴 말풍선보다 나중에 저장됐다」를 표현한다 —
-/// 못 보낸 말풍선의 시각은 테스트가 도는 순간이라 리터럴로 못 박을 수 없다.
-private func serverTimestamp(afterNow seconds: TimeInterval) -> String {
-    let formatter = DateFormatter()
-    formatter.locale = Locale(identifier: "en_US_POSIX")
-    formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
-    return formatter.string(from: Date().addingTimeInterval(seconds))
-}
-
 /// 스트림에 그려지는 문장들 — 서버 메시지와 못 보낸 말풍선을 섞어 순서를 본다.
 @MainActor
 private func streamTexts(_ vm: DietChatViewModel) -> [String] {
@@ -622,22 +613,20 @@ struct DietChatLockTests {
     /// 첫 장을 다시 받으면 스트림이 통째로 갈린다 — 못 보낸 말풍선이 거기서 사라지면 안 된다.
     @Test func 첫_장을_다시_받아도_못_보낸_말풍선이_남는다() async {
         let service = FakeDietService()
-        service.chatPages = [
-            ChatPage(messages: [], nextCursor: nil),
-            ChatPage(messages: [
-                makeChatMessage(id: 20, content: "과거 A"),
-                makeChatMessage(id: 19, content: "과거 B")
-            ], nextCursor: nil)
-        ]
+        let history = ChatPage(messages: [
+            makeChatMessage(id: 20, content: "과거 A"),
+            makeChatMessage(id: 19, content: "과거 B")
+        ], nextCursor: nil)
+        service.chatPages = [history, history]
         service.errors["askChat"] = APIError.networkError(URLError(.notConnectedToInternet))
         let vm = makeTodayViewModel(service: service)
         await vm.load()
         await vm.send("새 질문")
-        #expect(vm.pendingMessages.count == 1)
+        #expect(vm.pendingMessages.first?.anchorMessageId == 20)
 
         await vm.reload()
 
-        // 가장 최근에 쓴 것이라 과거 기록 아래에 앉는다 — 사라지지도 않는다.
+        // 기준점(20) 바로 뒤 — 사라지지도, 과거 기록 위로 올라가지도 않는다.
         #expect(streamTexts(vm) == ["과거 B", "과거 A", "새 질문"])
     }
 
@@ -647,14 +636,11 @@ struct DietChatLockTests {
         let service = FakeDietService()
         service.chatPages = [
             ChatPage(messages: [], nextCursor: nil),
-            // 다시 받으면 서버에 저장된 B의 질문·답이 실려 온다 — **A를 쓴 뒤에 저장된
-            // 것들이라** A가 그 위에 남아야 한다.
+            // 다시 받으면 서버에 저장된 B의 질문·답이 실려 온다 — **A를 쓸 때 스트림이
+            // 비어 있었으므로**(기준점 nil) A가 그 위에 남아야 한다.
             ChatPage(messages: [
-                makeChatMessage(
-                    id: 9, role: .assistant,
-                    createdAt: serverTimestamp(afterNow: 120), content: "B 답변"
-                ),
-                makeChatMessage(id: 8, createdAt: serverTimestamp(afterNow: 60), content: "B 질문")
+                makeChatMessage(id: 9, role: .assistant, content: "B 답변"),
+                makeChatMessage(id: 8, content: "B 질문")
             ], nextCursor: nil)
         ]
         service.errors["askChat"] = APIError.networkError(URLError(.notConnectedToInternet))
@@ -670,6 +656,82 @@ struct DietChatLockTests {
         await vm.reload()
 
         #expect(streamTexts(vm) == ["A 질문", "B 질문", "B 답변"])
+    }
+
+    /// 기준점이 새 장에 없으면(그만큼 새 메시지가 쌓여 밀려났으면) 실려 온 것이 전부
+    /// 나중 것이라는 뜻이라 맨 위에 둔다.
+    @Test func 기준점이_새_장에_없으면_맨_위에_둔다() async {
+        let service = FakeDietService()
+        service.chatPages = [
+            ChatPage(messages: [makeChatMessage(id: 5, content: "옛 기록")], nextCursor: nil),
+            // 그 사이 새 메시지가 쌓여 기준점(5)이 첫 장 밖으로 밀렸다.
+            ChatPage(messages: [
+                makeChatMessage(id: 41, content: "새 기록 B"),
+                makeChatMessage(id: 40, content: "새 기록 A")
+            ], nextCursor: 40)
+        ]
+        service.errors["askChat"] = APIError.networkError(URLError(.notConnectedToInternet))
+        let vm = makeTodayViewModel(service: service)
+        await vm.load()
+        await vm.send("못 보낸 질문")
+        #expect(vm.pendingMessages.first?.anchorMessageId == 5)
+
+        await vm.reload()
+
+        #expect(streamTexts(vm) == ["못 보낸 질문", "새 기록 A", "새 기록 B"])
+    }
+
+    /// **재시도도 갈아끼우는 중에는 막는다** — 새 전송과 같은 경합이다.
+    @Test func 첫_장을_다시_받는_동안에는_재시도도_막힌다() async {
+        let service = FakeDietService()
+        service.chatPages = [
+            ChatPage(messages: [], nextCursor: nil),
+            ChatPage(messages: [makeChatMessage(id: 20)], nextCursor: nil)
+        ]
+        service.errors["askChat"] = dietServerError("CHAT_FAILED", status: 503)
+        let vm = makeTodayViewModel(service: service)
+        await vm.load()
+        await vm.send("점심 왜 낮아?")
+        #expect(canRetryOnly(vm))
+
+        let gate = AsyncGate()
+        service.chatPageGate = gate
+        let reloading = Task { await vm.reload() }
+        await gate.waitUntilBlocked()
+
+        #expect(!canRetryOnly(vm))
+        await retryOnly(vm)
+        #expect(service.askedChats.count == 1)
+
+        await gate.open()
+        await reloading.value
+        #expect(canRetryOnly(vm))
+    }
+
+    /// 반대편도 막아야 배타가 성립한다 — 전송이 성공해 두 행이 붙은 직후에 첫 장 응답이
+    /// 도착하면 그것을 지운다.
+    @Test func 전송_중에는_첫_장을_갈아끼우지_않는다() async {
+        let service = FakeDietService()
+        service.chatPages = [
+            ChatPage(messages: [], nextCursor: nil),
+            ChatPage(messages: [makeChatMessage(id: 20, content: "서버 기록")], nextCursor: nil)
+        ]
+        service.chatAnswers = [makeChatMessage(id: 9, role: .assistant, content: "답")]
+        let vm = makeTodayViewModel(service: service)
+        await vm.load()
+
+        let gate = AsyncGate()
+        service.askChatGate = gate
+        let sending = Task { await vm.send("점심 왜 낮아?") }
+        await gate.waitUntilBlocked()
+
+        await vm.reload()
+        // 전송이 끝나기 전에는 나가지도 않는다.
+        #expect(service.chatPageCursors.count == 1)
+
+        await gate.open()
+        await sending.value
+        #expect(streamTexts(vm) == ["점심 왜 낮아?", "답"])
     }
 
     /// **한 번 받은 뒤 다시 받는 동안에도 못 보낸다.** `hasLoaded`는 그때도 참이라,

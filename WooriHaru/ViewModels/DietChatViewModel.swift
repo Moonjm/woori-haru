@@ -9,12 +9,16 @@ struct PendingChatMessage: Identifiable, Hashable {
     /// 앵커 날짜 — 「어느 날 밥 얘기인가」.
     let date: String
     let text: String
-    /// 쓴 시각. 서버 `createdAt`과 같은 모양이라 그대로 견줄 수 있다.
+    /// 쓴 시각. 스트림에 실릴 때 그 행의 `createdAt`이 된다(날짜 구분선이 쓴다).
     ///
-    /// **자리를 되찾는 유일한 근거다.** 첫 장을 다시 받으면 `streamIndex`는 뜻을 잃는데,
-    /// 그때 같은 인덱스가 「과거 기록 앞」인지 「나중에 저장된 대화 뒤」인지 인덱스만으로는
-    /// 가를 수 없다 — 시각으로만 갈린다.
+    /// **자리를 정하는 데는 쓰지 않는다** — 이 값은 기기 시계이고 서버 `createdAt`은 서버
+    /// 시계라, 시간대나 오차가 있으면 순서가 뒤집힌다.
     let createdAt: String
+    /// 쓸 때 스트림 맨 끝에 있던 **서버 메시지의 id**. 비어 있었으면 nil이다.
+    ///
+    /// **첫 장을 다시 받을 때 자리를 되찾는 근거다.** `streamIndex`는 스트림이 갈리면 뜻을
+    /// 잃고, 시각 비교는 두 시계를 견주게 된다. 서버 id는 단조 증가라 시계가 개입하지 않는다.
+    let anchorMessageId: Int?
     /// 스트림의 어느 자리에 앉는가(`messages`의 인덱스).
     ///
     /// **끝에 몰아 붙이면 순서가 뒤집힌다** — A가 실패하고 B가 성공하면 화면이
@@ -256,7 +260,10 @@ final class DietChatViewModel {
     }
 
     private func loadFirstPage() async {
-        guard !isLoadingPage else { return }
+        // **전송 중에는 갈아끼우지 않는다.** 반대편도 막아야 배타가 성립한다 — 전송이
+        // 성공해 `messages`에 두 행이 붙은 직후에 이 응답이 도착하면 그것을 지운다.
+        // 전송이 끝난 뒤 다시 부르면 된다(화면의 「다시 시도」가 그대로 살아 있다).
+        guard !isLoadingPage, !isSending else { return }
         isLoadingPage = true
         // **이 조회는 스트림을 통째로 갈아끼운다.** 그 사이 전송이 성공하면 뒤이어 도착한
         // 응답이 방금 나눈 대화를 지운다 — 다음 장 조회(`loadNextPage`)는 위에 덧붙이기만
@@ -279,11 +286,18 @@ final class DietChatViewModel {
             //
             // **인덱스로는 가를 수 없다.** 같은 자리 0이라도, 새로 실려 온 것이 과거
             // 기록이면 말풍선이 뒤로 가야 하고 방금 저장된 대화면 앞에 남아야 한다.
-            // 쓴 시각으로만 갈린다 — 그보다 늦지 않은 마지막 메시지 바로 뒤에 놓는다.
+            //
+            // **기준점은 쓸 때 맨 끝에 있던 서버 메시지의 id다.** 그 id 이하인 마지막
+            // 메시지 바로 뒤에 놓는다 — 서버 id가 단조 증가라 시계가 개입하지 않는다.
+            // 기준점이 이 장에 없으면(그만큼 새 메시지가 쌓여 밀려났으면) 실려 온 것이
+            // 전부 나중 것이라는 뜻이라 맨 위에 둔다. 같은 기준점끼리는 배열 순서가 가른다.
             for index in pendingMessages.indices {
-                let writtenAt = pendingMessages[index].createdAt
-                let position = messages.lastIndex { $0.createdAt <= writtenAt }
-                pendingMessages[index].streamIndex = position.map { $0 + 1 } ?? 0
+                guard let anchorId = pendingMessages[index].anchorMessageId,
+                      let position = messages.lastIndex(where: { $0.id <= anchorId }) else {
+                    pendingMessages[index].streamIndex = 0
+                    continue
+                }
+                pendingMessages[index].streamIndex = position + 1
             }
             nextCursor = page.nextCursor
             hasLoaded = true
@@ -423,6 +437,7 @@ final class DietChatViewModel {
             date: anchorDateString,
             text: trimmed,
             createdAt: Self.localTimestampFormatter.string(from: Date()),
+            anchorMessageId: messages.last?.id,
             streamIndex: messages.count
         )
         pendingMessages.append(message)
@@ -432,8 +447,10 @@ final class DietChatViewModel {
     /// 「다시 시도」를 띄울지. **말풍선 자신의 판정을 본다** — 지금 앵커 날짜의 잠금을 보면,
     /// 8월 1일이 거절당한 뒤 `✕`로 오늘로 돌아왔을 때 재시도가 열리고 그 재시도는 여전히
     /// 8월 1일로 나가 같은 400을 맞는다.
+    /// **첫 장을 갈아끼우는 중에는 재시도도 막는다** — 새 전송과 같은 경합이다. 성공한 뒤
+    /// 뒤이어 도착한 응답이 방금 나눈 대화를 지운다.
     func canRetry(_ message: PendingChatMessage) -> Bool {
-        message.failed && message.isRetryable && !isSending
+        message.failed && message.isRetryable && !isSending && !isReplacingStream
     }
 
     /// **서버는 실패하면 아무것도 저장하지 않으므로**(질문·답을 한 트랜잭션에 쓴다) 같은
