@@ -15,6 +15,9 @@ struct ChatBubble: View {
     /// **다시 보낼 수 있을 때만 온다.** 빈 날처럼 결과가 뻔한 실패에는 재시도를 두지 않는다 —
     /// 눌러도 같은 거절이 돌아온다.
     var onRetry: (() -> Void)?
+    /// 다시 보낼 수 없는 실패를 화면에서 치운다. **재시도와 동시에 오지 않는다** — 둘이
+    /// 나란히 있으면 잘못 누르는 쪽이 문장을 잃는다.
+    var onDismiss: (() -> Void)?
 
     var body: some View {
         HStack(spacing: 0) {
@@ -34,7 +37,7 @@ struct ChatBubble: View {
                     .modifier(BubbleSurface(isUser: isUser))
 
                 if let failureText {
-                    failureRow(failureText, onRetry)
+                    failureRow(failureText, onRetry, onDismiss)
                 }
             }
 
@@ -61,7 +64,11 @@ struct ChatBubble: View {
     ///
     /// **이유를 적는다.** 전송 실패는 알럿을 띄우지 않으므로(이 줄이 그 자리를 지킨다)
     /// 여기가 비면 사용자는 왜 실패했는지 영영 알 수 없다.
-    private func failureRow(_ text: String, _ onRetry: (() -> Void)?) -> some View {
+    private func failureRow(
+        _ text: String,
+        _ onRetry: (() -> Void)?,
+        _ onDismiss: (() -> Void)?
+    ) -> some View {
         HStack(spacing: 6) {
             Text(text)
                 .font(.caption2)
@@ -71,6 +78,11 @@ struct ChatBubble: View {
                 Button("다시 시도", action: onRetry)
                     .font(.caption2.weight(.medium))
                     .foregroundStyle(Color.blue500)
+                    .buttonStyle(.plain)
+            } else if let onDismiss {
+                Button("치우기", action: onDismiss)
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(Color.slate500)
                     .buttonStyle(.plain)
             }
         }
@@ -95,13 +107,18 @@ struct ChatDateBadge: View {
 struct ChatLoadingBubble: View {
     var body: some View {
         HStack(spacing: 0) {
-            ProgressView()
-                .controlSize(.small)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 14))
+            // **문구를 함께 둔다.** LLM이 수 초 걸리는데 스피너만 돌면 무엇을 기다리는지
+            // 알 수 없다 — 끼니 카드의 「코치가 보고 있어요」와 같은 자리다.
+            HStack(spacing: 8) {
+                ProgressView().controlSize(.small)
+                Text("답을 만들고 있어요")
+                    .font(.caption)
+                    .foregroundStyle(Color.slate400)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 14))
             Spacer(minLength: 48)
         }
-        .accessibilityLabel("답변을 만들고 있어요")
     }
 }

@@ -1003,6 +1003,87 @@ struct DietChatLockTests {
         #expect(!vm.isSending)
     }
 
+    /// **같은 예약으로 두 번 들어와도 POST는 한 번이다.** 앞선 테스트는 두 번째 시도가
+    /// `isSending`에서 걸려 `reserved → delivering` 전이를 건드리지도 못했다 — 그 전이가
+    /// 지키는 것이 「유료 호출은 한 번」이라 그 계약을 직접 확인한다.
+    @Test func 같은_예약으로_두_번_들어와도_한_번만_보낸다() async {
+        let service = FakeDietService()
+        service.chatPages = [ChatPage(messages: [], nextCursor: nil)]
+        service.chatAnswers = [makeChatMessage(id: 9, role: .assistant, content: "답")]
+        let vm = makeTodayViewModel(service: service)
+        await vm.load()
+
+        let gate = AsyncGate()
+        service.askChatGate = gate
+        #expect(vm.accept("점심 왜 낮아?"))
+        let id = vm.pendingMessages[0].id
+        await gate.waitUntilBlocked()
+
+        // 이미 나가는 중인 같은 예약으로 다시 들어온다.
+        await vm.deliver(id)
+        #expect(service.askedChats.count == 1)
+        // **중복 호출이 남의 잠금을 풀지 않는다.**
+        #expect(vm.isSending)
+
+        await gate.open()
+        await vm.waitForDelivery()
+
+        #expect(service.askedChats.map(\.message) == ["점심 왜 낮아?"])
+        #expect(!vm.isSending)
+        #expect(streamTexts(vm) == ["점심 왜 낮아?", "답"])
+    }
+
+    /// 취소로 끝나도 소유권이 풀려야 한다 — 안 풀리면 입력창이 영영 잠긴다.
+    @Test func 취소로_끝나도_소유권이_풀린다() async {
+        let service = FakeDietService()
+        service.chatPages = [ChatPage(messages: [], nextCursor: nil)]
+        service.errors["askChat"] = CancellationError()
+        let vm = makeTodayViewModel(service: service)
+        await vm.load()
+
+        await vm.send("점심 왜 낮아?")
+
+        #expect(!vm.isSending)
+        #expect(vm.canSend)
+    }
+
+    /// 다시 보낼 수 없는 실패로 끝나도 마찬가지다.
+    @Test func 다시_보낼_수_없는_실패로_끝나도_소유권이_풀린다() async {
+        let service = FakeDietService()
+        service.chatPages = [ChatPage(messages: [], nextCursor: nil)]
+        service.errors["askChat"] = dietServerError("LLM_UNAVAILABLE", status: 503)
+        let vm = makeTodayViewModel(service: service)
+        await vm.load()
+
+        await vm.send("점심 왜 낮아?")
+
+        #expect(!vm.isSending)
+        #expect(vm.canSend)
+        #expect(!canRetryOnly(vm))
+    }
+
+    /// **다시 보낼 수 없는 실패는 치울 수 있어야 한다** — 그러지 않으면 화면에 영영 남는다.
+    /// 재시도가 있는 말풍선은 치우지 않는다 — 잘못 누르면 문장을 잃는다.
+    @Test func 다시_보낼_수_없는_실패만_치울_수_있다() async {
+        let service = FakeDietService()
+        service.chatPages = [ChatPage(messages: [], nextCursor: nil)]
+        service.errors["askChat"] = APIError.networkError(URLError(.notConnectedToInternet))
+        let vm = makeTodayViewModel(service: service)
+        await vm.load()
+        await vm.send("다시 보낼 수 있는 질문")
+
+        // 재시도가 붙은 말풍선은 치워지지 않는다.
+        vm.dismiss(vm.pendingMessages[0].id)
+        #expect(vm.pendingMessages.count == 1)
+
+        service.errors["askChat"] = dietServerError("LLM_UNAVAILABLE", status: 503)
+        await vm.send("다시 보낼 수 없는 질문")
+        #expect(vm.pendingMessages.count == 2)
+
+        vm.dismiss(vm.pendingMessages[1].id)
+        #expect(vm.pendingMessages.map(\.text) == ["다시 보낼 수 있는 질문"])
+    }
+
     /// **서버 설정 문제에는 재시도를 두지 않는다** — 배포가 바뀌기 전에는 눌러도 그대로다.
     @Test func 설정_실패에는_다시_시도가_붙지_않는다() async {
         let service = FakeDietService()
@@ -1288,6 +1369,26 @@ struct DietChatServiceTests {
         #expect(call.path == "/diet/days/2026-08-06/chat")
         let body = try #require(call.body as? ChatAskRequest)
         #expect(body.message == "점심 왜 낮아?")
+    }
+
+    /// **감싸는 봉투까지 그대로 읽는다.** 서버는 `DataResponseBody`로 한 겹 싸서 준다 —
+    /// 안쪽 모양만 맞고 봉투가 어긋나면 실기기에서 빈 화면으로만 보인다.
+    @Test func 응답_봉투를_그대로_읽는다() async throws {
+        let api = MockAPIClient()
+        let json = """
+        {"status":200,"message":"성공","data":{"messages":[
+          {"id":20,"type":"TEXT","date":"2026-08-06","role":"USER",
+           "createdAt":"2026-08-06T09:10:00","content":"점심 왜 낮아?"}
+        ],"nextCursor":null}}
+        """
+        let envelope = try JSONDecoder().decode(DataResponse<ChatPage>.self, from: Data(json.utf8))
+        api.stubGet("/diet/chat", result: envelope)
+        let service = DietService(api: api)
+
+        let page = try await service.fetchChatPage(before: nil, size: 30)
+
+        #expect(page.nextCursor == nil)
+        #expect(page.messages.map(\.content) == ["점심 왜 낮아?"])
     }
 
     /// 서버 응답을 있는 그대로 디코딩한다. **`createdAt`이 `Date`가 아니라 문자열인 이유가

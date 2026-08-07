@@ -497,7 +497,7 @@ final class DietChatViewModel {
         return "\(ChatPolicy.maxMessageLength)자까지 보낼 수 있어요 (지금 \(count)자)"
     }
 
-    /// 질문을 **접수한다.** 받아들였으면 그 말풍선을 돌려준다.
+    /// 질문을 **접수한다.** 받아들였으면 `true` — 화면은 그때만 입력창을 비운다.
     ///
     /// **판정과 접수가 한 번에 끝난다(중간에 `await`가 없다).** 화면이 이 결과를 보고
     /// 입력창을 비우기 때문이다 — 먼저 비우고 나중에 보내면, 그 사이 첫 장 교체가 시작돼
@@ -539,6 +539,18 @@ final class DietChatViewModel {
         message.failed && message.isRetryable && !isSending && !isReplacingStream
     }
 
+    /// 다시 보낼 수 없는 실패를 화면에서 치운다. **재시도가 있는 말풍선은 치우지 않는다** —
+    /// 지우는 버튼과 다시 보내는 버튼이 나란히 있으면 잘못 누르는 쪽이 문장을 잃는다.
+    ///
+    /// 서버에 닿았는지 모르는 실패(「보냈는지 확인하지 못했어요」)가 여기 걸린다 — 다시
+    /// 보낼 수는 없고, 그렇다고 화면에 영영 남겨 둘 이유도 없다. 실제로 실렸는지는 화면을
+    /// 다시 열면 서버가 알려 준다.
+    func dismiss(_ id: UUID) {
+        guard let message = pendingMessages.first(where: { $0.id == id }),
+              message.failed, !message.isRetryable else { return }
+        pendingMessages.removeAll { $0.id == id }
+    }
+
     /// **서버는 실패하면 아무것도 저장하지 않으므로**(질문·답을 한 트랜잭션에 쓴다) 같은
     /// 문장을 다시 보내도 중복이 남지 않는다.
     /// **말풍선을 지우고 새로 만들지 않는다.** 지웠다가 다시 붙이면 취소로 끝났을 때 새로 만든
@@ -558,7 +570,12 @@ final class DietChatViewModel {
     /// **예약을 「나가는 중」으로 한 번만 넘긴다.** 그 전이에서 이긴 호출만 실제로 보낸다 —
     /// 예약 상태만 확인하면 같은 말풍선으로 두 번 들어온 전송이 둘 다 통과해 유료 POST가
     /// 두 번 나간다.
-    private func deliver(_ id: UUID) async {
+    ///
+    /// **`private`이 아니다.** 지금 호출부는 셋(`accept`의 작업·`send`·`retry`)뿐이고 모두
+    /// 직전에 예약을 잡으므로 같은 id로 두 번 들어올 길이 없지만, 그러면 이 전이 가드가
+    /// 테스트에 안 닿는다 — 가드가 지키는 것이 「눌러도 유료 호출이 한 번」이라 그 계약은
+    /// 확인할 수 있어야 한다. 화면에는 여전히 id가 나가지 않는다(`accept`는 `Bool`이다).
+    func deliver(_ id: UUID) async {
         guard case .reserved(let reservedId) = delivery, reservedId == id,
               let message = pendingMessages.first(where: { $0.id == id }) else { return }
         delivery = .delivering(id)
