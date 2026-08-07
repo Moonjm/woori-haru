@@ -309,12 +309,11 @@ struct MealConfirmView: View {
 
             Spacer()
 
+            // 격자·하한은 `GramStepper`가 정한다 — 검색 상세·끼니 항목 수정과 같은 폭이다.
             Stepper("") {
-                vm.updateQuantity(item.quantityG + 50, of: item, in: groupId)
+                vm.increaseQuantity(of: item, in: groupId)
             } onDecrement: {
-                // 0까지 내려가면 뷰모델이 되돌릴 수 없게 막는다 — 바닥은 0이 아니라
-                // 10g로 둬서, 버튼이 바닥에서도 "먹히긴 했다"는 걸 보여준다.
-                vm.updateQuantity(max(10, item.quantityG - 50), of: item, in: groupId)
+                vm.decreaseQuantity(of: item, in: groupId)
             }
             .labelsHidden()
 

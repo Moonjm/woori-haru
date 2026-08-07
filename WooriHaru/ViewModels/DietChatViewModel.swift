@@ -48,6 +48,9 @@ final class DietChatViewModel {
     /// null이면 더 없다. 그때 무한 스크롤을 멈춘다.
     private(set) var nextCursor: Int?
     private(set) var hasLoaded = false
+    /// 첫 장 조회 자체가 실패했는지. **알럿을 닫아도 남아 있어야 한다** — 안 그러면 조회 실패가
+    /// 「쌓인 것이 없음」과 똑같은 빈 화면으로 보인다(`DietHomeView.failureState`와 같은 이유).
+    private(set) var loadFailed = false
     private(set) var isLoadingPage = false
     private(set) var isSending = false
     /// 페이지 조회 실패만 담는다. **전송 실패는 여기 오지 않는다** — 말풍선에 「다시 시도」가
@@ -117,44 +120,6 @@ final class DietChatViewModel {
         isInputLocked ? "이 날은 기록이 없어서 물어볼 것이 없어요" : nil
     }
 
-    /// **서버가 주지 않는다. 앵커 날짜의 하루로 조립한다** — 새 호출이 없다.
-    /// **빈 날이면 띄우지 않는다** — 물을 것이 없다.
-    var suggestedQuestions: [String] {
-        guard let anchorDay, !anchorDay.meals.isEmpty else { return [] }
-
-        var result: [String] = []
-
-        if let warned = anchorDay.nutrientLimits.first(where: { $0.status == .warn }) {
-            result.append(Self.nutrientQuestion(warned))
-        }
-
-        let scored = anchorDay.meals.compactMap { meal in meal.score.map { (meal.mealType, $0) } }
-        if let lowest = scored.min(by: { $0.1 < $1.1 }) {
-            result.append("\(lowest.0.label)\(Self.subjectParticle(lowest.0.label)) 왜 \(lowest.1)점이야?")
-        }
-
-        result.append(isAnchorToday ? "오늘 뭐가 부족했어?" : "이 날 뭐가 부족했어?")
-        return result
-    }
-
-    /// **`status`의 주인은 서버다.** 앱은 문구만 고른다 — `standardText`가 하한("30g 이상")이면
-    /// 모자라서 `WARN`이라 「왜 높아?」로 물으면 거짓말이 된다.
-    private static func nutrientQuestion(_ limit: NutrientLimit) -> String {
-        let particle = subjectParticle(limit.name)
-        if limit.standardText.hasSuffix("이상") {
-            return "\(limit.name)\(particle) 왜 부족해?"
-        }
-        return "\(limit.name)\(particle) 왜 높아?"
-    }
-
-    /// 「나트륨이」·「식이섬유가」. 받침이 있으면 「이」, 없으면 「가」다.
-    private static func subjectParticle(_ word: String) -> String {
-        guard let last = word.unicodeScalars.last, (0xAC00...0xD7A3).contains(last.value) else {
-            return "이"
-        }
-        return (last.value - 0xAC00) % 28 == 0 ? "가" : "이"
-    }
-
     // MARK: - 스트림
 
     var hasMore: Bool { nextCursor != nil }
@@ -221,6 +186,7 @@ final class DietChatViewModel {
         isLoadingPage = true
         defer { isLoadingPage = false }
         errorMessage = nil
+        loadFailed = false
 
         do {
             // **첫 장은 커서 없이 부른다.**
@@ -232,8 +198,21 @@ final class DietChatViewModel {
             return
         } catch {
             errorMessage = error.localizedDescription
+            loadFailed = true
         }
     }
+
+    /// 조회에 실패했을 때의 「다시 시도」.
+    func reload() async {
+        await loadFirstPage()
+    }
+
+    /// 아직 쌓인 것이 없다. **조회에 성공했을 때만 참이다** — 실패했거나 아직 안 끝났을 때
+    /// 이 문구를 띄우면 「없음」과 「못 받음」이 뒤섞여 보인다.
+    ///
+    /// 서버가 배포 전의 끼니·총평에 대한 카드를 **소급해 만들지 않아서**, 배포 직후에는
+    /// 이 상태가 정상이다.
+    var isEmpty: Bool { hasLoaded && !loadFailed && rows.isEmpty }
 
     /// 맨 위에 닿았을 때. **`nextCursor`가 nil이면 더 부르지 않고**, **로딩 중에도 부르지
     /// 않는다** — 스크롤이 위쪽에 머무는 동안 `onAppear`가 여러 번 뜬다.

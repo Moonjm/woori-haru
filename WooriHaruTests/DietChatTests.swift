@@ -44,20 +44,15 @@ private func hasAwaitingReply(_ rows: [ChatRow]) -> Bool {
     }
 }
 
-/// 앵커가 오늘인 뷰모델. 잠금·칩·전송 테스트가 쓴다 — 「오늘」 판정이 `Calendar`에 달려 있어
+/// 앵커가 오늘인 뷰모델. 잠금·전송 테스트가 쓴다 — 「오늘」 판정이 `Calendar`에 달려 있어
 /// 고정 날짜로는 재현할 수 없다.
 @MainActor
 private func makeTodayViewModel(
     service: FakeDietService,
-    meals: [Meal]? = nil,
-    nutrientLimits: [NutrientLimit]? = nil
+    meals: [Meal]? = nil
 ) -> DietChatViewModel {
     let today = Date().dateString
-    let day = makeDay(
-        date: today,
-        meals: meals ?? [makeMeal(date: today)],
-        nutrientLimits: nutrientLimits
-    )
+    let day = makeDay(date: today, meals: meals ?? [makeMeal(date: today)])
     return DietChatViewModel(service: service, anchorDate: Date(), day: day)
 }
 
@@ -312,7 +307,6 @@ struct DietChatLockTests {
 
         #expect(vm.isInputLocked)
         #expect(!vm.canSend)
-        #expect(vm.suggestedQuestions.isEmpty)
         #expect(vm.lockedNotice != nil)
         // **스트림은 그대로 보여준다** — 과거 대화를 읽는 데는 문제가 없다.
         #expect(messageIds(vm.rows) == [1])
@@ -330,48 +324,7 @@ struct DietChatLockTests {
         #expect(vm.pending == nil)
     }
 
-    @Test func 주의_영양소가_있으면_그_이름이_든_칩이_생긴다() async {
-        let service = FakeDietService()
-        service.chatPages = [ChatPage(messages: [], nextCursor: nil)]
-        let vm = makeTodayViewModel(service: service, nutrientLimits: [
-            NutrientLimit(name: "당류", intake: 40, unit: "g", standardText: "125g 이하", status: .ok),
-            NutrientLimit(name: "나트륨", intake: 3200, unit: "mg", standardText: "2,300mg 이하", status: .warn)
-        ])
-
-        await vm.load()
-
-        #expect(vm.suggestedQuestions.contains("나트륨이 왜 높아?"))
-    }
-
-    /// 식이섬유는 **모자라서** `WARN`이다 — 「왜 높아?」로 물으면 거짓말이 된다.
-    @Test func 하한_기준_영양소는_부족한지를_묻는다() async {
-        let service = FakeDietService()
-        service.chatPages = [ChatPage(messages: [], nextCursor: nil)]
-        let vm = makeTodayViewModel(service: service, nutrientLimits: [
-            NutrientLimit(name: "식이섬유", intake: 8, unit: "g", standardText: "30g 이상", status: .warn)
-        ])
-
-        await vm.load()
-
-        #expect(vm.suggestedQuestions.contains("식이섬유가 왜 부족해?"))
-    }
-
-    @Test func 점수가_가장_낮은_끼니의_칩이_생긴다() async {
-        let service = FakeDietService()
-        service.chatPages = [ChatPage(messages: [], nextCursor: nil)]
-        let today = Date().dateString
-        let vm = makeTodayViewModel(service: service, meals: [
-            makeMeal(id: 1, date: today, mealType: .lunch, score: 47),
-            makeMeal(id: 2, date: today, mealType: .dinner, score: 82)
-        ])
-
-        await vm.load()
-
-        #expect(vm.suggestedQuestions.contains("점심이 왜 47점이야?"))
-        #expect(!vm.suggestedQuestions.contains("저녁이 왜 82점이야?"))
-    }
-
-    /// 앵커가 오늘이면 칩을 띄우는 데 새 호출이 들지 않는다 — 화면이 하루를 넘겨준다.
+    /// 앵커가 오늘이면 잠금을 판단하는 데 새 호출이 들지 않는다 — 화면이 하루를 넘겨준다.
     @Test func 앵커_날짜의_하루는_다시_조회하지_않는다() async {
         let service = FakeDietService()
         service.chatPages = [ChatPage(messages: [], nextCursor: nil)]
@@ -401,6 +354,53 @@ struct DietChatLockTests {
         #expect(vm.anchorDateString == Date().dateString)
         // 오늘 하루는 갖고 있지 않았으므로 그때 한 번 조회한다.
         #expect(service.fetchedDates == [Date().dateString])
+    }
+}
+
+// MARK: - 빈 상태·조회 실패
+
+@MainActor
+struct DietChatEmptyStateTests {
+    /// 서버가 배포 전의 끼니·총평에는 카드를 **소급해 만들지 않는다** — 배포 직후에는
+    /// 비어 있는 것이 정상이다. 화면이 그때 아무 말도 안 하면 고장으로 읽힌다.
+    @Test func 쌓인_것이_없으면_빈_상태다() async {
+        let service = FakeDietService()
+        service.chatPages = [ChatPage(messages: [], nextCursor: nil)]
+        let vm = makeTodayViewModel(service: service)
+
+        await vm.load()
+
+        #expect(vm.isEmpty)
+        #expect(!vm.loadFailed)
+    }
+
+    /// **조회 실패를 「없음」과 구분한다.** 알럿을 닫고 나면 둘 다 빈 화면이라 사용자는
+    /// 대화가 없어진 줄로 읽는다.
+    @Test func 조회에_실패하면_빈_상태가_아니라_실패다() async {
+        let service = FakeDietService()
+        service.errors["fetchChatPage"] = dietServerError("INVALID_REQUEST")
+        let vm = makeTodayViewModel(service: service)
+
+        await vm.load()
+
+        #expect(vm.loadFailed)
+        #expect(!vm.isEmpty)
+        #expect(vm.errorMessage != nil)
+    }
+
+    @Test func 다시_시도해서_성공하면_실패_표시가_사라진다() async {
+        let service = FakeDietService()
+        service.errors["fetchChatPage"] = dietServerError("INVALID_REQUEST")
+        let vm = makeTodayViewModel(service: service)
+        await vm.load()
+
+        service.errors["fetchChatPage"] = nil
+        service.chatPages = [ChatPage(messages: [makeChatMessage()], nextCursor: nil)]
+        await vm.reload()
+
+        #expect(!vm.loadFailed)
+        #expect(!vm.isEmpty)
+        #expect(messageIds(vm.rows) == [1])
     }
 }
 

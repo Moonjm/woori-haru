@@ -56,9 +56,50 @@ struct DietChatView: View {
             .overlay {
                 if vm.isLoadingPage && !vm.hasLoaded {
                     ProgressView()
+                } else if vm.loadFailed {
+                    failureState
+                } else if vm.isEmpty {
+                    emptyState
                 }
             }
         }
+    }
+
+    /// **조회 실패를 「쌓인 것이 없음」과 구분한다.** 알럿을 닫고 나면 둘 다 빈 화면이라
+    /// 사용자는 대화가 없어진 줄로 읽는다(`DietHomeView.failureState`가 같은 판단을 한다).
+    private var failureState: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.largeTitle)
+                .foregroundStyle(Color.slate400)
+            Text("대화를 불러오지 못했습니다")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Color.slate700)
+            Button("다시 시도") {
+                Task { await vm.reload() }
+            }
+            .font(.caption.weight(.medium))
+            .foregroundStyle(Color.blue500)
+        }
+        .padding(32)
+    }
+
+    /// **서버가 배포 전의 끼니·총평에는 카드를 소급해 만들지 않는다.** 그래서 배포 직후에는
+    /// 비어 있는 것이 정상인데, 아무 말도 없으면 고장으로 읽힌다.
+    private var emptyState: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "bubble.left.and.text.bubble.right")
+                .font(.largeTitle)
+                .foregroundStyle(Color.slate300)
+            Text("아직 쌓인 것이 없어요")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Color.slate700)
+            Text("끼니를 확정하면 여기에 카드가 쌓이고,\n하루가 마감되면 총평이 붙어요.")
+                .font(.caption)
+                .foregroundStyle(Color.slate400)
+                .multilineTextAlignment(.center)
+        }
+        .padding(32)
     }
 
     /// 맨 위에 닿으면 다음 장을 부른다. **로딩 가드는 뷰모델에 있다** — 스크롤이 위쪽에
@@ -144,10 +185,6 @@ struct DietChatView: View {
 
     private var composer: some View {
         VStack(spacing: 8) {
-            if !vm.suggestedQuestions.isEmpty {
-                suggestionChips
-            }
-
             if let notice = vm.lockedNotice {
                 Text(notice)
                     .font(.caption)
@@ -164,30 +201,6 @@ struct DietChatView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
         .background(.bar)
-    }
-
-    /// 탭하면 **곧바로 전송된다** — 편집할 기회를 주면 두 번 탭해야 한다.
-    /// **빈 날이면 뷰모델이 빈 배열을 준다** — 물을 것이 없다.
-    private var suggestionChips: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(vm.suggestedQuestions, id: \.self) { question in
-                    Button {
-                        Task { await vm.send(question) }
-                    } label: {
-                        Text(question)
-                            .font(.caption.weight(.medium))
-                            .foregroundStyle(Color.blue500)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 7)
-                            .glassInputField(cornerRadius: 16)
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(!vm.canSend)
-                }
-            }
-            .padding(.horizontal, 1)
-        }
     }
 
     /// 「8월 1일에 대해 묻는 중」. `✕`를 누르면 앵커가 **오늘로** 돌아가고 칩은 사라진다.

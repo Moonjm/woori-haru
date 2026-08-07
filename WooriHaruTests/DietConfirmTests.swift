@@ -311,6 +311,31 @@ struct MealConfirmViewModelTests {
         #expect(vm.groups[0].items[0] == item)
     }
 
+    /// **등록 화면도 검색 상세·항목 수정과 같은 격자로 움직인다.** 이 화면이 오래 ±50g을
+    /// 따로 들고 있어서, 스테퍼를 10g에서 25g으로 바꿨을 때 여기만 안 따라왔다.
+    @Test func 스테퍼는_공용_격자로_움직인다() {
+        let vm = makeVM(twoPhotoAnalysis())
+        let groupId = vm.groups[0].id
+        let before = vm.groups[0].items[0].quantityG
+
+        vm.increaseQuantity(of: vm.groups[0].items[0], in: groupId)
+        #expect(vm.groups[0].items[0].quantityG == before + GramStepper.step)
+
+        vm.decreaseQuantity(of: vm.groups[0].items[0], in: groupId)
+        #expect(vm.groups[0].items[0].quantityG == before)
+    }
+
+    /// 바닥은 0이 아니다 — 0을 들여보내면 영양소가 0에 묶인다.
+    @Test func 스테퍼는_하한_아래로_안_내려간다() {
+        let vm = makeVM(twoPhotoAnalysis())
+        let groupId = vm.groups[0].id
+        vm.updateQuantity(GramStepper.minimum, of: vm.groups[0].items[0], in: groupId)
+
+        vm.decreaseQuantity(of: vm.groups[0].items[0], in: groupId)
+
+        #expect(vm.groups[0].items[0].quantityG == GramStepper.minimum)
+    }
+
     /// 버그가 깨뜨렸던 왕복 — 바닥(0)을 찍으려던 시도가 무시되고 나면, 이어지는 증가가
     /// 원래 수량 기준으로 다시 비례해야 한다(0에 묶여 있으면 안 된다).
     @Test func 바닥을_찍으려다_실패한_뒤_늘리면_영양소가_비례해_돌아온다() {
