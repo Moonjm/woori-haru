@@ -40,7 +40,12 @@ struct DietChatView: View {
             ScrollView {
                 LazyVStack(spacing: 10) {
                     if vm.hasMore {
-                        topLoader(proxy)
+                        // 실패한 뒤에도 스피너를 돌리면 영영 불러오는 중인 것처럼 보인다.
+                        if vm.nextPageFailed {
+                            topRetry(proxy)
+                        } else {
+                            topLoader(proxy)
+                        }
                     }
 
                     ForEach(vm.rows) { row in
@@ -109,17 +114,35 @@ struct DietChatView: View {
             .controlSize(.small)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 8)
-            .onAppear {
-                Task {
-                    // **스크롤 위치를 유지한다.** 위에 붙이면 콘텐츠가 밀려 읽던 자리가 튄다 —
-                    // 붙이기 전의 첫 줄에 앵커를 잡았다가 되돌린다.
-                    let anchor = vm.rows.first?.id
-                    await vm.loadNextPage()
-                    if let anchor {
-                        proxy.scrollTo(anchor, anchor: .top)
-                    }
-                }
+            .onAppear { loadNextPage(proxy) }
+    }
+
+    /// 실패한 자리. **알럿을 띄우지 않는다** — 스크롤하다 실패할 때마다 알럿이 튀어나오면
+    /// 읽는 것을 방해한다.
+    private func topRetry(_ proxy: ScrollViewProxy) -> some View {
+        VStack(spacing: 4) {
+            Text("이전 대화를 불러오지 못했어요")
+                .font(.caption2)
+                .foregroundStyle(Color.slate400)
+            Button("다시 시도") { loadNextPage(proxy) }
+                .font(.caption.weight(.medium))
+                .foregroundStyle(Color.blue500)
+                .buttonStyle(.plain)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
+    }
+
+    /// **스크롤 위치를 유지한다.** 위에 붙이면 콘텐츠가 밀려 읽던 자리가 튄다 — 붙이기 전의
+    /// 첫 줄에 앵커를 잡았다가 되돌린다.
+    private func loadNextPage(_ proxy: ScrollViewProxy) {
+        Task {
+            let anchor = vm.rows.first?.id
+            await vm.loadNextPage()
+            if let anchor {
+                proxy.scrollTo(anchor, anchor: .top)
             }
+        }
     }
 
     @ViewBuilder
@@ -136,7 +159,8 @@ struct DietChatView: View {
                 text: pending.text,
                 isUser: true,
                 badge: badge,
-                onRetry: pending.failed ? { Task { await vm.retry() } } : nil
+                failureText: pending.failed ? (pending.failureReason ?? "보내지 못했어요") : nil,
+                onRetry: vm.canRetry ? { Task { await vm.retry() } } : nil
             )
 
         case .awaitingReply:

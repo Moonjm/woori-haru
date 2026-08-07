@@ -10,6 +10,9 @@ struct PendingChatMessage: Identifiable, Hashable {
     let date: String
     let text: String
     var failed = false
+    /// 왜 못 보냈는지. **전송 실패는 알럿을 띄우지 않으므로**(말풍선이 그 자리를 지킨다)
+    /// 이유가 여기 없으면 사용자는 영영 알 수 없고 같은 본문으로 재시도만 반복한다.
+    var failureReason: String?
 }
 
 /// 스트림에 그려지는 한 줄. **뷰가 아니라 뷰모델이 조립한다** — 구분선을 어디서 끊을지,
@@ -52,6 +55,11 @@ final class DietChatViewModel {
     /// 「쌓인 것이 없음」과 똑같은 빈 화면으로 보인다(`DietHomeView.failureState`와 같은 이유).
     private(set) var loadFailed = false
     private(set) var isLoadingPage = false
+    /// 다음 장 조회가 실패했다. **스피너를 계속 돌리지 않는다** — 실패한 뒤에도 돌면 영영
+    /// 불러오는 중인 것처럼 보인다. 그 자리에 다시 시도할 길을 둔다.
+    private(set) var nextPageFailed = false
+    /// 앵커 날짜의 하루를 받는 중.
+    private(set) var isLoadingDay = false
     private(set) var isSending = false
     /// 페이지 조회 실패만 담는다. **전송 실패는 여기 오지 않는다** — 말풍선에 「다시 시도」가
     /// 붙으므로 알럿까지 띄우면 같은 사실을 두 번 말한다.
@@ -106,18 +114,30 @@ final class DietChatViewModel {
 
     // MARK: - 잠금·칩
 
+    /// 앵커 날짜에 기록이 있는가. **모르면 nil이다** — 「모른다」와 「없다」를 같은 값으로
+    /// 만들지 않는다.
+    private var anchorHasMeals: Bool? {
+        anchorDay.map { !$0.meals.isEmpty }
+    }
+
     /// 그날 기록이 없으면 서버가 400으로 거절한다. 플로팅 버튼이 늘 떠 있어서 기록 전에
     /// 누르는 일이 흔한데, 그때마다 오류 알럿을 띄우면 곤란하다.
     ///
-    /// **하루를 아직 못 받았으면 잠그지 않는다.** 모르는 것을 「없다」로 단정하면 기록이 있는
-    /// 날에도 입력창이 막힌다(`DietDayViewModel`이 프로필 조회 실패에서 같은 판단을 한다).
+    /// **받는 중에는 잠근다** — 그 창에서 보내면 빈 날일 때 그대로 400을 맞는다. 앵커를
+    /// 오늘로 되돌린 직후가 특히 그렇다.
+    ///
+    /// **못 받았으면 잠그지 않는다.** 모르는 것을 「없다」로 단정하면 하루 조회가 한 번
+    /// 실패한 날에는 기록이 있어도 입력창이 영영 막힌다(`DietDayViewModel`이 프로필 조회
+    /// 실패에서 같은 판단을 한다). 대신 그 상태로 보냈다가 거절당하면 그때 하루를 다시 받아
+    /// 잠근다(`deliver`) — 그래서 같은 400이 두 번 나지 않는다.
     var isInputLocked: Bool {
-        guard let anchorDay else { return false }
-        return anchorDay.meals.isEmpty
+        if isLoadingDay { return true }
+        return anchorHasMeals == false
     }
 
+    /// **받는 중에는 띄우지 않는다** — 아직 모르는 것을 「기록이 없다」고 말하면 거짓말이 된다.
     var lockedNotice: String? {
-        isInputLocked ? "이 날은 기록이 없어서 물어볼 것이 없어요" : nil
+        anchorHasMeals == false ? "이 날은 기록이 없어서 물어볼 것이 없어요" : nil
     }
 
     // MARK: - 스트림
@@ -220,6 +240,7 @@ final class DietChatViewModel {
         guard !isLoadingPage, let cursor = nextCursor else { return }
         isLoadingPage = true
         defer { isLoadingPage = false }
+        nextPageFailed = false
 
         do {
             let page = try await service.fetchChatPage(before: cursor, size: ChatPolicy.pageSize)
@@ -228,16 +249,21 @@ final class DietChatViewModel {
         } catch is CancellationError {
             return
         } catch {
-            errorMessage = error.localizedDescription
+            // **알럿을 띄우지 않는다.** 스크롤하다 실패할 때마다 알럿이 튀어나오면 읽는 것을
+            // 방해한다 — 맨 위의 「다시 시도」가 같은 사실을 조용히 말한다.
+            nextPageFailed = true
         }
     }
 
     private func loadDayIfNeeded(_ date: String) async {
         guard daysByDate[date] == nil else { return }
+        isLoadingDay = true
+        defer { isLoadingDay = false }
         do {
             daysByDate[date] = try await service.fetchDay(date: date)
         } catch {
-            // 하루를 못 받아도 스트림은 그대로 읽을 수 있다. 칩이 안 뜨고 잠금 판단만 보류된다.
+            // 하루를 못 받아도 스트림은 그대로 읽을 수 있다. **여기서 잠그지 않는다** —
+            // 모르는 것을 「없다」로 단정하면 기록이 있는 날에도 막힌다(`isInputLocked`).
         }
     }
 
@@ -268,10 +294,17 @@ final class DietChatViewModel {
         await deliver(PendingChatMessage(date: anchorDateString, text: trimmed))
     }
 
-    /// 「다시 시도」. **서버는 실패하면 아무것도 저장하지 않으므로**(질문·답을 한 트랜잭션에
-    /// 쓴다) 같은 문장을 다시 보내도 중복이 남지 않는다.
+    /// 「다시 시도」를 띄울지. **결과가 뻔한 실패에는 두지 않는다** — 빈 날로 거절당한 뒤에는
+    /// 아래에서 하루를 다시 받아 입력창이 잠기므로, 같은 400을 반복할 길을 남기지 않는다.
+    var canRetry: Bool {
+        guard let pending, pending.failed else { return false }
+        return canSend
+    }
+
+    /// **서버는 실패하면 아무것도 저장하지 않으므로**(질문·답을 한 트랜잭션에 쓴다) 같은
+    /// 문장을 다시 보내도 중복이 남지 않는다.
     func retry() async {
-        guard let pending, pending.failed, !isSending else { return }
+        guard canRetry, let pending else { return }
         await deliver(PendingChatMessage(date: pending.date, text: pending.text))
     }
 
@@ -292,6 +325,25 @@ final class DietChatViewModel {
         } catch {
             // **말풍선을 남긴다.** 지우면 사용자가 다시 타이핑해야 한다.
             pending?.failed = true
+            pending?.failureReason = Self.failureReason(for: error)
+
+            // **빈 날이라 거절당했으면 그 날짜를 다시 받는다.** 하루 조회가 실패해 잠그지
+            // 못했던 날이 여기서 잠긴다 — 안 그러면 「다시 시도」가 같은 400을 무한히 만든다.
+            if error.dietErrorCode == .invalidRequest {
+                daysByDate[message.date] = nil
+                await loadDayIfNeeded(message.date)
+            }
+        }
+    }
+
+    /// 「보내지 못했어요」만으로는 왜인지 알 수 없다 — 서버가 이유를 밝힌 경우에는 그것을 쓴다.
+    /// 모르는 오류는 nil이라 말풍선이 기본 문구만 단다.
+    private static func failureReason(for error: any Error) -> String? {
+        switch error.dietErrorCode {
+        case .invalidRequest: "이 날은 기록이 없어서 물어볼 수 없어요"
+        case .chatFailed: "답을 만들지 못했어요. 잠시 후 다시 시도해 주세요"
+        case .llmUnavailable: "코치가 아직 준비되지 않았어요"
+        default: nil
         }
     }
 

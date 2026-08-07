@@ -153,6 +153,30 @@ struct DietChatPagingTests {
         #expect(messageIds(vm.rows) == [17, 18, 19, 20])
     }
 
+    /// **실패한 뒤에도 스피너를 돌리면 영영 불러오는 중인 것처럼 보인다.** 커서는 남겨
+    /// 두어야 「다시 시도」가 같은 자리를 다시 부를 수 있다.
+    @Test func 다음_장_조회가_실패하면_다시_시도할_자리를_남긴다() async {
+        let service = FakeDietService()
+        service.chatPages = [ChatPage(messages: [makeChatMessage(id: 20)], nextCursor: 19)]
+        let vm = DietChatViewModel(service: service, anchorDate: Date(), day: makeDay())
+        await vm.load()
+
+        service.errors["fetchChatPage"] = dietServerError("INVALID_REQUEST")
+        await vm.loadNextPage()
+
+        #expect(vm.nextPageFailed)
+        #expect(vm.hasMore)
+        // 스크롤 중에 알럿이 튀어나오면 읽는 것을 방해한다 — 맨 위 줄이 대신 말한다.
+        #expect(vm.errorMessage == nil)
+
+        service.errors["fetchChatPage"] = nil
+        service.chatPages = [ChatPage(messages: [makeChatMessage(id: 18)], nextCursor: nil)]
+        await vm.loadNextPage()
+
+        #expect(!vm.nextPageFailed)
+        #expect(messageIds(vm.rows) == [18, 20])
+    }
+
     @Test func 다음_커서가_없으면_더_부르지_않는다() async {
         let service = FakeDietService()
         service.chatPages = [ChatPage(messages: [makeChatMessage()], nextCursor: nil)]
@@ -371,6 +395,73 @@ struct DietChatLockTests {
         #expect(vm.pending == nil)
     }
 
+    /// **하루를 받는 동안에는 잠근다.** 앵커를 오늘로 되돌린 직후가 특히 그렇다 — 그 창에서
+    /// 보내면 오늘이 빈 날일 때 그대로 400을 맞는다.
+    @Test func 하루를_받는_동안에는_잠긴다() async {
+        let service = FakeDietService()
+        service.chatPages = [ChatPage(messages: [], nextCursor: nil)]
+        service.days = [makeDay(date: Date().dateString, meals: [])]
+        let vm = DietChatViewModel(
+            service: service,
+            anchorDate: Date.from("2026-08-01")!,
+            day: makeDay(date: "2026-08-01", meals: [makeMeal(date: "2026-08-01")])
+        )
+        await vm.load()
+        #expect(!vm.isInputLocked)
+
+        let gate = AsyncGate()
+        service.fetchDayGates[Date().dateString] = gate
+        let resetting = Task { await vm.resetAnchorToToday() }
+        await gate.waitUntilBlocked()
+
+        #expect(vm.isInputLocked)
+        // 아직 모르는 것을 「기록이 없다」고 말하면 거짓말이 된다.
+        #expect(vm.lockedNotice == nil)
+
+        await gate.open()
+        await resetting.value
+    }
+
+    /// **모르는 것을 「없다」로 단정하지 않는다.** 하루 조회가 실패한 날까지 잠그면 기록이
+    /// 있어도 영영 물어볼 수 없다(`DietDayViewModel`이 프로필 조회 실패에서 같은 판단을 한다).
+    @Test func 하루를_못_받았으면_잠그지_않는다() async {
+        let service = FakeDietService()
+        service.chatPages = [ChatPage(messages: [], nextCursor: nil)]
+        service.errors["fetchDay"] = dietServerError("RESOURCE_NOT_FOUND", status: 404)
+        let vm = DietChatViewModel(service: service, anchorDate: Date(), day: nil)
+
+        await vm.load()
+
+        #expect(!vm.isInputLocked)
+        #expect(vm.lockedNotice == nil)
+    }
+
+    /// 그 대신 **한 번 거절당하면 그때 잠근다** — 안 그러면 「다시 시도」가 같은 400을
+    /// 무한히 만든다.
+    @Test func 빈_날로_거절당하면_하루를_다시_받아_잠근다() async {
+        let service = FakeDietService()
+        service.chatPages = [ChatPage(messages: [], nextCursor: nil)]
+        service.errors["fetchDay"] = dietServerError("RESOURCE_NOT_FOUND", status: 404)
+        let vm = DietChatViewModel(service: service, anchorDate: Date(), day: nil)
+        await vm.load()
+        #expect(!vm.isInputLocked)
+
+        // 서버는 그날 기록이 없다고 400을 준다. 이번에는 하루 조회가 성공한다.
+        service.errors["askChat"] = dietServerError("INVALID_REQUEST")
+        service.errors["fetchDay"] = nil
+        service.days = [makeDay(date: Date().dateString, meals: [])]
+
+        await vm.send("오늘 뭐가 부족했어?")
+
+        #expect(vm.isInputLocked)
+        #expect(vm.pending?.failureReason == "이 날은 기록이 없어서 물어볼 수 없어요")
+        // 눌러도 같은 거절이 돌아오는 재시도는 두지 않는다.
+        #expect(!vm.canRetry)
+
+        await vm.retry()
+        #expect(service.askedChats.count == 1)
+    }
+
     /// 앵커가 오늘이면 잠금을 판단하는 데 새 호출이 들지 않는다 — 화면이 하루를 넘겨준다.
     @Test func 앵커_날짜의_하루는_다시_조회하지_않는다() async {
         let service = FakeDietService()
@@ -401,6 +492,85 @@ struct DietChatLockTests {
         #expect(vm.anchorDateString == Date().dateString)
         // 오늘 하루는 갖고 있지 않았으므로 그때 한 번 조회한다.
         #expect(service.fetchedDates == [Date().dateString])
+    }
+}
+
+// MARK: - 서비스 경계
+
+/// **경로·쿼리·본문이 서버 계약과 맞아야 한다.** 어긋나면 실기기에서 400이나 404로만 보이고
+/// 앱 로그에는 이유가 안 남는다(`MealTypeChangeServiceTests.경로와_본문이_맞다`와 같은 이유).
+struct DietChatServiceTests {
+    @Test func 첫_장은_before를_쿼리에서_아예_뺀다() async throws {
+        let api = MockAPIClient()
+        api.stubGet("/diet/chat", result: DataResponse(data: ChatPage(messages: [], nextCursor: nil)))
+        let service = DietService(api: api)
+
+        _ = try await service.fetchChatPage(before: nil, size: 30)
+
+        let call = try #require(api.getCalls.first)
+        #expect(call.path == "/diet/chat")
+        #expect(call.query["size"] == "30")
+        // **빈 문자열을 보내면 서버가 `Long` 변환에 실패해 400을 준다** — 키 자체가 없어야 한다.
+        #expect(call.query["before"] == nil)
+    }
+
+    @Test func 다음_장은_커서를_쿼리에_싣는다() async throws {
+        let api = MockAPIClient()
+        api.stubGet("/diet/chat", result: DataResponse(data: ChatPage(messages: [], nextCursor: nil)))
+        let service = DietService(api: api)
+
+        _ = try await service.fetchChatPage(before: 19, size: 30)
+
+        let call = try #require(api.getCalls.first)
+        #expect(call.query["before"] == "19")
+    }
+
+    @Test func 질문은_날짜_경로와_message_본문으로_나간다() async throws {
+        let api = MockAPIClient()
+        api.stubPost(
+            "/diet/days/2026-08-06/chat",
+            result: DataResponse(data: makeChatMessage(id: 9, role: .assistant, content: "답"))
+        )
+        let service = DietService(api: api)
+
+        _ = try await service.askChat(date: "2026-08-06", message: "점심 왜 낮아?")
+
+        let call = try #require(api.postCalls.first)
+        #expect(call.path == "/diet/days/2026-08-06/chat")
+        let body = try #require(call.body as? ChatAskRequest)
+        #expect(body.message == "점심 왜 낮아?")
+    }
+
+    /// 서버 응답을 있는 그대로 디코딩한다. **`createdAt`이 `Date`가 아니라 문자열인 이유가
+    /// 여기 있다** — `APIClient`의 디코더에 날짜 전략이 없어 `Date`로 받으면 숫자를 기대하다
+    /// 실패한다. 카드 행의 `content`가 null인 것도 함께 못 박는다.
+    @Test func 서버_응답_모양을_그대로_읽는다() throws {
+        let json = """
+        {"messages":[
+          {"id":21,"type":"MEAL_CARD","date":"2026-08-01","role":"ASSISTANT",
+           "createdAt":"2026-08-03T09:12:33.123456","content":null,
+           "meal":{"mealId":7,"mealType":"LUNCH","score":74,
+             "scoreBasis":{"standard":"KDRIs","macros":[
+               {"name":"탄수화물","percent":46,"rangeMin":50,"rangeMax":65,"status":"UNDER","penalty":4}]},
+             "totalKcal":696,"carbsG":80,"proteinG":27,"fatG":29,
+             "photoUrl":"https://example.com/1.jpg","feedback":null}},
+          {"id":20,"type":"TEXT","date":"2026-08-01","role":"USER",
+           "createdAt":"2026-08-03T09:10:00","content":"점심 왜 낮아?"}
+        ],"nextCursor":19}
+        """
+        let page = try JSONDecoder().decode(ChatPage.self, from: Data(json.utf8))
+
+        #expect(page.nextCursor == 19)
+        let card = try #require(page.messages.first)
+        #expect(card.type == .mealCard)
+        #expect(card.content == nil)
+        #expect(card.meal?.score == 74)
+        // 피드백 생성 중이면 null이다 — 그 자리를 「코치가 보고 있어요」로 채운다.
+        #expect(card.meal?.feedback == nil)
+        #expect(card.meal?.scoreBasis?.macros.first?.percent == 46)
+        // 날짜 구분선이 쓰는 값. 마이크로초가 붙어도 앞 10자를 그대로 읽는다.
+        #expect(card.createdAtDay == "2026-08-03")
+        #expect(page.messages.last?.content == "점심 왜 낮아?")
     }
 }
 

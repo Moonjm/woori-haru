@@ -10,7 +10,10 @@ struct ChatBubble: View {
     let isUser: Bool
     /// 「08-01」. **`date`가 구분선 날짜와 다를 때만 온다** — 판단은 뷰모델이 한다.
     var badge: String?
-    /// 보내지 못한 말풍선이면 온다. 누르면 같은 문장을 다시 보낸다.
+    /// 보내지 못한 말풍선이면 온다.
+    var failureText: String?
+    /// **다시 보낼 수 있을 때만 온다.** 빈 날처럼 결과가 뻔한 실패에는 재시도를 두지 않는다 —
+    /// 눌러도 같은 거절이 돌아온다.
     var onRetry: (() -> Void)?
 
     var body: some View {
@@ -30,8 +33,8 @@ struct ChatBubble: View {
                     .padding(.vertical, 9)
                     .modifier(BubbleSurface(isUser: isUser))
 
-                if let onRetry {
-                    failureRow(onRetry)
+                if let failureText {
+                    failureRow(failureText, onRetry)
                 }
             }
 
@@ -55,15 +58,21 @@ struct ChatBubble: View {
 
     /// **말풍선을 지우지 않는다** — 지우면 사용자가 다시 타이핑해야 한다. 서버는 실패하면
     /// 질문도 저장하지 않으므로(한 트랜잭션) 재시도가 안전하다.
-    private func failureRow(_ onRetry: @escaping () -> Void) -> some View {
+    ///
+    /// **이유를 적는다.** 전송 실패는 알럿을 띄우지 않으므로(이 줄이 그 자리를 지킨다)
+    /// 여기가 비면 사용자는 왜 실패했는지 영영 알 수 없다.
+    private func failureRow(_ text: String, _ onRetry: (() -> Void)?) -> some View {
         HStack(spacing: 6) {
-            Text("보내지 못했어요")
+            Text(text)
                 .font(.caption2)
                 .foregroundStyle(Color.red500)
-            Button("다시 시도", action: onRetry)
-                .font(.caption2.weight(.medium))
-                .foregroundStyle(Color.blue500)
-                .buttonStyle(.plain)
+                .fixedSize(horizontal: false, vertical: true)
+            if let onRetry {
+                Button("다시 시도", action: onRetry)
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(Color.blue500)
+                    .buttonStyle(.plain)
+            }
         }
     }
 }

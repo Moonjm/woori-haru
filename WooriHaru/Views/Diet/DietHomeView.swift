@@ -101,9 +101,12 @@ struct DietHomeView: View {
     ///
     /// **프로필이 없으면 띄우지 않는다.** 점수도 총평도 없어 코치가 답할 근거가 없고,
     /// 툴바가 이미 「목표부터 정하기」로 한 길만 열어 두고 있다.
+    ///
+    /// **조회가 끝나기 전에는 띄우지 않는다.** `needsProfile`은 기본값이 `false`라, 그 전에
+    /// 그리면 프로필이 없는 사용자에게도 버튼이 잠깐 떴다 사라진다.
     @ViewBuilder
     private var chatButton: some View {
-        if !vm.needsProfile {
+        if vm.hasLoaded, !vm.needsProfile {
             Button {
                 showChat = true
             } label: {
@@ -155,7 +158,13 @@ struct DietHomeView: View {
             // **프로필이 없으면 기록을 시작조차 시키지 않는다.** 서버가 확정을 거절하는데,
             // 그 사실이 인식이 다 끝난 뒤에야 드러나면 사용자는 기다린 시간을 버리고 LLM
             // 비용은 이미 나간 뒤다. 프로필 화면을 저장 없이 닫아도 여기로 다시 온다.
-            if vm.needsProfile {
+            //
+            // **조회가 끝나기 전에는 어느 쪽도 띄우지 않는다.** `needsProfile`은 기본값이
+            // `false`라, 그 전에 그리면 프로필이 없는 사용자에게 「끼니 추가」가 잠깐 떴다가
+            // 「목표부터 정하기」로 바뀐다 — 그 창에 눌리면 확정 단계에서 거절당한다.
+            if !vm.hasLoaded {
+                EmptyView()
+            } else if vm.needsProfile {
                 Button {
                     showProfile = true
                 } label: {
