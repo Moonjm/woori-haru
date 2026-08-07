@@ -110,4 +110,13 @@ struct ChatAskRequest: Encodable {
 enum ChatPolicy {
     /// 서버 기본값과 같다. 상한은 100이다.
     static let pageSize = 30
+
+    /// 서버가 `@Size(max = 500)`으로 거절하는 길이. **보내기 전에 앱이 막는다** — 거절당하면
+    /// 말풍선에 「보내지 못했어요」만 남는데, 전송 실패는 알럿을 띄우지 않아서(말풍선이 이미
+    /// 말하므로) 사용자는 왜 실패했는지 알 길이 없고 「다시 시도」는 같은 본문을 그대로 다시
+    /// 보내 영원히 실패한다. `NutritionProfileLimits`가 몸무게에서 같은 판단을 한다.
+    ///
+    /// **`utf16` 길이로 센다.** 서버 `@Size`는 자바 `String.length`(UTF-16 코드 단위)를 보므로
+    /// `String.count`(문자 수)로 재면 이모지가 섞였을 때 앱은 통과시키고 서버가 거절한다.
+    static let maxMessageLength = 500
 }

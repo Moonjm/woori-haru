@@ -192,6 +192,13 @@ struct DietChatView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
 
+            if let hint = vm.lengthNotice(for: draft) {
+                Text(hint)
+                    .font(.caption2)
+                    .foregroundStyle(Color.orange400)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
             if let anchorText = vm.anchorChipText {
                 anchorChip(anchorText)
             }
@@ -248,8 +255,6 @@ struct DietChatView: View {
         }
     }
 
-    /// **전송 중에는 입력창과 칩을 잠근다** — `MealConfirmViewModel.isSaving`과 같은 가드다.
-    private var canSubmit: Bool {
-        vm.canSend && !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
+    /// **판단은 뷰모델이 한다** — 전송 중 잠금과 길이 상한이 둘 다 여기 걸린다.
+    private var canSubmit: Bool { vm.isSendable(draft) }
 }

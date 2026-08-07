@@ -246,9 +246,25 @@ final class DietChatViewModel {
     /// **전송 중에는 다시 못 보낸다** — `MealConfirmViewModel.isSaving`과 같은 가드다.
     var canSend: Bool { !isSending && !isInputLocked }
 
-    func send(_ text: String) async {
+    /// 이 문장을 지금 보낼 수 있는가. **길이까지 여기서 본다** — 서버가 거절할 본문을
+    /// 내보내면 「보내지 못했어요」만 남고 재시도는 같은 본문으로 영원히 실패한다
+    /// (`ChatPolicy.maxMessageLength`).
+    func isSendable(_ text: String) -> Bool {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard canSend, !trimmed.isEmpty else { return }
+        return canSend && !trimmed.isEmpty && trimmed.utf16.count <= ChatPolicy.maxMessageLength
+    }
+
+    /// 상한을 넘었을 때만 준다. **잠긴 이유를 적어 준다** — 안 알려 주면 눌리지 않는 버튼만
+    /// 남는다(`MealItemEditView.manualHint`가 같은 자리를 메운다).
+    func lengthNotice(for text: String) -> String? {
+        let count = text.trimmingCharacters(in: .whitespacesAndNewlines).utf16.count
+        guard count > ChatPolicy.maxMessageLength else { return nil }
+        return "\(ChatPolicy.maxMessageLength)자까지 보낼 수 있어요 (지금 \(count)자)"
+    }
+
+    func send(_ text: String) async {
+        guard isSendable(text) else { return }
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         await deliver(PendingChatMessage(date: anchorDateString, text: trimmed))
     }
 

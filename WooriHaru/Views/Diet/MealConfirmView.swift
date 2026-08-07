@@ -145,7 +145,12 @@ struct MealConfirmView: View {
                         }
                     }
                 }
-                .disabled(!vm.canSave)
+                // **재인식 중에는 잠근다.** 서버가 그 분석을 `PENDING`으로 되돌리고
+                // 확정을 `ANALYSIS_NOT_CONFIRMABLE`로 거절한다 — 눌리기는 하는데 거절당하는
+                // 버튼을 두지 않는다. `isRetrying`은 `MealCaptureViewModel.retry()`가 폴링까지
+                // 끝낼 때까지 참이라(같은 함수 스코프의 `defer`) 서버가 `PENDING`인 구간과
+                // 그대로 겹친다.
+                .disabled(!vm.canSave || isRetrying)
             }
         }
         .sheet(item: $editTarget) { target in

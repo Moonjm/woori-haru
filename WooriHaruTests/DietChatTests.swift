@@ -270,6 +270,53 @@ struct DietChatSendTests {
         #expect(vm.messages.map(\.content) == ["점심 왜 낮아?", "나트륨이 기준을 넘었어요"])
     }
 
+    /// **서버가 거절할 본문은 보내지 않는다**(`@Size(max = 500)`). 보내 버리면 말풍선에
+    /// 「보내지 못했어요」만 남는데, 전송 실패는 알럿을 띄우지 않아서 왜 실패했는지 알 길이
+    /// 없고 「다시 시도」는 같은 본문으로 영원히 실패한다.
+    @Test func 상한을_넘는_문장은_나가지_않는다() async {
+        let service = FakeDietService()
+        service.chatPages = [ChatPage(messages: [], nextCursor: nil)]
+        let vm = makeTodayViewModel(service: service)
+        await vm.load()
+
+        let tooLong = String(repeating: "가", count: ChatPolicy.maxMessageLength + 1)
+        #expect(!vm.isSendable(tooLong))
+        #expect(vm.lengthNotice(for: tooLong) != nil)
+
+        await vm.send(tooLong)
+
+        #expect(service.askedChats.isEmpty)
+        #expect(vm.pending == nil)
+    }
+
+    /// 경계는 포함이다 — 한 글자 차이로 보내지 못하면 상한이 실제보다 좁아진다.
+    @Test func 상한과_같은_길이는_보낸다() async {
+        let service = FakeDietService()
+        service.chatPages = [ChatPage(messages: [], nextCursor: nil)]
+        service.chatAnswers = [makeChatMessage(id: 9, role: .assistant, content: "답")]
+        let vm = makeTodayViewModel(service: service)
+        await vm.load()
+
+        let exact = String(repeating: "가", count: ChatPolicy.maxMessageLength)
+        #expect(vm.isSendable(exact))
+        #expect(vm.lengthNotice(for: exact) == nil)
+
+        await vm.send(exact)
+
+        #expect(service.askedChats.map(\.message) == [exact])
+    }
+
+    /// 서버 `@Size`는 자바 `String.length`(UTF-16 코드 단위)를 본다 — 문자 수로 재면
+    /// 이모지가 섞였을 때 앱은 통과시키고 서버가 거절한다.
+    @Test func 길이는_서버와_같은_단위로_센다() {
+        let vm = makeTodayViewModel(service: FakeDietService())
+
+        // 이모지 하나가 UTF-16으로 두 칸이라, 문자 수로는 상한 안이지만 서버는 거절한다.
+        let emojiHeavy = String(repeating: "🍚", count: ChatPolicy.maxMessageLength / 2 + 1)
+        #expect(emojiHeavy.count <= ChatPolicy.maxMessageLength)
+        #expect(!vm.isSendable(emojiHeavy))
+    }
+
     @Test func 전송_중에는_다시_보낼_수_없다() async {
         let service = FakeDietService()
         service.chatPages = [ChatPage(messages: [], nextCursor: nil)]
