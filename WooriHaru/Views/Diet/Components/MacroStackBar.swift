@@ -13,14 +13,17 @@ struct MacroStackBar: View {
 
     /// 칸 사이 간격.
     static let spacing: CGFloat = 2
-    /// 이 폭보다 좁은 칸에는 숫자를 넣지 않는다. **자리는 그대로 둔다** — 억지로 넣으면
-    /// 줄어들다 못해 이웃 칸을 침범하고, 어느 숫자가 어느 칸인지가 오히려 흐려진다.
-    static let minimumLabelWidth: CGFloat = 26
+    /// 숫자를 넣을 수 있는 최소 폭 — **기본 글자 크기 기준**이다. 실제 판정은 글자 크기에
+    /// 따라 늘어난 `minimumLabelWidth`로 한다(`.caption2`가 커지면 「100%」도 같이 커진다).
+    static let baseMinimumLabelWidth: CGFloat = 26
 
     /// 글자 크기를 키우면 막대와 숫자 줄이 함께 커져야 한다. **고정 높이로 두면 손쉬운
     /// 사용 설정에서 퍼센트가 잘린다.**
     @ScaledMetric(relativeTo: .caption2) private var barHeight: CGFloat = 8
     @ScaledMetric(relativeTo: .caption2) private var rowHeight: CGFloat = 26
+    /// **기준도 함께 커져야 한다.** 고정 26pt로 두면 접근성 크기에서 30pt짜리 칸이 검사를
+    /// 통과해 놓고도 「100%」를 못 담아 다시 잘린다.
+    @ScaledMetric(relativeTo: .caption2) private var minimumLabelWidth: CGFloat = MacroStackBar.baseMinimumLabelWidth
 
     /// 카드의 g 표기(`탄 80g · 단 27g · 지 29g`)와 막대의 색을 맞추려고 밖에서도 쓴다 —
     /// 어느 칸이 무엇인지 알 길이 그 색뿐이다.
@@ -33,19 +36,45 @@ struct MacroStackBar: View {
         }
     }
 
-    /// 칸마다의 폭. **합이 100이 아닐 수 있어(반올림) 합으로 나눈다.** 합이 0이면 빈 배열이다 —
-    /// 그릴 것이 없다.
+    /// 칸마다의 폭. **합이 100이 아닐 수 있어(반올림) 합으로 나눈다.** 그릴 것이 없으면
+    /// 빈 배열이다.
+    ///
+    /// **성한 값만 내보낸다.** 결과가 그대로 `frame(width:)`로 들어가는데, 음수·무한대·NaN이
+    /// 거기 닿으면 레이아웃이 정의되지 않는다. 서버 값이라 손댈 수 없으므로 여기서 막는다
+    /// (`DietInputLimits`가 사용자 입력에 대해 같은 판단을 한다).
     ///
     /// `available`은 간격을 뺀 폭이다(`availableWidth(in:count:)`).
     static func widths(_ macros: [MacroBasis], in available: CGFloat) -> [CGFloat] {
-        let total = macros.reduce(0) { $0 + max(0, $1.percent) }
-        guard total > 0 else { return [] }
-        return macros.map { available * CGFloat(max(0, $0.percent) / total) }
+        let safeAvailable = available.isFinite ? max(0, available) : 0
+        // 음수·무한대·NaN은 0으로 본다 — 그 칸이 사라질 뿐 나머지 비율은 그대로다.
+        let percents = macros.map { $0.percent.isFinite ? max(0, $0.percent) : 0 }
+        let total = percents.reduce(0, +)
+        guard total.isFinite, total > 0 else { return [] }
+        return percents.map { safeAvailable * CGFloat($0 / total) }
     }
 
     /// 간격을 뺀, 칸들이 나눠 가질 폭.
     static func availableWidth(in totalWidth: CGFloat, count: Int) -> CGFloat {
-        max(0, totalWidth - spacing * CGFloat(max(0, count - 1)))
+        guard totalWidth.isFinite else { return 0 }
+        return max(0, totalWidth - spacing * CGFloat(max(0, count - 1)))
+    }
+
+    /// 이 칸에 숫자를 넣을 수 있는가. **판정을 뷰 밖에 둔다** — 뷰 안에 있으면 테스트가 못 닿는다.
+    static func showsLabel(width: CGFloat, minimum: CGFloat) -> Bool {
+        width.isFinite && width >= minimum
+    }
+
+    /// 칸에 찍는 문구. **`Int(_:)`는 `Int.max`를 넘으면 트랩이라** 성한 값만 넘긴다.
+    static func labelText(for percent: Double) -> String {
+        guard percent.isFinite else { return "-" }
+        return "\(Int(min(max(0, percent), 1000).rounded()))%"
+    }
+
+    /// 막대 전체를 한 문장으로 읽어 준다. **칸이 좁아 숫자를 뺀 경우에도 읽혀야 한다.**
+    static func accessibilityText(_ macros: [MacroBasis]) -> String {
+        macros
+            .map { "\($0.name) \(labelText(for: $0.percent).dropLast())퍼센트" }
+            .joined(separator: ", ")
     }
 
     var body: some View {
@@ -73,17 +102,17 @@ struct MacroStackBar: View {
                 }
             }
             .frame(height: rowHeight)
-            // 칸이 좁아 숫자를 뺀 경우에도 읽을 수 있어야 한다.
+            // 칸이 좁아 숫자를 뺀 경우에도 읽을 수 있어야 한다 — 하나의 요소로 묶어 읽는다.
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(accessibilityText)
+            .accessibilityLabel(Self.accessibilityText(macros))
         }
     }
 
-    /// 좁은 칸에서는 자리만 지키고 숫자를 뺀다.
+    /// 좁은 칸에서는 자리만 지키고 숫자를 뺀다 — 억지로 넣으면 이웃 칸을 침범한다.
     @ViewBuilder
     private func label(_ macro: MacroBasis, width: CGFloat) -> some View {
-        if width >= Self.minimumLabelWidth {
-            Text("\(Int(macro.percent.rounded()))%")
+        if Self.showsLabel(width: width, minimum: minimumLabelWidth) {
+            Text(Self.labelText(for: macro.percent))
                 .font(.caption2)
                 .foregroundStyle(Color.slate500)
                 .lineLimit(1)
@@ -92,11 +121,5 @@ struct MacroStackBar: View {
         } else {
             Color.clear.frame(width: width, height: 0)
         }
-    }
-
-    private var accessibilityText: String {
-        macros
-            .map { "\($0.name) \(Int($0.percent.rounded()))퍼센트" }
-            .joined(separator: ", ")
     }
 }

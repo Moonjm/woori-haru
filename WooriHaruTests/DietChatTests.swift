@@ -1328,19 +1328,30 @@ struct DietChatLockTests {
 // MARK: - 구성비 막대
 
 /// **`MacroBar`와 다른 격자다** — 저쪽은 목표 대비, 이쪽은 구성비다.
+///
+/// 뷰 계층은 이 저장소에 뷰 검사 도구가 없어 직접 확인하지 못한다. 대신 뷰가 쓰는 판단을
+/// 전부 순수 함수로 꺼내 두고 그것을 확인한다(`MacroBar.ratio`/`fill`이 같은 모양이다).
 struct MacroStackBarTests {
     private func macro(_ name: String, _ percent: Double) -> MacroBasis {
         MacroBasis(name: name, percent: percent, rangeMin: 0, rangeMax: 100, status: .inRange, penalty: 0)
     }
 
     /// 합이 100이 아닐 수 있다(반올림) — 합으로 나눠야 막대가 폭을 꽉 채운다.
-    @Test func 합이_100이_아니어도_폭을_꽉_채운다() {
+    /// **합만 보면 순서가 뒤집혀도 통과하므로** 칸마다의 폭을 하나씩 본다.
+    @Test func 칸마다_제_비율의_폭을_갖는다() {
         let widths = MacroStackBar.widths(
             [macro("탄수화물", 45), macro("단백질", 17), macro("지방", 36)],
             in: 98
         )
 
+        let total = 45.0 + 17 + 36
         #expect(widths.count == 3)
+        #expect(abs(widths[0] - 98 * CGFloat(45 / total)) < 0.001)
+        #expect(abs(widths[1] - 98 * CGFloat(17 / total)) < 0.001)
+        #expect(abs(widths[2] - 98 * CGFloat(36 / total)) < 0.001)
+        // 순서가 그대로다 — 가장 큰 칸이 첫째, 가장 작은 칸이 둘째.
+        #expect(widths[0] > widths[2])
+        #expect(widths[2] > widths[1])
         #expect(abs(widths.reduce(0, +) - 98) < 0.001)
     }
 
@@ -1350,12 +1361,31 @@ struct MacroStackBarTests {
         #expect(MacroStackBar.widths([], in: 100).isEmpty)
     }
 
+    /// **성한 값만 나가야 한다.** 결과가 그대로 `frame(width:)`로 들어가는데, 음수·무한대·NaN이
+    /// 거기 닿으면 레이아웃이 정의되지 않는다.
+    @Test func 비정상_입력에도_성한_폭만_내보낸다() {
+        // 음수 폭 → 0
+        #expect(MacroStackBar.widths([macro("탄수화물", 50)], in: -80) == [0])
+        // 무한대 폭 → 0
+        #expect(MacroStackBar.widths([macro("탄수화물", 50)], in: .infinity) == [0])
+        // NaN·무한대 퍼센트는 그 칸만 0이 되고 나머지 비율은 그대로다.
+        let mixed = MacroStackBar.widths(
+            [macro("탄수화물", .nan), macro("단백질", 50), macro("지방", .infinity)],
+            in: 100
+        )
+        #expect(mixed == [0, 100, 0])
+        #expect(mixed.allSatisfy { $0.isFinite && $0 >= 0 })
+        // 전부 비정상이면 그릴 것이 없다.
+        #expect(MacroStackBar.widths([macro("탄수화물", .nan)], in: 100).isEmpty)
+    }
+
     /// 간격은 칸 사이에만 들어간다 — 칸 수만큼 빼면 폭이 모자란다.
     @Test func 간격은_칸_사이에만_들어간다() {
         #expect(MacroStackBar.availableWidth(in: 100, count: 3) == 100 - MacroStackBar.spacing * 2)
         #expect(MacroStackBar.availableWidth(in: 100, count: 1) == 100)
         // 폭보다 간격이 크면 음수가 아니라 0이다.
         #expect(MacroStackBar.availableWidth(in: 1, count: 10) == 0)
+        #expect(MacroStackBar.availableWidth(in: .infinity, count: 3) == 0)
     }
 
     /// **아주 얇은 칸에는 숫자를 넣지 않는다.** 억지로 넣으면 줄어들다 못해 이웃을 침범한다.
@@ -1364,10 +1394,39 @@ struct MacroStackBarTests {
             [macro("탄수화물", 97), macro("단백질", 2), macro("지방", 1)],
             in: 200
         )
+        let minimum = MacroStackBar.baseMinimumLabelWidth
 
-        #expect(widths[0] >= MacroStackBar.minimumLabelWidth)
-        #expect(widths[1] < MacroStackBar.minimumLabelWidth)
-        #expect(widths[2] < MacroStackBar.minimumLabelWidth)
+        #expect(MacroStackBar.showsLabel(width: widths[0], minimum: minimum))
+        #expect(!MacroStackBar.showsLabel(width: widths[1], minimum: minimum))
+        #expect(!MacroStackBar.showsLabel(width: widths[2], minimum: minimum))
+    }
+
+    /// **기준이 글자 크기를 따라 커진다.** 고정 26pt였다면 접근성 크기에서 30pt짜리 칸이
+    /// 검사를 통과해 놓고도 「100%」를 못 담아 다시 잘린다.
+    @Test func 글자가_커지면_기준도_함께_커진다() {
+        let width: CGFloat = 30
+        #expect(MacroStackBar.showsLabel(width: width, minimum: MacroStackBar.baseMinimumLabelWidth))
+        // `@ScaledMetric`이 접근성 크기에서 키운 기준(대략 두 배)에서는 통과하지 못한다.
+        #expect(!MacroStackBar.showsLabel(width: width, minimum: MacroStackBar.baseMinimumLabelWidth * 2))
+        // 성하지 않은 폭은 어떤 기준에서도 통과하지 못한다.
+        #expect(!MacroStackBar.showsLabel(width: .nan, minimum: 0))
+    }
+
+    /// `Int(_:)`는 `Int.max`를 넘으면 트랩이다 — 서버 값이라 성한지 알 수 없다.
+    @Test func 문구가_비정상_값에_죽지_않는다() {
+        #expect(MacroStackBar.labelText(for: 46.4) == "46%")
+        #expect(MacroStackBar.labelText(for: -3) == "0%")
+        #expect(MacroStackBar.labelText(for: .nan) == "-")
+        #expect(MacroStackBar.labelText(for: 1e300) == "1000%")
+    }
+
+    /// **숫자를 뺀 칸도 목소리로는 읽혀야 한다.** 막대 전체가 한 요소로 읽힌다.
+    @Test func 막대_전체를_한_문장으로_읽어_준다() {
+        let text = MacroStackBar.accessibilityText([
+            macro("탄수화물", 46), macro("단백질", 17), macro("지방", 37)
+        ])
+
+        #expect(text == "탄수화물 46퍼센트, 단백질 17퍼센트, 지방 37퍼센트")
     }
 }
 
