@@ -1325,6 +1325,52 @@ struct DietChatLockTests {
     }
 }
 
+// MARK: - 구성비 막대
+
+/// **`MacroBar`와 다른 격자다** — 저쪽은 목표 대비, 이쪽은 구성비다.
+struct MacroStackBarTests {
+    private func macro(_ name: String, _ percent: Double) -> MacroBasis {
+        MacroBasis(name: name, percent: percent, rangeMin: 0, rangeMax: 100, status: .inRange, penalty: 0)
+    }
+
+    /// 합이 100이 아닐 수 있다(반올림) — 합으로 나눠야 막대가 폭을 꽉 채운다.
+    @Test func 합이_100이_아니어도_폭을_꽉_채운다() {
+        let widths = MacroStackBar.widths(
+            [macro("탄수화물", 45), macro("단백질", 17), macro("지방", 36)],
+            in: 98
+        )
+
+        #expect(widths.count == 3)
+        #expect(abs(widths.reduce(0, +) - 98) < 0.001)
+    }
+
+    /// 그릴 것이 없으면 빈 배열이다 — 0으로 나누지 않는다.
+    @Test func 합이_0이면_그리지_않는다() {
+        #expect(MacroStackBar.widths([macro("탄수화물", 0), macro("지방", 0)], in: 100).isEmpty)
+        #expect(MacroStackBar.widths([], in: 100).isEmpty)
+    }
+
+    /// 간격은 칸 사이에만 들어간다 — 칸 수만큼 빼면 폭이 모자란다.
+    @Test func 간격은_칸_사이에만_들어간다() {
+        #expect(MacroStackBar.availableWidth(in: 100, count: 3) == 100 - MacroStackBar.spacing * 2)
+        #expect(MacroStackBar.availableWidth(in: 100, count: 1) == 100)
+        // 폭보다 간격이 크면 음수가 아니라 0이다.
+        #expect(MacroStackBar.availableWidth(in: 1, count: 10) == 0)
+    }
+
+    /// **아주 얇은 칸에는 숫자를 넣지 않는다.** 억지로 넣으면 줄어들다 못해 이웃을 침범한다.
+    @Test func 얇은_칸은_숫자를_담지_못한다() {
+        let widths = MacroStackBar.widths(
+            [macro("탄수화물", 97), macro("단백질", 2), macro("지방", 1)],
+            in: 200
+        )
+
+        #expect(widths[0] >= MacroStackBar.minimumLabelWidth)
+        #expect(widths[1] < MacroStackBar.minimumLabelWidth)
+        #expect(widths[2] < MacroStackBar.minimumLabelWidth)
+    }
+}
+
 // MARK: - 서비스 경계
 
 /// **경로·쿼리·본문이 서버 계약과 맞아야 한다.** 어긋나면 실기기에서 400이나 404로만 보이고

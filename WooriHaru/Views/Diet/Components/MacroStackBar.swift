@@ -11,7 +11,16 @@ import SwiftUI
 struct MacroStackBar: View {
     let macros: [MacroBasis]
 
-    private let spacing: CGFloat = 2
+    /// 칸 사이 간격.
+    static let spacing: CGFloat = 2
+    /// 이 폭보다 좁은 칸에는 숫자를 넣지 않는다. **자리는 그대로 둔다** — 억지로 넣으면
+    /// 줄어들다 못해 이웃 칸을 침범하고, 어느 숫자가 어느 칸인지가 오히려 흐려진다.
+    static let minimumLabelWidth: CGFloat = 26
+
+    /// 글자 크기를 키우면 막대와 숫자 줄이 함께 커져야 한다. **고정 높이로 두면 손쉬운
+    /// 사용 설정에서 퍼센트가 잘린다.**
+    @ScaledMetric(relativeTo: .caption2) private var barHeight: CGFloat = 8
+    @ScaledMetric(relativeTo: .caption2) private var rowHeight: CGFloat = 26
 
     /// 카드의 g 표기(`탄 80g · 단 27g · 지 29g`)와 막대의 색을 맞추려고 밖에서도 쓴다 —
     /// 어느 칸이 무엇인지 알 길이 그 색뿐이다.
@@ -24,42 +33,70 @@ struct MacroStackBar: View {
         }
     }
 
-    /// 합이 100이 아닐 수 있어(반올림) 합으로 나눈다. 0이면 그릴 것이 없다.
-    private var total: Double {
-        macros.reduce(0) { $0 + max(0, $1.percent) }
+    /// 칸마다의 폭. **합이 100이 아닐 수 있어(반올림) 합으로 나눈다.** 합이 0이면 빈 배열이다 —
+    /// 그릴 것이 없다.
+    ///
+    /// `available`은 간격을 뺀 폭이다(`availableWidth(in:count:)`).
+    static func widths(_ macros: [MacroBasis], in available: CGFloat) -> [CGFloat] {
+        let total = macros.reduce(0) { $0 + max(0, $1.percent) }
+        guard total > 0 else { return [] }
+        return macros.map { available * CGFloat(max(0, $0.percent) / total) }
+    }
+
+    /// 간격을 뺀, 칸들이 나눠 가질 폭.
+    static func availableWidth(in totalWidth: CGFloat, count: Int) -> CGFloat {
+        max(0, totalWidth - spacing * CGFloat(max(0, count - 1)))
     }
 
     var body: some View {
-        if total > 0 {
+        if !Self.widths(macros, in: 1).isEmpty {
             GeometryReader { geometry in
-                let available = max(0, geometry.size.width - spacing * CGFloat(max(0, macros.count - 1)))
+                let widths = Self.widths(
+                    macros,
+                    in: Self.availableWidth(in: geometry.size.width, count: macros.count)
+                )
 
                 VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: spacing) {
-                        ForEach(macros) { macro in
+                    HStack(spacing: Self.spacing) {
+                        ForEach(Array(macros.enumerated()), id: \.element.id) { index, macro in
                             Capsule()
                                 .fill(Self.tint(for: macro.name))
-                                .frame(width: width(macro, in: available), height: 8)
+                                .frame(width: widths[index], height: barHeight)
                         }
                     }
 
-                    HStack(spacing: spacing) {
-                        ForEach(macros) { macro in
-                            Text("\(Int(macro.percent.rounded()))%")
-                                .font(.caption2)
-                                .foregroundStyle(Color.slate500)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.7)
-                                .frame(width: width(macro, in: available))
+                    HStack(spacing: Self.spacing) {
+                        ForEach(Array(macros.enumerated()), id: \.element.id) { index, macro in
+                            label(macro, width: widths[index])
                         }
                     }
                 }
             }
-            .frame(height: 26)
+            .frame(height: rowHeight)
+            // 칸이 좁아 숫자를 뺀 경우에도 읽을 수 있어야 한다.
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(accessibilityText)
         }
     }
 
-    private func width(_ macro: MacroBasis, in available: CGFloat) -> CGFloat {
-        available * CGFloat(max(0, macro.percent) / total)
+    /// 좁은 칸에서는 자리만 지키고 숫자를 뺀다.
+    @ViewBuilder
+    private func label(_ macro: MacroBasis, width: CGFloat) -> some View {
+        if width >= Self.minimumLabelWidth {
+            Text("\(Int(macro.percent.rounded()))%")
+                .font(.caption2)
+                .foregroundStyle(Color.slate500)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .frame(width: width)
+        } else {
+            Color.clear.frame(width: width, height: 0)
+        }
+    }
+
+    private var accessibilityText: String {
+        macros
+            .map { "\($0.name) \(Int($0.percent.rounded()))퍼센트" }
+            .joined(separator: ", ")
     }
 }
