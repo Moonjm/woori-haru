@@ -83,7 +83,10 @@ API의 파괴적 변경이라 서버가 먼저 나가야 하는 이유다.
 카드 필드는 서버 설계의 `ChatMealCard` / `ChatDayCard`를 그대로 따른다. 앱이 쓰는 것:
 
 - **끼니 카드** — `mealType` · `score` · `scoreBasis` · `totalKcal` · 탄단지 g · `photoUrl` · `feedback`
-- **총평 카드** — `dayScore` · `totalKcal` · `feedback`
+- **총평 카드** — `dayScore` · `totalKcal` · `targetKcal` · `feedback`
+
+`targetKcal`은 그날 첫 끼니의 스냅샷이다. 프로필의 현재 목표가 아니라서, 몸무게를 바꿔도
+과거 카드의 분모가 흔들리지 않는다.
 
 **`scoreBasis`의 `percent`를 그대로 쓴다.** 구성비 막대(`46% / 17% / 37%`)를 g에서 직접 계산하지
 않는다 — 비율의 분모가 `totalKcal`이 아니라 매크로에서 역산한 값이라 순진하게 나누면 다른
