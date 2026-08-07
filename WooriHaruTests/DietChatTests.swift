@@ -509,6 +509,10 @@ struct DietChatLockTests {
 
         #expect(service.askedChats.isEmpty)
         #expect(vm.pendingMessages.isEmpty)
+        // **잠겨서 안 나간 것임을 못 박는다.** 이것이 없으면 다른 이유로 조회가 실패해
+        // 전송이 막혔을 때도 그대로 통과한다.
+        #expect(vm.isInputLocked)
+        #expect(vm.hasLoaded)
     }
 
     /// **하루를 받는 동안에는 잠근다.** 앵커를 오늘로 되돌린 직후가 특히 그렇다 — 그 창에서
@@ -1137,6 +1141,10 @@ struct DietChatLockTests {
 
         await vm.send("점심 왜 낮아?")
 
+        // **전송이 실제로 일어났음을 먼저 고정한다.** 이것이 없으면 전송이 거절돼
+        // 말풍선이 아예 안 생겨도 `canRetryOnly`가 false라 통과한다.
+        #expect(service.askedChats.count == 1)
+        #expect(vm.pendingMessages.count == 1)
         #expect(canRetryOnly(vm))
     }
 
@@ -1151,6 +1159,10 @@ struct DietChatLockTests {
 
         await vm.send("점심 왜 낮아?")
 
+        // **전송이 실제로 일어났음을 먼저 고정한다.** 이것이 없으면 전송이 거절돼
+        // 말풍선이 아예 안 생겨도 `canRetryOnly`가 false라 통과한다.
+        #expect(service.askedChats.count == 1)
+        #expect(vm.pendingMessages.count == 1)
         #expect(!canRetryOnly(vm))
     }
 
@@ -1164,6 +1176,10 @@ struct DietChatLockTests {
 
         await vm.send("점심 왜 낮아?")
 
+        // **전송이 실제로 일어났음을 먼저 고정한다.** 이것이 없으면 전송이 거절돼
+        // 말풍선이 아예 안 생겨도 `canRetryOnly`가 false라 통과한다.
+        #expect(service.askedChats.count == 1)
+        #expect(vm.pendingMessages.count == 1)
         #expect(canRetryOnly(vm))
     }
 
@@ -1178,6 +1194,10 @@ struct DietChatLockTests {
 
         await vm.send("점심 왜 낮아?")
 
+        // **전송이 실제로 일어났음을 먼저 고정한다.** 이것이 없으면 전송이 거절돼
+        // 말풍선이 아예 안 생겨도 `canRetryOnly`가 false라 통과한다.
+        #expect(service.askedChats.count == 1)
+        #expect(vm.pendingMessages.count == 1)
         #expect(!canRetryOnly(vm))
     }
 
@@ -1191,6 +1211,10 @@ struct DietChatLockTests {
 
         await vm.send("점심 왜 낮아?")
 
+        // **전송이 실제로 일어났음을 먼저 고정한다.** 이것이 없으면 전송이 거절돼
+        // 말풍선이 아예 안 생겨도 `canRetryOnly`가 false라 통과한다.
+        #expect(service.askedChats.count == 1)
+        #expect(vm.pendingMessages.count == 1)
         #expect(!canRetryOnly(vm))
     }
 
@@ -1226,6 +1250,8 @@ struct DietChatLockTests {
         service.days = [makeDay(date: Date().dateString, meals: [makeMeal(date: Date().dateString)])]
         await vm.send("오늘 뭐가 부족했어?")
 
+        #expect(service.askedChats.count == 1)
+        #expect(vm.pendingMessages.count == 1)
         #expect(onlyPending(vm)?.failureReason == nil)
         // **그 문장만의 문제였다는 뜻이다** — 같은 날의 다른 질문까지 막으면 애먼 것을 막는다.
         #expect(!vm.isInputLocked)
@@ -1329,6 +1355,9 @@ struct DietChatLockTests {
 
         await vm.load()
 
+        // 화면이 실제로 열렸음을 먼저 고정한다 — 아무것도 안 했어도 빈 배열이다.
+        #expect(vm.hasLoaded)
+        #expect(!vm.isInputLocked)
         #expect(service.fetchedDates.isEmpty)
     }
 
