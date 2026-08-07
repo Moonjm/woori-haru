@@ -258,6 +258,12 @@ final class DietChatViewModel {
             // **첫 장은 커서 없이 부른다.**
             let page = try await service.fetchChatPage(before: nil, size: ChatPolicy.pageSize)
             messages = Array(page.messages.reversed())
+            // **첫 장을 다시 받으면 스트림이 통째로 갈린다.** 못 보낸 말풍선의 자리가 새
+            // 길이를 넘어서면 `rows`가 그 자리를 지나치지 않아 말풍선이 화면에서 사라진다 —
+            // 가장 최근에 쓴 것들이므로 맨 끝으로 모은다(서로의 순서는 배열이 지킨다).
+            for index in pendingMessages.indices {
+                pendingMessages[index].streamIndex = messages.count
+            }
             nextCursor = page.nextCursor
             hasLoaded = true
         } catch is CancellationError {
@@ -316,11 +322,21 @@ final class DietChatViewModel {
     /// **실패해도 들고 있던 것을 버리지 않는다.** 먼저 지우고 받으면, 받기까지 실패했을 때
     /// 알고 있던 것마저 잃어 잠금이 풀린다. 취소도 이 자리로 떨어지는데 같은 처리로 충분하다 —
     /// 화면이 사라지며 끊긴 것이라 다음 진입이 새 뷰모델로 다시 받는다.
-    /// **방금 받아 온 것만 돌려준다.** 실패했으면 `nil`이다 — 부르는 쪽이 캐시를 새 결과로
-    /// 착각하면, 낡은 「끼니 있음」 때문에 잠금이 풀려 같은 400을 반복하거나 낡은 「빈 날」로
-    /// 엉뚱한 이유를 띄운다.
+    /// 하루를 다시 받은 결과.
+    ///
+    /// **「못 받았다」와 「밀렸다」를 구분한다.** 둘 다 nil로 뭉뚱그리면, 더 새로운 조회가
+    /// 이미 잠금을 푼 뒤에 늦게 돌아온 옛 요청이 「확인 실패」로 읽혀 그것을 다시 잠근다.
+    private enum DayLoadResult {
+        case fresh(DailyDiet)
+        case failed
+        /// 더 새로운 조회가 있었다. **아무 상태도 건드리지 않는다** — 그쪽이 이미 세웠다.
+        case stale
+    }
+
+    /// **방금 받아 온 것만 돌려준다.** 부르는 쪽이 캐시를 새 결과로 착각하면, 낡은 「끼니
+    /// 있음」 때문에 잠금이 풀려 같은 400을 반복하거나 낡은 「빈 날」로 엉뚱한 이유를 띄운다.
     @discardableResult
-    private func reloadDay(_ date: String) async -> DailyDiet? {
+    private func reloadDay(_ date: String) async -> DayLoadResult {
         dayLoadCounts[date, default: 0] += 1
         // **날짜별 세대 표식.** 같은 날짜로 두 번 겹치면 먼저 나가고 늦게 돌아온 응답이
         // 최신 하루를 덮어쓴다 — 토큰이 다르면 그 결과를 버린다.
@@ -332,24 +348,30 @@ final class DietChatViewModel {
         }
         do {
             let day = try await service.fetchDay(date: date)
-            guard dayGenerations[date] == token else { return nil }
+            guard dayGenerations[date] == token else { return .stale }
             daysByDate[date] = day
             // **거절 잠금을 푸는 유일한 길이다.** 그 사이 끼니를 기록했으면 다시 물을 수 있다.
             if !day.meals.isEmpty {
                 rejectedDates.remove(date)
             }
-            return day
+            return .fresh(day)
         } catch {
             // 하루를 못 받아도 스트림은 그대로 읽을 수 있다. **여기서 잠그지 않는다** —
             // 모르는 것을 「없다」로 단정하면 기록이 있는 날에도 막힌다(`isInputLocked`).
-            return nil
+            return .failed
         }
     }
 
     // MARK: - 전송
 
     /// **전송 중에는 다시 못 보낸다** — `MealConfirmViewModel.isSaving`과 같은 가드다.
-    var canSend: Bool { !isSending && !isInputLocked }
+    ///
+    /// **첫 장을 받기 전에도 못 보낸다.** 먼저 보내 성공하면 뒤늦게 도착한 첫 장 응답이
+    /// `messages`를 통째로 갈아끼워 **방금 나눈 대화가 화면에서 사라진다.** 반대 순서라도
+    /// 자리가 틀린다 — 스트림이 비어 있을 때 만든 말풍선은 `streamIndex`가 0이라 과거 기록
+    /// 전체보다 위에 앉는다. 첫 장이 실패하면 화면이 「다시 시도」를 띄우고 있으므로 그쪽이
+    /// 먼저다.
+    var canSend: Bool { hasLoaded && !isSending && !isInputLocked }
 
     /// 이 문장을 지금 보낼 수 있는가. **길이까지 여기서 본다** — 서버가 거절할 본문을
     /// 내보내면 「보내지 못했어요」만 남고 재시도는 같은 본문으로 영원히 실패한다
@@ -410,17 +432,27 @@ final class DietChatViewModel {
             // 질문 행도 서버가 저장하지만 응답에는 답만 온다 — 이미 띄운 말풍선을 그대로
             // 스트림에 옮긴다.
             messages.insert(contentsOf: [localMessage(message), answer], at: message.streamIndex)
-            removePending(id)
-            // 뒤에 있던 말풍선들의 자리가 두 칸 밀린다.
-            for index in pendingMessages.indices where pendingMessages[index].streamIndex > message.streamIndex {
-                pendingMessages[index].streamIndex += 2
+
+            // **`streamIndex`가 아니라 배열 자리로 판별한다.** 같은 자리에 앉은 말풍선이
+            // 둘이면(같은 시점에 둘 다 실패) `streamIndex` 비교로는 둘을 가를 수 없어,
+            // 먼저 쓴 것을 재시도하면 나중에 쓴 것이 그 위로 올라간다. `pendingMessages`의
+            // 순서가 곧 쓴 순서이므로(추가는 끝에만, 재시도는 제자리) 그것을 쓴다.
+            if let deliveredIndex = pendingMessages.firstIndex(where: { $0.id == id }) {
+                for index in pendingMessages.indices where index > deliveredIndex {
+                    pendingMessages[index].streamIndex += 2
+                }
+                pendingMessages.remove(at: deliveredIndex)
             }
         } catch is CancellationError {
-            // **여기서도 지우지 않는다.** 취소는 실패가 아니지만, 지우면 사용자가 쓴 문장이
-            // 사라진다 — 다시 보낼 수 있게 실패로 표시해 남긴다.
+            // **지우지 않는다** — 지우면 사용자가 쓴 문장이 사라진다.
+            //
+            // **그러나 다시 보내게 두지도 않는다.** 취소된 시점에 요청은 이미 나가 있었으므로
+            // 서버가 LLM을 부르고 저장까지 끝냈을 수 있다 — 다시 보내면 돈이 두 번 나가고
+            // 같은 대화가 두 벌이 된다(`isRetryable`이 지키는 것과 같은 규칙이다).
             mutatePending(id) {
                 $0.failed = true
-                $0.isRetryable = true
+                $0.isRetryable = false
+                $0.failureReason = "보냈는지 확인하지 못했어요"
             }
         } catch {
             // **말풍선을 남긴다.** 지우면 사용자가 다시 타이핑해야 한다.
@@ -458,14 +490,19 @@ final class DietChatViewModel {
     private func handleDateRejection(_ date: String, for id: UUID) async {
         // **캐시가 아니라 방금 받은 것만 본다.** 재조회가 실패했는데 들고 있던 낡은 값을
         // 새 결과로 읽으면 확인하지도 않고 판단하게 된다.
-        guard let day = await reloadDay(date) else {
+        switch await reloadDay(date) {
+        case .fresh(let day):
+            guard day.meals.isEmpty else { return }
             rejectedDates.insert(date)
-            return
+            mutatePending(id) { $0.failureReason = "이 날은 기록이 없어서 물어볼 수 없어요" }
+        case .failed:
+            // 확인하지 못했다 — 잠그되 이유는 지어내지 않는다.
+            rejectedDates.insert(date)
+        case .stale:
+            // 더 새로운 조회가 이미 이 날짜의 상태를 세웠다. 그 위에 옛 판단을 덮으면
+            // 방금 푼 잠금이 다시 걸린다.
+            break
         }
-        guard day.meals.isEmpty else { return }
-
-        rejectedDates.insert(date)
-        mutatePending(id) { $0.failureReason = "이 날은 기록이 없어서 물어볼 수 없어요" }
     }
 
     /// 다시 보낼 만한 실패인가.
