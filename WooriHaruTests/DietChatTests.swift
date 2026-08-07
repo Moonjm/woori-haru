@@ -462,6 +462,109 @@ struct DietChatLockTests {
         #expect(service.askedChats.count == 1)
     }
 
+    /// **확인용 재조회까지 실패해도 잠금이 풀리면 안 된다.** `daysByDate`로만 판단하면
+    /// 아무것도 못 받은 상태로 돌아가 같은 400을 다시 만든다.
+    @Test func 거절_이유를_확인하지_못해도_그_날짜는_잠긴다() async {
+        let service = FakeDietService()
+        service.chatPages = [ChatPage(messages: [], nextCursor: nil)]
+        service.errors["fetchDay"] = dietServerError("RESOURCE_NOT_FOUND", status: 404)
+        service.errors["askChat"] = dietServerError("INVALID_REQUEST")
+        let vm = DietChatViewModel(service: service, anchorDate: Date(), day: nil)
+        await vm.load()
+
+        await vm.send("오늘 뭐가 부족했어?")
+
+        #expect(vm.isInputLocked)
+        #expect(!vm.canRetry)
+        // **이유를 지어내지 않는다** — 빈 날인지 확인하지 못했다.
+        #expect(vm.pending?.failureReason == nil)
+        #expect(vm.lockedNotice == "이 날은 지금 물어볼 수 없어요")
+    }
+
+    /// `INVALID_REQUEST`는 범용 코드다 — 끼니가 있는데 거절당했으면 「기록이 없어서」는
+    /// 거짓말이 된다.
+    @Test func 끼니가_있는데_거절당하면_빈_날이라고_말하지_않는다() async {
+        let service = FakeDietService()
+        service.chatPages = [ChatPage(messages: [], nextCursor: nil)]
+        service.errors["askChat"] = dietServerError("INVALID_REQUEST")
+        let vm = makeTodayViewModel(service: service)
+        await vm.load()
+
+        // 확인해 보니 그날 끼니가 멀쩡히 있다.
+        service.days = [makeDay(date: Date().dateString, meals: [makeMeal(date: Date().dateString)])]
+        await vm.send("오늘 뭐가 부족했어?")
+
+        #expect(vm.pending?.failureReason == nil)
+        #expect(vm.lockedNotice == "이 날은 지금 물어볼 수 없어요")
+        #expect(!vm.canRetry)
+    }
+
+    /// **실패 뒤 앵커를 오늘로 되돌려도 재시도가 열리면 안 된다.** 재시도는 여전히 8월 1일로
+    /// 나가 같은 400을 맞는다 — 판정은 앵커가 아니라 그 말풍선의 것이다.
+    @Test func 앵커를_바꿔도_거절당한_말풍선은_다시_보내지_않는다() async {
+        let service = FakeDietService()
+        service.chatPages = [ChatPage(messages: [], nextCursor: nil)]
+        service.errors["askChat"] = dietServerError("INVALID_REQUEST")
+        service.days = [
+            // 거절 확인용(8월 1일: 빈 날) → 오늘로 되돌릴 때(오늘: 기록 있음)
+            makeDay(date: "2026-08-01", meals: []),
+            makeDay(date: Date().dateString, meals: [makeMeal(date: Date().dateString)])
+        ]
+        let vm = DietChatViewModel(
+            service: service,
+            anchorDate: Date.from("2026-08-01")!,
+            day: makeDay(date: "2026-08-01", meals: [makeMeal(date: "2026-08-01")])
+        )
+        await vm.load()
+
+        await vm.send("점심 왜 낮아?")
+        #expect(!vm.canRetry)
+
+        // `✕` — 오늘은 기록이 있어 입력창이 풀린다. 그래도 저 말풍선은 다시 못 보낸다.
+        await vm.resetAnchorToToday()
+        #expect(!vm.isInputLocked)
+        #expect(!vm.canRetry)
+
+        await vm.retry()
+        #expect(service.askedChats.count == 1)
+    }
+
+    /// **날짜별 진행 상태여야 한다.** 전역 플래그 하나면 먼저 끝난 조회가 그것을 내려,
+    /// 지금 앵커의 하루는 아직 오는 중인데 입력창이 열린다.
+    @Test func 다른_날짜_조회가_끝나도_현재_앵커가_로딩_중이면_잠긴다() async {
+        let service = FakeDietService()
+        service.chatPages = [ChatPage(messages: [], nextCursor: nil)]
+        let today = Date().dateString
+        service.days = [
+            makeDay(date: "2026-08-01", meals: [makeMeal(date: "2026-08-01")]),
+            makeDay(date: today, meals: [makeMeal(date: today)])
+        ]
+        let pastGate = AsyncGate()
+        let todayGate = AsyncGate()
+        service.fetchDayGates["2026-08-01"] = pastGate
+        service.fetchDayGates[today] = todayGate
+
+        let vm = DietChatViewModel(service: service, anchorDate: Date.from("2026-08-01")!, day: nil)
+        let loading = Task { await vm.load() }
+        await pastGate.waitUntilBlocked()
+
+        // 8월 1일이 아직 오는 중인데 오늘로 되돌린다 — 두 조회가 겹친다.
+        let resetting = Task { await vm.resetAnchorToToday() }
+        await todayGate.waitUntilBlocked()
+
+        // 먼저 끝나는 쪽은 이제 관심 밖인 8월 1일이다.
+        await pastGate.open()
+        await loading.value
+
+        // **여기가 판정이다.** 전역 플래그였다면 여기서 잠금이 풀려 있다.
+        #expect(vm.isLoadingDay)
+        #expect(vm.isInputLocked)
+
+        await todayGate.open()
+        await resetting.value
+        #expect(!vm.isInputLocked)
+    }
+
     /// 앵커가 오늘이면 잠금을 판단하는 데 새 호출이 들지 않는다 — 화면이 하루를 넘겨준다.
     @Test func 앵커_날짜의_하루는_다시_조회하지_않는다() async {
         let service = FakeDietService()

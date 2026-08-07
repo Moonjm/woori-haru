@@ -636,6 +636,28 @@ struct DietDayViewModelTests {
         #expect(!vm.needsProfile)
         #expect(vm.day?.dayScore == 74)
         #expect(!vm.loadFailed)
+
+        // **「있다」로도 단정하지 않는다.** `.eligible`로 읽으면 화면이 기록 메뉴를 열어
+        // 사용자가 유료 인식을 다 하고 확정에서 거절된다 — 자격은 모르는 채로 남는다.
+        #expect(vm.profileEligibility == .unknown)
+    }
+
+    /// 조회가 끝나면 자격이 정해진다 — 화면이 세 상태를 서로 다르게 다룬다.
+    @Test func 프로필_조회가_끝나면_자격이_정해진다() async {
+        let withProfile = FakeDietService()
+        withProfile.profile = makeProfile()
+        withProfile.days = [makeDay()]
+        let eligible = makeVM(withProfile)
+        await eligible.load()
+        #expect(eligible.profileEligibility == .eligible)
+
+        let withoutProfile = FakeDietService()
+        withoutProfile.profile = nil
+        withoutProfile.days = [makeDay()]
+        let missing = makeVM(withoutProfile)
+        await missing.load()
+        #expect(missing.profileEligibility == .missing)
+        #expect(missing.needsProfile)
     }
 
     /// 실패 뒤 다시 시도해 성공하면 실패 표시가 꺼져야 재시도 카드가 사라진다.

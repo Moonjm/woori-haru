@@ -13,6 +13,12 @@ struct PendingChatMessage: Identifiable, Hashable {
     /// 왜 못 보냈는지. **전송 실패는 알럿을 띄우지 않으므로**(말풍선이 그 자리를 지킨다)
     /// 이유가 여기 없으면 사용자는 영영 알 수 없고 같은 본문으로 재시도만 반복한다.
     var failureReason: String?
+    /// 다시 보낼 만한 실패인가. **실패한 순간에 정한다.**
+    ///
+    /// 지금 앵커 날짜로 판단하면 안 된다 — 8월 1일이 빈 날이라 거절당한 뒤 `✕`로 앵커를
+    /// 오늘로 되돌리면 오늘 기준으로 잠금이 풀려 재시도가 열리고, 그 재시도는 여전히
+    /// **8월 1일로** 나가 같은 400을 맞는다.
+    var isRetryable = true
 }
 
 /// 스트림에 그려지는 한 줄. **뷰가 아니라 뷰모델이 조립한다** — 구분선을 어디서 끊을지,
@@ -58,8 +64,6 @@ final class DietChatViewModel {
     /// 다음 장 조회가 실패했다. **스피너를 계속 돌리지 않는다** — 실패한 뒤에도 돌면 영영
     /// 불러오는 중인 것처럼 보인다. 그 자리에 다시 시도할 길을 둔다.
     private(set) var nextPageFailed = false
-    /// 앵커 날짜의 하루를 받는 중.
-    private(set) var isLoadingDay = false
     private(set) var isSending = false
     /// 페이지 조회 실패만 담는다. **전송 실패는 여기 오지 않는다** — 말풍선에 「다시 시도」가
     /// 붙으므로 알럿까지 띄우면 같은 사실을 두 번 말한다.
@@ -70,6 +74,15 @@ final class DietChatViewModel {
     /// **들어올 때 받은 날짜는 화면이 넘겨준다**(`DietHomeView`가 이미 갖고 있다) — 앵커를
     /// 오늘로 되돌렸을 때만 새로 조회한다.
     private var daysByDate: [String: DailyDiet] = [:]
+
+    /// 하루를 받고 있는 날짜들. **전역 플래그 하나로는 안 된다** — 진입 조회와 「오늘로
+    /// 돌아가기」가 겹치면 먼저 끝난 쪽이 플래그를 내려, 지금 앵커의 하루는 아직 오는 중인데
+    /// 입력창이 열린다.
+    private var loadingDates: Set<String> = []
+
+    /// 서버가 질문을 거절한 날짜. **하루 조회와 별개로 든다** — 이유를 확인하려는 재조회까지
+    /// 실패하면 `daysByDate`로는 판단할 수 없어 잠금이 풀리고, 같은 400을 다시 만든다.
+    private var rejectedDates: Set<String> = []
 
     /// 낙관적 말풍선이 스트림에 들어갈 때 쓰는 id. **음수다** — 서버 id와 겹치지 않기만 하면
     /// 되고, 화면을 다시 열면 서버가 준 진짜 행으로 대체된다.
@@ -132,12 +145,20 @@ final class DietChatViewModel {
     /// 잠근다(`deliver`) — 그래서 같은 400이 두 번 나지 않는다.
     var isInputLocked: Bool {
         if isLoadingDay { return true }
+        if rejectedDates.contains(anchorDateString) { return true }
         return anchorHasMeals == false
     }
 
+    /// 앵커 날짜의 하루를 받는 중인가. **날짜별로 본다** — 다른 날짜의 조회가 먼저 끝나도
+    /// 여기가 풀리면 안 된다.
+    var isLoadingDay: Bool { loadingDates.contains(anchorDateString) }
+
     /// **받는 중에는 띄우지 않는다** — 아직 모르는 것을 「기록이 없다」고 말하면 거짓말이 된다.
+    /// 거절당했지만 이유를 확인하지 못한 날은 **이유를 지어내지 않는다.**
     var lockedNotice: String? {
-        anchorHasMeals == false ? "이 날은 기록이 없어서 물어볼 것이 없어요" : nil
+        if anchorHasMeals == false { return "이 날은 기록이 없어서 물어볼 것이 없어요" }
+        if rejectedDates.contains(anchorDateString) { return "이 날은 지금 물어볼 수 없어요" }
+        return nil
     }
 
     // MARK: - 스트림
@@ -257,8 +278,17 @@ final class DietChatViewModel {
 
     private func loadDayIfNeeded(_ date: String) async {
         guard daysByDate[date] == nil else { return }
-        isLoadingDay = true
-        defer { isLoadingDay = false }
+        await reloadDay(date)
+    }
+
+    /// **이미 들고 있어도 다시 받는다** — 화면이 넘겨준 하루가 낡아서 거절당했을 수 있다.
+    ///
+    /// **실패해도 들고 있던 것을 버리지 않는다.** 먼저 지우고 받으면, 받기까지 실패했을 때
+    /// 알고 있던 것마저 잃어 잠금이 풀린다. 취소도 이 자리로 떨어지는데 같은 처리로 충분하다 —
+    /// 화면이 사라지며 끊긴 것이라 다음 진입이 새 뷰모델로 다시 받는다.
+    private func reloadDay(_ date: String) async {
+        loadingDates.insert(date)
+        defer { loadingDates.remove(date) }
         do {
             daysByDate[date] = try await service.fetchDay(date: date)
         } catch {
@@ -294,11 +324,12 @@ final class DietChatViewModel {
         await deliver(PendingChatMessage(date: anchorDateString, text: trimmed))
     }
 
-    /// 「다시 시도」를 띄울지. **결과가 뻔한 실패에는 두지 않는다** — 빈 날로 거절당한 뒤에는
-    /// 아래에서 하루를 다시 받아 입력창이 잠기므로, 같은 400을 반복할 길을 남기지 않는다.
+    /// 「다시 시도」를 띄울지. **말풍선 자신의 판정을 본다** — 지금 앵커 날짜의 잠금을 보면,
+    /// 8월 1일이 거절당한 뒤 `✕`로 오늘로 돌아왔을 때 재시도가 열리고 그 재시도는 여전히
+    /// 8월 1일로 나가 같은 400을 맞는다.
     var canRetry: Bool {
         guard let pending, pending.failed else { return false }
-        return canSend
+        return pending.isRetryable && !isSending
     }
 
     /// **서버는 실패하면 아무것도 저장하지 않으므로**(질문·답을 한 트랜잭션에 쓴다) 같은
@@ -325,22 +356,36 @@ final class DietChatViewModel {
         } catch {
             // **말풍선을 남긴다.** 지우면 사용자가 다시 타이핑해야 한다.
             pending?.failed = true
-            pending?.failureReason = Self.failureReason(for: error)
 
-            // **빈 날이라 거절당했으면 그 날짜를 다시 받는다.** 하루 조회가 실패해 잠그지
-            // 못했던 날이 여기서 잠긴다 — 안 그러면 「다시 시도」가 같은 400을 무한히 만든다.
             if error.dietErrorCode == .invalidRequest {
-                daysByDate[message.date] = nil
-                await loadDayIfNeeded(message.date)
+                await handleDateRejection(message.date)
+            } else {
+                pending?.failureReason = Self.failureReason(for: error)
             }
         }
+    }
+
+    /// 서버가 이 날짜의 질문을 거절했다.
+    ///
+    /// **이유를 단정하지 않는다.** `INVALID_REQUEST`는 범용 코드라, 오늘은 「그날 기록된
+    /// 끼니가 없습니다」 하나뿐이지만 언제든 다른 검증 실패가 같은 코드로 올 수 있다. 그날
+    /// 하루를 다시 받아 **정말 빈 날일 때만** 그렇게 안내한다.
+    ///
+    /// **어느 쪽이든 그 날짜를 잠근다.** 같은 본문·같은 날짜로 다시 보내도 같은 거절이다.
+    private func handleDateRejection(_ date: String) async {
+        await reloadDay(date)
+        rejectedDates.insert(date)
+        pending?.isRetryable = false
+        if daysByDate[date]?.meals.isEmpty == true {
+            pending?.failureReason = "이 날은 기록이 없어서 물어볼 수 없어요"
+        }
+        // 확인하지 못했으면 이유를 비워 둔다 — 말풍선이 「보내지 못했어요」만 단다.
     }
 
     /// 「보내지 못했어요」만으로는 왜인지 알 수 없다 — 서버가 이유를 밝힌 경우에는 그것을 쓴다.
     /// 모르는 오류는 nil이라 말풍선이 기본 문구만 단다.
     private static func failureReason(for error: any Error) -> String? {
         switch error.dietErrorCode {
-        case .invalidRequest: "이 날은 기록이 없어서 물어볼 수 없어요"
         case .chatFailed: "답을 만들지 못했어요. 잠시 후 다시 시도해 주세요"
         case .llmUnavailable: "코치가 아직 준비되지 않았어요"
         default: nil

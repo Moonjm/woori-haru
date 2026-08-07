@@ -102,11 +102,12 @@ struct DietHomeView: View {
     /// **프로필이 없으면 띄우지 않는다.** 점수도 총평도 없어 코치가 답할 근거가 없고,
     /// 툴바가 이미 「목표부터 정하기」로 한 길만 열어 두고 있다.
     ///
-    /// **조회가 끝나기 전에는 띄우지 않는다.** `needsProfile`은 기본값이 `false`라, 그 전에
-    /// 그리면 프로필이 없는 사용자에게도 버튼이 잠깐 떴다 사라진다.
+    /// **자격이 확인됐을 때만 띄운다.** 조회 전에도, 조회가 실패해 모르는 상태에서도 띄우지
+    /// 않는다 — 「없다」와 「모른다」를 같은 값으로 두면 프로필 없는 사용자에게도 버튼이
+    /// 잠깐 떴다 사라진다.
     @ViewBuilder
     private var chatButton: some View {
-        if vm.hasLoaded, !vm.needsProfile {
+        if vm.profileEligibility == .eligible {
             Button {
                 showChat = true
             } label: {
@@ -159,19 +160,30 @@ struct DietHomeView: View {
             // 그 사실이 인식이 다 끝난 뒤에야 드러나면 사용자는 기다린 시간을 버리고 LLM
             // 비용은 이미 나간 뒤다. 프로필 화면을 저장 없이 닫아도 여기로 다시 온다.
             //
-            // **조회가 끝나기 전에는 어느 쪽도 띄우지 않는다.** `needsProfile`은 기본값이
-            // `false`라, 그 전에 그리면 프로필이 없는 사용자에게 「끼니 추가」가 잠깐 떴다가
-            // 「목표부터 정하기」로 바뀐다 — 그 창에 눌리면 확정 단계에서 거절당한다.
-            if !vm.hasLoaded {
+            // **「모른다」를 「있다」로 읽지 않는다.** 조회 전이거나 프로필 조회가 실패하면
+            // 자격이 `.unknown`인데, 그때 「끼니 추가」를 띄우면 위의 방어가 통째로 새어
+            // 사용자가 유료 인식을 다 하고 확정에서 거절된다.
+            //
+            // **그렇다고 「목표부터 정하기」를 띄우지도 않는다** — 프로필이 있는 사용자에게
+            // 거짓말이 된다. 조회가 끝난 뒤에도 모르면 확인하러 갈 길만 연다.
+            switch vm.profileEligibility {
+            case .unknown where !vm.hasLoaded:
                 EmptyView()
-            } else if vm.needsProfile {
+            case .unknown:
+                Button {
+                    showProfile = true
+                } label: {
+                    Label("목표 확인하기", systemImage: "person.crop.circle.badge.questionmark")
+                        .font(.headline)
+                }
+            case .missing:
                 Button {
                     showProfile = true
                 } label: {
                     Label("목표부터 정하기", systemImage: "person.crop.circle.badge.exclamationmark")
                         .font(.headline)
                 }
-            } else {
+            case .eligible:
                 Menu {
                     Button {
                         showCapture = true
