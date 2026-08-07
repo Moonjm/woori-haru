@@ -9,6 +9,11 @@ struct PendingChatMessage: Identifiable, Hashable {
     /// 앵커 날짜 — 「어느 날 밥 얘기인가」.
     let date: String
     let text: String
+    /// 스트림의 어느 자리에 앉는가(`messages`의 인덱스).
+    ///
+    /// **끝에 몰아 붙이면 순서가 뒤집힌다** — A가 실패하고 B가 성공하면 화면이
+    /// 「B 질문 → B 답변 → 실패한 A」가 되어, 먼저 쓴 A가 제일 최근 것처럼 보인다.
+    var streamIndex: Int
     var failed = false
     /// 왜 못 보냈는지. **전송 실패는 알럿을 띄우지 않으므로**(말풍선이 그 자리를 지킨다)
     /// 이유가 여기 없으면 사용자는 영영 알 수 없고 같은 본문으로 재시도만 반복한다.
@@ -86,6 +91,10 @@ final class DietChatViewModel {
     /// 같은 구멍이 다시 생긴다. 지금은 그렇게 겹치는 경로가 없지만, 여기를 손실 없는
     /// 셈으로 두면 나중에 생겨도 조용히 새지 않는다.
     private var dayLoadCounts: [String: Int] = [:]
+
+    /// 날짜별 조회 세대. 늦게 돌아온 옛 응답이 최신 하루를 덮어쓰지 않게 한다
+    /// (`DietDayViewModel.generation`과 같은 장치다).
+    private var dayGenerations: [String: Int] = [:]
 
     /// 서버가 질문을 거절한 날짜. **하루 조회와 별개로 든다** — 이유를 확인하려는 재조회까지
     /// 실패하면 `daysByDate`로는 판단할 수 없어 잠금이 풀리고, 같은 400을 다시 만든다.
@@ -177,7 +186,25 @@ final class DietChatViewModel {
         var result: [ChatRow] = []
         var currentDay: String?
 
-        for message in messages where Self.isRenderable(message) {
+        /// 못 보낸 말풍선을 **쓴 자리에** 끼워 넣는다.
+        func appendPending(at index: Int) {
+            for message in pendingMessages where message.streamIndex == index {
+                let day = Date().dateString
+                if day != currentDay {
+                    result.append(.dateSeparator(day: day))
+                    currentDay = day
+                }
+                result.append(.pending(message, badge: Self.badge(for: message.date, under: day)))
+                // 실패한 말풍선 아래에는 기다리는 자리를 두지 않는다 — 오지 않을 답이다.
+                if !message.failed {
+                    result.append(.awaitingReply)
+                }
+            }
+        }
+
+        for (index, message) in messages.enumerated() {
+            appendPending(at: index)
+            guard Self.isRenderable(message) else { continue }
             let day = message.createdAtDay
             if day != currentDay {
                 result.append(.dateSeparator(day: day))
@@ -185,19 +212,7 @@ final class DietChatViewModel {
             }
             result.append(.message(message, badge: Self.badge(for: message.date, under: day)))
         }
-
-        for message in pendingMessages {
-            let day = Date().dateString
-            if day != currentDay {
-                result.append(.dateSeparator(day: day))
-                currentDay = day
-            }
-            result.append(.pending(message, badge: Self.badge(for: message.date, under: day)))
-            // 실패한 말풍선 아래에는 기다리는 자리를 두지 않는다 — 오지 않을 답이다.
-            if !message.failed {
-                result.append(.awaitingReply)
-            }
-        }
+        appendPending(at: messages.count)
 
         return result
     }
@@ -275,7 +290,12 @@ final class DietChatViewModel {
 
         do {
             let page = try await service.fetchChatPage(before: cursor, size: ChatPolicy.pageSize)
-            messages.insert(contentsOf: Array(page.messages.reversed()), at: 0)
+            let older = Array(page.messages.reversed())
+            messages.insert(contentsOf: older, at: 0)
+            // 위에 붙은 만큼 못 보낸 말풍선의 자리도 밀린다.
+            for index in pendingMessages.indices {
+                pendingMessages[index].streamIndex += older.count
+            }
             nextCursor = page.nextCursor
         } catch is CancellationError {
             return
@@ -296,22 +316,33 @@ final class DietChatViewModel {
     /// **실패해도 들고 있던 것을 버리지 않는다.** 먼저 지우고 받으면, 받기까지 실패했을 때
     /// 알고 있던 것마저 잃어 잠금이 풀린다. 취소도 이 자리로 떨어지는데 같은 처리로 충분하다 —
     /// 화면이 사라지며 끊긴 것이라 다음 진입이 새 뷰모델로 다시 받는다.
-    private func reloadDay(_ date: String) async {
+    /// **방금 받아 온 것만 돌려준다.** 실패했으면 `nil`이다 — 부르는 쪽이 캐시를 새 결과로
+    /// 착각하면, 낡은 「끼니 있음」 때문에 잠금이 풀려 같은 400을 반복하거나 낡은 「빈 날」로
+    /// 엉뚱한 이유를 띄운다.
+    @discardableResult
+    private func reloadDay(_ date: String) async -> DailyDiet? {
         dayLoadCounts[date, default: 0] += 1
+        // **날짜별 세대 표식.** 같은 날짜로 두 번 겹치면 먼저 나가고 늦게 돌아온 응답이
+        // 최신 하루를 덮어쓴다 — 토큰이 다르면 그 결과를 버린다.
+        let token = (dayGenerations[date] ?? 0) + 1
+        dayGenerations[date] = token
         defer {
             let remaining = (dayLoadCounts[date] ?? 1) - 1
             dayLoadCounts[date] = remaining > 0 ? remaining : nil
         }
         do {
             let day = try await service.fetchDay(date: date)
+            guard dayGenerations[date] == token else { return nil }
             daysByDate[date] = day
             // **거절 잠금을 푸는 유일한 길이다.** 그 사이 끼니를 기록했으면 다시 물을 수 있다.
             if !day.meals.isEmpty {
                 rejectedDates.remove(date)
             }
+            return day
         } catch {
             // 하루를 못 받아도 스트림은 그대로 읽을 수 있다. **여기서 잠그지 않는다** —
             // 모르는 것을 「없다」로 단정하면 기록이 있는 날에도 막힌다(`isInputLocked`).
+            return nil
         }
     }
 
@@ -339,7 +370,13 @@ final class DietChatViewModel {
     func send(_ text: String) async {
         guard isSendable(text) else { return }
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        await deliver(PendingChatMessage(date: anchorDateString, text: trimmed))
+        let message = PendingChatMessage(
+            date: anchorDateString,
+            text: trimmed,
+            streamIndex: messages.count
+        )
+        pendingMessages.append(message)
+        await deliver(message.id)
     }
 
     /// 「다시 시도」를 띄울지. **말풍선 자신의 판정을 본다** — 지금 앵커 날짜의 잠금을 보면,
@@ -351,18 +388,20 @@ final class DietChatViewModel {
 
     /// **서버는 실패하면 아무것도 저장하지 않으므로**(질문·답을 한 트랜잭션에 쓴다) 같은
     /// 문장을 다시 보내도 중복이 남지 않는다.
+    /// **말풍선을 지우고 새로 만들지 않는다.** 지웠다가 다시 붙이면 취소로 끝났을 때 새로 만든
+    /// 것만 사라져 **원래 실패한 문장이 통째로 없어지고**, 자리도 맨 아래로 튄다. 같은 id·같은
+    /// 자리에서 상태만 되돌린다.
     func retry(_ id: UUID) async {
         guard !isSending,
               let index = pendingMessages.firstIndex(where: { $0.id == id }),
               canRetry(pendingMessages[index]) else { return }
-        // 지금 보내는 것이므로 맨 아래로 옮긴다 — 실패한 채로 쌓여 있던 자리에 두면
-        // 새로 보낸 질문보다 위에 앉는다.
-        let message = pendingMessages.remove(at: index)
-        await deliver(PendingChatMessage(date: message.date, text: message.text))
+        pendingMessages[index].failed = false
+        pendingMessages[index].failureReason = nil
+        await deliver(id)
     }
 
-    private func deliver(_ message: PendingChatMessage) async {
-        pendingMessages.append(message)
+    private func deliver(_ id: UUID) async {
+        guard let message = pendingMessages.first(where: { $0.id == id }) else { return }
         isSending = true
         defer { isSending = false }
 
@@ -370,21 +409,29 @@ final class DietChatViewModel {
             let answer = try await service.askChat(date: message.date, message: message.text)
             // 질문 행도 서버가 저장하지만 응답에는 답만 온다 — 이미 띄운 말풍선을 그대로
             // 스트림에 옮긴다.
-            messages.append(localMessage(message))
-            messages.append(answer)
-            removePending(message.id)
+            messages.insert(contentsOf: [localMessage(message), answer], at: message.streamIndex)
+            removePending(id)
+            // 뒤에 있던 말풍선들의 자리가 두 칸 밀린다.
+            for index in pendingMessages.indices where pendingMessages[index].streamIndex > message.streamIndex {
+                pendingMessages[index].streamIndex += 2
+            }
         } catch is CancellationError {
-            removePending(message.id)
+            // **여기서도 지우지 않는다.** 취소는 실패가 아니지만, 지우면 사용자가 쓴 문장이
+            // 사라진다 — 다시 보낼 수 있게 실패로 표시해 남긴다.
+            mutatePending(id) {
+                $0.failed = true
+                $0.isRetryable = true
+            }
         } catch {
             // **말풍선을 남긴다.** 지우면 사용자가 다시 타이핑해야 한다.
-            mutatePending(message.id) {
+            mutatePending(id) {
                 $0.failed = true
                 $0.isRetryable = Self.isRetryable(error)
                 $0.failureReason = Self.failureReason(for: error)
             }
 
             if error.dietErrorCode == .invalidRequest {
-                await handleDateRejection(message.date, for: message.id)
+                await handleDateRejection(message.date, for: id)
             }
         }
     }
@@ -409,9 +456,9 @@ final class DietChatViewModel {
     ///   같은 날의 다른 질문까지 막으면 애먼 것을 막는다
     /// - 확인하지 못함 → 날짜를 잠그되 이유는 지어내지 않는다. 안 잠그면 같은 400을 다시 만든다
     private func handleDateRejection(_ date: String, for id: UUID) async {
-        await reloadDay(date)
-
-        guard let day = daysByDate[date] else {
+        // **캐시가 아니라 방금 받은 것만 본다.** 재조회가 실패했는데 들고 있던 낡은 값을
+        // 새 결과로 읽으면 확인하지도 않고 판단하게 된다.
+        guard let day = await reloadDay(date) else {
             rejectedDates.insert(date)
             return
         }
@@ -421,31 +468,33 @@ final class DietChatViewModel {
         mutatePending(id) { $0.failureReason = "이 날은 기록이 없어서 물어볼 수 없어요" }
     }
 
-    /// 다시 보낼 만한 실패인가. **분류해서 정한다** — 기본을 「된다」로 두면 서버 설정
-    /// 문제에도, 같은 본문이면 영원히 거절될 검증 실패에도 「다시 시도」가 붙어 사용자가
-    /// 같은 결과만 반복해서 받는다.
+    /// 다시 보낼 만한 실패인가.
+    ///
+    /// **이 엔드포인트는 멱등하지 않다.** 서버가 LLM을 부르고 그 결과를 저장하므로, 요청이
+    /// 서버에 닿은 뒤 실패했다면 유료 호출이 이미 나갔고 대화가 저장돼 있을 수도 있다.
+    /// 다시 보내면 돈이 두 번 나가고 같은 대화가 두 벌이 된다.
+    ///
+    /// **그래서 「안전하다고 아는 것」만 허용한다.** 실패를 뭉뚱그려 5xx면 재시도로 두면
+    /// 저장 도중 죽은 500이 그대로 중복 결제가 된다.
     private static func isRetryable(_ error: any Error) -> Bool {
-        switch error.dietErrorCode {
-        // 생성만 실패했다 — 다음 호출은 될 수 있다.
-        case .chatFailed: return true
-        // 서버에 LLM 키가 없다. 배포가 바뀌기 전에는 눌러도 그대로다.
-        case .llmUnavailable: return false
-        // 그날 기록이 없다 — 같은 날짜·같은 본문이면 같은 거절이다.
-        case .invalidRequest: return false
-        default: break
+        // 서버가 「답을 못 만들었다」고 밝힌 경우다 — 저장 전에 끊겼음을 서버가 보증한다
+        // (`DietChatService.ask`가 `append` 앞에서 던진다).
+        if error.dietErrorCode == .chatFailed { return true }
+
+        // 요청이 **나가지도 못한** 경우. 서버는 아무것도 모른다.
+        // 타임아웃·연결 끊김은 여기 없다 — 서버에 닿은 뒤일 수 있다.
+        if case .networkError(let underlying) = error as? APIError ?? .invalidURL,
+           let urlError = underlying as? URLError {
+            return [
+                .notConnectedToInternet,
+                .cannotFindHost,
+                .cannotConnectToHost,
+                .dataNotAllowed,
+                .internationalRoamingOff
+            ].contains(urlError.code)
         }
 
-        guard let apiError = error as? APIError else { return true }
-        switch apiError {
-        case .networkError: return true
-        // **4xx는 다시 보내도 같다.** 본문 검증 실패(`@NotBlank`·`@Size`)가 여기로 온다.
-        case .serverError(let statusCode, _): return !(400..<500).contains(statusCode)
-        case .unauthorized: return false
-        // **못 보낸 것이 아니라 못 읽은 것이다.** 서버는 질문과 답을 이미 저장했으므로,
-        // 다시 보내면 LLM 호출이 한 번 더 나가고 같은 대화가 두 벌이 된다.
-        case .decodingError: return false
-        case .invalidURL: return false
-        }
+        return false
     }
 
     /// 「보내지 못했어요」만으로는 왜인지 알 수 없다 — 서버가 이유를 밝힌 경우에는 그것을 쓴다.

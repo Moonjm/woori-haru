@@ -484,7 +484,7 @@ struct DietChatLockTests {
     @Test func 실패한_말풍선은_새_질문을_보내도_남는다() async {
         let service = FakeDietService()
         service.chatPages = [ChatPage(messages: [], nextCursor: nil)]
-        service.errors["askChat"] = APIError.networkError(URLError(.timedOut))
+        service.errors["askChat"] = APIError.networkError(URLError(.notConnectedToInternet))
         let vm = makeTodayViewModel(service: service)
         await vm.load()
         await vm.send("첫 질문")
@@ -498,6 +498,52 @@ struct DietChatLockTests {
         #expect(vm.pendingMessages.map(\.text) == ["첫 질문"])
         #expect(vm.messages.map(\.content) == ["두 번째 질문", "답"])
         #expect(canRetryOnly(vm))
+    }
+
+    /// **먼저 쓴 문장이 위에 앉아야 한다.** 못 보낸 것을 끝에 몰아 붙이면 화면이
+    /// 「B 질문 → B 답변 → 실패한 A」가 되어 A가 제일 최근 것처럼 보인다.
+    @Test func 실패한_말풍선이_나중에_보낸_대화_위에_남는다() async {
+        let service = FakeDietService()
+        service.chatPages = [ChatPage(messages: [], nextCursor: nil)]
+        service.errors["askChat"] = APIError.networkError(URLError(.notConnectedToInternet))
+        let vm = makeTodayViewModel(service: service)
+        await vm.load()
+        await vm.send("A 질문")
+
+        service.errors["askChat"] = nil
+        service.chatAnswers = [makeChatMessage(id: 9, role: .assistant, content: "B 답변")]
+        await vm.send("B 질문")
+
+        // rows에서 실패한 A가 B보다 먼저 나온다.
+        let texts = vm.rows.compactMap { row -> String? in
+            switch row {
+            case .pending(let pending, _): return pending.text
+            case .message(let message, _): return message.content
+            default: return nil
+            }
+        }
+        #expect(texts == ["A 질문", "B 질문", "B 답변"])
+    }
+
+    /// **재시도가 말풍선을 지웠다 새로 만들면 안 된다.** 취소로 끝났을 때 새로 만든 것만
+    /// 사라져 원래 문장이 통째로 없어지고, 자리도 맨 아래로 튄다.
+    @Test func 재시도는_같은_말풍선을_그대로_쓴다() async {
+        let service = FakeDietService()
+        service.chatPages = [ChatPage(messages: [], nextCursor: nil)]
+        service.errors["askChat"] = dietServerError("CHAT_FAILED", status: 503)
+        let vm = makeTodayViewModel(service: service)
+        await vm.load()
+        await vm.send("점심 왜 낮아?")
+        let id = onlyPending(vm)?.id
+
+        // 다시 실패해도 같은 말풍선이다.
+        await retryOnly(vm)
+
+        #expect(vm.pendingMessages.count == 1)
+        #expect(id != nil)
+        #expect(onlyPending(vm)?.id == id)
+        #expect(onlyPending(vm)?.failed == true)
+        #expect(service.askedChats.count == 2)
     }
 
     /// **서버 설정 문제에는 재시도를 두지 않는다** — 배포가 바뀌기 전에는 눌러도 그대로다.
@@ -541,8 +587,8 @@ struct DietChatLockTests {
         #expect(!canRetryOnly(vm))
     }
 
-    /// 네트워크가 끊긴 것은 일시적이다.
-    @Test func 네트워크_실패에는_다시_시도가_붙는다() async {
+    /// **요청이 나가지도 못한 경우만 안전하다.** 서버는 아무것도 모른다.
+    @Test func 연결이_없어_못_나갔으면_다시_시도가_붙는다() async {
         let service = FakeDietService()
         service.chatPages = [ChatPage(messages: [], nextCursor: nil)]
         service.errors["askChat"] = APIError.networkError(URLError(.notConnectedToInternet))
@@ -552,6 +598,33 @@ struct DietChatLockTests {
         await vm.send("점심 왜 낮아?")
 
         #expect(canRetryOnly(vm))
+    }
+
+    /// **타임아웃은 안전하지 않다.** 서버에 닿아 LLM을 부르고 저장까지 끝낸 뒤 응답만 못
+    /// 받았을 수 있다 — 다시 보내면 돈이 두 번 나가고 대화가 두 벌이 된다.
+    @Test func 타임아웃에는_다시_시도를_두지_않는다() async {
+        let service = FakeDietService()
+        service.chatPages = [ChatPage(messages: [], nextCursor: nil)]
+        service.errors["askChat"] = APIError.networkError(URLError(.timedOut))
+        let vm = makeTodayViewModel(service: service)
+        await vm.load()
+
+        await vm.send("점심 왜 낮아?")
+
+        #expect(!canRetryOnly(vm))
+    }
+
+    /// 저장 도중 죽은 500도 같다 — 유료 호출은 이미 나갔다.
+    @Test func 서버_오류에는_다시_시도를_두지_않는다() async {
+        let service = FakeDietService()
+        service.chatPages = [ChatPage(messages: [], nextCursor: nil)]
+        service.errors["askChat"] = APIError.serverError(statusCode: 500, message: nil)
+        let vm = makeTodayViewModel(service: service)
+        await vm.load()
+
+        await vm.send("점심 왜 낮아?")
+
+        #expect(!canRetryOnly(vm))
     }
 
     /// **확인용 재조회까지 실패해도 잠금이 풀리면 안 된다.** `daysByDate`로만 판단하면
