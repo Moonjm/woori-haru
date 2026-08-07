@@ -87,6 +87,9 @@ struct DietChatView: View {
             }
             .font(.caption.weight(.medium))
             .foregroundStyle(Color.blue500)
+            // **눌러도 조용히 무시되는 버튼을 두지 않는다.** 전송 중에는 첫 장을 갈아끼우지
+            // 않으므로(`loadFirstPage`의 배타 가드) 눌린 티조차 안 나던 자리다.
+            .disabled(vm.isSending)
         }
         .padding(32)
     }
@@ -130,6 +133,7 @@ struct DietChatView: View {
                 .font(.caption.weight(.medium))
                 .foregroundStyle(Color.blue500)
                 .buttonStyle(.plain)
+                .disabled(vm.isLoadingPage)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 8)

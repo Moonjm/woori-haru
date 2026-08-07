@@ -69,7 +69,7 @@ final class DietChatViewModel {
     private(set) var messages: [ChatMessage] = []
     /// 아직 서버에 실리지 않은 말풍선들. **실패한 것이 쌓인다** — 단수로 들면 다음 전송이
     /// 못 보낸 문장을 덮어써서, 「지우면 사용자가 다시 타이핑해야 한다」로 막으려던 상태로
-    /// 그대로 돌아간다. 보내는 중인 것은 언제나 최대 하나다(`isSending` 가드).
+    /// 그대로 돌아간다. 보내는 중인 것은 언제나 최대 하나다(`Delivery` 예약).
     private(set) var pendingMessages: [PendingChatMessage] = []
     /// 플로팅 버튼을 누른 순간의 날짜. 질문이 어느 날에 대한 것인지를 정한다.
     private(set) var anchorDate: Date
@@ -159,12 +159,18 @@ final class DietChatViewModel {
 
     private let service: any DietServing
 
+    /// 「지금」을 어디서 읽는가. **주입한다** — 못 보낸 말풍선이 쓴 시각으로 구분선 아래
+    /// 앉는지는 벽시계를 고정하지 않으면 확인할 수 없다(23:59에 쓰고 자정을 넘기는 경우).
+    private let now: () -> Date
+
     init(
         service: any DietServing = DietService(),
         anchorDate: Date = Date(),
-        day: DailyDiet? = nil
+        day: DailyDiet? = nil,
+        now: @escaping () -> Date = { Date() }
     ) {
         self.service = service
+        self.now = now
         self.anchorDate = anchorDate
         if let day {
             daysByDate[day.date] = day
@@ -360,6 +366,10 @@ final class DietChatViewModel {
         }
         errorMessage = nil
         loadFailed = false
+        // **다음 장 실패도 함께 내린다.** 스트림을 통째로 갈아끼우면 그 커서로 실패했다는
+        // 사실도 같이 사라진다 — 안 내리면 맨 위에 「다시 시도」가 남아 자동 페이징이 꺼진 채
+        // 손으로 눌러야만 도는 상태가 된다.
+        nextPageFailed = false
 
         do {
             // **첫 장은 커서 없이 부른다.**
@@ -511,7 +521,9 @@ final class DietChatViewModel {
         return true
     }
 
-    /// 접수와 전송을 한 번에 기다린다. 추천 질문 칩·테스트처럼 입력창을 비울 일이 없는 쪽이 쓴다.
+    /// 접수와 전송을 한 번에 기다린다. **지금은 테스트만 쓴다** — 화면은 입력창을 비울
+    /// 시점을 알아야 해서 `accept`를 쓴다. 입력창을 비울 일이 없는 호출부(예: 화면 어딘가에서
+    /// 문장을 그대로 보내는 버튼)가 생기면 이쪽이다.
     func send(_ text: String) async {
         guard let message = reserve(text) else { return }
         await deliver(message.id)
@@ -522,7 +534,7 @@ final class DietChatViewModel {
         let message = PendingChatMessage(
             date: anchorDateString,
             text: text.trimmingCharacters(in: .whitespacesAndNewlines),
-            createdAt: Self.localTimestampFormatter.string(from: Date()),
+            createdAt: Self.localTimestampFormatter.string(from: now()),
             anchorMessageId: greatestSeenServerId
         )
         pendingMessages.append(message)

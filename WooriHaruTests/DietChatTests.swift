@@ -139,12 +139,22 @@ struct DietChatDateAxisTests {
         let service = FakeDietService()
         service.chatPages = [ChatPage(messages: [], nextCursor: nil)]
         service.errors["askChat"] = APIError.networkError(URLError(.notConnectedToInternet))
-        let vm = makeTodayViewModel(service: service)
+        // **시계를 어제 23:59로 고정한다.** 기대값을 검사 대상에서 읽어 오면 구현이 벽시계를
+        // 읽든 `date`를 읽든 그대로 통과한다 — 그 버그로 빨개지지 않는 테스트는 없느니만 못하다.
+        let writtenAt = Date().addingTimeInterval(-60 * 60 * 24)
+        let vm = DietChatViewModel(
+            service: service,
+            anchorDate: Date(),
+            day: makeDay(date: Date().dateString, meals: [makeMeal(date: Date().dateString)]),
+            now: { writtenAt }
+        )
         await vm.load()
         await vm.send("못 보낸 질문")
 
-        let writtenDay = String(vm.pendingMessages[0].createdAt.prefix(10))
-        #expect(separatorDays(vm.rows) == [writtenDay])
+        // 앵커(오늘)도 벽시계(오늘)도 아닌 **쓴 날(어제)** 아래에 앉는다.
+        #expect(separatorDays(vm.rows) == [writtenAt.dateString])
+        #expect(separatorDays(vm.rows) != [Date().dateString])
+        #expect(vm.pendingMessages[0].date == Date().dateString)
     }
 
     /// **`ForEach`가 쓰는 id는 유일해야 한다.** 구분선 id가 날짜뿐이라, 스트림 중간에 다른
@@ -262,6 +272,25 @@ struct DietChatPagingTests {
 
         #expect(!vm.nextPageFailed)
         #expect(messageIds(vm.rows) == [18, 20])
+    }
+
+    /// **첫 장을 다시 받으면 다음 장 실패도 함께 내려간다.** 안 내리면 맨 위에 「다시 시도」가
+    /// 남아 자동 페이징이 꺼진 채 손으로 눌러야만 도는 상태가 된다.
+    @Test func 첫_장을_다시_받으면_다음_장_실패_표시가_내려간다() async {
+        let service = FakeDietService()
+        service.chatPages = [ChatPage(messages: [makeChatMessage(id: 20)], nextCursor: 19)]
+        let vm = DietChatViewModel(service: service, anchorDate: Date(), day: makeDay())
+        await vm.load()
+
+        service.errors["fetchChatPage"] = dietServerError("INVALID_REQUEST")
+        await vm.loadNextPage()
+        #expect(vm.nextPageFailed)
+
+        service.errors["fetchChatPage"] = nil
+        service.chatPages = [ChatPage(messages: [makeChatMessage(id: 20)], nextCursor: 19)]
+        await vm.reload()
+
+        #expect(!vm.nextPageFailed)
     }
 
     @Test func 다음_커서가_없으면_더_부르지_않는다() async {
@@ -1427,6 +1456,9 @@ struct MacroStackBarTests {
         ])
 
         #expect(text == "탄수화물 46퍼센트, 단백질 17퍼센트, 지방 37퍼센트")
+
+        // 성하지 않은 값에서 숫자만 빠진 문장(「탄수화물 퍼센트」)이 읽히면 안 된다.
+        #expect(MacroStackBar.accessibilityText([macro("탄수화물", .nan)]) == "탄수화물 알 수 없음")
     }
 }
 

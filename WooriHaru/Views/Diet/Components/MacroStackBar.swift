@@ -73,7 +73,12 @@ struct MacroStackBar: View {
     /// 막대 전체를 한 문장으로 읽어 준다. **칸이 좁아 숫자를 뺀 경우에도 읽혀야 한다.**
     static func accessibilityText(_ macros: [MacroBasis]) -> String {
         macros
-            .map { "\($0.name) \(labelText(for: $0.percent).dropLast())퍼센트" }
+            .map { macro in
+                // **`labelText`의 끝 글자를 떼어 쓰지 않는다** — 성하지 않은 값에서는 그것이
+                // 「-」라 「탄수화물 퍼센트」처럼 숫자가 빠진 문장이 읽힌다.
+                guard macro.percent.isFinite else { return "\(macro.name) 알 수 없음" }
+                return "\(macro.name) \(Int(min(max(0, macro.percent), 1000).rounded()))퍼센트"
+            }
             .joined(separator: ", ")
     }
 
