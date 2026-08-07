@@ -265,9 +265,11 @@ struct DietChatView: View {
                 .glassInputField(cornerRadius: 18)
 
             Button {
-                let text = draft
+                // **접수된 것을 확인하고 나서 비운다.** 먼저 비우고 `Task`에서 보내면,
+                // 그 사이 첫 장 교체가 시작돼 전송이 거절될 때 쓴 문장만 사라진다.
+                guard let accepted = vm.accept(draft) else { return }
                 draft = ""
-                Task { await vm.send(text) }
+                Task { await vm.deliverAccepted(accepted.id) }
             } label: {
                 Image(systemName: "arrow.up.circle.fill")
                     .font(.title2)

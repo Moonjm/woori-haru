@@ -14,16 +14,15 @@ struct PendingChatMessage: Identifiable, Hashable {
     /// **자리를 정하는 데는 쓰지 않는다** — 이 값은 기기 시계이고 서버 `createdAt`은 서버
     /// 시계라, 시간대나 오차가 있으면 순서가 뒤집힌다.
     let createdAt: String
-    /// 쓸 때 스트림 맨 끝에 있던 **서버 메시지의 id**. 비어 있었으면 nil이다.
+    /// 쓸 때까지 본 **서버 메시지 id의 최댓값**. 그때 스트림이 비어 있었으면 nil이다.
     ///
-    /// **첫 장을 다시 받을 때 자리를 되찾는 근거다.** `streamIndex`는 스트림이 갈리면 뜻을
-    /// 잃고, 시각 비교는 두 시계를 견주게 된다. 서버 id는 단조 증가라 시계가 개입하지 않는다.
-    let anchorMessageId: Int?
-    /// 스트림의 어느 자리에 앉는가(`messages`의 인덱스).
+    /// **자리를 정하는 유일한 값이다.** 인덱스를 따로 들고 다니면 스트림이 바뀌는 자리마다
+    /// (전송 성공·앞에 붙이기·통째 교체) 그 값을 손으로 맞춰 줘야 하고, 한 군데만 빠뜨리면
+    /// 순서가 조용히 틀어진다 — 그리는 시점에 이 값 하나로 계산한다.
     ///
-    /// **끝에 몰아 붙이면 순서가 뒤집힌다** — A가 실패하고 B가 성공하면 화면이
-    /// 「B 질문 → B 답변 → 실패한 A」가 되어, 먼저 쓴 A가 제일 최근 것처럼 보인다.
-    var streamIndex: Int
+    /// 서버 id는 단조 증가라 시계가 개입하지 않는다. **배열 마지막 id가 아니라 최댓값이다** —
+    /// 실패했던 질문을 나중에 재시도해 성공하면 그 답(더 큰 id)이 배열 중간에 꽂힌다.
+    var anchorMessageId: Int?
     var failed = false
     /// 왜 못 보냈는지. **전송 실패는 알럿을 띄우지 않으므로**(말풍선이 그 자리를 지킨다)
     /// 이유가 여기 없으면 사용자는 영영 알 수 없고 같은 본문으로 재시도만 반복한다.
@@ -116,6 +115,18 @@ final class DietChatViewModel {
     /// 되고, 화면을 다시 열면 서버가 준 진짜 행으로 대체된다.
     private var localIdSeed = 0
 
+    /// 지금까지 본 서버 메시지 id의 최댓값. 새 말풍선의 기준점이 된다.
+    ///
+    /// **배열 마지막 id가 아니다.** 실패했던 질문을 나중에 재시도해 성공하면 그 답(더 큰 id)이
+    /// 배열 중간에 꽂히므로, 마지막을 기준점으로 삼으면 다음 질문이 이미 본 것보다 앞에 앉는다.
+    private var greatestSeenServerId: Int?
+
+    private func noteSeen(_ items: [ChatMessage]) {
+        for item in items where item.id > 0 {
+            greatestSeenServerId = max(greatestSeenServerId ?? item.id, item.id)
+        }
+    }
+
     private let service: any DietServing
 
     init(
@@ -200,7 +211,7 @@ final class DietChatViewModel {
 
         /// 못 보낸 말풍선을 **쓴 자리에** 끼워 넣는다.
         func appendPending(at index: Int) {
-            for message in pendingMessages where message.streamIndex == index {
+            for message in pendingMessages where position(of: message) == index {
                 let day = Date().dateString
                 if day != currentDay {
                     result.append(.dateSeparator(day: day))
@@ -227,6 +238,21 @@ final class DietChatViewModel {
         appendPending(at: messages.count)
 
         return result
+    }
+
+    /// 못 보낸 말풍선이 앉을 자리(`messages`의 인덱스).
+    ///
+    /// **그릴 때 계산한다.** 기준점 이하인 마지막 서버 행 바로 뒤다. 기준점이 없거나
+    /// (쓸 때 스트림이 비어 있었다) 이 화면에 없으면(그만큼 새 메시지가 쌓여 밀려났으면)
+    /// 실려 온 것이 전부 나중 것이라는 뜻이라 맨 위다.
+    ///
+    /// **로컬 행(음수 id)은 건너뛴다** — 서버 id끼리만 견줄 수 있다.
+    private func position(of message: PendingChatMessage) -> Int {
+        guard let anchorId = message.anchorMessageId,
+              let index = messages.lastIndex(where: { $0.id > 0 && $0.id <= anchorId }) else {
+            return 0
+        }
+        return index + 1
     }
 
     /// **둘이 다를 때만 붙인다.** 같은 날 얘기를 같은 날 하는 경우가 대부분이라 늘 붙이면
@@ -279,26 +305,10 @@ final class DietChatViewModel {
         do {
             // **첫 장은 커서 없이 부른다.**
             let page = try await service.fetchChatPage(before: nil, size: ChatPolicy.pageSize)
+            // **못 보낸 말풍선의 자리를 손보지 않는다.** 자리는 기준점에서 그릴 때
+            // 계산되므로(`position(of:)`) 스트림이 통째로 갈려도 저절로 따라온다.
             messages = Array(page.messages.reversed())
-            // **첫 장을 다시 받으면 `streamIndex`는 뜻을 잃는다** — 스트림이 통째로 갈린다.
-            // 그대로 두면 자리가 새 길이를 넘어서서 말풍선이 화면에서 사라지고, 전부 맨
-            // 끝으로 몰면 먼저 쓴 것이 나중 대화 아래로 내려간다.
-            //
-            // **인덱스로는 가를 수 없다.** 같은 자리 0이라도, 새로 실려 온 것이 과거
-            // 기록이면 말풍선이 뒤로 가야 하고 방금 저장된 대화면 앞에 남아야 한다.
-            //
-            // **기준점은 쓸 때 맨 끝에 있던 서버 메시지의 id다.** 그 id 이하인 마지막
-            // 메시지 바로 뒤에 놓는다 — 서버 id가 단조 증가라 시계가 개입하지 않는다.
-            // 기준점이 이 장에 없으면(그만큼 새 메시지가 쌓여 밀려났으면) 실려 온 것이
-            // 전부 나중 것이라는 뜻이라 맨 위에 둔다. 같은 기준점끼리는 배열 순서가 가른다.
-            for index in pendingMessages.indices {
-                guard let anchorId = pendingMessages[index].anchorMessageId,
-                      let position = messages.lastIndex(where: { $0.id <= anchorId }) else {
-                    pendingMessages[index].streamIndex = 0
-                    continue
-                }
-                pendingMessages[index].streamIndex = position + 1
-            }
+            noteSeen(messages)
             nextCursor = page.nextCursor
             hasLoaded = true
         } catch is CancellationError {
@@ -331,12 +341,10 @@ final class DietChatViewModel {
 
         do {
             let page = try await service.fetchChatPage(before: cursor, size: ChatPolicy.pageSize)
+            // 여기서도 말풍선의 자리를 손보지 않는다 — 앞에 몇 건이 붙든 기준점은 그대로다.
             let older = Array(page.messages.reversed())
             messages.insert(contentsOf: older, at: 0)
-            // 위에 붙은 만큼 못 보낸 말풍선의 자리도 밀린다.
-            for index in pendingMessages.indices {
-                pendingMessages[index].streamIndex += older.count
-            }
+            noteSeen(older)
             nextCursor = page.nextCursor
         } catch is CancellationError {
             return
@@ -430,17 +438,31 @@ final class DietChatViewModel {
         return "\(ChatPolicy.maxMessageLength)자까지 보낼 수 있어요 (지금 \(count)자)"
     }
 
-    func send(_ text: String) async {
-        guard isSendable(text) else { return }
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+    /// 질문을 **접수한다.** 받아들였으면 그 말풍선을 돌려준다.
+    ///
+    /// **판정과 접수가 한 번에 끝난다(중간에 `await`가 없다).** 화면이 이 결과를 보고
+    /// 입력창을 비우기 때문이다 — 먼저 비우고 나중에 보내면, 그 사이 첫 장 교체가 시작돼
+    /// 전송이 거절될 때 사용자가 쓴 문장만 사라진다.
+    @discardableResult
+    func accept(_ text: String) -> PendingChatMessage? {
+        guard isSendable(text) else { return nil }
         let message = PendingChatMessage(
             date: anchorDateString,
-            text: trimmed,
+            text: text.trimmingCharacters(in: .whitespacesAndNewlines),
             createdAt: Self.localTimestampFormatter.string(from: Date()),
-            anchorMessageId: messages.last?.id,
-            streamIndex: messages.count
+            anchorMessageId: greatestSeenServerId
         )
         pendingMessages.append(message)
+        return message
+    }
+
+    func deliverAccepted(_ id: UUID) async {
+        await deliver(id)
+    }
+
+    /// 접수와 전송을 한 번에. 추천 질문 칩·테스트처럼 입력창을 비울 일이 없는 쪽이 쓴다.
+    func send(_ text: String) async {
+        guard let message = accept(text) else { return }
         await deliver(message.id)
     }
 
@@ -476,15 +498,15 @@ final class DietChatViewModel {
             let answer = try await service.askChat(date: message.date, message: message.text)
             // 질문 행도 서버가 저장하지만 응답에는 답만 온다 — 이미 띄운 말풍선을 그대로
             // 스트림에 옮긴다.
-            messages.insert(contentsOf: [localMessage(message), answer], at: message.streamIndex)
+            messages.insert(contentsOf: [localMessage(message), answer], at: position(of: message))
+            noteSeen([answer])
 
-            // **`streamIndex`가 아니라 배열 자리로 판별한다.** 같은 자리에 앉은 말풍선이
-            // 둘이면(같은 시점에 둘 다 실패) `streamIndex` 비교로는 둘을 가를 수 없어,
-            // 먼저 쓴 것을 재시도하면 나중에 쓴 것이 그 위로 올라간다. `pendingMessages`의
-            // 순서가 곧 쓴 순서이므로(추가는 끝에만, 재시도는 제자리) 그것을 쓴다.
+            // **뒤에 쓴 말풍선들의 기준점을 방금 실린 답으로 옮긴다.** 그것들은 이 대화보다
+            // 나중에 쓰였는데, 기준점을 그대로 두면 같은 자리로 계산돼 이 대화 위에 앉는다.
+            // `pendingMessages`의 순서가 곧 쓴 순서다(추가는 끝에만, 재시도는 제자리).
             if let deliveredIndex = pendingMessages.firstIndex(where: { $0.id == id }) {
                 for index in pendingMessages.indices where index > deliveredIndex {
-                    pendingMessages[index].streamIndex += 2
+                    pendingMessages[index].anchorMessageId = answer.id
                 }
                 pendingMessages.remove(at: deliveredIndex)
             }

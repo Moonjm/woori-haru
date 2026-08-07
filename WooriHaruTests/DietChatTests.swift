@@ -561,7 +561,8 @@ struct DietChatLockTests {
         await vm.load()
         await vm.send("A 질문")
         await vm.send("B 질문")
-        #expect(vm.pendingMessages.map(\.streamIndex) == [0, 0])
+        // 둘 다 스트림이 비어 있을 때 쓰였다 — 기준점이 없어 같은 자리에 앉는다.
+        #expect(vm.pendingMessages.allSatisfy { $0.anchorMessageId == nil })
 
         service.errors["askChat"] = nil
         service.chatAnswers = [makeChatMessage(id: 9, role: .assistant, content: "A 답변")]
@@ -628,6 +629,29 @@ struct DietChatLockTests {
 
         // 기준점(20) 바로 뒤 — 사라지지도, 과거 기록 위로 올라가지도 않는다.
         #expect(streamTexts(vm) == ["과거 B", "과거 A", "새 질문"])
+    }
+
+    /// **앞에 이전 장을 붙여도 기준점이 자리를 지킨다.** 붙은 건수만큼 통째로 밀면,
+    /// 기준점이 서로 다른 말풍선들이 모두 같은 만큼 밀려 자리가 어긋난다.
+    @Test func 이전_장을_붙여도_기준점이_자리를_지킨다() async {
+        let service = FakeDietService()
+        service.chatPages = [
+            ChatPage(messages: [makeChatMessage(id: 30, content: "최신")], nextCursor: 30),
+            ChatPage(messages: [
+                makeChatMessage(id: 29, content: "옛것 B"),
+                makeChatMessage(id: 28, content: "옛것 A")
+            ], nextCursor: nil)
+        ]
+        service.errors["askChat"] = APIError.networkError(URLError(.notConnectedToInternet))
+        let vm = makeTodayViewModel(service: service)
+        await vm.load()
+        await vm.send("못 보낸 질문")
+        #expect(streamTexts(vm) == ["최신", "못 보낸 질문"])
+
+        await vm.loadNextPage()
+
+        // 앞에 두 건이 붙어도 여전히 기준점(30) 바로 뒤다.
+        #expect(streamTexts(vm) == ["옛것 A", "옛것 B", "최신", "못 보낸 질문"])
     }
 
     /// **먼저 쓴 것이 나중 대화 아래로 내려가면 안 된다.** 전부 맨 끝으로 몰면 A가 실패하고
@@ -779,6 +803,45 @@ struct DietChatLockTests {
         #expect(onlyPending(vm)?.text == "점심 왜 낮아?")
         #expect(!canRetryOnly(vm))
         #expect(onlyPending(vm)?.failureReason == "보냈는지 확인하지 못했어요")
+    }
+
+    /// **기준점은 배열 마지막이 아니라 본 것 중 최댓값이다.** 실패했던 A를 나중에 재시도해
+    /// 성공하면 그 답(더 큰 id)이 B 앞에 꽂혀 배열 마지막은 여전히 B의 답이다 — 그것을
+    /// 기준점으로 잡으면 다음 질문이 이미 본 대화보다 앞에 앉는다.
+    @Test func 다음_질문의_기준점은_본_것_중_가장_큰_id다() async {
+        let service = FakeDietService()
+        service.chatPages = [ChatPage(messages: [], nextCursor: nil)]
+        service.errors["askChat"] = APIError.networkError(URLError(.notConnectedToInternet))
+        let vm = makeTodayViewModel(service: service)
+        await vm.load()
+        await vm.send("A 질문")
+
+        // B가 먼저 성공한다(답 id 102).
+        service.errors["askChat"] = nil
+        service.chatAnswers = [
+            makeChatMessage(id: 102, role: .assistant, content: "B 답변"),
+            makeChatMessage(id: 104, role: .assistant, content: "A 답변")
+        ]
+        await vm.send("B 질문")
+        // 이어서 A를 재시도해 성공한다(답 id 104) — 그 쌍이 B 앞에 꽂힌다.
+        await retryOnly(vm)
+        #expect(streamTexts(vm) == ["A 질문", "A 답변", "B 질문", "B 답변"])
+
+        // 배열 마지막은 102지만 기준점은 104여야 한다.
+        #expect(vm.accept("C 질문")?.anchorMessageId == 104)
+        #expect(streamTexts(vm) == ["A 질문", "A 답변", "B 질문", "B 답변", "C 질문"])
+    }
+
+    /// **접수되고 나서 비운다.** 먼저 비우고 나중에 보내면, 그 사이 전송이 거절될 때
+    /// 사용자가 쓴 문장만 사라진다.
+    @Test func 보낼_수_없을_때는_접수하지_않는다() async {
+        let service = FakeDietService()
+        service.chatPages = [ChatPage(messages: [], nextCursor: nil)]
+        let vm = makeTodayViewModel(service: service, meals: [])
+        await vm.load()
+
+        #expect(vm.accept("점심 왜 낮아?") == nil)
+        #expect(vm.pendingMessages.isEmpty)
     }
 
     /// **서버 설정 문제에는 재시도를 두지 않는다** — 배포가 바뀌기 전에는 눌러도 그대로다.
