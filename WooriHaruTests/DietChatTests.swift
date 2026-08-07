@@ -44,6 +44,23 @@ private func hasAwaitingReply(_ rows: [ChatRow]) -> Bool {
     }
 }
 
+/// 대부분의 테스트는 못 보낸 말풍선이 하나뿐이다.
+@MainActor
+private func onlyPending(_ vm: DietChatViewModel) -> PendingChatMessage? {
+    vm.pendingMessages.first
+}
+
+@MainActor
+private func canRetryOnly(_ vm: DietChatViewModel) -> Bool {
+    vm.pendingMessages.first.map { vm.canRetry($0) } ?? false
+}
+
+@MainActor
+private func retryOnly(_ vm: DietChatViewModel) async {
+    guard let id = vm.pendingMessages.first?.id else { return }
+    await vm.retry(id)
+}
+
 /// 앵커가 오늘인 뷰모델. 잠금·전송 테스트가 쓴다 — 「오늘」 판정이 `Calendar`에 달려 있어
 /// 고정 날짜로는 재현할 수 없다.
 @MainActor
@@ -232,7 +249,7 @@ struct DietChatSendTests {
         let sending = Task { await vm.send("점심 왜 낮아?") }
         await gate.waitUntilBlocked()
 
-        #expect(vm.pending?.text == "점심 왜 낮아?")
+        #expect(onlyPending(vm)?.text == "점심 왜 낮아?")
         #expect(hasPending(vm.rows))
         #expect(hasAwaitingReply(vm.rows))
 
@@ -249,7 +266,7 @@ struct DietChatSendTests {
 
         await vm.send("점심 왜 낮아?")
 
-        #expect(vm.pending == nil)
+        #expect(vm.pendingMessages.isEmpty)
         #expect(vm.messages.map(\.content) == ["점심 왜 낮아?", "나트륨이 기준을 넘었어요"])
         #expect(vm.messages.map(\.role) == [.user, .assistant])
         #expect(!hasAwaitingReply(vm.rows))
@@ -267,8 +284,8 @@ struct DietChatSendTests {
 
         await vm.send("점심 왜 낮아?")
 
-        #expect(vm.pending?.text == "점심 왜 낮아?")
-        #expect(vm.pending?.failed == true)
+        #expect(onlyPending(vm)?.text == "점심 왜 낮아?")
+        #expect(onlyPending(vm)?.failed == true)
         #expect(hasPending(vm.rows))
         // 오지 않을 답을 기다리는 자리를 남기지 않는다.
         #expect(!hasAwaitingReply(vm.rows))
@@ -287,10 +304,10 @@ struct DietChatSendTests {
 
         service.errors["askChat"] = nil
         service.chatAnswers = [makeChatMessage(id: 9, role: .assistant, content: "나트륨이 기준을 넘었어요")]
-        await vm.retry()
+        await retryOnly(vm)
 
         #expect(service.askedChats.map(\.message) == ["점심 왜 낮아?", "점심 왜 낮아?"])
-        #expect(vm.pending == nil)
+        #expect(vm.pendingMessages.isEmpty)
         #expect(vm.messages.map(\.content) == ["점심 왜 낮아?", "나트륨이 기준을 넘었어요"])
     }
 
@@ -310,7 +327,7 @@ struct DietChatSendTests {
         await vm.send(tooLong)
 
         #expect(service.askedChats.isEmpty)
-        #expect(vm.pending == nil)
+        #expect(vm.pendingMessages.isEmpty)
     }
 
     /// 경계는 포함이다 — 한 글자 차이로 보내지 못하면 상한이 실제보다 좁아진다.
@@ -392,7 +409,7 @@ struct DietChatLockTests {
         await vm.send("점심 왜 낮아?")
 
         #expect(service.askedChats.isEmpty)
-        #expect(vm.pending == nil)
+        #expect(vm.pendingMessages.isEmpty)
     }
 
     /// **하루를 받는 동안에는 잠근다.** 앵커를 오늘로 되돌린 직후가 특히 그렇다 — 그 창에서
@@ -454,12 +471,87 @@ struct DietChatLockTests {
         await vm.send("오늘 뭐가 부족했어?")
 
         #expect(vm.isInputLocked)
-        #expect(vm.pending?.failureReason == "이 날은 기록이 없어서 물어볼 수 없어요")
+        #expect(onlyPending(vm)?.failureReason == "이 날은 기록이 없어서 물어볼 수 없어요")
         // 눌러도 같은 거절이 돌아오는 재시도는 두지 않는다.
-        #expect(!vm.canRetry)
+        #expect(!canRetryOnly(vm))
 
-        await vm.retry()
+        await retryOnly(vm)
         #expect(service.askedChats.count == 1)
+    }
+
+    /// **못 보낸 문장이 다음 전송에 지워지면 안 된다.** 단수로 들면 `deliver`가 그대로
+    /// 덮어써서, 「지우면 다시 타이핑해야 한다」로 막으려던 상태로 돌아간다.
+    @Test func 실패한_말풍선은_새_질문을_보내도_남는다() async {
+        let service = FakeDietService()
+        service.chatPages = [ChatPage(messages: [], nextCursor: nil)]
+        service.errors["askChat"] = APIError.networkError(URLError(.timedOut))
+        let vm = makeTodayViewModel(service: service)
+        await vm.load()
+        await vm.send("첫 질문")
+        #expect(vm.pendingMessages.count == 1)
+
+        service.errors["askChat"] = nil
+        service.chatAnswers = [makeChatMessage(id: 9, role: .assistant, content: "답")]
+        await vm.send("두 번째 질문")
+
+        // 실패한 첫 질문이 그대로 남아 있고, 두 번째만 스트림으로 옮겨졌다.
+        #expect(vm.pendingMessages.map(\.text) == ["첫 질문"])
+        #expect(vm.messages.map(\.content) == ["두 번째 질문", "답"])
+        #expect(canRetryOnly(vm))
+    }
+
+    /// **서버 설정 문제에는 재시도를 두지 않는다** — 배포가 바뀌기 전에는 눌러도 그대로다.
+    @Test func 설정_실패에는_다시_시도가_붙지_않는다() async {
+        let service = FakeDietService()
+        service.chatPages = [ChatPage(messages: [], nextCursor: nil)]
+        service.errors["askChat"] = dietServerError("LLM_UNAVAILABLE", status: 503)
+        let vm = makeTodayViewModel(service: service)
+        await vm.load()
+
+        await vm.send("점심 왜 낮아?")
+
+        #expect(onlyPending(vm)?.failureReason == "코치가 아직 준비되지 않았어요")
+        #expect(!canRetryOnly(vm))
+    }
+
+    /// 생성만 실패했다 — 다음 호출은 될 수 있다.
+    @Test func 답_생성_실패에는_다시_시도가_붙는다() async {
+        let service = FakeDietService()
+        service.chatPages = [ChatPage(messages: [], nextCursor: nil)]
+        service.errors["askChat"] = dietServerError("CHAT_FAILED", status: 503)
+        let vm = makeTodayViewModel(service: service)
+        await vm.load()
+
+        await vm.send("점심 왜 낮아?")
+
+        #expect(canRetryOnly(vm))
+    }
+
+    /// **못 보낸 것이 아니라 못 읽은 것이다.** 서버는 질문과 답을 이미 저장했으므로 다시
+    /// 보내면 LLM 호출이 한 번 더 나가고 같은 대화가 두 벌이 된다.
+    @Test func 응답을_못_읽었으면_다시_보내지_않는다() async {
+        let service = FakeDietService()
+        service.chatPages = [ChatPage(messages: [], nextCursor: nil)]
+        service.errors["askChat"] = APIError.decodingError(URLError(.cannotParseResponse))
+        let vm = makeTodayViewModel(service: service)
+        await vm.load()
+
+        await vm.send("점심 왜 낮아?")
+
+        #expect(!canRetryOnly(vm))
+    }
+
+    /// 네트워크가 끊긴 것은 일시적이다.
+    @Test func 네트워크_실패에는_다시_시도가_붙는다() async {
+        let service = FakeDietService()
+        service.chatPages = [ChatPage(messages: [], nextCursor: nil)]
+        service.errors["askChat"] = APIError.networkError(URLError(.notConnectedToInternet))
+        let vm = makeTodayViewModel(service: service)
+        await vm.load()
+
+        await vm.send("점심 왜 낮아?")
+
+        #expect(canRetryOnly(vm))
     }
 
     /// **확인용 재조회까지 실패해도 잠금이 풀리면 안 된다.** `daysByDate`로만 판단하면
@@ -475,9 +567,9 @@ struct DietChatLockTests {
         await vm.send("오늘 뭐가 부족했어?")
 
         #expect(vm.isInputLocked)
-        #expect(!vm.canRetry)
+        #expect(!canRetryOnly(vm))
         // **이유를 지어내지 않는다** — 빈 날인지 확인하지 못했다.
-        #expect(vm.pending?.failureReason == nil)
+        #expect(onlyPending(vm)?.failureReason == nil)
         #expect(vm.lockedNotice == "이 날은 지금 물어볼 수 없어요")
     }
 
@@ -494,9 +586,33 @@ struct DietChatLockTests {
         service.days = [makeDay(date: Date().dateString, meals: [makeMeal(date: Date().dateString)])]
         await vm.send("오늘 뭐가 부족했어?")
 
-        #expect(vm.pending?.failureReason == nil)
-        #expect(vm.lockedNotice == "이 날은 지금 물어볼 수 없어요")
-        #expect(!vm.canRetry)
+        #expect(onlyPending(vm)?.failureReason == nil)
+        // **그 문장만의 문제였다는 뜻이다** — 같은 날의 다른 질문까지 막으면 애먼 것을 막는다.
+        #expect(!vm.isInputLocked)
+        #expect(vm.lockedNotice == nil)
+        // 그래도 같은 본문을 다시 보내는 것은 같은 거절이다.
+        #expect(!canRetryOnly(vm))
+    }
+
+    /// 잠갔으면 푸는 길이 있어야 한다 — 그 사이 끼니를 기록했으면 다시 물을 수 있다.
+    @Test func 기록이_확인되면_거절_잠금이_풀린다() async {
+        let service = FakeDietService()
+        service.chatPages = [ChatPage(messages: [], nextCursor: nil)]
+        service.errors["fetchDay"] = dietServerError("RESOURCE_NOT_FOUND", status: 404)
+        service.errors["askChat"] = dietServerError("INVALID_REQUEST")
+        let vm = DietChatViewModel(service: service, anchorDate: Date(), day: nil)
+        await vm.load()
+        await vm.send("오늘 뭐가 부족했어?")
+        #expect(vm.isInputLocked)
+
+        // 끼니를 기록하고 화면이 앵커를 다시 세운다 — 이번에는 하루가 돌아온다.
+        let today = Date().dateString
+        service.errors["fetchDay"] = nil
+        service.days = [makeDay(date: today, meals: [makeMeal(date: today)])]
+        await vm.resetAnchorToToday()
+
+        #expect(!vm.isInputLocked)
+        #expect(vm.lockedNotice == nil)
     }
 
     /// **실패 뒤 앵커를 오늘로 되돌려도 재시도가 열리면 안 된다.** 재시도는 여전히 8월 1일로
@@ -518,14 +634,14 @@ struct DietChatLockTests {
         await vm.load()
 
         await vm.send("점심 왜 낮아?")
-        #expect(!vm.canRetry)
+        #expect(!canRetryOnly(vm))
 
         // `✕` — 오늘은 기록이 있어 입력창이 풀린다. 그래도 저 말풍선은 다시 못 보낸다.
         await vm.resetAnchorToToday()
         #expect(!vm.isInputLocked)
-        #expect(!vm.canRetry)
+        #expect(!canRetryOnly(vm))
 
-        await vm.retry()
+        await retryOnly(vm)
         #expect(service.askedChats.count == 1)
     }
 

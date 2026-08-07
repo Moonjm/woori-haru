@@ -160,7 +160,7 @@ struct DietChatView: View {
                 isUser: true,
                 badge: badge,
                 failureText: pending.failed ? (pending.failureReason ?? "보내지 못했어요") : nil,
-                onRetry: vm.canRetry ? { Task { await vm.retry() } } : nil
+                onRetry: vm.canRetry(pending) ? { Task { await vm.retry(pending.id) } } : nil
             )
 
         case .awaitingReply:
