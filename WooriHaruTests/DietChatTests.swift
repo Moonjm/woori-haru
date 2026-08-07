@@ -827,9 +827,15 @@ struct DietChatLockTests {
         await retryOnly(vm)
         #expect(streamTexts(vm) == ["A 질문", "A 답변", "B 질문", "B 답변"])
 
-        // 배열 마지막은 102지만 기준점은 104여야 한다.
-        #expect(vm.accept("C 질문")?.anchorMessageId == 104)
+        // 배열 마지막은 102지만 기준점은 104여야 한다. 접수만 보면 되므로 전송은 붙잡아 둔다.
+        let gate = AsyncGate()
+        service.askChatGate = gate
+        #expect(vm.accept("C 질문"))
+        #expect(vm.pendingMessages.last?.anchorMessageId == 104)
         #expect(streamTexts(vm) == ["A 질문", "A 답변", "B 질문", "B 답변", "C 질문"])
+
+        await gate.open()
+        await vm.waitForDelivery()
     }
 
     /// **접수되고 나서 비운다.** 먼저 비우고 나중에 보내면, 그 사이 전송이 거절될 때
@@ -840,7 +846,7 @@ struct DietChatLockTests {
         let vm = makeTodayViewModel(service: service, meals: [])
         await vm.load()
 
-        #expect(vm.accept("점심 왜 낮아?") == nil)
+        #expect(!vm.accept("점심 왜 낮아?"))
         #expect(vm.pendingMessages.isEmpty)
     }
 
@@ -856,14 +862,16 @@ struct DietChatLockTests {
         let vm = makeTodayViewModel(service: service)
         await vm.load()
 
-        let accepted = vm.accept("점심 왜 낮아?")
-        #expect(accepted != nil)
+        let gate = AsyncGate()
+        service.askChatGate = gate
+        #expect(vm.accept("점심 왜 낮아?"))
         #expect(vm.isSending)
 
         await vm.reload()
         #expect(service.chatPageCursors.count == 1)
 
-        if let accepted { await vm.deliverAccepted(accepted.id) }
+        await gate.open()
+        await vm.waitForDelivery()
         #expect(streamTexts(vm) == ["점심 왜 낮아?", "답"])
     }
 
@@ -875,14 +883,16 @@ struct DietChatLockTests {
         let vm = makeTodayViewModel(service: service)
         await vm.load()
 
-        let first = vm.accept("첫 질문")
-        let second = vm.accept("두 번째 질문")
-
-        #expect(first != nil)
-        #expect(second == nil)
+        let gate = AsyncGate()
+        service.askChatGate = gate
+        #expect(vm.accept("첫 질문"))
+        #expect(!vm.accept("두 번째 질문"))
         #expect(vm.pendingMessages.map(\.text) == ["첫 질문"])
 
-        if let first { await vm.deliverAccepted(first.id) }
+        await gate.open()
+        await vm.waitForDelivery()
+        // **유료 POST가 한 번만 나갔다.**
+        #expect(service.askedChats.map(\.message) == ["첫 질문"])
     }
 
     /// 재시도도 같은 예약을 거쳐야 한다 — 두 길이 같은 잠금을 쓰지 않으면 서로를 못 막는다.
@@ -898,34 +908,41 @@ struct DietChatLockTests {
 
         service.errors["askChat"] = nil
         service.chatAnswers = [makeChatMessage(id: 9, role: .assistant, content: "답")]
-        let accepted = vm.accept("새 질문")
+        let gate = AsyncGate()
+        service.askChatGate = gate
+        #expect(vm.accept("새 질문"))
 
         #expect(!vm.canRetry(vm.pendingMessages[0]))
         await vm.retry(failedId)
         #expect(service.askedChats.count == 1)
 
-        if let accepted { await vm.deliverAccepted(accepted.id) }
+        await gate.open()
+        await vm.waitForDelivery()
         #expect(service.askedChats.map(\.message) == ["실패한 질문", "새 질문"])
     }
 
-    /// **예약된 것만 보낸다.** 예약이 끝난 뒤 같은 id로 다시 들어오면 아무것도 하지 않는다 —
-    /// 두 전송의 종료 순서가 뒤집혀도 서로의 잠금을 풀지 못한다.
-    @Test func 예약이_아닌_전송은_실행되지_않는다() async {
+    /// **나가는 중에 또 나가지 않는다.** 예약을 「나가는 중」으로 한 번만 넘기므로, 같은
+    /// 말풍선이든 새 질문이든 두 번째 POST가 통과하지 못한다.
+    @Test func 나가는_중에는_두_번째_전송이_실제로_나가지_않는다() async {
         let service = FakeDietService()
         service.chatPages = [ChatPage(messages: [], nextCursor: nil)]
         service.chatAnswers = [makeChatMessage(id: 9, role: .assistant, content: "답")]
         let vm = makeTodayViewModel(service: service)
         await vm.load()
 
-        let accepted = vm.accept("점심 왜 낮아?")
-        #expect(accepted != nil)
-        await vm.deliverAccepted(accepted?.id ?? UUID())
-        #expect(service.askedChats.count == 1)
-        #expect(!vm.isSending)
+        let gate = AsyncGate()
+        service.askChatGate = gate
+        #expect(vm.accept("첫 질문"))
+        await gate.waitUntilBlocked()
 
-        // 예약이 이미 풀렸다 — 늦게 도착한 두 번째 실행은 통과하지 못한다.
-        await vm.deliverAccepted(accepted?.id ?? UUID())
+        // 첫 POST가 아직 안 돌아왔다 — 여기서 나가면 유료 호출이 두 번 나간다.
+        await vm.send("두 번째 질문")
         #expect(service.askedChats.count == 1)
+
+        await gate.open()
+        await vm.waitForDelivery()
+        #expect(service.askedChats.map(\.message) == ["첫 질문"])
+        #expect(!vm.isSending)
     }
 
     /// **서버 설정 문제에는 재시도를 두지 않는다** — 배포가 바뀌기 전에는 눌러도 그대로다.

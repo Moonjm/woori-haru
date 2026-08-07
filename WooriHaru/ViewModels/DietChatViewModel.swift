@@ -83,15 +83,35 @@ final class DietChatViewModel {
     /// 다음 장 조회가 실패했다. **스피너를 계속 돌리지 않는다** — 실패한 뒤에도 돌면 영영
     /// 불러오는 중인 것처럼 보인다. 그 자리에 다시 시도할 길을 둔다.
     private(set) var nextPageFailed = false
-    /// 지금 서버로 보내기로 **예약된** 말풍선.
+    /// 전송 소유권. **접수하는 순간 동기적으로 잡고, 실제로 보낼 때 한 번만 넘어간다.**
     ///
-    /// **접수하는 순간 동기적으로 잡는다.** 접수(`accept`)와 실제 전송(`deliverAccepted`)
-    /// 사이에는 화면의 `Task` 경계가 있는데, 그 창에서 잠금이 풀려 있으면 그 사이에 다른
-    /// 전송·재시도·첫 장 교체가 끼어들고, 먼저 끝난 쪽의 `defer`가 나머지가 진행 중인데도
-    /// 잠금을 풀어 버린다.
-    private(set) var activeDeliveryId: UUID?
+    /// 두 단계인 이유는 「예약됐다」와 「지금 나가는 중이다」가 다른 상태이기 때문이다.
+    /// 하나로 두면 같은 말풍선으로 두 번 들어온 전송이 같은 검사를 통과해 **유료 POST가
+    /// 두 번 나가고**, 먼저 끝난 쪽이 나머지가 진행 중인데도 잠금을 푼다.
+    private enum Delivery {
+        case reserved(UUID)
+        case delivering(UUID)
 
-    var isSending: Bool { activeDeliveryId != nil }
+        var id: UUID {
+            switch self {
+            case .reserved(let id), .delivering(let id): id
+            }
+        }
+    }
+
+    private var delivery: Delivery?
+
+    /// 전송 중이거나 전송이 예약돼 있다. 입력창·재시도·첫 장 교체가 모두 이 값을 본다.
+    var isSending: Bool { delivery != nil }
+
+    /// **뷰모델이 전송 작업을 직접 든다.** 예약 id를 밖으로 내보내면 그 짝(반드시 실행)을
+    /// 호출 규약으로만 지켜야 하고, 한 번 어긋나면 예약이 안 풀려 입력창이 영영 잠긴다.
+    private var deliveryTask: Task<Void, Never>?
+
+    /// 테스트에서 전송이 끝나기를 기다린다(`DietDayViewModel.waitForFeedbackPolling`과 같다).
+    func waitForDelivery() async {
+        await deliveryTask?.value
+    }
     /// 페이지 조회 실패만 담는다. **전송 실패는 여기 오지 않는다** — 말풍선에 「다시 시도」가
     /// 붙으므로 알럿까지 띄우면 같은 사실을 두 번 말한다.
     var errorMessage: String?
@@ -452,7 +472,21 @@ final class DietChatViewModel {
     /// 입력창을 비우기 때문이다 — 먼저 비우고 나중에 보내면, 그 사이 첫 장 교체가 시작돼
     /// 전송이 거절될 때 사용자가 쓴 문장만 사라진다.
     @discardableResult
-    func accept(_ text: String) -> PendingChatMessage? {
+    func accept(_ text: String) -> Bool {
+        guard let message = reserve(text) else { return false }
+        // **전송까지 여기서 건다.** 예약과 실행이 갈라져 있으면 그 사이가 창이 되고,
+        // 실행이 한 번이라는 보장도 호출부에 맡기게 된다.
+        deliveryTask = Task { [weak self] in await self?.deliver(message.id) }
+        return true
+    }
+
+    /// 접수와 전송을 한 번에 기다린다. 추천 질문 칩·테스트처럼 입력창을 비울 일이 없는 쪽이 쓴다.
+    func send(_ text: String) async {
+        guard let message = reserve(text) else { return }
+        await deliver(message.id)
+    }
+
+    private func reserve(_ text: String) -> PendingChatMessage? {
         guard isSendable(text) else { return nil }
         let message = PendingChatMessage(
             date: anchorDateString,
@@ -461,22 +495,8 @@ final class DietChatViewModel {
             anchorMessageId: greatestSeenServerId
         )
         pendingMessages.append(message)
-        // **여기서 소유권을 잡는다.** 화면이 다음 줄에서 `Task`로 넘어가는데, 그 창이
-        // 열려 있으면 그 사이에 다른 전송·재시도·첫 장 교체가 끼어든다.
-        activeDeliveryId = message.id
+        delivery = .reserved(message.id)
         return message
-    }
-
-    /// `accept`가 잡아 둔 예약을 실제로 실행한다. **그 id만 실행된다** — 다른 id로 들어오면
-    /// 아무것도 하지 않는다.
-    func deliverAccepted(_ id: UUID) async {
-        await deliver(id)
-    }
-
-    /// 접수와 전송을 한 번에. 추천 질문 칩·테스트처럼 입력창을 비울 일이 없는 쪽이 쓴다.
-    func send(_ text: String) async {
-        guard let message = accept(text) else { return }
-        await deliver(message.id)
     }
 
     /// 「다시 시도」를 띄울지. **말풍선 자신의 판정을 본다** — 지금 앵커 날짜의 잠금을 보면,
@@ -500,17 +520,23 @@ final class DietChatViewModel {
         pendingMessages[index].failed = false
         pendingMessages[index].failureReason = nil
         // 새 전송과 같은 예약을 거친다 — 두 길이 같은 잠금을 쓰지 않으면 서로를 못 막는다.
-        activeDeliveryId = id
+        delivery = .reserved(id)
         await deliver(id)
     }
 
-    /// **예약된 것만 보낸다.** 예약을 확인하지 않으면 두 전송이 겹치고, 먼저 끝난 쪽의
-    /// `defer`가 나머지가 진행 중인데도 잠금을 풀어 버린다.
+    /// **예약을 「나가는 중」으로 한 번만 넘긴다.** 그 전이에서 이긴 호출만 실제로 보낸다 —
+    /// 예약 상태만 확인하면 같은 말풍선으로 두 번 들어온 전송이 둘 다 통과해 유료 POST가
+    /// 두 번 나간다.
     private func deliver(_ id: UUID) async {
-        guard activeDeliveryId == id,
+        guard case .reserved(let reservedId) = delivery, reservedId == id,
               let message = pendingMessages.first(where: { $0.id == id }) else { return }
+        delivery = .delivering(id)
         // 그 사이 다른 것이 예약을 가져갔으면 그쪽 잠금을 풀지 않는다.
-        defer { if activeDeliveryId == id { activeDeliveryId = nil } }
+        defer {
+            if case .delivering(let deliveringId) = delivery, deliveringId == id {
+                delivery = nil
+            }
+        }
 
         do {
             let answer = try await service.askChat(date: message.date, message: message.text)
