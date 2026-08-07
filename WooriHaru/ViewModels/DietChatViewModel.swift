@@ -9,6 +9,12 @@ struct PendingChatMessage: Identifiable, Hashable {
     /// 앵커 날짜 — 「어느 날 밥 얘기인가」.
     let date: String
     let text: String
+    /// 쓴 시각. 서버 `createdAt`과 같은 모양이라 그대로 견줄 수 있다.
+    ///
+    /// **자리를 되찾는 유일한 근거다.** 첫 장을 다시 받으면 `streamIndex`는 뜻을 잃는데,
+    /// 그때 같은 인덱스가 「과거 기록 앞」인지 「나중에 저장된 대화 뒤」인지 인덱스만으로는
+    /// 가를 수 없다 — 시각으로만 갈린다.
+    let createdAt: String
     /// 스트림의 어느 자리에 앉는가(`messages`의 인덱스).
     ///
     /// **끝에 몰아 붙이면 순서가 뒤집힌다** — A가 실패하고 B가 성공하면 화면이
@@ -69,6 +75,8 @@ final class DietChatViewModel {
     /// 「쌓인 것이 없음」과 똑같은 빈 화면으로 보인다(`DietHomeView.failureState`와 같은 이유).
     private(set) var loadFailed = false
     private(set) var isLoadingPage = false
+    /// 첫 장을 받는 중 — 그 응답이 `messages`를 통째로 갈아끼운다.
+    private(set) var isReplacingStream = false
     /// 다음 장 조회가 실패했다. **스피너를 계속 돌리지 않는다** — 실패한 뒤에도 돌면 영영
     /// 불러오는 중인 것처럼 보인다. 그 자리에 다시 시도할 길을 둔다.
     private(set) var nextPageFailed = false
@@ -250,7 +258,14 @@ final class DietChatViewModel {
     private func loadFirstPage() async {
         guard !isLoadingPage else { return }
         isLoadingPage = true
-        defer { isLoadingPage = false }
+        // **이 조회는 스트림을 통째로 갈아끼운다.** 그 사이 전송이 성공하면 뒤이어 도착한
+        // 응답이 방금 나눈 대화를 지운다 — 다음 장 조회(`loadNextPage`)는 위에 덧붙이기만
+        // 하므로 이 구분이 필요하다.
+        isReplacingStream = true
+        defer {
+            isLoadingPage = false
+            isReplacingStream = false
+        }
         errorMessage = nil
         loadFailed = false
 
@@ -258,11 +273,17 @@ final class DietChatViewModel {
             // **첫 장은 커서 없이 부른다.**
             let page = try await service.fetchChatPage(before: nil, size: ChatPolicy.pageSize)
             messages = Array(page.messages.reversed())
-            // **첫 장을 다시 받으면 스트림이 통째로 갈린다.** 못 보낸 말풍선의 자리가 새
-            // 길이를 넘어서면 `rows`가 그 자리를 지나치지 않아 말풍선이 화면에서 사라진다 —
-            // 가장 최근에 쓴 것들이므로 맨 끝으로 모은다(서로의 순서는 배열이 지킨다).
+            // **첫 장을 다시 받으면 `streamIndex`는 뜻을 잃는다** — 스트림이 통째로 갈린다.
+            // 그대로 두면 자리가 새 길이를 넘어서서 말풍선이 화면에서 사라지고, 전부 맨
+            // 끝으로 몰면 먼저 쓴 것이 나중 대화 아래로 내려간다.
+            //
+            // **인덱스로는 가를 수 없다.** 같은 자리 0이라도, 새로 실려 온 것이 과거
+            // 기록이면 말풍선이 뒤로 가야 하고 방금 저장된 대화면 앞에 남아야 한다.
+            // 쓴 시각으로만 갈린다 — 그보다 늦지 않은 마지막 메시지 바로 뒤에 놓는다.
             for index in pendingMessages.indices {
-                pendingMessages[index].streamIndex = messages.count
+                let writtenAt = pendingMessages[index].createdAt
+                let position = messages.lastIndex { $0.createdAt <= writtenAt }
+                pendingMessages[index].streamIndex = position.map { $0 + 1 } ?? 0
             }
             nextCursor = page.nextCursor
             hasLoaded = true
@@ -356,6 +377,9 @@ final class DietChatViewModel {
             }
             return .fresh(day)
         } catch {
+            // **실패에도 세대를 본다.** 더 새로운 조회가 이미 「끼니 있음」으로 잠금을 푼
+            // 뒤인데 늦게 돌아온 옛 요청이 `.failed`로 읽히면 그 날짜를 다시 잠근다.
+            guard dayGenerations[date] == token else { return .stale }
             // 하루를 못 받아도 스트림은 그대로 읽을 수 있다. **여기서 잠그지 않는다** —
             // 모르는 것을 「없다」로 단정하면 기록이 있는 날에도 막힌다(`isInputLocked`).
             return .failed
@@ -366,12 +390,15 @@ final class DietChatViewModel {
 
     /// **전송 중에는 다시 못 보낸다** — `MealConfirmViewModel.isSaving`과 같은 가드다.
     ///
-    /// **첫 장을 받기 전에도 못 보낸다.** 먼저 보내 성공하면 뒤늦게 도착한 첫 장 응답이
+    /// **첫 장을 받는 동안에도 못 보낸다.** 먼저 보내 성공하면 뒤늦게 도착한 첫 장 응답이
     /// `messages`를 통째로 갈아끼워 **방금 나눈 대화가 화면에서 사라진다.** 반대 순서라도
     /// 자리가 틀린다 — 스트림이 비어 있을 때 만든 말풍선은 `streamIndex`가 0이라 과거 기록
-    /// 전체보다 위에 앉는다. 첫 장이 실패하면 화면이 「다시 시도」를 띄우고 있으므로 그쪽이
-    /// 먼저다.
-    var canSend: Bool { hasLoaded && !isSending && !isInputLocked }
+    /// 전체보다 위에 앉는다.
+    ///
+    /// **`hasLoaded`만으로는 부족하다** — 한 번 받은 뒤 다시 받는 동안에는 그 값이 계속
+    /// 참이라 같은 경합이 그대로 열린다. 첫 장이 실패하면 화면이 「다시 시도」를 띄우고
+    /// 있으므로 그쪽이 먼저다.
+    var canSend: Bool { hasLoaded && !isReplacingStream && !isSending && !isInputLocked }
 
     /// 이 문장을 지금 보낼 수 있는가. **길이까지 여기서 본다** — 서버가 거절할 본문을
     /// 내보내면 「보내지 못했어요」만 남고 재시도는 같은 본문으로 영원히 실패한다
@@ -395,6 +422,7 @@ final class DietChatViewModel {
         let message = PendingChatMessage(
             date: anchorDateString,
             text: trimmed,
+            createdAt: Self.localTimestampFormatter.string(from: Date()),
             streamIndex: messages.count
         )
         pendingMessages.append(message)
@@ -551,7 +579,9 @@ final class DietChatViewModel {
             type: .text,
             date: message.date,
             role: .user,
-            createdAt: Self.localTimestampFormatter.string(from: Date()),
+            // **쓴 시각을 그대로 쓴다** — 보낸 시각이 아니다. 실패했다 나중에 재시도한
+            // 질문이 그 사이에 오간 대화보다 아래로 내려가지 않는다.
+            createdAt: message.createdAt,
             content: message.text,
             meal: nil,
             day: nil

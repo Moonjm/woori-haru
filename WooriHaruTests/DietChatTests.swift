@@ -44,6 +44,15 @@ private func hasAwaitingReply(_ rows: [ChatRow]) -> Bool {
     }
 }
 
+/// 지금보다 뒤인 서버 시각. 「이 메시지는 방금 쓴 말풍선보다 나중에 저장됐다」를 표현한다 —
+/// 못 보낸 말풍선의 시각은 테스트가 도는 순간이라 리터럴로 못 박을 수 없다.
+private func serverTimestamp(afterNow seconds: TimeInterval) -> String {
+    let formatter = DateFormatter()
+    formatter.locale = Locale(identifier: "en_US_POSIX")
+    formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+    return formatter.string(from: Date().addingTimeInterval(seconds))
+}
+
 /// 스트림에 그려지는 문장들 — 서버 메시지와 못 보낸 말풍선을 섞어 순서를 본다.
 @MainActor
 private func streamTexts(_ vm: DietChatViewModel) -> [String] {
@@ -630,6 +639,65 @@ struct DietChatLockTests {
 
         // 가장 최근에 쓴 것이라 과거 기록 아래에 앉는다 — 사라지지도 않는다.
         #expect(streamTexts(vm) == ["과거 B", "과거 A", "새 질문"])
+    }
+
+    /// **먼저 쓴 것이 나중 대화 아래로 내려가면 안 된다.** 전부 맨 끝으로 몰면 A가 실패하고
+    /// B가 성공해 서버에 저장된 뒤 다시 받았을 때 순서가 뒤집힌다.
+    @Test func 첫_장을_다시_받아도_먼저_쓴_말풍선이_위에_남는다() async {
+        let service = FakeDietService()
+        service.chatPages = [
+            ChatPage(messages: [], nextCursor: nil),
+            // 다시 받으면 서버에 저장된 B의 질문·답이 실려 온다 — **A를 쓴 뒤에 저장된
+            // 것들이라** A가 그 위에 남아야 한다.
+            ChatPage(messages: [
+                makeChatMessage(
+                    id: 9, role: .assistant,
+                    createdAt: serverTimestamp(afterNow: 120), content: "B 답변"
+                ),
+                makeChatMessage(id: 8, createdAt: serverTimestamp(afterNow: 60), content: "B 질문")
+            ], nextCursor: nil)
+        ]
+        service.errors["askChat"] = APIError.networkError(URLError(.notConnectedToInternet))
+        let vm = makeTodayViewModel(service: service)
+        await vm.load()
+        await vm.send("A 질문")
+
+        service.errors["askChat"] = nil
+        service.chatAnswers = [makeChatMessage(id: 9, role: .assistant, content: "B 답변")]
+        await vm.send("B 질문")
+        #expect(streamTexts(vm) == ["A 질문", "B 질문", "B 답변"])
+
+        await vm.reload()
+
+        #expect(streamTexts(vm) == ["A 질문", "B 질문", "B 답변"])
+    }
+
+    /// **한 번 받은 뒤 다시 받는 동안에도 못 보낸다.** `hasLoaded`는 그때도 참이라,
+    /// 그 창에서 보내 성공하면 뒤이어 도착한 응답이 방금 나눈 대화를 지운다.
+    @Test func 첫_장을_다시_받는_동안에는_보낼_수_없다() async {
+        let service = FakeDietService()
+        service.chatPages = [
+            ChatPage(messages: [], nextCursor: nil),
+            ChatPage(messages: [makeChatMessage(id: 20)], nextCursor: nil)
+        ]
+        service.chatAnswers = [makeChatMessage(id: 9, role: .assistant, content: "답")]
+        let vm = makeTodayViewModel(service: service)
+        await vm.load()
+        #expect(vm.canSend)
+
+        let gate = AsyncGate()
+        service.chatPageGate = gate
+        let reloading = Task { await vm.reload() }
+        await gate.waitUntilBlocked()
+
+        #expect(vm.hasLoaded)
+        #expect(!vm.canSend)
+        await vm.send("점심 왜 낮아?")
+        #expect(service.askedChats.isEmpty)
+
+        await gate.open()
+        await reloading.value
+        #expect(vm.canSend)
     }
 
     /// **취소는 「안 보냈다」가 아니다.** 그 시점에 요청은 이미 나가 있었으므로 서버가
