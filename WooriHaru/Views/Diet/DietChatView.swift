@@ -48,8 +48,10 @@ struct DietChatView: View {
                         }
                     }
 
+                    // `ChatRow`가 `Identifiable`이라 `.id()`를 따로 붙이지 않는다 —
+                    // 붙이면 `ForEach`의 정체성과 뷰 정체성이 겹쳐 상태 초기화 시점이 흐려진다.
                     ForEach(vm.rows) { row in
-                        rowView(row).id(row.id)
+                        rowView(row)
                     }
                 }
                 .padding(.horizontal, 16)
@@ -134,10 +136,10 @@ struct DietChatView: View {
     }
 
     /// **스크롤 위치를 유지한다.** 위에 붙이면 콘텐츠가 밀려 읽던 자리가 튄다 — 붙이기 전의
-    /// 첫 줄에 앵커를 잡았다가 되돌린다.
+    /// 첫 **메시지**에 앵커를 잡았다가 되돌린다(구분선이면 안 되는 이유는 뷰모델 주석 참조).
     private func loadNextPage(_ proxy: ScrollViewProxy) {
         Task {
-            let anchor = vm.rows.first?.id
+            let anchor = vm.firstMessageRowId
             await vm.loadNextPage()
             if let anchor {
                 proxy.scrollTo(anchor, anchor: .top)
@@ -148,7 +150,7 @@ struct DietChatView: View {
     @ViewBuilder
     private func rowView(_ row: ChatRow) -> some View {
         switch row {
-        case .dateSeparator(let day):
+        case .dateSeparator(let day, _):
             dateSeparator(day)
 
         case .message(let message, let badge):

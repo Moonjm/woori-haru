@@ -32,7 +32,8 @@ struct DietHomeView: View {
             }
             .padding(.horizontal, 16)
             .padding(.top, 8)
-            .padding(.bottom, 24)
+            // 플로팅 버튼이 맨 아래 카드를 덮지 않을 만큼 띄운다(버튼 ~50 + 여백 12).
+            .padding(.bottom, 76)
         }
         .glassScreenBackground()
         .overlay {

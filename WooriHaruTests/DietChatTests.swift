@@ -6,7 +6,7 @@ import Testing
 
 private func separatorDays(_ rows: [ChatRow]) -> [String] {
     rows.compactMap { row -> String? in
-        guard case .dateSeparator(let day) = row else { return nil }
+        guard case .dateSeparator(let day, _) = row else { return nil }
         return day
     }
 }
@@ -130,6 +130,64 @@ struct DietChatDateAxisTests {
 
         #expect(separatorDays(vm.rows) == ["2026-08-06"])
         #expect(badges(vm.rows) == ["08-01", nil])
+    }
+
+    /// **못 보낸 말풍선의 구분선도 「쓴 시각」이다.** 벽시계를 읽으면 23:59에 쓴 말풍선이
+    /// 자정을 넘기며 구분선만 다음 날로 옮겨 가고, 재시도해 성공하면 그 행이 `createdAt`으로
+    /// 실려 다시 어제 구분선 아래로 돌아간다.
+    @Test func 못_보낸_말풍선도_쓴_시각_구분선_아래에_앉는다() async {
+        let service = FakeDietService()
+        service.chatPages = [ChatPage(messages: [], nextCursor: nil)]
+        service.errors["askChat"] = APIError.networkError(URLError(.notConnectedToInternet))
+        let vm = makeTodayViewModel(service: service)
+        await vm.load()
+        await vm.send("못 보낸 질문")
+
+        let writtenDay = String(vm.pendingMessages[0].createdAt.prefix(10))
+        #expect(separatorDays(vm.rows) == [writtenDay])
+    }
+
+    /// **`ForEach`가 쓰는 id는 유일해야 한다.** 구분선 id가 날짜뿐이라, 스트림 중간에 다른
+    /// 날짜가 끼면 같은 id가 두 번 나올 수 있다 — SwiftUI에서 그건 정의되지 않은 렌더링이다.
+    @Test func 행_id가_겹치지_않는다() async {
+        let service = FakeDietService()
+        service.chatPages = [ChatPage(messages: [
+            makeChatMessage(id: 3, createdAt: "2026-08-06T12:00:00", content: "어제 A"),
+            makeChatMessage(id: 2, createdAt: "2026-08-05T12:00:00", content: "그저께"),
+            makeChatMessage(id: 1, createdAt: "2026-08-06T09:00:00", content: "어제 B")
+        ], nextCursor: nil)]
+        service.errors["askChat"] = APIError.networkError(URLError(.notConnectedToInternet))
+        let vm = makeTodayViewModel(service: service)
+        await vm.load()
+        await vm.send("못 보낸 질문")
+
+        let ids = vm.rows.map(\.id)
+        #expect(Set(ids).count == ids.count)
+    }
+
+    /// **위로 스크롤할 때 되돌아올 앵커는 메시지여야 한다.** 구분선 id는 날짜뿐이라, 앞에
+    /// 붙은 장의 마지막 날짜가 지금 첫 줄과 같으면 같은 id가 맨 위로 옮겨 가 「되돌리기」가
+    /// 「최상단으로 튀기」가 되고, 위쪽 로더가 다시 보여 대화 전량을 연쇄로 내려받는다.
+    @Test func 스크롤_앵커는_구분선이_아니라_메시지다() async {
+        let service = FakeDietService()
+        service.chatPages = [
+            ChatPage(messages: [makeChatMessage(id: 20, createdAt: "2026-08-06T12:00:00")], nextCursor: 20),
+            // 앞에 붙는 이전 장이 **같은 날짜**다 — 구분선을 앵커로 잡으면 여기서 무너진다.
+            ChatPage(messages: [makeChatMessage(id: 19, createdAt: "2026-08-06T09:00:00")], nextCursor: nil)
+        ]
+        let vm = DietChatViewModel(service: service, anchorDate: Date(), day: makeDay())
+        await vm.load()
+
+        let anchor = vm.firstMessageRowId
+        #expect(anchor == "message-20")
+
+        await vm.loadNextPage()
+
+        // 앵커가 가리키던 줄이 여전히 그 메시지다 — 맨 위(19)로 옮겨 가지 않았다.
+        #expect(vm.firstMessageRowId == "message-19")
+        #expect(vm.rows.contains { $0.id == anchor })
+        // 구분선을 앵커로 잡았다면 이 값이 새 첫 줄과 같아져 최상단으로 튄다.
+        #expect(vm.rows.first?.id == "separator-0-2026-08-06")
     }
 
     /// 카드도 같다 — 8월 1일 끼니를 8월 3일에 뒤늦게 확정하면 카드는 8월 3일 자리에 앉는다.
@@ -398,7 +456,7 @@ struct DietChatSendTests {
 struct DietChatLockTests {
     /// 서버도 400으로 막지만, 플로팅 버튼이 늘 떠 있어서 기록 전에 누르는 일이 흔하다 —
     /// 그때마다 오류 알럿을 띄우면 곤란하다.
-    @Test func 기록이_없는_날은_입력창이_잠기고_칩이_안_뜬다() async {
+    @Test func 기록이_없는_날은_입력창이_잠긴다() async {
         let service = FakeDietService()
         service.chatPages = [ChatPage(messages: [makeChatMessage()], nextCursor: nil)]
         let vm = makeTodayViewModel(service: service, meals: [])

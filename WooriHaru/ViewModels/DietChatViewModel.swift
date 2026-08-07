@@ -38,8 +38,10 @@ struct PendingChatMessage: Identifiable, Hashable {
 /// 스트림에 그려지는 한 줄. **뷰가 아니라 뷰모델이 조립한다** — 구분선을 어디서 끊을지,
 /// 배지를 붙일지가 뷰에 있으면 테스트가 못 닿는다.
 enum ChatRow: Identifiable {
-    /// `createdAt` 기준 "2026-08-06".
-    case dateSeparator(day: String)
+    /// `createdAt` 기준 "2026-08-06". `ordinal`은 **id를 유일하게 만들려고만** 있다 —
+    /// 날짜만으로 id를 만들면 같은 날짜가 스트림에 두 번 끼는 순간 `ForEach`의 id가 겹치고,
+    /// 그건 SwiftUI에서 정의되지 않은 렌더링이다(행 누락·런타임 경고). 화면은 `day`만 쓴다.
+    case dateSeparator(day: String, ordinal: Int)
     case message(ChatMessage, badge: String?)
     case pending(PendingChatMessage, badge: String?)
     /// 답을 기다리는 코치 자리.
@@ -47,7 +49,7 @@ enum ChatRow: Identifiable {
 
     var id: String {
         switch self {
-        case .dateSeparator(let day): "separator-\(day)"
+        case .dateSeparator(let day, let ordinal): "separator-\(ordinal)-\(day)"
         case .message(let message, _): "message-\(message.id)"
         case .pending(let pending, _): "pending-\(pending.id.uuidString)"
         case .awaitingReply: "awaiting-reply"
@@ -236,14 +238,31 @@ final class DietChatViewModel {
     var rows: [ChatRow] {
         var result: [ChatRow] = []
         var currentDay: String?
+        var separatorCount = 0
+
+        func appendSeparator(_ day: String) {
+            result.append(.dateSeparator(day: day, ordinal: separatorCount))
+            separatorCount += 1
+            currentDay = day
+        }
+
+        // **자리를 한 번만 계산한다.** 메시지마다 말풍선 전부를 훑으면 렌더 한 번이
+        // 스트림 길이의 제곱으로 늘어난다.
+        var pendingByPosition: [Int: [PendingChatMessage]] = [:]
+        for message in pendingMessages {
+            pendingByPosition[position(of: message), default: []].append(message)
+        }
 
         /// 못 보낸 말풍선을 **쓴 자리에** 끼워 넣는다.
         func appendPending(at index: Int) {
-            for message in pendingMessages where position(of: message) == index {
-                let day = Date().dateString
+            for message in pendingByPosition[index] ?? [] {
+                // **쓴 시각으로 가른다.** 벽시계를 읽으면 23:59에 쓴 말풍선이 자정을 넘기며
+                // 구분선만 다음 날로 옮겨 가고, 재시도해 성공하면 그 행이 `createdAt`(어제)로
+                // 실려 다시 어제 구분선 아래로 돌아간다. 같은 이유로 `rows`가 시계에
+                // 의존하지 않게 되어 테스트가 닿는다.
+                let day = String(message.createdAt.prefix(10))
                 if day != currentDay {
-                    result.append(.dateSeparator(day: day))
-                    currentDay = day
+                    appendSeparator(day)
                 }
                 result.append(.pending(message, badge: Self.badge(for: message.date, under: day)))
                 // 실패한 말풍선 아래에는 기다리는 자리를 두지 않는다 — 오지 않을 답이다.
@@ -258,14 +277,26 @@ final class DietChatViewModel {
             guard Self.isRenderable(message) else { continue }
             let day = message.createdAtDay
             if day != currentDay {
-                result.append(.dateSeparator(day: day))
-                currentDay = day
+                appendSeparator(day)
             }
             result.append(.message(message, badge: Self.badge(for: message.date, under: day)))
         }
         appendPending(at: messages.count)
 
         return result
+    }
+
+    /// 위로 스크롤해 이전 장을 붙인 뒤 되돌아올 자리.
+    ///
+    /// **구분선이 아니라 메시지여야 한다.** 구분선 id는 날짜뿐이라(`ChatRow.id`), 앞에
+    /// 붙은 장의 마지막 날짜가 지금 첫 줄과 같으면 **같은 id가 스트림 맨 위로 옮겨 간다** —
+    /// 「읽던 자리로 되돌린다」가 「최상단으로 튄다」가 되고, 그러면 위쪽 로더가 다시 보여
+    /// 다음 장을 또 부른다. 한 번 위로 올리면 대화 전량을 연쇄로 내려받는다.
+    var firstMessageRowId: String? {
+        rows.first { row in
+            guard case .message = row else { return false }
+            return true
+        }?.id
     }
 
     /// 못 보낸 말풍선이 앉을 자리(`messages`의 인덱스).
@@ -577,10 +608,6 @@ final class DietChatViewModel {
                 await handleDateRejection(message.date, for: id)
             }
         }
-    }
-
-    private func removePending(_ id: UUID) {
-        pendingMessages.removeAll { $0.id == id }
     }
 
     private func mutatePending(_ id: UUID, _ change: (inout PendingChatMessage) -> Void) {
