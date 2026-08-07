@@ -50,6 +50,13 @@
 		DT10001 /* UIImage+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20001 /* UIImage+Extensions.swift */; };
 		DT10002 /* DietErrorCode.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20002 /* DietErrorCode.swift */; };
 		DT10003 /* Diet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20003 /* Diet.swift */; };
+		DT1CH01 /* DietChat.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT2CH01 /* DietChat.swift */; };
+		DT1CH02 /* DietChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT2CH02 /* DietChatViewModel.swift */; };
+		DT1CH03 /* DietChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT2CH03 /* DietChatView.swift */; };
+		DT1CH04 /* ChatBubble.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT2CH04 /* ChatBubble.swift */; };
+		DT1CH05 /* ChatMealCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT2CH05 /* ChatMealCardView.swift */; };
+		DT1CH06 /* ChatDayCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT2CH06 /* ChatDayCardView.swift */; };
+		DT1CH07 /* MacroStackBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT2CH07 /* MacroStackBar.swift */; };
 		DT10004 /* MealAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20004 /* MealAnalysis.swift */; };
 		DT10005 /* NutritionProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20005 /* NutritionProfile.swift */; };
 		DT10006 /* Food.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20006 /* Food.swift */; };
@@ -235,6 +242,13 @@
 		DT20001 /* UIImage+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIImage+Extensions.swift"; sourceTree = "<group>"; };
 		DT20002 /* DietErrorCode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DietErrorCode.swift; sourceTree = "<group>"; };
 		DT20003 /* Diet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Diet.swift; sourceTree = "<group>"; };
+		DT2CH01 /* DietChat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DietChat.swift; sourceTree = "<group>"; };
+		DT2CH02 /* DietChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DietChatViewModel.swift; sourceTree = "<group>"; };
+		DT2CH03 /* DietChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DietChatView.swift; sourceTree = "<group>"; };
+		DT2CH04 /* ChatBubble.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatBubble.swift; sourceTree = "<group>"; };
+		DT2CH05 /* ChatMealCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatMealCardView.swift; sourceTree = "<group>"; };
+		DT2CH06 /* ChatDayCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatDayCardView.swift; sourceTree = "<group>"; };
+		DT2CH07 /* MacroStackBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacroStackBar.swift; sourceTree = "<group>"; };
 		DT20004 /* MealAnalysis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealAnalysis.swift; sourceTree = "<group>"; };
 		DT20005 /* NutritionProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionProfile.swift; sourceTree = "<group>"; };
 		DT20006 /* Food.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Food.swift; sourceTree = "<group>"; };
@@ -495,6 +509,7 @@
 				SW20007 /* SwimSet.swift */,
 				DT20002 /* DietErrorCode.swift */,
 				DT20003 /* Diet.swift */,
+				DT2CH01 /* DietChat.swift */,
 				DT20004 /* MealAnalysis.swift */,
 				DT20005 /* NutritionProfile.swift */,
 				DT20006 /* Food.swift */,
@@ -553,6 +568,7 @@
 				SW20003 /* SwimRecordViewModel.swift */,
 				DT20011 /* NutritionProfileViewModel.swift */,
 				DT20013 /* DietDayViewModel.swift */,
+				DT2CH02 /* DietChatViewModel.swift */,
 				DT20022 /* MealConfirmViewModel.swift */,
 				DT20019 /* MealCaptureViewModel.swift */,
 				DT20026 /* MealDetailViewModel.swift */,
@@ -680,6 +696,7 @@
 				DT40002 /* Components */,
 				DT20012 /* NutritionProfileView.swift */,
 				DT20018 /* DietHomeView.swift */,
+				DT2CH03 /* DietChatView.swift */,
 				DT20025 /* MealItemEditView.swift */,
 				DT20043 /* MealItemQuantitySheet.swift */,
 				DT20023 /* MealConfirmView.swift */,
@@ -696,6 +713,10 @@
 			children = (
 				DT20014 /* DietScoreRing.swift */,
 				DT20015 /* MacroBar.swift */,
+				DT2CH04 /* ChatBubble.swift */,
+				DT2CH05 /* ChatMealCardView.swift */,
+				DT2CH06 /* ChatDayCardView.swift */,
+				DT2CH07 /* MacroStackBar.swift */,
 				DT20016 /* ScoreBasisCard.swift */,
 				DT20017 /* NutrientLimitRow.swift */,
 				DT20024 /* FrequentItemList.swift */,
@@ -958,6 +979,13 @@
 				DT10001 /* UIImage+Extensions.swift in Sources */,
 				DT10002 /* DietErrorCode.swift in Sources */,
 				DT10003 /* Diet.swift in Sources */,
+				DT1CH01 /* DietChat.swift in Sources */,
+				DT1CH02 /* DietChatViewModel.swift in Sources */,
+				DT1CH03 /* DietChatView.swift in Sources */,
+				DT1CH04 /* ChatBubble.swift in Sources */,
+				DT1CH05 /* ChatMealCardView.swift in Sources */,
+				DT1CH06 /* ChatDayCardView.swift in Sources */,
+				DT1CH07 /* MacroStackBar.swift in Sources */,
 				DT10004 /* MealAnalysis.swift in Sources */,
 				DT10005 /* NutritionProfile.swift in Sources */,
 				DT10006 /* Food.swift in Sources */,

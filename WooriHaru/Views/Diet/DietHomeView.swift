@@ -9,6 +9,7 @@ struct DietHomeView: View {
     @State private var weightText = ""
     @State private var showCapture = false
     @State private var showManualEntry = false
+    @State private var showChat = false
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -40,6 +41,7 @@ struct DietHomeView: View {
                 ProgressView()
             }
         }
+        .overlay(alignment: .bottomTrailing) { chatButton }
         .navigationTitle("식단")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
@@ -52,6 +54,11 @@ struct DietHomeView: View {
         }
         .navigationDestination(for: Int.self) { mealId in
             MealDetailView(mealId: mealId) { Task { await vm.reload() } }
+        }
+        .navigationDestination(isPresented: $showChat) {
+            // **보고 있던 날짜가 그대로 앵커다.** 하루도 함께 넘겨 칩·잠금 판단에 새 호출이
+            // 들지 않게 한다.
+            DietChatView(anchorDate: vm.selectedDate, day: vm.day)
         }
         .sheet(isPresented: $showWeightSheet) { weightSheet }
         .sheet(isPresented: $showCapture) {
@@ -85,6 +92,30 @@ struct DietHomeView: View {
             Button("확인", role: .cancel) {}
         } message: {
             Text(vm.errorMessage ?? "")
+        }
+    }
+
+    // MARK: - 코치 채팅
+
+    /// 오른쪽 아래 플로팅 버튼. **`overlay`에 얹는다** — 스크롤과 무관하게 늘 같은 자리다.
+    ///
+    /// **프로필이 없으면 띄우지 않는다.** 점수도 총평도 없어 코치가 답할 근거가 없고,
+    /// 툴바가 이미 「목표부터 정하기」로 한 길만 열어 두고 있다.
+    @ViewBuilder
+    private var chatButton: some View {
+        if !vm.needsProfile {
+            Button {
+                showChat = true
+            } label: {
+                Image(systemName: "bubble.left.and.text.bubble.right")
+                    .font(.title3)
+                    .padding(14)
+            }
+            .appGlassProminentButton()
+            .clipShape(Circle())
+            .padding(.trailing, 20)
+            .padding(.bottom, 12)
+            .accessibilityLabel("식단 코치")
         }
     }
 
