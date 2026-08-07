@@ -26,6 +26,19 @@ enum ChatMessageType: String, Codable, Hashable {
 enum ChatRole: String, Codable, Hashable {
     case user = "USER"
     case assistant = "ASSISTANT"
+    /// **`ChatMessageType.unknown`과 같은 이유로 있다.** 서버가 역할을 하나만 늘려도
+    /// (`SYSTEM` 같은) 이 필드 하나 때문에 페이지 전체가 디코딩에 실패한다 —
+    /// 「모르는 것이 와도 페이지가 안 죽는다」는 이 화면의 계약이 거기서 뚫린다.
+    ///
+    /// **카드와 달리 건너뛰지 않는다.** 모르는 카드는 그릴 알맹이 자체가 없지만, 모르는
+    /// 역할의 `text`는 읽을 수 있는 문장이라 그대로 보여 준다. 내 말풍선이 아닌 것으로
+    /// 다뤄 왼쪽에 세운다 — 내 말이 아닌 것을 내 말처럼 보여 주는 것이 더 나쁘다.
+    case unknown
+
+    init(from decoder: any Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        self = ChatRole(rawValue: raw) ?? .unknown
+    }
 }
 
 // MARK: - 카드

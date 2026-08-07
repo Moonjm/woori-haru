@@ -448,13 +448,48 @@ struct DietChatSendTests {
 
     /// 서버 `@Size`는 자바 `String.length`(UTF-16 코드 단위)를 본다 — 문자 수로 재면
     /// 이모지가 섞였을 때 앱은 통과시키고 서버가 거절한다.
-    @Test func 길이는_서버와_같은_단위로_센다() {
-        let vm = makeTodayViewModel(service: FakeDietService())
+    @Test func 길이는_서버와_같은_단위로_센다() async {
+        let service = FakeDietService()
+        service.chatPages = [ChatPage(messages: [], nextCursor: nil)]
+        let vm = makeTodayViewModel(service: service)
+        // **먼저 열어 둔다.** 안 그러면 `hasLoaded`가 거짓이라 `isSendable`이 무엇을 넣든
+        // 거짓이고, 세는 단위를 되돌려도 통과한다.
+        await vm.load()
+
+        // 같은 길이의 대조군 — 이것이 참이어야 아래 거짓이 「길이 때문」임이 성립한다.
+        let plain = String(repeating: "가", count: ChatPolicy.maxMessageLength)
+        #expect(vm.isSendable(plain))
 
         // 이모지 하나가 UTF-16으로 두 칸이라, 문자 수로는 상한 안이지만 서버는 거절한다.
         let emojiHeavy = String(repeating: "🍚", count: ChatPolicy.maxMessageLength / 2 + 1)
         #expect(emojiHeavy.count <= ChatPolicy.maxMessageLength)
         #expect(!vm.isSendable(emojiHeavy))
+    }
+
+    /// **모르는 역할이 와도 페이지가 죽지 않는다.** `type`에만 방어를 걸면 같은 페이로드의
+    /// `role` 하나로 그 계약이 뚫린다.
+    @Test func 모르는_역할이_와도_페이지가_살아난다() async throws {
+        let json = """
+        {"messages":[
+          {"id":21,"type":"TEXT","date":"2026-08-06","role":"SYSTEM",
+           "createdAt":"2026-08-06T10:00:00","content":"점검 안내"},
+          {"id":20,"type":"TEXT","date":"2026-08-06","role":"USER",
+           "createdAt":"2026-08-06T09:00:00","content":"점심 왜 낮아?"}
+        ],"nextCursor":null}
+        """
+        let page = try JSONDecoder().decode(ChatPage.self, from: Data(json.utf8))
+
+        // 페이지 전체가 살아난다 — 모르는 역할의 문장도 읽을 수 있으므로 버리지 않는다.
+        #expect(page.messages.count == 2)
+        #expect(page.messages.first?.role == .unknown)
+        #expect(page.messages.last?.role == .user)
+
+        let service = FakeDietService()
+        service.chatPages = [page]
+        let vm = DietChatViewModel(service: service, anchorDate: Date.from("2026-08-06")!, day: makeDay())
+        await vm.load()
+
+        #expect(streamTexts(vm) == ["점심 왜 낮아?", "점검 안내"])
     }
 
     @Test func 전송_중에는_다시_보낼_수_없다() async {
