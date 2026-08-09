@@ -9,7 +9,8 @@ struct PendingChatMessage: Identifiable, Hashable {
     /// 앵커 날짜 — 「어느 날 밥 얘기인가」.
     let date: String
     let text: String
-    /// 쓴 시각. 스트림에 실릴 때 그 행의 `createdAt`이 된다(날짜 구분선이 쓴다).
+    /// 쓴 시각. **아직 못 보낸 동안의 날짜 구분선이 이 값을 쓴다** — 서버에 실리고 나면
+    /// 서버가 저장한 시각으로 바뀐다(`localMessage(_:savedAt:)`).
     ///
     /// **자리를 정하는 데는 쓰지 않는다** — 이 값은 기기 시계이고 서버 `createdAt`은 서버
     /// 시계라, 시간대나 오차가 있으면 순서가 뒤집힌다.
@@ -600,9 +601,25 @@ final class DietChatViewModel {
 
         do {
             let answer = try await service.askChat(date: message.date, message: message.text)
-            // 질문 행도 서버가 저장하지만 응답에는 답만 온다 — 이미 띄운 말풍선을 그대로
-            // 스트림에 옮긴다.
-            messages.insert(contentsOf: [localMessage(message), answer], at: position(of: message))
+
+            // **응답이 읽을 수 있는 답인지 먼저 본다.** 계약은 `TEXT` 한 건이지만, 아니면
+            // `isRenderable`이 조용히 걸러 내 질문만 남고 답이 사라진다. 서버는 이미
+            // 저장했으므로 다시 보내지는 않는다(`decodingError`와 같은 판단이다).
+            guard answer.type == .text, answer.content != nil else {
+                mutatePending(id) {
+                    $0.failed = true
+                    $0.isRetryable = false
+                    $0.failureReason = "답을 받았지만 읽지 못했어요"
+                }
+                return
+            }
+
+            // **자리는 서버가 정한다.** 질문 행도 서버가 저장하지만 응답에는 답만 오므로
+            // 이미 띄운 말풍선을 스트림으로 옮기되, **쓴 자리가 아니라 맨 끝에** 놓는다 —
+            // 서버는 재시도한 시점에 저장하므로 그 대화가 가장 최신이고, 답 자체도 그 사이
+            // 오간 대화를 히스토리에 넣고 만들어진 것이다. 쓴 자리에 꽂으면 화면을 다시 열
+            // 때 서버가 준 자리로 옮겨 가 순서가 뒤바뀐다.
+            messages.append(contentsOf: [localMessage(message, savedAt: answer.createdAt), answer])
             noteSeen([answer])
 
             // **뒤에 쓴 말풍선들의 기준점을 방금 실린 답으로 옮긴다.** 그것들은 이 대화보다
@@ -711,16 +728,19 @@ final class DietChatViewModel {
         }
     }
 
-    private func localMessage(_ message: PendingChatMessage) -> ChatMessage {
+    /// 스트림에 옮겨 놓는 내 질문 행.
+    ///
+    /// **`savedAt`은 서버가 답을 저장한 시각이다** — 쓴 시각이 아니다. 서버는 질문과 답을
+    /// 한 트랜잭션에 쓰므로 둘의 시각이 같고, 여기에 쓴 시각을 넣으면 날짜 구분선이 화면을
+    /// 다시 열 때 서버 값으로 옮겨 간다(실패했다 다음 날 재시도한 질문이 특히 그렇다).
+    private func localMessage(_ message: PendingChatMessage, savedAt: String) -> ChatMessage {
         localIdSeed -= 1
         return ChatMessage(
             id: localIdSeed,
             type: .text,
             date: message.date,
             role: .user,
-            // **쓴 시각을 그대로 쓴다** — 보낸 시각이 아니다. 실패했다 나중에 재시도한
-            // 질문이 그 사이에 오간 대화보다 아래로 내려가지 않는다.
-            createdAt: message.createdAt,
+            createdAt: savedAt,
             content: message.text,
             meal: nil,
             day: nil

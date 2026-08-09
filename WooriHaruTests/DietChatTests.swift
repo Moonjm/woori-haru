@@ -656,6 +656,55 @@ struct DietChatLockTests {
         #expect(streamTexts(vm) == ["A 질문", "B 질문", "B 답변"])
     }
 
+    /// **재시도해 성공하면 서버가 정한 자리에 앉는다.** 서버는 재시도한 시점에 저장하므로
+    /// 그 대화가 가장 최신인데, 쓴 자리에 꽂으면 화면을 다시 열 때 순서가 뒤바뀐다 —
+    /// 답 자체도 그 사이 오간 대화를 히스토리에 넣고 만들어진 것이다.
+    @Test func 재시도해_성공하면_서버가_준_자리와_같은_순서가_된다() async {
+        let service = FakeDietService()
+        service.chatPages = [ChatPage(messages: [], nextCursor: nil)]
+        service.errors["askChat"] = dietServerError("CHAT_FAILED", status: 503)
+        let vm = makeTodayViewModel(service: service)
+        await vm.load()
+        await vm.send("A 질문")
+        let failedId = vm.pendingMessages[0].id
+
+        // B가 먼저 성공한다(서버 id 101·102).
+        service.errors["askChat"] = nil
+        service.chatAnswers = [
+            makeChatMessage(id: 102, role: .assistant, createdAt: "2026-08-06T10:00:00", content: "B 답변"),
+            makeChatMessage(id: 104, role: .assistant, createdAt: "2026-08-07T09:00:00", content: "A 답변")
+        ]
+        await vm.send("B 질문")
+        // 아직 못 보낸 A는 먼저 쓴 자리를 지킨다.
+        #expect(streamTexts(vm) == ["A 질문", "B 질문", "B 답변"])
+
+        // 이튿날 A를 재시도해 성공한다(서버 id 103·104 — 가장 최신이다).
+        await vm.retry(failedId)
+
+        // **서버가 재조회로 줄 순서와 같다.**
+        #expect(streamTexts(vm) == ["B 질문", "B 답변", "A 질문", "A 답변"])
+        // 날짜 구분선도 서버가 저장한 날을 따른다 — 쓴 날(어제)에 남지 않는다.
+        #expect(separatorDays(vm.rows) == ["2026-08-06", "2026-08-07"])
+    }
+
+    /// 계약은 `TEXT` 한 건이지만, 아니면 `isRenderable`이 조용히 걸러 내 질문만 남고 답이
+    /// 사라진다. **서버는 이미 저장했으므로 다시 보내지는 않는다.**
+    @Test func 읽을_수_없는_답이_오면_조용히_삼키지_않는다() async {
+        let service = FakeDietService()
+        service.chatPages = [ChatPage(messages: [], nextCursor: nil)]
+        service.chatAnswers = [
+            makeChatMessage(id: 9, type: .mealCard, role: .assistant, content: nil, meal: makeChatMealCard())
+        ]
+        let vm = makeTodayViewModel(service: service)
+        await vm.load()
+
+        await vm.send("점심 왜 낮아?")
+
+        #expect(vm.messages.isEmpty)
+        #expect(onlyPending(vm)?.failureReason == "답을 받았지만 읽지 못했어요")
+        #expect(!canRetryOnly(vm))
+    }
+
     /// **재시도가 말풍선을 지웠다 새로 만들면 안 된다.** 취소로 끝났을 때 새로 만든 것만
     /// 사라져 원래 문장이 통째로 없어지고, 자리도 맨 아래로 튄다.
     @Test func 재시도는_같은_말풍선을_그대로_쓴다() async {
@@ -949,16 +998,16 @@ struct DietChatLockTests {
             makeChatMessage(id: 104, role: .assistant, content: "A 답변")
         ]
         await vm.send("B 질문")
-        // 이어서 A를 재시도해 성공한다(답 id 104) — 그 쌍이 B 앞에 꽂힌다.
+        // 이어서 A를 재시도해 성공한다(답 id 104) — 서버가 그때 저장하므로 맨 뒤에 앉는다.
         await retryOnly(vm)
-        #expect(streamTexts(vm) == ["A 질문", "A 답변", "B 질문", "B 답변"])
+        #expect(streamTexts(vm) == ["B 질문", "B 답변", "A 질문", "A 답변"])
 
         // 배열 마지막은 102지만 기준점은 104여야 한다. 접수만 보면 되므로 전송은 붙잡아 둔다.
         let gate = AsyncGate()
         service.askChatGate = gate
         #expect(vm.accept("C 질문"))
         #expect(vm.pendingMessages.last?.anchorMessageId == 104)
-        #expect(streamTexts(vm) == ["A 질문", "A 답변", "B 질문", "B 답변", "C 질문"])
+        #expect(streamTexts(vm) == ["B 질문", "B 답변", "A 질문", "A 답변", "C 질문"])
 
         await gate.open()
         await vm.waitForDelivery()
