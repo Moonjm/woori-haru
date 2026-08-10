@@ -91,8 +91,7 @@ final class SwimRecordViewModel {
     func loadMoreIfNeeded(currentItem: SwimWorkout) async {
         guard canLoadMore, !isLoading, !isLoadingMore else { return }
         guard currentItem.id == workouts.last?.id else { return }
-        // 서비스가 경계 시각의 기록을 통째로 채워 주므로, 이미 읽은 마지막 시각은
-        // 배제하고 넘어가면 된다. 동점 무리가 쪼개질 일이 없어 순서에 기대지 않는다.
+        // 첫 로드가 끝나야 커서가 생긴다 — 그 전에는 이어읽기를 하지 않는다.
         guard nextCursor != nil else { return }
 
         let token = generation
@@ -130,17 +129,21 @@ final class SwimRecordViewModel {
             let page = try await service.fetchSwimWorkouts(limit: pageSize, before: nextCursor)
             guard token == generation else { return collected }
 
-            guard let boundary = page.workouts.last?.startDate else {
-                // 빈 페이지는 더 읽을 것이 없다는 뜻이다. 커서가 안 움직이므로
-                // mayHaveMore를 믿고 계속 돌면 같은 요청을 무한히 반복한다.
+            guard let boundary = page.workouts.last?.startDate,
+                  nextCursor.map({ boundary < $0 }) ?? true else {
+                // 빈 페이지거나 커서가 안 움직인 페이지는 더 읽을 것이 없다는 뜻이다.
+                // 커서가 제자리면 mayHaveMore를 믿고 계속 돌 때 같은 요청을 무한히 반복한다.
                 canLoadMore = false
                 return collected
             }
+            // 서비스가 경계 시각의 기록을 통째로 채워 주므로, 이미 읽은 마지막 시각은
+            // 배제하고 넘어가면 된다. 동점 무리가 쪼개질 일이 없어 순서에 기대지 않는다.
             nextCursor = boundary
             canLoadMore = page.mayHaveMore
 
-            collected += page.workouts.filter { !seen.contains($0.id) && !$0.isEmptyRecord }
-            seen.formUnion(page.workouts.map(\.id))
+            for workout in page.workouts where seen.insert(workout.id).inserted {
+                if !workout.isEmptyRecord { collected.append(workout) }
+            }
 
             if !collected.isEmpty || !canLoadMore { return collected }
         }

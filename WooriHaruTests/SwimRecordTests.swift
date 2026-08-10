@@ -10,6 +10,9 @@ private final class FakeSwimFetcher: SwimWorkoutFetching {
     var workouts: [SwimWorkout]
     var errorToThrow: Error?
     private(set) var calls: [(limit: Int, cursor: Date?)] = []
+    /// 조회 도중에 끼어들 일을 심는 자리. 이어읽기 반복 중 새로고침이 겹치는 상황을 만든다.
+    /// 한 번 발화하면 스스로 비워, 재진입 루프에서 두 번째 이후 호출까지 끼어들지 않게 한다.
+    var onFetch: (@Sendable () async -> Void)?
 
     init(isHealthDataAvailable: Bool = true, workouts: [SwimWorkout] = [], errorToThrow: Error? = nil) {
         self.isHealthDataAvailable = isHealthDataAvailable
@@ -23,6 +26,10 @@ private final class FakeSwimFetcher: SwimWorkoutFetching {
 
     func fetchSwimWorkouts(limit: Int, before: Date?) async throws -> SwimWorkoutPage {
         calls.append((limit, before))
+        if let hook = onFetch {
+            onFetch = nil
+            await hook()
+        }
         if let errorToThrow { throw errorToThrow }
 
         let candidates = before.map { cursor in
@@ -645,6 +652,36 @@ struct SwimRecordViewModelTests {
         #expect(vm.showsEmptyState == true)
         #expect(vm.canLoadMore == false)
         #expect(vm.loadFailed == false)
+    }
+
+    /// 이어읽기가 다음 페이지를 기다리는 사이 새로고침이 끼어들면(=generation이 바뀌면)
+    /// 낡은 이어읽기의 결과는 버려지고, 커서도 새로고침 기준으로 남아야 한다 —
+    /// 상한 대신 내세운 토큰 검사가 실제로 이 경로를 지킨다는 것을 확인한다.
+    @Test func 이어읽기_도중_새로고침이_끼어들면_낡은_결과를_버린다() async {
+        let all = makePage(count: 6)
+        let fetcher = FakeSwimFetcher(workouts: all)
+        let vm = SwimRecordViewModel(service: fetcher, pageSize: 3)
+
+        await vm.load()
+        #expect(vm.workouts.map(\.id) == [all[0].id, all[1].id, all[2].id])
+
+        // 이어읽기가 다음 페이지를 받는 도중 새로고침이 끼어드는 상황을 심는다.
+        fetcher.onFetch = { await vm.load() }
+        await vm.loadMoreIfNeeded(currentItem: all[2])
+
+        // 낡은 이어읽기가 받아 온 4~6번째 기록은 버려지고, 새로고침이 다시 채운
+        // 첫 페이지만 남는다. 훅이 실제로 발화하지 않으면(=끼어들지 않으면) 이어읽기가
+        // 곧바로 성공해 6건이 되므로 이 두 줄에서 실패한다.
+        #expect(vm.workouts.map(\.id) == [all[0].id, all[1].id, all[2].id])
+        #expect(vm.canLoadMore == true)
+
+        // 커서도 새로고침 기준으로 남아 있어야 다음 이어읽기가 올바른 지점부터 이어진다 —
+        // 낡은 루프가 커서를 오염시켰다면 여기서 어긋난다.
+        await vm.loadMoreIfNeeded(currentItem: all[2])
+
+        #expect(fetcher.calls.last?.cursor == all[2].startDate)
+        #expect(vm.workouts.map(\.id) == [all[0].id, all[1].id, all[2].id,
+                                          all[3].id, all[4].id, all[5].id])
     }
 
     @Test func 건강데이터_미지원이면_실패가_아니라_빈_상태다() async {
