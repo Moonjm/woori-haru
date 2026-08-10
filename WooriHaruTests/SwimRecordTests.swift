@@ -588,6 +588,65 @@ struct SwimRecordViewModelTests {
                                           all[3].id, all[6].id, all[7].id, all[8].id])
     }
 
+    /// 한 페이지가 통째로 걸러지면 화면에 새 셀이 안 생겨 다음 페이지를 부를 트리거가
+    /// 사라진다. 첫 페이지에서 이러면 「기록 없음」으로 보인다.
+    @Test func 첫_페이지가_전부_감출_기록이면_이어_읽는다() async {
+        // 앞 3건이 감출 기록 — pageSize 3이라 첫 페이지가 통째로 비워진다
+        let all = makeMixedPage(count: 6, emptyAt: [0, 1, 2])
+        let fetcher = FakeSwimFetcher(workouts: all)
+        let vm = SwimRecordViewModel(service: fetcher, pageSize: 3)
+
+        await vm.load()
+
+        #expect(vm.workouts.map(\.id) == [all[3].id, all[4].id, all[5].id])
+        #expect(vm.showsEmptyState == false)
+        #expect(fetcher.calls.count == 2)
+    }
+
+    /// 이어읽기는 한 건이라도 건지면 멈춘다 — 목록 전체를 미리 당겨 오지 않는다.
+    @Test func 한_건이라도_건지면_거기서_멈춘다() async {
+        let all = makeMixedPage(count: 9, emptyAt: [0, 1, 2])
+        let fetcher = FakeSwimFetcher(workouts: all)
+        let vm = SwimRecordViewModel(service: fetcher, pageSize: 3)
+
+        await vm.load()
+
+        #expect(vm.workouts.map(\.id) == [all[3].id, all[4].id, all[5].id])
+        #expect(fetcher.calls.count == 2) // 세 번째 페이지는 안 읽는다
+        #expect(vm.canLoadMore == true)
+    }
+
+    /// 스크롤 도중에도 같다 — 다음 페이지가 통째로 걸러지면 그 다음까지 읽는다.
+    @Test func 스크롤_중에_페이지가_비어도_이어_읽는다() async {
+        // 첫 페이지 3건은 정상, 다음 3건이 전부 감출 기록
+        let all = makeMixedPage(count: 9, emptyAt: [3, 4, 5])
+        let fetcher = FakeSwimFetcher(workouts: all)
+        let vm = SwimRecordViewModel(service: fetcher, pageSize: 3)
+
+        await vm.load()
+        #expect(vm.workouts.count == 3)
+
+        await vm.loadMoreIfNeeded(currentItem: all[2])
+
+        #expect(vm.workouts.map(\.id) == [all[0].id, all[1].id, all[2].id,
+                                          all[6].id, all[7].id, all[8].id])
+        #expect(fetcher.calls.count == 3)
+    }
+
+    /// 전 이력이 감출 기록이면 기존 빈 상태 안내가 그대로 뜬다.
+    @Test func 전부_감출_기록이면_빈_상태다() async {
+        let all = makeMixedPage(count: 7, emptyAt: Set(0..<7))
+        let fetcher = FakeSwimFetcher(workouts: all)
+        let vm = SwimRecordViewModel(service: fetcher, pageSize: 3)
+
+        await vm.load()
+
+        #expect(vm.workouts.isEmpty)
+        #expect(vm.showsEmptyState == true)
+        #expect(vm.canLoadMore == false)
+        #expect(vm.loadFailed == false)
+    }
+
     @Test func 건강데이터_미지원이면_실패가_아니라_빈_상태다() async {
         let fetcher = FakeSwimFetcher(
             isHealthDataAvailable: false,

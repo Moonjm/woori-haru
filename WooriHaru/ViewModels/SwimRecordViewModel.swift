@@ -63,11 +63,13 @@ final class SwimRecordViewModel {
 
         do {
             try await service.requestAuthorization()
-            let page = try await service.fetchSwimWorkouts(limit: pageSize, before: nil)
+            // 처음부터 다시 읽으므로 커서를 비운다. `workouts`는 새 페이지가 올 때까지
+            // 그대로 둔다 — 여기서 비우면 당겨서 새로고침 중에 목록이 한 번 사라진다.
+            nextCursor = nil
+            canLoadMore = true
+            let fresh = try await fetchVisiblePages(token: token, excluding: [])
             guard token == generation else { return }
-            workouts = page.workouts.filter { !$0.isEmptyRecord }
-            nextCursor = page.workouts.last?.startDate
-            canLoadMore = page.mayHaveMore
+            workouts = fresh
         } catch SwimWorkoutError.healthDataUnavailable {
             // 재시도해도 달라지지 않는 조건이라 실패로 두지 않는다.
             // 빈 상태로 보내야 "건강 데이터를 쓸 수 없는 기기입니다" 안내가 뜬다.
@@ -91,20 +93,17 @@ final class SwimRecordViewModel {
         guard currentItem.id == workouts.last?.id else { return }
         // 서비스가 경계 시각의 기록을 통째로 채워 주므로, 이미 읽은 마지막 시각은
         // 배제하고 넘어가면 된다. 동점 무리가 쪼개질 일이 없어 순서에 기대지 않는다.
-        guard let cursor = nextCursor else { return }
+        guard nextCursor != nil else { return }
 
         let token = generation
         isLoadingMore = true
         do {
-            let page = try await service.fetchSwimWorkouts(limit: pageSize, before: cursor)
+            let fresh = try await fetchVisiblePages(
+                token: token, excluding: Set(workouts.map(\.id))
+            )
             // 기다리는 사이 새로고침이 끼어들었으면 이 결과는 이미 낡았다.
             guard token == generation else { return }
-            let known = Set(workouts.map(\.id))
-            workouts.append(contentsOf: page.workouts.filter {
-                !known.contains($0.id) && !$0.isEmptyRecord
-            })
-            nextCursor = page.workouts.last?.startDate ?? nextCursor
-            canLoadMore = page.mayHaveMore
+            workouts.append(contentsOf: fresh)
         } catch {
             guard token == generation else { return }
             errorMessage = error.localizedDescription
@@ -112,5 +111,38 @@ final class SwimRecordViewModel {
         }
         guard token == generation else { return }
         isLoadingMore = false
+    }
+
+    /// `nextCursor`부터 페이지를 읽어 **보여줄 기록만** 모아 돌려준다. 커서와
+    /// `canLoadMore`는 여기서 갱신한다.
+    ///
+    /// **한 건이라도 건질 때까지 이어 읽는 것이 요점이다.** 한 페이지가 통째로 걸러지면
+    /// 목록에 새 셀이 안 생겨 다음 페이지를 부를 `.task`가 영영 안 뜬다. 반복 상한을
+    /// 두지 않는 이유도 같다 — 상한에 걸려 멈춰도 목록이 안 늘어난 채라 같은 교착이 된다.
+    /// 대신 매 회차 토큰을 확인해 새로고침이 끼어들면 그 자리에서 멈춘다.
+    private func fetchVisiblePages(
+        token: Int, excluding known: Set<UUID>
+    ) async throws -> [SwimWorkout] {
+        var seen = known
+        var collected: [SwimWorkout] = []
+
+        while true {
+            let page = try await service.fetchSwimWorkouts(limit: pageSize, before: nextCursor)
+            guard token == generation else { return collected }
+
+            guard let boundary = page.workouts.last?.startDate else {
+                // 빈 페이지는 더 읽을 것이 없다는 뜻이다. 커서가 안 움직이므로
+                // mayHaveMore를 믿고 계속 돌면 같은 요청을 무한히 반복한다.
+                canLoadMore = false
+                return collected
+            }
+            nextCursor = boundary
+            canLoadMore = page.mayHaveMore
+
+            collected += page.workouts.filter { !seen.contains($0.id) && !$0.isEmptyRecord }
+            seen.formUnion(page.workouts.map(\.id))
+
+            if !collected.isEmpty || !canLoadMore { return collected }
+        }
     }
 }
