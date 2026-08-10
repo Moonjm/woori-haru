@@ -563,7 +563,7 @@ struct SwimRecordViewModelTests {
 
         // 살아남은 all[0]이 아니라 필터 전 마지막인 all[2]가 커서다
         #expect(fetcher.calls.count == 2)
-        #expect(fetcher.calls[1].cursor == all[2].startDate)
+        #expect(fetcher.calls.last?.cursor == all[2].startDate)
         #expect(vm.workouts.map(\.id) == [all[0].id, all[3].id, all[4].id, all[5].id])
     }
 
