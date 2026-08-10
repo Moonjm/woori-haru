@@ -9,6 +9,7 @@ struct DietHomeView: View {
     @State private var weightText = ""
     @State private var showCapture = false
     @State private var showManualEntry = false
+    @State private var showChat = false
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -31,7 +32,8 @@ struct DietHomeView: View {
             }
             .padding(.horizontal, 16)
             .padding(.top, 8)
-            .padding(.bottom, 24)
+            // 플로팅 버튼이 맨 아래 카드를 덮지 않을 만큼 띄운다(버튼 ~50 + 여백 12).
+            .padding(.bottom, 76)
         }
         .glassScreenBackground()
         .overlay {
@@ -40,6 +42,7 @@ struct DietHomeView: View {
                 ProgressView()
             }
         }
+        .overlay(alignment: .bottomTrailing) { chatButton }
         .navigationTitle("식단")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
@@ -52,6 +55,11 @@ struct DietHomeView: View {
         }
         .navigationDestination(for: Int.self) { mealId in
             MealDetailView(mealId: mealId) { Task { await vm.reload() } }
+        }
+        .navigationDestination(isPresented: $showChat) {
+            // **보고 있던 날짜가 그대로 앵커다.** 하루도 함께 넘겨 칩·잠금 판단에 새 호출이
+            // 들지 않게 한다.
+            DietChatView(anchorDate: vm.selectedDate, day: vm.day)
         }
         .sheet(isPresented: $showWeightSheet) { weightSheet }
         .sheet(isPresented: $showCapture) {
@@ -85,6 +93,34 @@ struct DietHomeView: View {
             Button("확인", role: .cancel) {}
         } message: {
             Text(vm.errorMessage ?? "")
+        }
+    }
+
+    // MARK: - 코치 채팅
+
+    /// 오른쪽 아래 플로팅 버튼. **`overlay`에 얹는다** — 스크롤과 무관하게 늘 같은 자리다.
+    ///
+    /// **프로필이 없으면 띄우지 않는다.** 점수도 총평도 없어 코치가 답할 근거가 없고,
+    /// 툴바가 이미 「목표부터 정하기」로 한 길만 열어 두고 있다.
+    ///
+    /// **자격이 확인됐을 때만 띄운다.** 조회 전에도, 조회가 실패해 모르는 상태에서도 띄우지
+    /// 않는다 — 「없다」와 「모른다」를 같은 값으로 두면 프로필 없는 사용자에게도 버튼이
+    /// 잠깐 떴다 사라진다.
+    @ViewBuilder
+    private var chatButton: some View {
+        if vm.profileEligibility == .eligible {
+            Button {
+                showChat = true
+            } label: {
+                Image(systemName: "bubble.left.and.text.bubble.right")
+                    .font(.title3)
+                    .padding(14)
+            }
+            .appGlassProminentButton()
+            .clipShape(Circle())
+            .padding(.trailing, 20)
+            .padding(.bottom, 12)
+            .accessibilityLabel("식단 코치")
         }
     }
 
@@ -124,14 +160,31 @@ struct DietHomeView: View {
             // **프로필이 없으면 기록을 시작조차 시키지 않는다.** 서버가 확정을 거절하는데,
             // 그 사실이 인식이 다 끝난 뒤에야 드러나면 사용자는 기다린 시간을 버리고 LLM
             // 비용은 이미 나간 뒤다. 프로필 화면을 저장 없이 닫아도 여기로 다시 온다.
-            if vm.needsProfile {
+            //
+            // **「모른다」를 「있다」로 읽지 않는다.** 조회 전이거나 프로필 조회가 실패하면
+            // 자격이 `.unknown`인데, 그때 「끼니 추가」를 띄우면 위의 방어가 통째로 새어
+            // 사용자가 유료 인식을 다 하고 확정에서 거절된다.
+            //
+            // **그렇다고 「목표부터 정하기」를 띄우지도 않는다** — 프로필이 있는 사용자에게
+            // 거짓말이 된다. 조회가 끝난 뒤에도 모르면 확인하러 갈 길만 연다.
+            switch vm.profileEligibility {
+            case .unknown where !vm.hasLoaded:
+                EmptyView()
+            case .unknown:
+                Button {
+                    showProfile = true
+                } label: {
+                    Label("목표 확인하기", systemImage: "person.crop.circle.badge.questionmark")
+                        .font(.headline)
+                }
+            case .missing:
                 Button {
                     showProfile = true
                 } label: {
                     Label("목표부터 정하기", systemImage: "person.crop.circle.badge.exclamationmark")
                         .font(.headline)
                 }
-            } else {
+            case .eligible:
                 Menu {
                     Button {
                         showCapture = true

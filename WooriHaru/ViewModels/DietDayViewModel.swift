@@ -1,5 +1,17 @@
 import Foundation
 
+/// 프로필 자격. **「모른다」를 별도의 상태로 둔다.**
+///
+/// 조회가 실패했을 때 「있다」로 읽으면 사용자가 사진 인식(유료)까지 다 하고 확정 단계에서
+/// 거절되고, 「없다」로 읽으면 프로필이 있는 사용자에게 입력 화면을 들이민다. 어느 쪽으로도
+/// 단정할 수 없으므로 화면이 그 사실을 그대로 다루게 한다.
+enum ProfileEligibility {
+    /// 아직 못 받았거나 조회가 실패했다.
+    case unknown
+    case eligible
+    case missing
+}
+
 /// 날짜별 하루 요약·끼니 목록·마감 피드백 폴링.
 ///
 /// **피드백 폴링은 화면을 붙잡지 않는다.** 조회는 즉시 돌아오고 `feedback`이 `null`이면 서버가
@@ -18,8 +30,13 @@ final class DietDayViewModel {
 
     private(set) var isLoading = false
     private(set) var hasLoaded = false
+    /// 프로필을 받았는가·있는가. **조회가 실패하면 `.unknown`에 머문다** — 그 상태로
+    /// 기록을 시작시키면 유료 인식을 다 하고 확정에서 거절된다.
+    private(set) var profileEligibility: ProfileEligibility = .unknown
+
     /// 프로필이 없어 점수를 낼 수 없는 상태. 업로드보다 프로필 입력이 먼저다.
-    private(set) var needsProfile = false
+    /// **`.unknown`은 여기 해당하지 않는다** — 모르는 것을 「없다」로 단정하지 않는다.
+    var needsProfile: Bool { profileEligibility == .missing }
     private(set) var isFeedbackPending = false
     /// 60초 안에 안 왔다. **실패가 아니다** — 서버는 계속 처리 중일 수 있다.
     private(set) var isFeedbackDelayed = false
@@ -129,13 +146,17 @@ final class DietDayViewModel {
             let loadedProfile = try await profileResult
             guard token == generation else { return }
             profile = loadedProfile
-            needsProfile = loadedProfile == nil
+            profileEligibility = loadedProfile == nil ? .missing : .eligible
         } catch is CancellationError {
             return
         } catch {
-            // **프로필 조회만 실패했으면 `needsProfile`을 건드리지 않는다** — 모르는 것을
-            // 「없다」로 단정하면 프로필이 있는 사용자에게 입력 화면을 들이민다. 하루 화면도
-            // 막지 않는다(프로필은 목표 막대에만 쓴다).
+            // **프로필 조회만 실패했으면 자격을 `.unknown`에 남긴다** — 「없다」로 단정하면
+            // 프로필이 있는 사용자에게 입력 화면을 들이밀고, 「있다」로 단정하면 사진
+            // 인식(유료)을 다 하고 확정 단계에서 거절된다. 화면이 그 모름을 그대로 다룬다
+            // (`DietHomeView`가 기록 메뉴 대신 「목표 확인하기」를 띄운다).
+            //
+            // **한 번 확인된 자격은 내리지 않는다** — 이미 `.eligible`이면 그대로 둔다.
+            // 하루 화면 자체는 막지 않는다(프로필은 목표 막대에만 쓴다).
         }
 
         do {
@@ -317,7 +338,7 @@ final class DietDayViewModel {
             let refreshedProfile = try await service.fetchProfile()
             guard token == generation else { return false }
             profile = refreshedProfile
-            needsProfile = profile == nil
+            profileEligibility = refreshedProfile == nil ? .missing : .eligible
             return true
         } catch is CancellationError {
             return false

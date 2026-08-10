@@ -38,6 +38,16 @@ protocol DietServing: Sendable {
     func searchFoods(query: String, dataset: FoodDataset?) async throws -> [Food]
     func fetchFrequentItems() async throws -> [FrequentItem]
     func fetchStats(from: String, to: String) async throws -> DietStats
+
+    /// 코치 타임라인 한 장. 최신이 먼저 온다 — 앱이 뒤집어 아래에 붙인다.
+    /// **`before`가 nil이면 첫 장이다.**
+    ///
+    /// **프로토콜에 기본 구현을 두지 않는다** — `searchFoods`의 `dataset`과 같은 이유로,
+    /// 두면 대역이 그대로 컴파일되어 「고쳤는데 안 부르는」 상태가 조용히 남는다.
+    func fetchChatPage(before: Int?, size: Int) async throws -> ChatPage
+    /// 질문 한 건. **응답은 저장된 답 한 건뿐이다** — 질문 행도 서버가 함께 저장하지만
+    /// 질문은 앱이 이미 갖고 있다. **LLM 호출이라 수 초가 걸린다.**
+    func askChat(date: String, message: String) async throws -> ChatMessage
 }
 
 /// **`POST /diet/meals/{id}/retry`(피드백 재생성)는 여기 없다.** 서버에 있지만 앱은 부르지 않는다 —
@@ -170,5 +180,32 @@ struct DietService: DietServing {
             throw APIError.serverError(statusCode: 200, message: "통계 응답이 비어 있습니다")
         }
         return stats
+    }
+
+    // MARK: - 코치 채팅
+
+    /// **첫 장은 `before`를 아예 보내지 않는다.** 빈 문자열을 보내면 서버가 `Long` 변환에
+    /// 실패해 400을 준다.
+    func fetchChatPage(before: Int?, size: Int) async throws -> ChatPage {
+        var parameters = ["size": String(size)]
+        if let before {
+            parameters["before"] = String(before)
+        }
+        let response: DataResponse<ChatPage> = try await api.get("/diet/chat", query: parameters)
+        guard let page = response.data else {
+            throw APIError.serverError(statusCode: 200, message: "대화 응답이 비어 있습니다")
+        }
+        return page
+    }
+
+    /// **201이 아니라 200 + 바디다.** 서버가 관례에서 의도적으로 벗어난 자리다 — 답을 다시
+    /// 조회하게 만들면 사용자가 화면에서 기다리는 시간이 두 배가 된다.
+    func askChat(date: String, message: String) async throws -> ChatMessage {
+        let response: DataResponse<ChatMessage> =
+            try await api.post("/diet/days/\(date)/chat", body: ChatAskRequest(message: message))
+        guard let answer = response.data else {
+            throw APIError.serverError(statusCode: 200, message: "답변이 비어 있습니다")
+        }
+        return answer
     }
 }

@@ -98,6 +98,18 @@ final class FakeDietService: DietServing, @unchecked Sendable {
     /// 삭제를 실제로 시도해 보는(진행 중 가드) 테스트만 opt-in으로 채운다.
     var deleteMealPhotoGate: AsyncGate?
 
+    /// 채팅 페이지 응답. **부를 때마다 다음 것을 준다** — 다음 장 요청이 어느 커서로 나가는지
+    /// 보려면 첫 장과 둘째 장이 서로 달라야 한다.
+    var chatPages: [ChatPage] = []
+    /// `askChat`이 돌려줄 답.
+    var chatAnswers: [ChatMessage] = []
+    /// 있으면 `fetchChatPage`가 값을 돌려주기 직전에 멈춘다 — 첫 요청이 아직 안 돌아왔을 때
+    /// 두 번째 요청을 실제로 시도해 보는(진행 중 가드) 테스트만 opt-in으로 채운다.
+    var chatPageGate: AsyncGate?
+    /// 있으면 `askChat`이 값을 돌려주기 직전에 멈춘다 — 답을 기다리는 동안 낙관적 말풍선이
+    /// 실제로 떠 있는지 보는 테스트만 opt-in으로 채운다.
+    var askChatGate: AsyncGate?
+
     // 기록
     private(set) var uploadedByteCounts: [Int] = []
     private(set) var createdFileIds: [[Int]] = []
@@ -117,10 +129,16 @@ final class FakeDietService: DietServing, @unchecked Sendable {
     private(set) var statsRanges: [(from: String, to: String)] = []
     private(set) var savedProfiles: [NutritionProfileRequest] = []
     private(set) var savedWeights: [Double] = []
+    /// `fetchChatPage`에 넘어온 커서 — 첫 장이 nil로 나가는지, 다음 장이 `nextCursor`를 그대로
+    /// 넘기는지 본다.
+    private(set) var chatPageCursors: [Int?] = []
+    private(set) var askedChats: [(date: String, message: String)] = []
 
     private var analysisCursor = 0
     private var mealCursor = 0
     private var dayCursor = 0
+    private var chatPageCursor = 0
+    private var chatAnswerCursor = 0
 
     private func next<T>(_ values: [T], cursor: inout Int, label: String) throws -> T {
         guard !values.isEmpty else { throw FakeError.unstubbed(label) }
@@ -293,6 +311,32 @@ final class FakeDietService: DietServing, @unchecked Sendable {
         guard let result = override ?? stats else { throw FakeError.unstubbed("fetchStats") }
         return result
     }
+
+    func fetchChatPage(before: Int?, size: Int) async throws -> ChatPage {
+        lock.lock()
+        chatPageCursors.append(before)
+        let gate = chatPageGate
+        lock.unlock()
+
+        if let gate { await gate.hold() }
+        try check("fetchChatPage")
+
+        lock.lock(); defer { lock.unlock() }
+        return try next(chatPages, cursor: &chatPageCursor, label: "fetchChatPage")
+    }
+
+    func askChat(date: String, message: String) async throws -> ChatMessage {
+        lock.lock()
+        askedChats.append((date, message))
+        let gate = askChatGate
+        lock.unlock()
+
+        if let gate { await gate.hold() }
+        try check("askChat")
+
+        lock.lock(); defer { lock.unlock() }
+        return try next(chatAnswers, cursor: &chatAnswerCursor, label: "askChat")
+    }
 }
 
 /// 하루 활동 에너지 대역.
@@ -445,6 +489,54 @@ func makeAnalysis(
     ]
 ) -> MealAnalysis {
     MealAnalysis(id: id, status: status, photos: photos)
+}
+
+// MARK: - 코치 채팅 픽스처
+
+func makeChatMealCard(
+    mealId: Int = 1,
+    mealType: MealType = .lunch,
+    score: Int? = 74,
+    totalKcal: Double = 696,
+    photoUrl: String? = "https://example.com/1.jpg",
+    feedback: String? = "파닭에 코우슬로를 곁들여 균형이 좋았어요."
+) -> ChatMealCard {
+    ChatMealCard(
+        mealId: mealId, mealType: mealType, score: score,
+        scoreBasis: MealScoreBasis(standard: "2025 한국인 영양소 섭취기준(KDRIs) 에너지적정비율", macros: [
+            MacroBasis(name: "탄수화물", percent: 46, rangeMin: 50, rangeMax: 65, status: .under, penalty: 4),
+            MacroBasis(name: "단백질", percent: 17, rangeMin: 10, rangeMax: 20, status: .inRange, penalty: 0),
+            MacroBasis(name: "지방", percent: 37, rangeMin: 15, rangeMax: 30, status: .over, penalty: 14)
+        ]),
+        totalKcal: totalKcal, carbsG: 80, proteinG: 27, fatG: 29,
+        photoUrl: photoUrl, feedback: feedback
+    )
+}
+
+func makeChatDayCard(
+    dayScore: Int = 61,
+    totalKcal: Double = 1240,
+    targetKcal: Int = 2509,
+    feedback: String? = "나트륨이 기준을 넘었어요."
+) -> ChatDayCard {
+    ChatDayCard(dayScore: dayScore, totalKcal: totalKcal, targetKcal: targetKcal, feedback: feedback)
+}
+
+/// **`date`와 `createdAt`이 따로다.** 두 축을 흐리지 않으려고 기본값도 서로 다른 인자로 둔다.
+func makeChatMessage(
+    id: Int = 1,
+    type: ChatMessageType = .text,
+    date: String = "2026-08-06",
+    role: ChatRole = .user,
+    createdAt: String = "2026-08-06T12:00:00",
+    content: String? = "점심 왜 낮아?",
+    meal: ChatMealCard? = nil,
+    day: ChatDayCard? = nil
+) -> ChatMessage {
+    ChatMessage(
+        id: id, type: type, date: date, role: role, createdAt: createdAt,
+        content: content, meal: meal, day: day
+    )
 }
 
 func dietServerError(_ code: String, status: Int = 400) -> Error {

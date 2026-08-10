@@ -9,6 +9,8 @@ enum DietErrorCode: String {
     case analysisNotConfirmable = "ANALYSIS_NOT_CONFIRMABLE"
     case analysisNotRetryable = "ANALYSIS_NOT_RETRYABLE"
     case analysisInProgress = "ANALYSIS_IN_PROGRESS"
+    /// 코치가 답을 만들지 못했다(503). **재시도가 옳은 실패다** — 서버가 질문도 저장하지 않는다.
+    case chatFailed = "CHAT_FAILED"
     case resourceNotFound = "RESOURCE_NOT_FOUND"
     case invalidRequest = "INVALID_REQUEST"
 }

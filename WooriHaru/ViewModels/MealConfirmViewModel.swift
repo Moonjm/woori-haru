@@ -175,6 +175,21 @@ final class MealConfirmViewModel {
         hasChanges = true
     }
 
+    /// 스테퍼 ⊕⊖. **격자는 `GramStepper`가 정한다** — 검색 상세·끼니 항목 수정과 같은
+    /// 폭으로 움직여야 한다. 이 화면이 오래 ±50g·하한 10g을 따로 들고 있었고, 그래서
+    /// 스테퍼를 25g으로 바꿨을 때 여기만 안 따라왔다.
+    ///
+    /// **뷰가 아니라 여기서 계산한다** — 뷰에 있으면 격자가 맞는지 테스트가 못 닿는다.
+    func increaseQuantity(of item: MealItemRequest, in groupId: Int) {
+        updateQuantity(item.quantityG + GramStepper.step, of: item, in: groupId)
+    }
+
+    /// 바닥은 0이 아니다 — 0으로 내려가면 영양소가 전부 0으로 굳고 되돌릴 수 없다.
+    /// 하한에서도 값이 하한으로 맞춰져서 버튼이 「먹히긴 했다」는 것이 보인다.
+    func decreaseQuantity(of item: MealItemRequest, in groupId: Int) {
+        updateQuantity(max(GramStepper.minimum, item.quantityG - GramStepper.step), of: item, in: groupId)
+    }
+
     /// 식품 검색으로 교체.
     func replaceItem(_ item: MealItemRequest, with replacement: MealItemRequest, in groupId: Int) {
         guard let groupIndex = groups.firstIndex(where: { $0.id == groupId }),
