@@ -527,6 +527,46 @@ struct SwimRecordViewModelTests {
         #expect(guardCount == 1) // 같은 페이지를 무한히 다시 받지 않는다
     }
 
+    // MARK: - 내역 없는 기록
+
+    /// 최신순 `count`건을 하루 간격으로. `emptyAt`에 든 인덱스만 감출 기록으로 만든다.
+    private func makeMixedPage(count: Int, emptyAt: Set<Int>) -> [SwimWorkout] {
+        let newest = Date(timeIntervalSince1970: 1_753_400_000)
+        return (0..<count).map { index in
+            let start = newest.addingTimeInterval(TimeInterval(-index) * 86_400)
+            return emptyAt.contains(index)
+                ? makeWorkout(start: start, duration: 5, distance: nil)
+                : makeWorkout(start: start, duration: 1800, distance: 1200)
+        }
+    }
+
+    @Test func 내역_없는_기록은_목록에서_빠진다() async {
+        let all = makeMixedPage(count: 4, emptyAt: [1, 2])
+        let vm = SwimRecordViewModel(service: FakeSwimFetcher(workouts: all), pageSize: 30)
+
+        await vm.load()
+
+        #expect(vm.workouts.map(\.id) == [all[0].id, all[3].id])
+    }
+
+    /// 커서가 화면에 남은 마지막 기록에서 나오면, 감춘 구간을 다음 페이지가 다시 실어 온다.
+    @Test func 커서는_감춘_기록까지_지나간다() async {
+        // 3건짜리 페이지의 끝 두 건이 감출 기록이다
+        let all = makeMixedPage(count: 6, emptyAt: [1, 2])
+        let fetcher = FakeSwimFetcher(workouts: all)
+        let vm = SwimRecordViewModel(service: fetcher, pageSize: 3)
+
+        await vm.load()
+        #expect(vm.workouts.map(\.id) == [all[0].id])
+
+        await vm.loadMoreIfNeeded(currentItem: all[0])
+
+        // 살아남은 all[0]이 아니라 필터 전 마지막인 all[2]가 커서다
+        #expect(fetcher.calls.count == 2)
+        #expect(fetcher.calls[1].cursor == all[2].startDate)
+        #expect(vm.workouts.map(\.id) == [all[0].id, all[3].id, all[4].id, all[5].id])
+    }
+
     @Test func 건강데이터_미지원이면_실패가_아니라_빈_상태다() async {
         let fetcher = FakeSwimFetcher(
             isHealthDataAvailable: false,

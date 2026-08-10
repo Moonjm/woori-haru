@@ -19,6 +19,10 @@ final class SwimRecordViewModel {
     /// 뒤늦게 돌아온 이전 결과를 버린다.
     private var generation = 0
 
+    /// 다음 페이지의 경계. **필터 전** 마지막 기록의 시작 시각이다 — 감춘 기록에서
+    /// 커서를 다시 잡으면 그 구간을 다음 페이지가 통째로 다시 실어 온다.
+    private var nextCursor: Date?
+
     /// 상세 화면이 강도를 따로 조회할 수 있도록 노출한다.
     let service: SwimWorkoutFetching
     private let pageSize: Int
@@ -61,13 +65,15 @@ final class SwimRecordViewModel {
             try await service.requestAuthorization()
             let page = try await service.fetchSwimWorkouts(limit: pageSize, before: nil)
             guard token == generation else { return }
-            workouts = page.workouts
+            workouts = page.workouts.filter { !$0.isEmptyRecord }
+            nextCursor = page.workouts.last?.startDate
             canLoadMore = page.mayHaveMore
         } catch SwimWorkoutError.healthDataUnavailable {
             // 재시도해도 달라지지 않는 조건이라 실패로 두지 않는다.
             // 빈 상태로 보내야 "건강 데이터를 쓸 수 없는 기기입니다" 안내가 뜬다.
             guard token == generation else { return }
             workouts = []
+            nextCursor = nil
             canLoadMore = false
         } catch {
             guard token == generation else { return }
@@ -83,10 +89,10 @@ final class SwimRecordViewModel {
     func loadMoreIfNeeded(currentItem: SwimWorkout) async {
         guard canLoadMore, !isLoading, !isLoadingMore else { return }
         guard currentItem.id == workouts.last?.id else { return }
-        guard let cursor = workouts.last?.startDate else { return }
-
         // 서비스가 경계 시각의 기록을 통째로 채워 주므로, 이미 읽은 마지막 시각은
         // 배제하고 넘어가면 된다. 동점 무리가 쪼개질 일이 없어 순서에 기대지 않는다.
+        guard let cursor = nextCursor else { return }
+
         let token = generation
         isLoadingMore = true
         do {
@@ -94,7 +100,10 @@ final class SwimRecordViewModel {
             // 기다리는 사이 새로고침이 끼어들었으면 이 결과는 이미 낡았다.
             guard token == generation else { return }
             let known = Set(workouts.map(\.id))
-            workouts.append(contentsOf: page.workouts.filter { !known.contains($0.id) })
+            workouts.append(contentsOf: page.workouts.filter {
+                !known.contains($0.id) && !$0.isEmptyRecord
+            })
+            nextCursor = page.workouts.last?.startDate ?? nextCursor
             canLoadMore = page.mayHaveMore
         } catch {
             guard token == generation else { return }
