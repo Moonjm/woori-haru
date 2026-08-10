@@ -567,6 +567,27 @@ struct SwimRecordViewModelTests {
         #expect(vm.workouts.map(\.id) == [all[0].id, all[3].id, all[4].id, all[5].id])
     }
 
+    /// 스크롤 도중에 갱신되는 커서도 마찬가지다 — 두 번째 페이지 꼬리가 감춘 기록이면
+    /// 세 번째 요청이 그 구간을 다시 실어 온다.
+    @Test func 스크롤_중에도_커서가_감춘_기록까지_지나간다() async {
+        // 두 번째 페이지(3·4·5)의 꼬리 두 건이 감출 기록이다
+        let all = makeMixedPage(count: 9, emptyAt: [4, 5])
+        let fetcher = FakeSwimFetcher(workouts: all)
+        let vm = SwimRecordViewModel(service: fetcher, pageSize: 3)
+
+        await vm.load()
+        await vm.loadMoreIfNeeded(currentItem: all[2])
+        #expect(vm.workouts.map(\.id) == [all[0].id, all[1].id, all[2].id, all[3].id])
+
+        await vm.loadMoreIfNeeded(currentItem: all[3])
+
+        // 살아남은 all[3]이 아니라 필터 전 마지막인 all[5]가 커서다
+        #expect(fetcher.calls.count == 3)
+        #expect(fetcher.calls.last?.cursor == all[5].startDate)
+        #expect(vm.workouts.map(\.id) == [all[0].id, all[1].id, all[2].id,
+                                          all[3].id, all[6].id, all[7].id, all[8].id])
+    }
+
     @Test func 건강데이터_미지원이면_실패가_아니라_빈_상태다() async {
         let fetcher = FakeSwimFetcher(
             isHealthDataAvailable: false,
