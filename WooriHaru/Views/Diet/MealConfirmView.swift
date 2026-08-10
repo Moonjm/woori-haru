@@ -145,7 +145,12 @@ struct MealConfirmView: View {
                         }
                     }
                 }
-                .disabled(!vm.canSave)
+                // **재인식 중에는 잠근다.** 서버가 그 분석을 `PENDING`으로 되돌리고
+                // 확정을 `ANALYSIS_NOT_CONFIRMABLE`로 거절한다 — 눌리기는 하는데 거절당하는
+                // 버튼을 두지 않는다. `isRetrying`은 `MealCaptureViewModel.retry()`가 폴링까지
+                // 끝낼 때까지 참이라(같은 함수 스코프의 `defer`) 서버가 `PENDING`인 구간과
+                // 그대로 겹친다.
+                .disabled(!vm.canSave || isRetrying)
             }
         }
         .sheet(item: $editTarget) { target in
@@ -309,12 +314,11 @@ struct MealConfirmView: View {
 
             Spacer()
 
+            // 격자·하한은 `GramStepper`가 정한다 — 검색 상세·끼니 항목 수정과 같은 폭이다.
             Stepper("") {
-                vm.updateQuantity(item.quantityG + 50, of: item, in: groupId)
+                vm.increaseQuantity(of: item, in: groupId)
             } onDecrement: {
-                // 0까지 내려가면 뷰모델이 되돌릴 수 없게 막는다 — 바닥은 0이 아니라
-                // 10g로 둬서, 버튼이 바닥에서도 "먹히긴 했다"는 걸 보여준다.
-                vm.updateQuantity(max(10, item.quantityG - 50), of: item, in: groupId)
+                vm.decreaseQuantity(of: item, in: groupId)
             }
             .labelsHidden()
 
