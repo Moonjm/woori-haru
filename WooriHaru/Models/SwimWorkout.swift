@@ -130,4 +130,12 @@ extension SwimWorkout {
         guard let laneLengthMeters, laneLengthMeters > 0 else { return location.label }
         return "\(location.label) · \(Self.decimalText(laneLengthMeters.rounded()))m 레인"
     }
+
+    /// 잘못 시작해 바로 끝낸 기록. 1분 미만이면서 거리가 0이거나 없을 때만 해당한다.
+    /// **두 조건을 모두 요구해야** 짧지만 실제로 헤엄친 기록(50m 스프린트)이나 거리를
+    /// 못 잡은 개방 수역 기록이 안 사라진다. 칼로리·스트로크는 보지 않는다 — 바로 끝낸
+    /// 기록에도 워치가 1kcal를 적어 넣는 일이 있어 그것까지 요구하면 아무것도 안 걸린다.
+    var isEmptyRecord: Bool {
+        duration < 60 && (distanceMeters ?? 0) <= 0
+    }
 }
