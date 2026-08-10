@@ -16,7 +16,10 @@ final class MealConfirmViewModel {
     }
 
     let date: Date
-    var mealType: MealType
+    /// **고르기 전에는 nil이다.** 기본값을 박아 두면 그대로 저장돼, 나중에 고치는 일이
+    /// 반복된다. 「골랐는지」를 별도 플래그로 들지 않는 이유는 그때 값이 여전히 남아 있어
+    /// 검사를 한 군데만 빠뜨려도 고르지 않은 끼니가 서버로 나가기 때문이다.
+    var mealType: MealType?
     private(set) var groups: [PhotoGroup]
     private(set) var isSaving = false
     private(set) var savedMealID: Int?
@@ -31,7 +34,7 @@ final class MealConfirmViewModel {
 
     init(
         date: Date,
-        mealType: MealType,
+        mealType: MealType?,
         analysis: MealAnalysis?,
         service: any DietServing = DietService()
     ) {
@@ -62,13 +65,15 @@ final class MealConfirmViewModel {
 
     /// 저장하면 기존 끼니에 합쳐지는 상태인가. 간식은 본래 여러 번이라 묶지 않는다.
     var mergesIntoExisting: Bool {
-        mealType.mergesWithinDay && existingMealTypes.contains(mealType)
+        guard let mealType else { return false }
+        return mealType.mergesWithinDay && existingMealTypes.contains(mealType)
     }
 
     /// 저장 버튼을 누르기 전에 무슨 일이 일어날지 알려 준다. 서버가 같은 날 같은 끼니를
     /// 하나로 묶으므로(간식 제외), 새 카드가 생기는 줄 알았다가 합쳐지면 당황한다.
     var mergeNoticeText: String? {
-        mergesIntoExisting ? "이미 기록한 \(mealType.label)에 합쳐져요." : nil
+        guard mergesIntoExisting, let mealType else { return nil }
+        return "이미 기록한 \(mealType.label)에 합쳐져요."
     }
 
     /// 그날 조회가 실패했다. **「합쳐질 끼니가 없다」와 구분해야 한다** — 앞은 안심해도 되는
@@ -123,6 +128,9 @@ final class MealConfirmViewModel {
         defer { isResolvingSave = false }
         await existingLookup?.value
 
+        // 끼니를 안 골랐으면 물어볼 것이 없다 — 저장 자체가 `canSave`에서 막힌다.
+        guard let mealType else { return .save }
+
         if mergesIntoExisting {
             return .confirm(
                 title: "이미 기록한 \(mealType.label)이 있어요",
@@ -150,8 +158,9 @@ final class MealConfirmViewModel {
     var totalFatG: Double { allItems.reduce(0) { $0 + $1.fatG } }
 
     /// 서버가 빈 배열을 거절한다. 조회를 기다리는 동안에도 잠근다 — 연타로 두 번 눌리면
-    /// 알럿이 두 번 뜬다.
-    var canSave: Bool { !allItems.isEmpty && !isSaving && !isResolvingSave }
+    /// 알럿이 두 번 뜬다. **끼니를 고르기 전에도 잠근다** — 기본값으로 저장되는 것을 막는
+    /// 게이트가 여기 하나다(사진 경로와 직접 추가 경로가 둘 다 이 화면을 거친다).
+    var canSave: Bool { mealType != nil && !allItems.isEmpty && !isSaving && !isResolvingSave }
 
     // MARK: - 편집
 
@@ -239,7 +248,9 @@ final class MealConfirmViewModel {
     // MARK: - 저장
 
     func save() async {
-        guard canSave else { return }
+        // `canSave`가 이미 nil을 막지만 강제 언래핑하지 않는다 — 나중에 `canSave`의 조건이
+        // 하나 바뀌면 그 크래시는 사용자 기기에서 처음 발견된다.
+        guard canSave, let mealType else { return }
         isSaving = true
         needsProfile = false
         errorMessage = nil

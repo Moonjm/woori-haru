@@ -54,7 +54,7 @@ struct MealConfirmView: View {
 
     init(
         date: Date,
-        mealType: MealType,
+        mealType: MealType?,
         analysis: MealAnalysis?,
         service: any DietServing = DietService(),
         isRetrying: Bool = false,
@@ -79,13 +79,19 @@ struct MealConfirmView: View {
         ScrollView {
             VStack(spacing: GlassTokens.cardSpacing) {
                 Picker("끼니", selection: $vm.mealType) {
-                    ForEach(MealType.allCases) { Text($0.label).tag($0) }
+                    ForEach(MealType.allCases) { Text($0.label).tag(Optional($0)) }
                 }
                 .pickerStyle(.segmented)
 
                 // 피커 **바로 아래**여야 한다 — 끼니 종류를 바꿀 때마다 달라지는 안내라
                 // 떨어져 있으면 무엇 때문에 나타났다 사라지는지 읽히지 않는다.
-                if let notice = vm.mergeNoticeText {
+                if vm.mealType == nil {
+                    // 빈 세그먼티드만으로는 「왜 저장이 안 되지」가 된다.
+                    Label("끼니를 골라 주세요", systemImage: "exclamationmark.circle")
+                        .font(.caption)
+                        .foregroundStyle(Color.slate500)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                } else if let notice = vm.mergeNoticeText {
                     Label(notice, systemImage: "arrow.triangle.merge")
                         .font(.caption)
                         .foregroundStyle(Color.slate500)

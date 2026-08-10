@@ -166,8 +166,12 @@ struct MealConfirmViewModelTests {
         ])
     }
 
-    private func makeVM(_ analysis: MealAnalysis?, service: FakeDietService = .init()) -> MealConfirmViewModel {
-        MealConfirmViewModel(date: Date.from("2026-07-29")!, mealType: .lunch, analysis: analysis, service: service)
+    private func makeVM(
+        _ analysis: MealAnalysis?,
+        mealType: MealType? = .lunch,
+        service: FakeDietService = .init()
+    ) -> MealConfirmViewModel {
+        MealConfirmViewModel(date: Date.from("2026-07-29")!, mealType: mealType, analysis: analysis, service: service)
     }
 
     /// **항목을 사진별로 묶어 보여준다** — "2번 사진의 제육볶음"과 "3번 사진의 제육볶음"이 따로
@@ -240,6 +244,56 @@ struct MealConfirmViewModelTests {
         #expect(request.items.count == 1)
         #expect(vm.photoURLs.isEmpty)
         #expect(!vm.hasPhotos)
+    }
+
+    /// **기본값으로 잘못 등록되는 것을 막는 게이트다.** 항목이 다 있어도 끼니를 안 고르면
+    /// 저장이 열리지 않는다.
+    @Test func 끼니를_고르지_않으면_저장할_수_없다() {
+        let vm = makeVM(twoPhotoAnalysis(), mealType: nil)
+
+        #expect(!vm.canSave)
+
+        vm.mealType = .dinner
+        #expect(vm.canSave)
+    }
+
+    /// 게이트가 버튼 비활성화에만 있으면 안 된다 — 뷰모델이 스스로 막아야 한다.
+    @Test func 끼니를_고르지_않고_저장을_불러도_요청이_나가지_않는다() async {
+        let service = FakeDietService()
+        let vm = makeVM(twoPhotoAnalysis(), mealType: nil, service: service)
+
+        await vm.save()
+
+        #expect(service.confirmRequests.isEmpty)
+        #expect(vm.savedMealID == nil)
+    }
+
+    /// 고른 값이 그대로 실려야 한다 — 어디선가 기본값으로 되돌아가면 이 테스트가 잡는다.
+    @Test func 끼니를_고르면_그_값이_요청에_실린다() async {
+        let service = FakeDietService()
+        let vm = makeVM(twoPhotoAnalysis(), mealType: nil, service: service)
+        vm.mealType = .dinner
+
+        await vm.save()
+
+        #expect(service.confirmRequests.count == 1)
+        #expect(service.confirmRequests.last?.mealType == .dinner)
+    }
+
+    /// 합쳐질 끼니가 정해지지 않았으므로 병합 안내가 나올 수 없다.
+    @Test func 끼니를_고르기_전에는_병합_안내가_뜨지_않는다() async {
+        let service = FakeDietService()
+        service.days = [makeDay(date: "2026-07-29", meals: [makeMeal(mealType: .breakfast)])]
+        let vm = makeVM(nil, mealType: nil, service: service)
+
+        await vm.loadExistingMeals()
+
+        #expect(!vm.mergesIntoExisting)
+        #expect(vm.mergeNoticeText == nil)
+
+        // 고르는 순간 원래 동작이 살아난다
+        vm.mealType = .breakfast
+        #expect(vm.mergeNoticeText == "이미 기록한 아침에 합쳐져요.")
     }
 
     /// 항목이 하나도 없으면 저장할 수 없다 — 서버가 빈 배열을 거절한다.
