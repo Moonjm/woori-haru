@@ -50,6 +50,9 @@ final class DietDayViewModel {
     private var feedbackTask: Task<Void, Never>?
     /// 예약해 둔 하루 조회. 스와이프가 이어지는 동안 취소하고 다시 잡는다.
     private var pendingSelection: Task<Void, Never>?
+    /// 그 예약이 이미 조회로 바뀌었는지. **핸들을 비우는 대신 이 값으로 표시한다** — 비우면
+    /// 뒤이은 `stepDay`가 그 Task를 취소할 수도 없고, 아직 돌고 있는 조회를 기다릴 수도 없다.
+    private var pendingSelectionStarted = false
     /// `syncActivity()`가 서버에 올린 값. 폴링·재조회 응답이 이 업로드보다 먼저 나갔을 수 있어,
     /// 응답을 얹은 뒤 이 값을 다시 씌운다(`apply(_:)` 참조).
     ///
@@ -165,18 +168,26 @@ final class DietDayViewModel {
         resetForDateChange()
 
         pendingSelection?.cancel()
+        pendingSelectionStarted = false
         let delay = daySwipeDelay
         pendingSelection = Task { [weak self] in
             try? await Task.sleep(for: delay)
             guard !Task.isCancelled, let self else { return }
             // **여기서부터는 예약이 실제 조회로 바뀐다.** `select(_:)`의 "예약이 있었으면
             // 같은 날짜여도 조회를 낸다" 우회는 예약이 아직 조회로 해소되지 않았을 때만
-            // 필요하다 — 여기서 비우지 않으면, 조회가 이미 끝난 뒤 같은 날짜를 다시 탭해도
+            // 필요하다 — 표시해 두지 않으면, 조회가 이미 끝난 뒤 같은 날짜를 다시 탭해도
             // 그 우회가 계속 켜져 있어 아무것도 안 바뀌는 탭인데 화면이 비었다 다시 채워진다.
-            // (더 새로운 `stepDay`가 왔다면 이 Task는 이미 취소돼 위 가드에서 빠져나가므로,
-            // 여기 도달하는 것은 항상 가장 최근에 예약된 Task뿐이라 안전하다.)
-            pendingSelection = nil
+            pendingSelectionStarted = true
+
+            // **활동량을 올린 뒤 날짜가 그대로인지 다시 본다.** 이 대기는 HealthKit 권한·조회에
+            // 서버 업서트까지라 넓고, 그 사이 스와이프가 또 오면 `load()`는 **바뀐** 날짜를
+            // 조회한다 — 그 날짜의 활동량이 오르기도 전에. 서버는 하루 조회에서 피드백 생성을
+            // 걸고 뒤늦은 업서트는 그 캐시를 무효화하지 않으므로, 그날 피드백이 소모 칼로리를
+            // 영영 빠뜨린 채로 굳는다. 취소로는 못 막는다 — `syncActivity()`가 취소를 삼키고
+            // 정상 반환한다. 바뀐 날짜는 자기 예약이 순서를 지켜 처리하므로 여기서 빠지면 된다.
+            let token = generation
             await syncActivity()
+            guard token == generation else { return }
             await load()
         }
     }
@@ -273,9 +284,10 @@ final class DietDayViewModel {
         // **취소했으면 같은 날짜여도 조회를 내야 한다.** `stepDay`가 `selectedDate`를 미리
         // 옮겨 두므로 스와이프 직후의 탭은 「같은 날짜」로 들어오는데, 아래 가드에서 그냥
         // 빠져나가면 `stepDay`가 켜 둔 로딩과 빈 하루를 되돌릴 것이 아무것도 없다.
-        let hadPendingSelection = pendingSelection != nil
+        let hadPendingSelection = pendingSelection != nil && !pendingSelectionStarted
         pendingSelection?.cancel()
         pendingSelection = nil
+        pendingSelectionStarted = false
 
         // 조회를 건너뛰는 경우에도 기준일은 맞춰야 한다 — 주를 넘긴 뒤 이미 선택돼 있는
         // 날짜를 다시 탭했을 때 기준일이 그대로면 「오늘」 버튼이 계속 남는다.
@@ -296,7 +308,13 @@ final class DietDayViewModel {
         // **조회보다 먼저 올린다.** 하루 조회가 서버의 하루 피드백 생성을 걸어 놓는데, 활동량
         // 업서트는 그 캐시를 무효화하지 않는다(비용 방어). 순서가 뒤면 그날 피드백이 소모
         // 칼로리를 영영 빠뜨린 채로 굳는다.
+        //
+        // **올린 뒤 날짜가 그대로인지 다시 본다.** 이 대기 사이에 스와이프가 오면 `load()`가
+        // **바뀐** 날짜를 그 날짜의 업서트보다 먼저 조회해, 위에서 막으려던 순서 뒤집힘이
+        // 그대로 일어난다. 바뀐 날짜는 자기 예약이 순서를 지켜 처리하므로 여기서 빠지면 된다.
+        let token = generation
         await syncActivity()
+        guard token == generation else { return }
         await load()
     }
 
@@ -306,6 +324,7 @@ final class DietDayViewModel {
         // 예약이 또 나가 왕복이 한 번 더 든다(`generation` 토큰이 정확성은 지키지만 낭비다).
         pendingSelection?.cancel()
         pendingSelection = nil
+        pendingSelectionStarted = false
         await load()
     }
 

@@ -1701,4 +1701,79 @@ struct DietWeekStripTests {
         #expect(vm.day?.date == "2026-07-16")       // 화면이 비워지지 않는다
         #expect(!vm.isLoading)
     }
+
+    // MARK: - 활동량을 올리는 중에 날짜가 바뀌는 경합
+
+    /// **하루 조회는 그 날짜의 활동량이 올라간 뒤에 나가야 한다.** 서버는 하루 조회에서
+    /// 피드백 생성을 걸고, 뒤늦은 활동량 업서트는 그 캐시를 무효화하지 않는다 — 순서가
+    /// 뒤집히면 그날 피드백이 소모 칼로리를 영영 빠뜨린 채로 굳는다.
+    ///
+    /// 예약 Task는 깨어나면서 `pendingSelection`을 비우므로 **뒤이은 `stepDay`가 취소할
+    /// 수도 없고**, `syncActivity()`는 취소를 삼키고 정상 반환한다. 토큰을 다시 보지 않으면
+    /// 낡은 Task가 남의 날짜를 그 날짜의 업서트보다 먼저 조회한다.
+    @Test func 활동량을_올리는_중에_날짜가_바뀌면_낡은_예약은_조회하지_않는다() async {
+        let service = FakeDietService()
+        service.profile = makeProfile()
+        service.days = [makeDay(date: "2026-07-15"), makeDay(date: "2026-07-17")]
+        let energy = FakeActiveEnergyFetcher()
+        let vm = DietDayViewModel(
+            service: service,
+            energyFetcher: energy,
+            date: Date.from("2026-07-15")!,
+            daySwipeDelay: .milliseconds(10)
+        )
+        await vm.load()
+        let before = service.fetchedDates.count
+
+        // 7/16으로 스와이프 — 예약이 깨어나 활동량 조회에서 멈춘다.
+        let staleGate = AsyncGate()
+        energy.gate = staleGate
+        vm.stepDay(by: 1)
+        await staleGate.waitUntilBlocked()
+
+        // 그 사이 한 칸 더 — 선택 날짜가 7/17이 되고, 낡은 예약은 취소되지 않는다.
+        vm.stepDay(by: 1)
+        let freshGate = AsyncGate()
+        energy.gate = freshGate
+        await staleGate.open()
+
+        // 새 예약이 활동량 조회에 닿을 때까지 기다린다 — 낡은 예약은 그 전에 갈 길을 다 갔다.
+        await freshGate.waitUntilBlocked()
+        await freshGate.open()
+        await vm.waitForPendingSelection()
+
+        // 하루 조회는 새 예약의 것 **한 번**이다. 낡은 예약이 7/17을 먼저 조회했다면 두 번이 된다.
+        #expect(service.fetchedDates.count == before + 1)
+        #expect(service.fetchedDates.last == "2026-07-17")
+        // 낡은 예약도 자기 날짜(7/16)의 활동량은 올린다 — 그건 맞는 동작이라 그대로 둔다.
+        #expect(energy.requestedDates.map(\.dateString).contains("2026-07-16"))
+    }
+
+    /// 탭 경로에도 같은 창이 있다 — `select(_:)`도 `syncActivity()`를 기다린 뒤 조회한다.
+    @Test func 탭이_활동량을_올리는_중에_날짜가_바뀌면_그_조회는_버려진다() async {
+        let service = FakeDietService()
+        service.profile = makeProfile()
+        service.days = [makeDay(date: "2026-07-15"), makeDay(date: "2026-07-20")]
+        let energy = FakeActiveEnergyFetcher()
+        let vm = DietDayViewModel(
+            service: service,
+            energyFetcher: energy,
+            date: Date.from("2026-07-15")!,
+            daySwipeDelay: .seconds(30)   // 아래 stepDay의 예약은 이 테스트에서 안 깨어난다
+        )
+        await vm.load()
+        let before = service.fetchedDates.count
+
+        let gate = AsyncGate()
+        energy.gate = gate
+        let selecting = Task { await vm.select(Date.from("2026-07-16")!) }
+        await gate.waitUntilBlocked()
+
+        vm.stepDay(by: 1)   // 기다리는 사이 날짜가 7/17로 바뀐다
+        await gate.open()
+        await selecting.value
+
+        // 탭이 겨눴던 7/16은 이미 남의 날짜다 — 조회가 나가면 안 된다.
+        #expect(service.fetchedDates.count == before)
+    }
 }
