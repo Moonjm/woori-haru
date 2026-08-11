@@ -420,10 +420,6 @@ struct DietHomeView: View {
                             DietScoreRing(score: meal.score, size: 44)
                         }
                     }
-                    // **카드의 빈 곳도 눌려야 한다.** 안 주면 아이콘·글자·점수 링 위에서만 탭이
-                    // 먹어서 여백이 넓은 카드는 눌리지 않는 데가 더 많다. `GlassCard` 바깥에
-                    // 붙여야 카드가 더하는 안쪽 여백(`GlassTokens.cardPadding`)까지 덮는다.
-                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
             }

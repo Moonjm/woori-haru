@@ -120,6 +120,20 @@ struct MealConfirmView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
         }
+        // 저장 버튼은 툴바에 고정돼 있지만 미선택 안내는 스크롤 맨 위에 있다 — 사진이
+        // 여러 장이라 여러 화면 분량인 경우 아래에서 검수하던 사용자가 저장을 눌러도
+        // 비활성 버튼은 아무 피드백이 없어 "앱이 멈췄다"로 읽힌다. 미선택일 때만 고정
+        // 영역에도 같은 이유를 띄운다(스크롤 안의 안내는 「피커 바로 아래」 원칙대로 그대로 둔다).
+        .safeAreaInset(edge: .bottom) {
+            if vm.mealType == nil {
+                Label("끼니를 골라야 저장할 수 있어요", systemImage: "exclamationmark.circle")
+                    .font(.caption)
+                    .foregroundStyle(Color.slate500)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                    .background(.thinMaterial)
+            }
+        }
         .glassScreenBackground()
         .navigationTitle("확인")
         .navigationBarTitleDisplayMode(.inline)

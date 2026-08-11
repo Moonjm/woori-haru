@@ -258,6 +258,11 @@ struct MealConfirmViewModelTests {
     }
 
     /// 게이트가 버튼 비활성화에만 있으면 안 된다 — 뷰모델이 스스로 막아야 한다.
+    ///
+    /// **이중 방어선을 본다.** `canSave`의 `mealType != nil`을 지워도 이 테스트는 여전히
+    /// 통과한다 — `save()`가 독립적으로 `guard let mealType`을 갖고 있기 때문이다. 그
+    /// 회귀는 바로 위 `끼니를_고르지_않으면_저장할_수_없다`가 잡는다. 다음에 파손 실험을
+    /// 하는 사람이 「왜 이 테스트는 안 빨개지지」로 헤매지 않게 여기 남겨 둔다.
     @Test func 끼니를_고르지_않고_저장을_불러도_요청이_나가지_않는다() async {
         let service = FakeDietService()
         let vm = makeVM(twoPhotoAnalysis(), mealType: nil, service: service)
@@ -278,6 +283,17 @@ struct MealConfirmViewModelTests {
 
         #expect(service.confirmRequests.count == 1)
         #expect(service.confirmRequests.last?.mealType == .dinner)
+    }
+
+    /// 미선택이면 물어볼 것이 없다 — 알럿 없이 `.save`로 떨어지고, 실제 저장은 `save()`가 막는다.
+    @Test func 끼니를_고르지_않으면_확인_알럿_없이_저장으로_떨어진다() async {
+        let service = FakeDietService()
+        let vm = makeVM(twoPhotoAnalysis(), mealType: nil, service: service)
+
+        #expect(await vm.resolveSaveAction() == .save)
+
+        await vm.save()
+        #expect(service.confirmRequests.isEmpty)
     }
 
     /// 합쳐질 끼니가 정해지지 않았으므로 병합 안내가 나올 수 없다.
