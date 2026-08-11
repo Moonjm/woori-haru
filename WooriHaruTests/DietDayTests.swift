@@ -1643,11 +1643,14 @@ struct DietWeekStripTests {
 
     /// 탭은 기다리지 않는다. **예약된 스와이프 조회는 취소해야 한다** — 안 그러면 탭한
     /// 날짜 위에 0.35초 뒤 스와이프가 겨눴던 날짜의 조회가 덮인다.
+    /// **지연을 넉넉히 잡는다** — 이 테스트는 예약을 기다리지 않으므로(취소되어야 하니까),
+    /// 부하 걸린 시뮬레이터에서 두 줄 사이가 조금만 늘어져도 예약이 먼저 나가면 깨진다.
     @Test func 날짜를_탭하면_예약된_하루_조회가_취소된다() async {
-        let (vm, service) = makeVM(on: "2026-07-15", daySwipeDelay: .milliseconds(200))
-        service.days = [
-            makeDay(date: "2026-07-15"), makeDay(date: "2026-07-16"), makeDay(date: "2026-07-20")
-        ]
+        let (vm, service) = makeVM(on: "2026-07-15", daySwipeDelay: .seconds(30))
+        // 7/16 픽스처를 두지 않는다 — 예약이 취소돼 그 요청은 나가지 않는다. 실제로 나가는
+        // 요청은 `load()`(7/15)와 `select(7/20)`(7/20) 두 번뿐이라, 커서 순서로 소비하는
+        // `FakeDietService.fetchDay`가 두 번째 요청에 7/20 픽스처를 돌려주게 맞춘다.
+        service.days = [makeDay(date: "2026-07-15"), makeDay(date: "2026-07-20")]
         await vm.load()
         let before = service.fetchedDates.count
 
@@ -1657,13 +1660,17 @@ struct DietWeekStripTests {
         #expect(vm.selectedDate == Date.from("2026-07-20"))
         #expect(service.fetchedDates.count == before + 1)
         #expect(service.fetchedDates.last == "2026-07-20")
+        #expect(vm.day?.date == "2026-07-20")
+        #expect(!vm.isLoading)
     }
 
     /// **스와이프 직후 같은 날짜를 탭하는 경로.** `stepDay`가 `selectedDate`를 미리 옮겨
     /// 두므로 그 탭은 「같은 날짜」로 들어온다. 예약만 취소하고 넘어가면 `stepDay`가 켜 둔
     /// 로딩과 빈 하루가 영영 남는다.
+    /// **지연을 넉넉히 잡는다** — 이 테스트도 예약을 기다리지 않으므로 짧은 지연은 플레이크의
+    /// 원인일 뿐이다.
     @Test func 스와이프_직후_같은_날짜를_탭해도_조회가_나간다() async {
-        let (vm, service) = makeVM(on: "2026-07-15", daySwipeDelay: .milliseconds(200))
+        let (vm, service) = makeVM(on: "2026-07-15", daySwipeDelay: .seconds(30))
         service.days = [makeDay(date: "2026-07-15"), makeDay(date: "2026-07-16")]
         await vm.load()
         let before = service.fetchedDates.count
@@ -1674,6 +1681,24 @@ struct DietWeekStripTests {
         #expect(service.fetchedDates.count == before + 1)
         #expect(service.fetchedDates.last == "2026-07-16")
         #expect(vm.day?.date == "2026-07-16")
+        #expect(!vm.isLoading)
+    }
+
+    /// **예약이 조회로 해소된 뒤에는 우회가 꺼져야 한다.** 안 그러면 이미 선택된 날짜를
+    /// 다시 탭할 때마다 화면이 비었다가 다시 채워지고 왕복이 한 벌 더 나간다.
+    @Test func 스와이프_조회가_끝난_뒤_같은_날짜를_다시_탭하면_조회가_없다() async {
+        let (vm, service) = makeVM(on: "2026-07-15", daySwipeDelay: .milliseconds(10))
+        service.days = [makeDay(date: "2026-07-15"), makeDay(date: "2026-07-16")]
+        await vm.load()
+
+        vm.stepDay(by: 1)
+        await vm.waitForPendingSelection()
+        let after = service.fetchedDates.count
+
+        await vm.select(Date.from("2026-07-16")!)   // 이미 선택돼 있고 조회도 끝난 날짜
+
+        #expect(service.fetchedDates.count == after)
+        #expect(vm.day?.date == "2026-07-16")       // 화면이 비워지지 않는다
         #expect(!vm.isLoading)
     }
 }

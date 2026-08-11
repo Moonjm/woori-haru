@@ -295,6 +295,9 @@ struct DietHomeView: View {
                     // 기준(50pt)에 못 미쳐 주도 안 넘어간다.
                     .contentShape(Rectangle())
                     .onTapGesture { Task { await vm.select(date) } }
+                    // 요일과 날짜가 따로 읽히지 않도록 셀 전체를 한 요소로 합친다 — 안 묶으면
+                    // 「수, 버튼」·「13, 버튼」 두 요소로 쪼개져 한 주에 14개가 읽힌다.
+                    .accessibilityElement(children: .combine)
                     .accessibilityAddTraits(.isButton)
                 }
             }
@@ -471,6 +474,8 @@ struct DietHomeView: View {
                     }
                 }
                 .onTapGesture { selectedMealId = meal.id }
+                // 끼니 종류·음식 이름·점수가 따로 읽히지 않도록 카드 전체를 한 요소로 합친다.
+                .accessibilityElement(children: .combine)
                 .accessibilityAddTraits(.isButton)
             }
         }

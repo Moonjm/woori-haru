@@ -123,6 +123,34 @@ final class DietDayViewModel {
         visibleWeekAnchor = moved
     }
 
+    /// **다른 날짜로 옮길 때의 리셋.** 이전 날짜의 하루·실패·피드백 상태가 새 날짜 라벨
+    /// 아래 남으면, 사용자가 그것을 이 날짜의 것으로 읽는다 — 끼니를 잘못 열어 고치거나,
+    /// 요청조차 안 한 날짜에서 실패 카드를 본다.
+    ///
+    /// **`load()`는 이 헬퍼를 쓰지 않는다.** `load()`는 같은 날짜 새로고침에도 불리므로
+    /// `day = nil`을 하면 안 된다 — 여기서 리셋하는 이유는 "날짜가 바뀌었다"이고 `load()`가
+    /// 스스로 지우는 이유는 "조회를 다시 시작한다"이다. 서로 다른 이유라 따로 둔다.
+    private func resetForDateChange() {
+        // 화면은 `day`가 있으면 스피너를 감추고 끼니 카드를 그대로 열어 준다
+        // (`NavigationLink`) — 이전 날짜의 끼니가 남아 있으면 사용자가 그것을 이 날짜 것으로
+        // 알고 열어 고치거나 지운다. 그래서 조회를 시작하기도 전에, 여기서 즉시 지운다.
+        day = nil
+        isLoading = true
+        // 이전 날짜의 실패 표시가 남으면, 아직 요청도 안 한 새 날짜에서 곧바로 "하루 기록을
+        // 불러오지 못했습니다"가 뜬다.
+        loadFailed = false
+        errorMessage = nil
+        // 이전 날짜에서 피드백을 만들던 중이었다면 그 "만드는 중"/"지연" 표시도 새 날짜
+        // 카드 아래 남으면 안 된다.
+        isFeedbackPending = false
+        isFeedbackDelayed = false
+        // **진행 중이던 조회·폴링을 여기서 무효화한다.** 위에서 `day`를 비워도, 뒤이은 `await`가
+        // 넓어서 그 사이 도착한 이전 날짜의 응답이 `apply(_:)`로 되채운다 — 방금 세운 방어가
+        // 그대로 되돌려지고, 화면은 「새 날짜 라벨 + 옛 날짜 끼니」가 된다.
+        generation += 1
+        feedbackTask?.cancel()
+    }
+
     /// 하루 단위 이동(스트립 아래 좌우 스와이프). **화면은 즉시 옮기고 조회만 늦춘다** —
     /// `select(_:)` 한 번은 활동량 업서트와 하루 조회이고 그 조회가 서버의 하루 피드백
     /// 생성을 건다. 초당 서너 번 나가는 스와이프에 그대로 붙이면 왕복이 그만큼 늘어난다.
@@ -133,20 +161,21 @@ final class DietDayViewModel {
         // 선택이 화면 밖에 남지 않게 스트립도 따라간다.
         visibleWeekAnchor = moved
 
-        // **이 방어는 조회와 함께 늦추면 안 된다.** 이전 날짜의 끼니가 새 날짜 라벨 아래
-        // 남아 있으면 사용자가 그것을 이 날짜 것으로 알고 열어 고치거나 지운다
-        // (`select(_:)`가 같은 이유로 같은 일을 한다).
-        day = nil
-        isLoading = true
-        // 진행 중이던 조회·폴링을 여기서 무효화한다 — 늦게 온 이전 날짜 응답이 되채운다.
-        generation += 1
-        feedbackTask?.cancel()
+        // **이 방어는 조회와 함께 늦추면 안 된다.** `select(_:)`가 같은 이유로 같은 일을 한다.
+        resetForDateChange()
 
         pendingSelection?.cancel()
         let delay = daySwipeDelay
         pendingSelection = Task { [weak self] in
             try? await Task.sleep(for: delay)
             guard !Task.isCancelled, let self else { return }
+            // **여기서부터는 예약이 실제 조회로 바뀐다.** `select(_:)`의 "예약이 있었으면
+            // 같은 날짜여도 조회를 낸다" 우회는 예약이 아직 조회로 해소되지 않았을 때만
+            // 필요하다 — 여기서 비우지 않으면, 조회가 이미 끝난 뒤 같은 날짜를 다시 탭해도
+            // 그 우회가 계속 켜져 있어 아무것도 안 바뀌는 탭인데 화면이 비었다 다시 채워진다.
+            // (더 새로운 `stepDay`가 왔다면 이 Task는 이미 취소돼 위 가드에서 빠져나가므로,
+            // 여기 도달하는 것은 항상 가장 최근에 예약된 Task뿐이라 안전하다.)
+            pendingSelection = nil
             await syncActivity()
             await load()
         }
@@ -254,21 +283,12 @@ final class DietDayViewModel {
         guard hadPendingSelection || !Calendar.current.isDate(date, inSameDayAs: selectedDate) else { return }
         selectedDate = date
 
-        // **이전 날짜의 하루를 새 날짜 라벨 아래 남겨 두지 않는다.** 화면은 `day`가 있으면
-        // 스피너를 감추고 끼니 카드를 그대로 열어 주므로(`NavigationLink`), 그 사이 사용자가
-        // 다른 날짜의 끼니를 이 날짜 것으로 알고 열어 고치거나 지운다. 아래 두 `await`는
-        // HealthKit 권한·조회에 서버 업서트와 하루 조회까지 기다리므로 창이 넓다.
+        // **이전 날짜의 하루·실패·피드백 상태를 새 날짜 라벨 아래 남겨 두지 않는다**
+        // (`resetForDateChange` 참조). 아래 두 `await`는 HealthKit 권한·조회에 서버 업서트와
+        // 하루 조회까지 기다리므로 창이 넓다 — **`load()`가 올리는 것으로는 늦다.** 그때는
+        // 이미 `syncActivity()`를 다 기다린 뒤라, 그 대기 구간이 통째로 열려 있다.
         // (`load()`의 실패 경로가 같은 이유로 이미 `day`를 지운다.)
-        day = nil
-        isLoading = true
-
-        // **진행 중이던 조회·폴링을 여기서 무효화한다.** 위에서 `day`를 비워도, 아래 두 `await`가
-        // 넓어서 그 사이 도착한 이전 날짜의 응답이 `apply(_:)`로 **되채운다** — 방금 세운 방어가
-        // 그대로 되돌려지고, 화면은 「새 날짜 라벨 + 옛 날짜 끼니」가 된다.
-        //
-        // **`load()`가 올리는 것으로는 늦다.** 그때는 이미 `syncActivity()`를 다 기다린 뒤라,
-        // 그 대기 구간이 통째로 열려 있다(HealthKit 권한·조회 + 서버 업서트).
-        generation += 1
+        resetForDateChange()
 
         // **날짜를 바꿀 때도 활동량을 올린다.** 화면 진입의 `.task`에서만 부르면 그 뒤에 고른
         // 날짜들은 소모 칼로리가 영영 비어 있다 — 어제를 열어 봐도 채워지지 않는다.
@@ -282,6 +302,10 @@ final class DietDayViewModel {
 
     /// 끼니를 저장·수정·삭제한 뒤. 점수·합계·`nutrientLimits`가 전부 달라지고 피드백은 다시 생성에 걸린다.
     func reload() async {
+        // 스와이프로 예약된 조회가 남아 있으면 취소한다 — 안 그러면 이 재조회 뒤에 그
+        // 예약이 또 나가 왕복이 한 번 더 든다(`generation` 토큰이 정확성은 지키지만 낭비다).
+        pendingSelection?.cancel()
+        pendingSelection = nil
         await load()
     }
 
