@@ -33,10 +33,29 @@ protocol SwimWorkoutFetching {
     func fetchSwimWorkouts(limit: Int, before: Date?) async throws -> SwimWorkoutPage
     /// 운동 강도(1~10). 목록 로딩을 무겁게 하지 않으려고 상세 화면에서 따로 조회한다.
     func fetchEffortScore(workoutID: UUID) async throws -> Double?
+    /// 워크아웃에 묶인 심박수 샘플의 평균·최대. **목록 매핑이 심박수를 못 채운 기록을 메운다** —
+    /// `HKWorkout.statistics(for:)`는 워크아웃이 집계해 둔 수치만 주고, 심박수가 거기 없는
+    /// 기록에서는 `nil`이 온다. 강도와 같은 이유로 상세 화면에서만 조회한다.
+    func fetchHeartRate(workoutID: UUID) async throws -> SwimHeartRate?
+}
+
+/// 하루 활동 에너지 조회. 서버가 **하루 마감 피드백** 프롬프트의 맥락으로 쓴다.
+/// 목표 칼로리에는 반영하지 않는다 — 활동량에 따라 목표가 매일 흔들리면 점수를 설명할 수 없다.
+protocol ActiveEnergyFetching: Sendable {
+    /// **조회 전에 반드시 불러야 한다.** HealthKit은 권한이 없어도 조회 자체는 에러 없이
+    /// 빈 결과(=0)로 돌아온다 — 권한을 요청하지 않고 읽으면 "진짜 0"과 "권한 없음"이
+    /// 구분되지 않은 채 0이 서버에 올라간다.
+    ///
+    /// **수영 쪽 `requestAuthorization()`과 이름을 나눈 이유가 있다.** 하나로 두면 식단을
+    /// 먼저 연 사용자에게 운동·수영 거리·심박수·운동 강도까지 한꺼번에 묻는 권한 창이 뜬다.
+    /// 이 흐름이 읽는 것은 활동 에너지 하나뿐이다.
+    func requestActiveEnergyAuthorization() async throws
+    /// 그날 0시~24시의 `activeEnergyBurned` 합계(kcal). 데이터가 없으면 0.
+    func fetchActiveEnergy(on date: Date) async throws -> Double
 }
 
 /// 건강 앱에 동기화된 애플워치 수영 기록을 읽어온다. 읽기 전용 — 쓰기 권한은 요청하지 않는다.
-final class HealthKitService: SwimWorkoutFetching {
+final class HealthKitService: SwimWorkoutFetching, ActiveEnergyFetching {
     private let store = HKHealthStore()
 
     var isHealthDataAvailable: Bool { HKHealthStore.isHealthDataAvailable() }
@@ -56,6 +75,13 @@ final class HealthKitService: SwimWorkoutFetching {
     func requestAuthorization() async throws {
         guard isHealthDataAvailable else { throw SwimWorkoutError.healthDataUnavailable }
         try await store.requestAuthorization(toShare: [], read: readTypes)
+    }
+
+    /// 식단 화면이 부른다. **활동 에너지 하나만 묻는다** — 수영 기능을 쓰기 전에 식단을 먼저
+    /// 연 사용자에게 운동·심박수까지 묻는 것은 필요 이상으로 넓다.
+    func requestActiveEnergyAuthorization() async throws {
+        guard isHealthDataAvailable else { throw SwimWorkoutError.healthDataUnavailable }
+        try await store.requestAuthorization(toShare: [], read: [HKQuantityType(.activeEnergyBurned)])
     }
 
     func fetchSwimWorkouts(limit: Int, before: Date?) async throws -> SwimWorkoutPage {
@@ -136,6 +162,71 @@ final class HealthKitService: SwimWorkoutFetching {
             }
         }
         return nil
+    }
+
+    /// 워크아웃에 묶인 심박수 샘플을 직접 집계한다. `HKWorkout.statistics(for:)`가 심박수를
+    /// 안 담고 오는 기록에서도 값을 얻는 유일한 길이다.
+    func fetchHeartRate(workoutID: UUID) async throws -> SwimHeartRate? {
+        guard isHealthDataAvailable else { throw SwimWorkoutError.healthDataUnavailable }
+
+        let found = try await samples(
+            type: .workoutType(),
+            predicate: HKQuery.predicateForObject(with: workoutID),
+            limit: 1
+        )
+        guard let workout = found.first as? HKWorkout else { return nil }
+
+        let statistics = try await heartRateStatistics(of: workout)
+        let unit = HKUnit.count().unitDivided(by: .minute())
+        let average = statistics?.averageQuantity()?.doubleValue(for: unit)
+        let maximum = statistics?.maximumQuantity()?.doubleValue(for: unit)
+
+        let heartRate = SwimHeartRate(averageBpm: average, maxBpm: maximum)
+        // 둘 다 없으면 「없음」을 그대로 알린다 — 화면이 빈 칸을 그리지 않게 한다.
+        return heartRate.isEmpty ? nil : heartRate
+    }
+
+    private func heartRateStatistics(of workout: HKWorkout) async throws -> HKStatistics? {
+        try await withCheckedThrowingContinuation { continuation in
+            let query = HKStatisticsQuery(
+                quantityType: HKQuantityType(.heartRate),
+                quantitySamplePredicate: HKQuery.predicateForObjects(from: workout),
+                options: [.discreteAverage, .discreteMax]
+            ) { _, statistics, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume(returning: statistics)
+                }
+            }
+            store.execute(query)
+        }
+    }
+
+    func fetchActiveEnergy(on date: Date) async throws -> Double {
+        guard isHealthDataAvailable else { throw SwimWorkoutError.healthDataUnavailable }
+
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: date)
+        guard let end = calendar.date(byAdding: .day, value: 1, to: start) else { return 0 }
+        let predicate = HKQuery.predicateForSamples(withStart: start, end: end)
+
+        // 워크아웃마다 합산하지 않고 HKStatisticsQuery로 한 번에 구한다 — 걷기처럼 운동으로
+        // 기록되지 않은 소모도 포함해야 "오늘 얼마나 썼는지"가 맞는다.
+        return try await withCheckedThrowingContinuation { continuation in
+            let query = HKStatisticsQuery(
+                quantityType: HKQuantityType(.activeEnergyBurned),
+                quantitySamplePredicate: predicate,
+                options: .cumulativeSum
+            ) { _, statistics, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume(returning: statistics?.sumQuantity()?.doubleValue(for: .kilocalorie()) ?? 0)
+                }
+            }
+            store.execute(query)
+        }
     }
 
     // MARK: - Query

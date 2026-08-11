@@ -28,11 +28,23 @@ protocol APIClientProtocol: Sendable {
     func post<T: Decodable>(_ path: String, body: (any Encodable)?) async throws -> T
     func postVoid(_ path: String, body: (any Encodable)?) async throws
     func postCreated(_ path: String, body: (any Encodable)?) async throws -> Int
+    /// `PATCH` 응답의 `Location`에서 id를 뽑는다. **본문이 아니라 헤더다** — 끼니 확정·분석
+    /// 생성·사진 업로드가 이미 같은 방식이라 새 응답 DTO를 만들지 않는다.
+    ///
+    /// **상태코드를 보지 않는다.** 앞의 셋은 201로 오고 이쪽은 200으로 오는데, 둘을 구분할
+    /// 이유가 없다(`rawFetchWithResponse`가 이미 `200...299`만 통과시킨다).
+    func patchCreated(_ path: String, body: (any Encodable)?) async throws -> Int
     func put<T: Decodable>(_ path: String, body: (any Encodable)?) async throws -> T
     func putVoid(_ path: String, body: (any Encodable)?) async throws
     func patch<T: Decodable>(_ path: String, body: (any Encodable)?) async throws -> T
     func patchVoid(_ path: String, body: (any Encodable)?) async throws
     func deleteVoid(_ path: String) async throws
+
+    /// `/files` 단건 업로드. 201 + Location에서 fileId를 파싱해 돌려준다.
+    /// **multipart를 쓰는 곳은 여기 한 군데뿐이고 나머지 식단 API는 전부 JSON이다.**
+    /// 여러 장은 이 메서드를 순차로 여러 번 부르는 것으로 처리한다 — 서버 `/files`가 단건이고,
+    /// 병렬로 밀어넣으면 실패했을 때 어디까지 올라갔는지 추적이 지저분해진다.
+    func postMultipartCreated(_ path: String, fileData: Data, fileName: String, mimeType: String) async throws -> Int
 }
 
 extension APIClientProtocol {
@@ -46,6 +58,10 @@ extension APIClientProtocol {
 
     func postVoid(_ path: String) async throws {
         try await postVoid(path, body: nil)
+    }
+
+    func patchCreated(_ path: String) async throws -> Int {
+        try await patchCreated(path, body: nil)
     }
 
     func postCreated(_ path: String) async throws -> Int {
@@ -99,6 +115,42 @@ final class APIClient: APIClientProtocol, Sendable {
             throw APIError.serverError(statusCode: response.statusCode, message: "Location 헤더에서 ID를 찾을 수 없습니다")
         }
         return id
+    }
+
+    func patchCreated(_ path: String, body: (any Encodable)? = nil) async throws -> Int {
+        let (_, response) = try await rawFetchWithResponse("PATCH", path: path, body: body)
+        guard let location = response.value(forHTTPHeaderField: "Location"),
+              let idString = location.split(separator: "/").last,
+              let id = Int(idString) else {
+            throw APIError.serverError(statusCode: response.statusCode, message: "Location 헤더에서 ID를 찾을 수 없습니다")
+        }
+        return id
+    }
+
+    func postMultipartCreated(_ path: String, fileData: Data, fileName: String, mimeType: String) async throws -> Int {
+        let boundary = "Boundary-\(UUID().uuidString)"
+        let body = Self.multipartBody(boundary: boundary, fileData: fileData, fileName: fileName, mimeType: mimeType)
+
+        let (_, response) = try await rawMultipartFetch(path, body: body, boundary: boundary)
+        guard let location = response.value(forHTTPHeaderField: "Location"),
+              let idString = location.split(separator: "/").last,
+              let id = Int(idString) else {
+            throw APIError.serverError(statusCode: response.statusCode, message: "Location 헤더에서 ID를 찾을 수 없습니다")
+        }
+        return id
+    }
+
+    /// multipart 본문을 순수 함수로 뽑아 둔다 — 서버 `FileController.upload`의
+    /// `@RequestParam("file")`과 필드 이름이 어긋나면 사진 업로드가 매번 400으로 죽는데,
+    /// 네트워크 계층 전체를 목으로 세우지 않고도 이 이름 하나를 테스트에서 확인할 수 있어야 한다.
+    static func multipartBody(boundary: String, fileData: Data, fileName: String, mimeType: String) -> Data {
+        var body = Data()
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"file\"; filename=\"\(fileName)\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: \(mimeType)\r\n\r\n".data(using: .utf8)!)
+        body.append(fileData)
+        body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
+        return body
     }
 
     func put<T: Decodable>(_ path: String, body: (any Encodable)? = nil) async throws -> T {
@@ -211,6 +263,49 @@ final class APIClient: APIClientProtocol, Sendable {
         guard (200...299).contains(httpResponse.statusCode) else {
             let message = String(data: data, encoding: .utf8)
             throw APIError.serverError(statusCode: httpResponse.statusCode, message: message)
+        }
+
+        return (data, httpResponse)
+    }
+
+    private func rawMultipartFetch(
+        _ path: String,
+        body: Data,
+        boundary: String,
+        isRetry: Bool = false
+    ) async throws -> (Data, HTTPURLResponse) {
+        guard let url = URL(string: baseURL + path) else { throw APIError.invalidURL }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        request.httpBody = body
+
+        let session = SessionManager.shared.urlSession
+
+        let (data, response): (Data, URLResponse)
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch let error as URLError where error.code == .cancelled {
+            throw CancellationError()
+        } catch {
+            throw APIError.networkError(error)
+        }
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.networkError(URLError(.badServerResponse))
+        }
+
+        if httpResponse.statusCode == 401 && !isRetry {
+            let shouldRetry = await SessionManager.shared.handleUnauthorized()
+            if shouldRetry {
+                return try await rawMultipartFetch(path, body: body, boundary: boundary, isRetry: true)
+            }
+            throw APIError.unauthorized
+        }
+
+        guard (200...299).contains(httpResponse.statusCode) else {
+            throw APIError.serverError(statusCode: httpResponse.statusCode, message: String(data: data, encoding: .utf8))
         }
 
         return (data, httpResponse)

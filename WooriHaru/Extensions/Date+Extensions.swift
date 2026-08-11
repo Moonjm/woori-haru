@@ -15,6 +15,7 @@ extension Date {
     private static let dateStringFormatter = makeKoreanFormatter(dateFormat: "yyyy-MM-dd")
     private static let yearMonthFormatter = makeKoreanFormatter(dateFormat: "yyyy-MM")
     private static let sheetHeaderFormatter = makeKoreanFormatter(dateFormat: "M월 d일 EEEE")
+    private static let monthDayFormatter = makeKoreanFormatter(dateFormat: "M월 d일")
 
     // MARK: - Formatted Strings
 
@@ -44,6 +45,11 @@ extension Date {
 
     var sheetHeaderText: String {
         Date.sheetHeaderFormatter.string(from: self)
+    }
+
+    /// 「8월 1일」 — 요일이 필요 없는 자리(코치 채팅 앵커 칩·총평 카드)에서 쓴다.
+    var monthDayText: String {
+        Date.monthDayFormatter.string(from: self)
     }
 
     // MARK: - Date Calculations

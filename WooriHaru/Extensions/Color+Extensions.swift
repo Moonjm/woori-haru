@@ -35,6 +35,7 @@ extension Color {
     static let orange100 = Color(red: 1.0, green: 0.929, blue: 0.835)
     static let orange200 = Color(red: 0.996, green: 0.867, blue: 0.667)
     static let orange300 = Color(red: 0.992, green: 0.788, blue: 0.463)
+    static let orange400 = Color(red: 0.977, green: 0.684, blue: 0.290)
     static let orange500 = Color(red: 0.961, green: 0.580, blue: 0.118)
     static let orange700 = Color(red: 0.769, green: 0.365, blue: 0.039)
 

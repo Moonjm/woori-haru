@@ -10,6 +10,9 @@ private final class FakeSwimFetcher: SwimWorkoutFetching {
     var workouts: [SwimWorkout]
     var errorToThrow: Error?
     private(set) var calls: [(limit: Int, cursor: Date?)] = []
+    /// 조회 도중에 끼어들 일을 심는 자리. 이어읽기 반복 중 새로고침이 겹치는 상황을 만든다.
+    /// 한 번 발화하면 스스로 비워, 재진입 루프에서 두 번째 이후 호출까지 끼어들지 않게 한다.
+    var onFetch: (@Sendable () async -> Void)?
 
     init(isHealthDataAvailable: Bool = true, workouts: [SwimWorkout] = [], errorToThrow: Error? = nil) {
         self.isHealthDataAvailable = isHealthDataAvailable
@@ -23,6 +26,10 @@ private final class FakeSwimFetcher: SwimWorkoutFetching {
 
     func fetchSwimWorkouts(limit: Int, before: Date?) async throws -> SwimWorkoutPage {
         calls.append((limit, before))
+        if let hook = onFetch {
+            onFetch = nil
+            await hook()
+        }
         if let errorToThrow { throw errorToThrow }
 
         let candidates = before.map { cursor in
@@ -47,6 +54,15 @@ private final class FakeSwimFetcher: SwimWorkoutFetching {
     func fetchEffortScore(workoutID: UUID) async throws -> Double? {
         if let errorToThrow { throw errorToThrow }
         return effortScore
+    }
+
+    var heartRate: SwimHeartRate?
+    private(set) var heartRateCalls: [UUID] = []
+
+    func fetchHeartRate(workoutID: UUID) async throws -> SwimHeartRate? {
+        heartRateCalls.append(workoutID)
+        if let errorToThrow { throw errorToThrow }
+        return heartRate
     }
 }
 
@@ -129,6 +145,29 @@ struct SwimWorkoutFormatTests {
         #expect(makeWorkout(location: .pool, laneLength: 25).locationText == "수영장 · 25m 레인")
         #expect(makeWorkout(location: .openWater, laneLength: nil).locationText == "개방 수역")
         #expect(makeWorkout(location: .unknown, laneLength: nil).locationText == "수영")
+    }
+
+    /// 잘못 시작해 바로 끝낸 기록. 카드에 채울 것이 「1분 미만」과 「-」뿐이다.
+    @Test func 짧으면서_거리가_없으면_감출_기록이다() {
+        #expect(makeWorkout(duration: 55, distance: nil).isEmptyRecord == true)
+        #expect(makeWorkout(duration: 55, distance: 0).isEmptyRecord == true)
+        #expect(makeWorkout(duration: 3, distance: nil).isEmptyRecord == true)
+    }
+
+    /// 짧아도 헤엄친 거리가 있으면 남긴다 — 50m 스프린트 한 판이 사라지면 안 된다.
+    @Test func 짧아도_거리가_있으면_남긴다() {
+        #expect(makeWorkout(duration: 40, distance: 50).isEmptyRecord == false)
+    }
+
+    /// 거리를 못 잡은 개방 수역 기록이 통째로 사라지면 안 된다. 시간이 판정을 막는다.
+    @Test func 거리가_없어도_1분_이상이면_남긴다() {
+        #expect(makeWorkout(duration: 90, distance: 0).isEmptyRecord == false)
+        #expect(makeWorkout(duration: 1800, distance: nil).isEmptyRecord == false)
+    }
+
+    /// 경계는 「미만」이다 — 정확히 60초는 남긴다.
+    @Test func 정확히_1분이면_남긴다() {
+        #expect(makeWorkout(duration: 60, distance: 0).isEmptyRecord == false)
     }
 
     @Test func 날짜에_연도가_포함된다() {
@@ -495,6 +534,156 @@ struct SwimRecordViewModelTests {
         #expect(guardCount == 1) // 같은 페이지를 무한히 다시 받지 않는다
     }
 
+    // MARK: - 내역 없는 기록
+
+    /// 최신순 `count`건을 하루 간격으로. `emptyAt`에 든 인덱스만 감출 기록으로 만든다.
+    private func makeMixedPage(count: Int, emptyAt: Set<Int>) -> [SwimWorkout] {
+        let newest = Date(timeIntervalSince1970: 1_753_400_000)
+        return (0..<count).map { index in
+            let start = newest.addingTimeInterval(TimeInterval(-index) * 86_400)
+            return emptyAt.contains(index)
+                ? makeWorkout(start: start, duration: 5, distance: nil)
+                : makeWorkout(start: start, duration: 1800, distance: 1200)
+        }
+    }
+
+    @Test func 내역_없는_기록은_목록에서_빠진다() async {
+        let all = makeMixedPage(count: 4, emptyAt: [1, 2])
+        let vm = SwimRecordViewModel(service: FakeSwimFetcher(workouts: all), pageSize: 30)
+
+        await vm.load()
+
+        #expect(vm.workouts.map(\.id) == [all[0].id, all[3].id])
+    }
+
+    /// 커서가 화면에 남은 마지막 기록에서 나오면, 감춘 구간을 다음 페이지가 다시 실어 온다.
+    @Test func 커서는_감춘_기록까지_지나간다() async {
+        // 3건짜리 페이지의 끝 두 건이 감출 기록이다
+        let all = makeMixedPage(count: 6, emptyAt: [1, 2])
+        let fetcher = FakeSwimFetcher(workouts: all)
+        let vm = SwimRecordViewModel(service: fetcher, pageSize: 3)
+
+        await vm.load()
+        #expect(vm.workouts.map(\.id) == [all[0].id])
+
+        await vm.loadMoreIfNeeded(currentItem: all[0])
+
+        // 살아남은 all[0]이 아니라 필터 전 마지막인 all[2]가 커서다
+        #expect(fetcher.calls.count == 2)
+        #expect(fetcher.calls.last?.cursor == all[2].startDate)
+        #expect(vm.workouts.map(\.id) == [all[0].id, all[3].id, all[4].id, all[5].id])
+    }
+
+    /// 스크롤 도중에 갱신되는 커서도 마찬가지다 — 두 번째 페이지 꼬리가 감춘 기록이면
+    /// 세 번째 요청이 그 구간을 다시 실어 온다.
+    @Test func 스크롤_중에도_커서가_감춘_기록까지_지나간다() async {
+        // 두 번째 페이지(3·4·5)의 꼬리 두 건이 감출 기록이다
+        let all = makeMixedPage(count: 9, emptyAt: [4, 5])
+        let fetcher = FakeSwimFetcher(workouts: all)
+        let vm = SwimRecordViewModel(service: fetcher, pageSize: 3)
+
+        await vm.load()
+        await vm.loadMoreIfNeeded(currentItem: all[2])
+        #expect(vm.workouts.map(\.id) == [all[0].id, all[1].id, all[2].id, all[3].id])
+
+        await vm.loadMoreIfNeeded(currentItem: all[3])
+
+        // 살아남은 all[3]이 아니라 필터 전 마지막인 all[5]가 커서다
+        #expect(fetcher.calls.count == 3)
+        #expect(fetcher.calls.last?.cursor == all[5].startDate)
+        #expect(vm.workouts.map(\.id) == [all[0].id, all[1].id, all[2].id,
+                                          all[3].id, all[6].id, all[7].id, all[8].id])
+    }
+
+    /// 한 페이지가 통째로 걸러지면 화면에 새 셀이 안 생겨 다음 페이지를 부를 트리거가
+    /// 사라진다. 첫 페이지에서 이러면 「기록 없음」으로 보인다.
+    @Test func 첫_페이지가_전부_감출_기록이면_이어_읽는다() async {
+        // 앞 3건이 감출 기록 — pageSize 3이라 첫 페이지가 통째로 비워진다
+        let all = makeMixedPage(count: 6, emptyAt: [0, 1, 2])
+        let fetcher = FakeSwimFetcher(workouts: all)
+        let vm = SwimRecordViewModel(service: fetcher, pageSize: 3)
+
+        await vm.load()
+
+        #expect(vm.workouts.map(\.id) == [all[3].id, all[4].id, all[5].id])
+        #expect(vm.showsEmptyState == false)
+        #expect(fetcher.calls.count == 2)
+    }
+
+    /// 이어읽기는 한 건이라도 건지면 멈춘다 — 목록 전체를 미리 당겨 오지 않는다.
+    @Test func 한_건이라도_건지면_거기서_멈춘다() async {
+        let all = makeMixedPage(count: 9, emptyAt: [0, 1, 2])
+        let fetcher = FakeSwimFetcher(workouts: all)
+        let vm = SwimRecordViewModel(service: fetcher, pageSize: 3)
+
+        await vm.load()
+
+        #expect(vm.workouts.map(\.id) == [all[3].id, all[4].id, all[5].id])
+        #expect(fetcher.calls.count == 2) // 세 번째 페이지는 안 읽는다
+        #expect(vm.canLoadMore == true)
+    }
+
+    /// 스크롤 도중에도 같다 — 다음 페이지가 통째로 걸러지면 그 다음까지 읽는다.
+    @Test func 스크롤_중에_페이지가_비어도_이어_읽는다() async {
+        // 첫 페이지 3건은 정상, 다음 3건이 전부 감출 기록
+        let all = makeMixedPage(count: 9, emptyAt: [3, 4, 5])
+        let fetcher = FakeSwimFetcher(workouts: all)
+        let vm = SwimRecordViewModel(service: fetcher, pageSize: 3)
+
+        await vm.load()
+        #expect(vm.workouts.count == 3)
+
+        await vm.loadMoreIfNeeded(currentItem: all[2])
+
+        #expect(vm.workouts.map(\.id) == [all[0].id, all[1].id, all[2].id,
+                                          all[6].id, all[7].id, all[8].id])
+        #expect(fetcher.calls.count == 3)
+    }
+
+    /// 전 이력이 감출 기록이면 기존 빈 상태 안내가 그대로 뜬다.
+    @Test func 전부_감출_기록이면_빈_상태다() async {
+        let all = makeMixedPage(count: 7, emptyAt: Set(0..<7))
+        let fetcher = FakeSwimFetcher(workouts: all)
+        let vm = SwimRecordViewModel(service: fetcher, pageSize: 3)
+
+        await vm.load()
+
+        #expect(vm.workouts.isEmpty)
+        #expect(vm.showsEmptyState == true)
+        #expect(vm.canLoadMore == false)
+        #expect(vm.loadFailed == false)
+    }
+
+    /// 이어읽기가 다음 페이지를 기다리는 사이 새로고침이 끼어들면(=generation이 바뀌면)
+    /// 낡은 이어읽기의 결과는 버려지고, 커서도 새로고침 기준으로 남아야 한다 —
+    /// 상한 대신 내세운 토큰 검사가 실제로 이 경로를 지킨다는 것을 확인한다.
+    @Test func 이어읽기_도중_새로고침이_끼어들면_낡은_결과를_버린다() async {
+        let all = makePage(count: 6)
+        let fetcher = FakeSwimFetcher(workouts: all)
+        let vm = SwimRecordViewModel(service: fetcher, pageSize: 3)
+
+        await vm.load()
+        #expect(vm.workouts.map(\.id) == [all[0].id, all[1].id, all[2].id])
+
+        // 이어읽기가 다음 페이지를 받는 도중 새로고침이 끼어드는 상황을 심는다.
+        fetcher.onFetch = { await vm.load() }
+        await vm.loadMoreIfNeeded(currentItem: all[2])
+
+        // 낡은 이어읽기가 받아 온 4~6번째 기록은 버려지고, 새로고침이 다시 채운
+        // 첫 페이지만 남는다. 훅이 실제로 발화하지 않으면(=끼어들지 않으면) 이어읽기가
+        // 곧바로 성공해 6건이 되므로 이 두 줄에서 실패한다.
+        #expect(vm.workouts.map(\.id) == [all[0].id, all[1].id, all[2].id])
+        #expect(vm.canLoadMore == true)
+
+        // 커서도 새로고침 기준으로 남아 있어야 다음 이어읽기가 올바른 지점부터 이어진다 —
+        // 낡은 루프가 커서를 오염시켰다면 여기서 어긋난다.
+        await vm.loadMoreIfNeeded(currentItem: all[2])
+
+        #expect(fetcher.calls.last?.cursor == all[2].startDate)
+        #expect(vm.workouts.map(\.id) == [all[0].id, all[1].id, all[2].id,
+                                          all[3].id, all[4].id, all[5].id])
+    }
+
     @Test func 건강데이터_미지원이면_실패가_아니라_빈_상태다() async {
         let fetcher = FakeSwimFetcher(
             isHealthDataAvailable: false,
@@ -528,5 +717,67 @@ struct SwimRecordViewModelTests {
     @Test func 건강데이터_미지원_기기_여부를_그대로_전달한다() {
         let vm = SwimRecordViewModel(service: FakeSwimFetcher(isHealthDataAvailable: false))
         #expect(vm.isHealthDataAvailable == false)
+    }
+}
+
+/// 심박수는 워크아웃 집계 통계에 없을 수 있어 상세 화면이 따로 읽어 메운다.
+/// **운동 강도와는 무관하다** — 강도가 없어도 심박수만 있으면 보여야 한다.
+@MainActor
+struct SwimHeartRateTests {
+    @Test func bpm은_반올림해_정수로_보여준다() {
+        #expect(SwimWorkout.bpmText(132.4) == "132bpm")
+        #expect(SwimWorkout.bpmText(132.5) == "133bpm")
+    }
+
+    /// 0은 「진짜 0」이 아니라 「없음」이다 — 심박이 0인 운동은 없다.
+    @Test func bpm이_없거나_0이면_감춘다() {
+        #expect(SwimWorkout.bpmText(nil) == nil)
+        #expect(SwimWorkout.bpmText(0) == nil)
+    }
+
+    /// 목록 매핑이 채워 온 값이 있으면 그게 이긴다 — 따로 읽을 이유가 없다.
+    @Test func 워크아웃에_이미_있으면_그_값을_쓴다() {
+        let workout = makeWorkout(averageHeartRate: 140, maxHeartRate: 170)
+        let fallback = SwimHeartRate(averageBpm: 99, maxBpm: 111)
+
+        let texts = workout.heartRateTexts(fallback: fallback)
+
+        #expect(texts.average == "140bpm")
+        #expect(texts.maximum == "170bpm")
+    }
+
+    /// **이 자리가 실제로 나던 문제다** — `HKWorkout.statistics(for:)`가 심박수를 안 담고
+    /// 오면 목록 매핑에서 nil이 되고, 상세 화면이 별도 질의로 메운다.
+    @Test func 워크아웃에_없으면_따로_읽은_값으로_메운다() {
+        let workout = makeWorkout(averageHeartRate: nil, maxHeartRate: nil)
+        let fallback = SwimHeartRate(averageBpm: 138, maxBpm: 165)
+
+        let texts = workout.heartRateTexts(fallback: fallback)
+
+        #expect(texts.average == "138bpm")
+        #expect(texts.maximum == "165bpm")
+    }
+
+    /// 둘 다 없으면 감춘다 — 빈 칸을 그리지 않는다.
+    @Test func 양쪽_다_없으면_아무것도_보여주지_않는다() {
+        let texts = makeWorkout(averageHeartRate: nil, maxHeartRate: nil)
+            .heartRateTexts(fallback: nil)
+
+        #expect(texts.average == nil)
+        #expect(texts.maximum == nil)
+    }
+
+    /// 평균만 있고 최대가 없는 기록도 있다 — 있는 쪽만 보여준다.
+    @Test func 한쪽만_있으면_그쪽만_보여준다() {
+        let texts = makeWorkout(averageHeartRate: nil, maxHeartRate: nil)
+            .heartRateTexts(fallback: SwimHeartRate(averageBpm: 138, maxBpm: nil))
+
+        #expect(texts.average == "138bpm")
+        #expect(texts.maximum == nil)
+    }
+
+    @Test func 둘_다_비었는지_알린다() {
+        #expect(SwimHeartRate(averageBpm: nil, maxBpm: nil).isEmpty)
+        #expect(!SwimHeartRate(averageBpm: 138, maxBpm: nil).isEmpty)
     }
 }

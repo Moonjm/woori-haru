@@ -1,0 +1,365 @@
+import SwiftUI
+
+/// 사진 여러 장·항목 목록·끼니 점수·점수 근거·피드백. 항목 수정과 **끼니 삭제**가 여기 있다.
+struct MealDetailView: View {
+    let mealId: Int
+    /// 항목 수정·삭제로 하루 집계가 달라졌을 때. 하루 화면이 다시 조회한다.
+    var onChanged: () -> Void
+
+    @State private var vm: MealDetailViewModel
+    @State private var showDeleteAlert = false
+    @State private var editRoute: ItemEditRoute?
+    @State private var showAddItem = false
+    /// 전체화면으로 보고 있는 사진.
+    @State private var viewingPhoto: StripPhoto?
+    /// 확인을 기다리는 타입 변경. **고른 타입을 함께 들고 있어야** 확인을 누른 뒤 무엇으로
+    /// 바꿀지 알 수 있다 — `isPresented:`로 하면 그 보관을 빠뜨렸을 때 **엉뚱한 타입으로
+    /// 바뀐다.**
+    @State private var pendingTypeChange: PendingTypeChange?
+    @Environment(\.dismiss) private var dismiss
+
+    private struct PendingTypeChange: Identifiable {
+        let newType: MealType
+        let title: String
+        let message: String
+        var id: String { newType.rawValue }
+    }
+
+    /// 연필이 여는 두 시트. **하나의 `sheet(item:)`으로 합친다** — 수량 시트에서 「다른
+    /// 음식으로 교체」를 누르면 시트를 갈아 끼워야 하는데, **SwiftUI에서 닫히는 도중에 새
+    /// 시트를 띄우면 조용히 삼켜진다**(아무 일도 안 일어나고 오류도 없다). 같은 상태의
+    /// `id`만 바뀌면 SwiftUI가 알아서 갈아 끼운다.
+    ///
+    /// 어느 항목이고(`item`), 무엇으로 채워 열지(`current`)를 **함께 담는다** — 대상을 못
+    /// 찾는 순간에 내용 없는 빈 시트가 뜨는 일이 없다.
+    private enum ItemEditRoute: Identifiable {
+        case quantity(MealItem, MealItemRequest)
+        case replace(MealItem, MealItemRequest)
+
+        var id: String {
+            switch self {
+            case let .quantity(item, _): "quantity-\(item.id)"
+            case let .replace(item, _): "replace-\(item.id)"
+            }
+        }
+    }
+
+    init(mealId: Int, service: any DietServing = DietService(), onChanged: @escaping () -> Void) {
+        self.mealId = mealId
+        self.onChanged = onChanged
+        _vm = State(initialValue: MealDetailViewModel(mealId: mealId, service: service))
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: GlassTokens.cardSpacing) {
+                // **`isStale`이 아니라 `loadFailed`로 띄운다** — 첫 조회가 실패하면 `meal`이
+                // nil이라 `isStale`은 false로 남고, 그때가 오히려 다시 불러올 길이 꼭 필요한
+                // 경우다(알럿을 닫으면 빈 화면에 갇힌다).
+                if let failure = vm.loadFailureText { staleBanner(failure) }
+
+                if let meal = vm.meal {
+                    PhotoStrip(photos: meal.photos.map { StripPhoto(id: $0.fileId, url: $0.url) }) { photo in
+                        viewingPhoto = photo
+                    }
+                    itemsCard(meal)
+                    ScoreBasisCard(title: "끼니 점수", score: meal.score, basis: meal.scoreBasis)
+                    feedbackCard(meal)
+                    deleteButton
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+        }
+        .glassScreenBackground()
+        .navigationTitle(vm.meal?.mealType.label ?? "끼니")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    // 저녁을 먹고 간식으로 저장하는 실수가 흔한데 되돌릴 길이 없었다 —
+                    // 끼니를 통째로 지우고 다시 만들면 사진 바이트가 앱에 없어 사진이 사라진다.
+                    Picker("끼니 바꾸기", selection: Binding(
+                        get: { vm.meal?.mealType ?? .lunch },
+                        set: { selectType($0) }
+                    )) {
+                        ForEach(MealType.allCases) { Text($0.label).tag($0) }
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+                .accessibilityLabel("끼니 바꾸기")
+                // **`isResolvingTypeChange`도 봐야 한다.** 판정(`fetchDay`)이 도는 동안
+                // `isSaving`은 아직 꺼져 있어, 그 창에서 또 고르면 나중 선택이 조용히 사라진다.
+                .disabled(vm.meal == nil || vm.isSaving || vm.isResolvingTypeChange)
+            }
+        }
+        .task { await vm.load() }
+        .overlay { if vm.isLoading && vm.meal == nil { ProgressView() } }
+        .fullScreenCover(item: $viewingPhoto) { photo in
+            // **하루 재조회(`onChanged`)를 걸지 않는다** — 사진이 줄어도 먹은 것은 그대로라
+            // 서버가 점수·피드백·하루 집계를 다시 만들지 않는다.
+            PhotoViewerSheet(
+                url: photo.url,
+                // 상세를 열어 둔 채 10분이 지나면 이 주소는 죽어 있다. 「다시 시도」가
+                // 끼니를 다시 조회해 새 주소부터 받게 한다.
+                refreshURL: { await vm.refreshedPhotoURL(fileId: photo.id) }
+            ) {
+                guard await vm.deletePhoto(fileId: photo.id) else {
+                    // 이 화면이 상세를 덮고 있어 상세의 오류 알럿이 보이지 않는다 —
+                    // 메시지를 여기로 넘기고, 뒤에 남아 알럿을 띄우지 않도록 지운다.
+                    let message = vm.errorMessage ?? "사진을 지우지 못했어요."
+                    vm.errorMessage = nil
+                    return .failed(message)
+                }
+                return .deleted
+            }
+        }
+        .sheet(item: $editRoute) { route in
+            switch route {
+            case let .quantity(item, current):
+                MealItemQuantitySheet(
+                    item: item,
+                    original: current,
+                    onSave: { edited in
+                        let outcome = await vm.saveQuantity(item, with: edited)
+                        // 성공했을 때만 하루 화면을 재조회시킨다 — 실패했는데 재조회하면
+                        // 아무것도 안 바뀐 채로 화면만 깜빡인다.
+                        if outcome == .saved { onChanged() }
+                        return outcome
+                    },
+                    onReplace: {
+                        // **닫지 않고 갈아 끼운다** — 닫히는 도중에 새 시트를 띄우면
+                        // SwiftUI가 조용히 삼킨다. 바꾸던 그램수는 버린다(음식이 바뀐다).
+                        editRoute = .replace(item, current)
+                    }
+                )
+            case let .replace(item, current):
+                // 이미 저장된 끼니를 고치는 자리라 **하나씩 확인하며 바꾸는 편이 안전하다.**
+                // 다중 선택은 범위 밖이다(설계 문서 「범위 밖」 참조).
+                MealItemEditView(mode: .replace(current)) { picked in
+                    if let replacement = picked.first {
+                        Task {
+                            // 성공했을 때만 하루 화면을 재조회시킨다 — 가드가 막았거나 서버가
+                            // 거절하면 아무것도 안 바뀐 채로 화면만 깜빡인다.
+                            if await vm.replaceItem(item, with: replacement) {
+                                onChanged()
+                            }
+                        }
+                    }
+                    editRoute = nil
+                }
+            }
+        }
+        .sheet(isPresented: $showAddItem) {
+            MealItemEditView(mode: .addOne) { picked in
+                if let added = picked.first {
+                    Task {
+                        if await vm.replaceItems(vm.editableItems + [added]) {
+                            onChanged()
+                        }
+                    }
+                }
+                showAddItem = false
+            }
+        }
+        .alert("끼니를 삭제할까요?", isPresented: $showDeleteAlert) {
+            Button("삭제", role: .destructive) {
+                Task {
+                    if await vm.deleteMeal() {
+                        onChanged()
+                        dismiss()
+                    }
+                }
+            }
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text("삭제하면 되돌릴 수 없어요.")
+        }
+        .alert("오류", isPresented: .init(
+            get: { vm.errorMessage != nil },
+            set: { if !$0 { vm.errorMessage = nil } }
+        )) {
+            Button("확인", role: .cancel) {}
+        } message: {
+            Text(vm.errorMessage ?? "")
+        }
+        .alert(item: $pendingTypeChange) { pending in
+            Alert(
+                title: Text(pending.title),
+                message: Text(pending.message),
+                primaryButton: .default(Text("바꾸기")) {
+                    Task { await send(pending.newType) }
+                },
+                secondaryButton: .cancel(Text("취소"))
+            )
+        }
+    }
+
+    /// 고른 즉시 보내지 않는다 — **합쳐질 상황이면 먼저 묻는다.**
+    private func selectType(_ newType: MealType) {
+        Task {
+            guard let action = await vm.resolveTypeChange(to: newType) else { return }
+            switch action {
+            case let .confirm(title, message):
+                pendingTypeChange = PendingTypeChange(newType: newType, title: title, message: message)
+            case .change:
+                await send(newType)
+            }
+        }
+    }
+
+    private func send(_ newType: MealType) async {
+        switch await vm.changeMealType(to: newType) {
+        case .changed:
+            onChanged()
+        case .merged:
+            // 보던 끼니가 사라졌다 — 끼니 삭제와 같이 닫는다.
+            onChanged()
+            dismiss()
+        case .failed:
+            // 상세의 오류 알럿이 띄운다. 이 화면을 덮는 시트가 없어 그대로 보인다.
+            break
+        }
+    }
+
+    /// 조회가 실패했을 때. **다시 불러올 길을 줘야 한다** — 안 그러면 화면을 나갔다 들어오는
+    /// 것 말고는 방법이 없다. 첫 조회가 실패한 경우가 특히 그렇다(화면이 통째로 비어 있다).
+    private func staleBanner(_ message: String) -> some View {
+        GlassCard {
+            HStack(spacing: 10) {
+                Image(systemName: "exclamationmark.triangle")
+                    .foregroundStyle(Color.orange400)
+                Text(message)
+                    .font(.caption)
+                    .foregroundStyle(Color.slate700)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 8)
+                Button("다시 불러오기") {
+                    Task { await vm.load() }
+                }
+                .font(.caption.weight(.medium))
+                .foregroundStyle(Color.blue500)
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private func itemsCard(_ meal: Meal) -> some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text("먹은 것")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color.slate700)
+                    Spacer()
+                    Text("\(Int(meal.totalKcal.rounded()))kcal")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(Color.slate900)
+                }
+
+                ForEach(meal.items) { item in
+                    HStack(spacing: 8) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack(spacing: 4) {
+                                Text(item.foodName)
+                                    .font(.subheadline)
+                                    .foregroundStyle(Color.slate700)
+
+                                // 식품DB 매칭이 안 됐음을 알린다.
+                                if item.source == .llmEstimated {
+                                    Text("추정")
+                                        .font(.caption2)
+                                        .foregroundStyle(Color.orange400)
+                                        .padding(.horizontal, 5).padding(.vertical, 2)
+                                        .background(Color.orange100, in: Capsule())
+                                }
+                            }
+                            Text("\(Int(item.quantityG.rounded()))g · \(Int(item.kcal.rounded()))kcal")
+                                .font(.caption2)
+                                .foregroundStyle(Color.slate400)
+                        }
+
+                        Spacer()
+
+                        Button {
+                            // 연필은 **수량 시트**를 연다 — 대부분의 수정이 「양이 다르다」다.
+                            // 음식 자체를 바꾸려면 시트 안에서 교체로 넘어간다.
+                            if let current = vm.editableItem(matching: item) {
+                                editRoute = .quantity(item, current)
+                            }
+                        } label: {
+                            Image(systemName: "pencil").foregroundStyle(Color.blue500)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(vm.isSaving)
+
+                        Button {
+                            Task {
+                                if await vm.deleteItem(item) {
+                                    onChanged()
+                                }
+                            }
+                        } label: {
+                            Image(systemName: "trash").foregroundStyle(Color.red400)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(vm.isSaving)
+                    }
+                }
+
+                Button {
+                    showAddItem = true
+                } label: {
+                    Label("음식 추가", systemImage: "plus").font(.caption)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.blue500)
+                .disabled(vm.isSaving)
+            }
+        }
+    }
+
+    /// 이 피드백은 **그 끼니의 균형에 대해서만** 말한다 — 하루 맥락 조언은 하루 요약 카드에 있다.
+    @ViewBuilder
+    private func feedbackCard(_ meal: Meal) -> some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("피드백")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.slate700)
+
+                if let feedback = meal.feedback {
+                    Text(feedback)
+                        .font(.footnote)
+                        .foregroundStyle(Color.slate700)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else if vm.isFeedbackPending {
+                    HStack(spacing: 8) {
+                        ProgressView().controlSize(.small)
+                        Text("피드백을 만들고 있어요")
+                            .font(.caption)
+                            .foregroundStyle(Color.slate400)
+                    }
+                } else {
+                    Text("피드백을 만들지 못했어요. 항목을 고치면 다시 만들어져요.")
+                        .font(.caption)
+                        .foregroundStyle(Color.slate400)
+                }
+            }
+        }
+    }
+
+    private var deleteButton: some View {
+        Button(role: .destructive) {
+            showDeleteAlert = true
+        } label: {
+            Text("끼니 삭제")
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+        }
+        .appGlassButton()
+        .foregroundStyle(Color.red500)
+        .disabled(vm.isSaving)
+    }
+}
