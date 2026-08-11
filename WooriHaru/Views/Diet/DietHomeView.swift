@@ -216,8 +216,10 @@ struct DietHomeView: View {
 
                 Spacer()
 
-                // 몇 주를 넘긴 뒤 돌아올 길. 보이는 주에 선택 날짜가 있으면 필요 없다.
-                if !vm.isViewingSelectedWeek {
+                // 오늘에서 벗어나 있으면 돌아올 길을 띄운다. **선택 날짜가 아니라 오늘을
+                // 기준으로 판단한다** — 주를 넘겨 그 주의 날짜를 고르면 기준일이 선택 날짜에
+                // 맞춰지므로, 선택 기준으로는 버튼이 사라져 돌아올 길이 없어진다.
+                if vm.showsTodayButton {
                     Button("오늘") {
                         Task { await vm.goToToday() }
                     }

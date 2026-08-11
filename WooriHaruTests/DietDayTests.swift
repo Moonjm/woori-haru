@@ -1544,4 +1544,42 @@ struct DietWeekStripTests {
         vm.showNextWeek()   // 8/2~8/8 주
         #expect(vm.visibleMonthText == "8월")
     }
+
+    // MARK: - 오늘 버튼
+
+    /// **이번 버그의 재현 케이스다.** 주를 넘겨 그 주의 날짜를 고르면 기준일이 선택 날짜에
+    /// 맞춰지는데, 그것으로 버튼을 감추면 2주 전을 보면서 돌아올 길이 없어진다.
+    /// **시작점을 오늘 기준 상대 날짜로 잡는다** — 고정 날짜로 두면 실행 시점에 따라
+    /// 넘어간 주가 오늘의 주와 겹쳐 아무것도 검증하지 못하는 날이 생긴다.
+    @Test func 주를_넘겨_고른_날짜에서도_오늘_버튼이_남는다() async {
+        let start = Calendar.current.date(byAdding: .day, value: -60, to: Date())!
+        let target = Calendar.current.date(byAdding: .day, value: 7, to: start)!
+        let (vm, service) = makeVM(on: start.dateString)
+        service.days = [makeDay(date: start.dateString), makeDay(date: target.dateString)]
+        await vm.load()
+
+        vm.showNextWeek()
+        await vm.select(target)
+
+        #expect(vm.isViewingSelectedWeek)   // 기준일은 선택 주로 맞춰졌지만
+        #expect(vm.showsTodayButton)        // 오늘로 돌아올 길은 남아야 한다
+    }
+
+    /// 오늘을 보고 있으면 돌아갈 곳이 없다 — 버튼도 없다.
+    @Test func 오늘을_보고_있으면_오늘_버튼이_없다() async {
+        let (vm, _) = makeVM(on: Date().dateString)
+        await vm.load()
+
+        #expect(!vm.showsTodayButton)
+    }
+
+    /// 오늘을 고른 채 주만 넘긴 경우 — 선택은 오늘이지만 화면 밖이라 돌아올 길이 필요하다.
+    @Test func 오늘을_고른_뒤_주를_넘기면_오늘_버튼이_다시_뜬다() async {
+        let (vm, _) = makeVM(on: Date().dateString)
+        await vm.load()
+
+        vm.showNextWeek()
+
+        #expect(vm.showsTodayButton)
+    }
 }

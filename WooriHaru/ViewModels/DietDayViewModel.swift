@@ -97,6 +97,17 @@ final class DietDayViewModel {
         Calendar.current.isDate(visibleWeekAnchor, equalTo: selectedDate, toGranularity: .weekOfYear)
     }
 
+    /// 「오늘」 버튼을 띄울지. **`isViewingSelectedWeek`를 쓰면 안 된다** — 주를 넘겨 그 주의
+    /// 날짜를 고르면 `select(_:)`가 기준일을 선택 날짜에 맞추므로 그 조건이 참이 되고,
+    /// 2주 전을 보고 있는데 버튼이 사라져 오늘로 돌아올 길이 없어진다. 버튼이 하는 일이
+    /// 「오늘로 간다」이므로 판단도 오늘을 기준으로 한다.
+    var showsTodayButton: Bool {
+        let calendar = Calendar.current
+        let isTodaySelected = calendar.isDateInToday(selectedDate)
+        let isTodayVisible = calendar.isDate(visibleWeekAnchor, equalTo: Date(), toGranularity: .weekOfYear)
+        return !(isTodaySelected && isTodayVisible)
+    }
+
     /// 보이는 주만 옮긴다. **네트워크 호출이 없다.**
     func showPreviousWeek() { shiftVisibleWeek(by: -7) }
     func showNextWeek() { shiftVisibleWeek(by: 7) }
