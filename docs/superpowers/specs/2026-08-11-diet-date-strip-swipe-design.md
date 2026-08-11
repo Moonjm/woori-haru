@@ -37,9 +37,9 @@ if !vm.isViewingSelectedWeek {
 var showsTodayButton: Bool
 ```
 
-`isViewingSelectedWeek`는 이 버튼이 유일한 사용처라 **지운다.** `DietDayTests.swift`가 그
-속성을 검증하고 있는데, **통과시키려고 고치는 것이 아니라 검증 대상이 교체되는 것**이다 —
-새 의미로 다시 쓴다.
+`isViewingSelectedWeek`는 **그대로 둔다.** 이름이 계산하는 내용과 정확히 맞고, `DietDayTests`의
+네 곳이 「기준일이 그 주로 맞춰졌다」를 확인하는 데 쓰고 있다. 틀린 것은 속성이 아니라
+**그것을 버튼 조건으로 쓴 것**이다 — 화면만 새 속성으로 갈아탄다.
 
 ---
 
@@ -129,6 +129,6 @@ var showsTodayButton: Bool
 | --- | --- |
 | `WooriHaru/ViewModels/DietDayViewModel.swift` | `showsTodayButton`, `stepDay(by:)`, 예약 취소 |
 | `WooriHaru/Views/Diet/DietHomeView.swift` | 스트립 탭 제스처, 하루 스와이프, 끼니 행 항목 기반 이동 |
-| `WooriHaruTests/DietDayTests.swift` | 위 케이스 + `isViewingSelectedWeek` 테스트 교체 |
+| `WooriHaruTests/DietDayTests.swift` | 위 케이스 (기존 테스트는 손대지 않는다) |
 
 새 파일이 없다 — `project.pbxproj`를 안 건드린다.
