@@ -10,25 +10,17 @@ struct DietHomeView: View {
     @State private var showCapture = false
     @State private var showManualEntry = false
     @State private var showChat = false
+    /// 끼니 상세로 가는 길. **`NavigationLink`를 쓰지 않는다** — 버튼은 제 경계 안에서
+    /// 움직인 손가락도 떼는 순간 눌린 것으로 쳐서, 카드 위에서 시작한 하루 스와이프가
+    /// 상세 화면 진입으로 끝난다. 탭 제스처는 손가락이 움직이면 스스로 취소된다.
+    @State private var selectedMealId: Int?
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         ScrollView {
             VStack(spacing: GlassTokens.cardSpacing) {
                 weekStrip
-
-                if vm.loadFailed && vm.day == nil {
-                    failureState
-                } else {
-                    summaryCard
-
-                    // 하루 점수에도 같은 카드를 쓴다 — 칼로리 항목이 하나 더 붙는다.
-                    if let basis = vm.day?.scoreBasis {
-                        ScoreBasisCard(title: "하루 점수", score: vm.day?.dayScore, dayBasis: basis)
-                    }
-
-                    mealList
-                }
+                dayContent
             }
             .padding(.horizontal, 16)
             .padding(.top, 8)
@@ -53,7 +45,7 @@ struct DietHomeView: View {
         .navigationDestination(isPresented: $showStats) {
             DietStatsView()
         }
-        .navigationDestination(for: Int.self) { mealId in
+        .navigationDestination(item: $selectedMealId) { mealId in
             MealDetailView(mealId: mealId) { Task { await vm.reload() } }
         }
         .navigationDestination(isPresented: $showChat) {
@@ -207,6 +199,40 @@ struct DietHomeView: View {
 
     // MARK: - 날짜 스트립
 
+    /// 스트립 아래 본문. **여기서 좌우로 쓸면 하루씩 옮긴다** — 스트립은 주 단위이고
+    /// 여기는 하루 단위다. 판정 규칙은 스트립과 같게 둔다(가로 50pt 초과 + 세로의 1.5배
+    /// 초과). 규칙이 다르면 손끝은 같은 동작인데 위아래가 다르게 반응한다.
+    private var dayContent: some View {
+        VStack(spacing: GlassTokens.cardSpacing) {
+            if vm.loadFailed && vm.day == nil {
+                failureState
+            } else {
+                summaryCard
+
+                // 하루 점수에도 같은 카드를 쓴다 — 칼로리 항목이 하나 더 붙는다.
+                if let basis = vm.day?.scoreBasis {
+                    ScoreBasisCard(title: "하루 점수", score: vm.day?.dayScore, dayBasis: basis)
+                }
+
+                mealList
+            }
+        }
+        // 카드 사이 빈 곳에서 시작한 스와이프도 받는다.
+        .contentShape(Rectangle())
+        // `.gesture`는 배타적이라 세로 드래그를 통째로 가져가 바깥 `ScrollView`의 스크롤이
+        // 죽는다 — 스트립과 같은 이유로 `.simultaneousGesture`를 쓴다.
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 30)
+                .onEnded { value in
+                    let dx = value.translation.width
+                    let dy = value.translation.height
+                    guard abs(dx) > 50, abs(dx) > abs(dy) * 1.5 else { return }
+                    // 왼쪽으로 쓸면 다음 날 — 스트립의 주 넘김과 같은 방향이다.
+                    vm.stepDay(by: dx < 0 ? 1 : -1)
+                }
+        )
+    }
+
     private var weekStrip: some View {
         VStack(spacing: 6) {
             HStack {
@@ -232,22 +258,24 @@ struct DietHomeView: View {
             HStack(spacing: 4) {
                 ForEach(vm.weekDates, id: \.timeIntervalSince1970) { date in
                     let isSelected = Calendar.current.isDate(date, inSameDayAs: vm.selectedDate)
-                    Button {
-                        Task { await vm.select(date) }
-                    } label: {
-                        VStack(spacing: 4) {
-                            Text(weekdayText(date))
-                                .font(.caption2)
-                                .foregroundStyle(Color.slate400)
-                            Text("\(date.day)")
-                                .font(.subheadline.weight(isSelected ? .bold : .regular))
-                                .foregroundStyle(isSelected ? .white : Color.slate700)
-                                .frame(width: 32, height: 32)
-                                .background(isSelected ? Color.blue500 : .clear, in: Circle())
-                        }
-                        .frame(maxWidth: .infinity)
+                    VStack(spacing: 4) {
+                        Text(weekdayText(date))
+                            .font(.caption2)
+                            .foregroundStyle(Color.slate400)
+                        Text("\(date.day)")
+                            .font(.subheadline.weight(isSelected ? .bold : .regular))
+                            .foregroundStyle(isSelected ? .white : Color.slate700)
+                            .frame(width: 32, height: 32)
+                            .background(isSelected ? Color.blue500 : .clear, in: Circle())
                     }
-                    .buttonStyle(.plain)
+                    .frame(maxWidth: .infinity)
+                    // **`Button`을 쓰면 안 된다.** 버튼은 제 경계 안에서 움직인 손가락도 떼는
+                    // 순간 눌린 것으로 치고, `ScrollView`는 스크롤 축(세로)에서만 그 터치를
+                    // 취소해 준다 — 그래서 날짜 원 위에서 시작한 가로 스와이프가 「그 날짜
+                    // 선택」으로 끝나고(조회까지 나간다), 원 안에서 움직인 거리는 주 넘김
+                    // 기준(50pt)에 못 미쳐 주도 안 넘어간다.
+                    .contentShape(Rectangle())
+                    .onTapGesture { Task { await vm.select(date) } }
                 }
             }
         }
@@ -404,26 +432,24 @@ struct DietHomeView: View {
     private var mealList: some View {
         VStack(spacing: 12) {
             ForEach(vm.meals) { meal in
-                NavigationLink(value: meal.id) {
-                    GlassCard {
-                        HStack(spacing: 12) {
-                            Image(systemName: meal.mealType.iconName)
-                                .foregroundStyle(Color.blue500)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(meal.mealType.label)
-                                    .font(.subheadline.weight(.semibold))
-                                    .foregroundStyle(Color.slate700)
-                                Text(meal.items.map(\.foodName).joined(separator: ", "))
-                                    .font(.caption)
-                                    .foregroundStyle(Color.slate400)
-                                    .lineLimit(1)
-                            }
-                            Spacer()
-                            DietScoreRing(score: meal.score, size: 44)
+                GlassCard {
+                    HStack(spacing: 12) {
+                        Image(systemName: meal.mealType.iconName)
+                            .foregroundStyle(Color.blue500)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(meal.mealType.label)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(Color.slate700)
+                            Text(meal.items.map(\.foodName).joined(separator: ", "))
+                                .font(.caption)
+                                .foregroundStyle(Color.slate400)
+                                .lineLimit(1)
                         }
+                        Spacer()
+                        DietScoreRing(score: meal.score, size: 44)
                     }
                 }
-                .buttonStyle(.plain)
+                .onTapGesture { selectedMealId = meal.id }
             }
         }
     }
