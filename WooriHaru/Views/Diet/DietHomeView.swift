@@ -197,11 +197,30 @@ struct DietHomeView: View {
         }
     }
 
+    // MARK: - 가로 스와이프 판정
+
+    /// 제스처 인식이 시작되는 최소 이동 거리. **스트립(주)과 본문(하루)이 같은 값을 쓴다** —
+    /// 갈라지면 손끝은 같은 동작인데 위아래가 다르게 반응한다.
+    private static let swipeMinimumDistance: CGFloat = 30
+
+    /// 인식된 드래그를 "스와이프 확정"으로 볼지 판정한다. `swipeMinimumDistance`(위)는
+    /// 제스처 인식이 시작되는 지점이고, 아래 50pt는 그렇게 인식된 드래그를 스와이프로
+    /// 확정하는 별도의 판정 기준이다 — 역할이 다른 두 숫자다. 세로 이동의 1.5배보다 가로
+    /// 이동이 커야 하므로(대각선 배제) 약 34°보다 기운 드래그는 스와이프가 아니다.
+    /// 반환값은 이동 방향이다 — 왼쪽으로 쓸었으면 `+1`(다음), 오른쪽이면 `-1`(이전).
+    /// 스트립·본문이 이 하나를 같이 써서 규칙이 조용히 갈라지는 일을 막는다.
+    private static func swipeStep(_ translation: CGSize) -> Int? {
+        let dx = translation.width
+        let dy = translation.height
+        guard abs(dx) > 50, abs(dx) > abs(dy) * 1.5 else { return nil }
+        return dx < 0 ? 1 : -1
+    }
+
     // MARK: - 날짜 스트립
 
     /// 스트립 아래 본문. **여기서 좌우로 쓸면 하루씩 옮긴다** — 스트립은 주 단위이고
-    /// 여기는 하루 단위다. 판정 규칙은 스트립과 같게 둔다(가로 50pt 초과 + 세로의 1.5배
-    /// 초과). 규칙이 다르면 손끝은 같은 동작인데 위아래가 다르게 반응한다.
+    /// 여기는 하루 단위다. 판정 규칙은 스트립과 같게 둔다(`swipeStep` 공용). 규칙이 다르면
+    /// 손끝은 같은 동작인데 위아래가 다르게 반응한다.
     private var dayContent: some View {
         VStack(spacing: GlassTokens.cardSpacing) {
             if vm.loadFailed && vm.day == nil {
@@ -222,13 +241,11 @@ struct DietHomeView: View {
         // `.gesture`는 배타적이라 세로 드래그를 통째로 가져가 바깥 `ScrollView`의 스크롤이
         // 죽는다 — 스트립과 같은 이유로 `.simultaneousGesture`를 쓴다.
         .simultaneousGesture(
-            DragGesture(minimumDistance: 30)
+            DragGesture(minimumDistance: Self.swipeMinimumDistance)
                 .onEnded { value in
-                    let dx = value.translation.width
-                    let dy = value.translation.height
-                    guard abs(dx) > 50, abs(dx) > abs(dy) * 1.5 else { return }
+                    guard let step = Self.swipeStep(value.translation) else { return }
                     // 왼쪽으로 쓸면 다음 날 — 스트립의 주 넘김과 같은 방향이다.
-                    vm.stepDay(by: dx < 0 ? 1 : -1)
+                    vm.stepDay(by: step)
                 }
         )
     }
@@ -246,12 +263,14 @@ struct DietHomeView: View {
                 // 기준으로 판단한다** — 주를 넘겨 그 주의 날짜를 고르면 기준일이 선택 날짜에
                 // 맞춰지므로, 선택 기준으로는 버튼이 사라져 돌아올 길이 없어진다.
                 if vm.showsTodayButton {
-                    Button("오늘") {
-                        Task { await vm.goToToday() }
-                    }
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(Color.blue500)
-                    .buttonStyle(.plain)
+                    // 가로 스와이프 영역(`weekStrip`) 안이라 `Button`을 쓰면 스와이프가 이
+                    // 동작(오늘로 이동)으로 끝난다.
+                    Text("오늘")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(Color.blue500)
+                        .contentShape(Rectangle())
+                        .onTapGesture { Task { await vm.goToToday() } }
+                        .accessibilityAddTraits(.isButton)
                 }
             }
 
@@ -276,6 +295,7 @@ struct DietHomeView: View {
                     // 기준(50pt)에 못 미쳐 주도 안 넘어간다.
                     .contentShape(Rectangle())
                     .onTapGesture { Task { await vm.select(date) } }
+                    .accessibilityAddTraits(.isButton)
                 }
             }
         }
@@ -287,16 +307,12 @@ struct DietHomeView: View {
         // `.simultaneousGesture`로 풀고 있어 그 관례를 따른다 — 세로 스크롤과 동시에 인식되다가
         // 가로 판정 조건을 만족할 때만 주를 넘긴다.
         .simultaneousGesture(
-            DragGesture(minimumDistance: 30)
+            DragGesture(minimumDistance: Self.swipeMinimumDistance)
                 .onEnded { value in
-                    // `minimumDistance`(30, 위)는 제스처 인식이 시작되는 지점이고, 아래 50pt는
-                    // 그렇게 인식된 드래그를 "주 넘김"으로 확정하는 별도의 판정 기준이다 — 역할이
-                    // 다른 두 숫자다. 세로 이동의 1.5배보다 가로 이동이 커야 하므로(대각선 배제)
-                    // 가로가 세로의 1.5배를 넘어야 하므로 약 34°보다 기운 드래그는 주 넘김이 아니다.
-                    let dx = value.translation.width
-                    let dy = value.translation.height
-                    guard abs(dx) > 50, abs(dx) > abs(dy) * 1.5 else { return }
-                    if dx < 0 {
+                    guard let step = Self.swipeStep(value.translation) else { return }
+                    // `swipeStep`이 `+1`(왼쪽)이면 다음 주, `-1`(오른쪽)이면 이전 주 — `dayContent`의
+                    // 하루 넘김과 같은 방향 규칙을 공유한다.
+                    if step > 0 {
                         vm.showNextWeek()
                     } else {
                         vm.showPreviousWeek()
@@ -347,15 +363,17 @@ struct DietHomeView: View {
                     .foregroundStyle(Color.slate400)
             }
             Spacer()
-            Button {
-                weightText = vm.profile.map { $0.weightKg.trimmedText } ?? ""
-                showWeightSheet = true
-            } label: {
-                Label(vm.profile.map { "\(String(format: "%.1f", $0.weightKg))kg" } ?? "몸무게", systemImage: "scalemass")
-                    .font(.caption)
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(Color.blue500)
+            // 가로 스와이프 영역(`dayContent`) 안이라 `Button`을 쓰면 스와이프가 이 동작
+            // (몸무게 시트 열기)으로 끝난다.
+            Label(vm.profile.map { "\(String(format: "%.1f", $0.weightKg))kg" } ?? "몸무게", systemImage: "scalemass")
+                .font(.caption)
+                .foregroundStyle(Color.blue500)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    weightText = vm.profile.map { $0.weightKg.trimmedText } ?? ""
+                    showWeightSheet = true
+                }
+                .accessibilityAddTraits(.isButton)
         }
     }
 
@@ -416,11 +434,14 @@ struct DietHomeView: View {
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Color.slate700)
 
-                Button("다시 시도") {
-                    Task { await vm.reload() }
-                }
-                .font(.caption.weight(.medium))
-                .foregroundStyle(Color.blue500)
+                // 가로 스와이프 영역(`dayContent`) 안이라 `Button`을 쓰면 스와이프가 이
+                // 동작(재조회)으로 끝난다.
+                Text("다시 시도")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(Color.blue500)
+                    .contentShape(Rectangle())
+                    .onTapGesture { Task { await vm.reload() } }
+                    .accessibilityAddTraits(.isButton)
             }
             .padding(.vertical, 12)
         }
@@ -450,6 +471,7 @@ struct DietHomeView: View {
                     }
                 }
                 .onTapGesture { selectedMealId = meal.id }
+                .accessibilityAddTraits(.isButton)
             }
         }
     }
