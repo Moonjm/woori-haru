@@ -54,7 +54,7 @@ struct MealConfirmView: View {
 
     init(
         date: Date,
-        mealType: MealType,
+        mealType: MealType?,
         analysis: MealAnalysis?,
         service: any DietServing = DietService(),
         isRetrying: Bool = false,
@@ -79,13 +79,19 @@ struct MealConfirmView: View {
         ScrollView {
             VStack(spacing: GlassTokens.cardSpacing) {
                 Picker("끼니", selection: $vm.mealType) {
-                    ForEach(MealType.allCases) { Text($0.label).tag($0) }
+                    ForEach(MealType.allCases) { Text($0.label).tag(Optional($0)) }
                 }
                 .pickerStyle(.segmented)
 
                 // 피커 **바로 아래**여야 한다 — 끼니 종류를 바꿀 때마다 달라지는 안내라
                 // 떨어져 있으면 무엇 때문에 나타났다 사라지는지 읽히지 않는다.
-                if let notice = vm.mergeNoticeText {
+                if vm.mealType == nil {
+                    // 빈 세그먼티드만으로는 「왜 저장이 안 되지」가 된다.
+                    Label("끼니를 골라 주세요", systemImage: "exclamationmark.circle")
+                        .font(.caption)
+                        .foregroundStyle(Color.slate500)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                } else if let notice = vm.mergeNoticeText {
                     Label(notice, systemImage: "arrow.triangle.merge")
                         .font(.caption)
                         .foregroundStyle(Color.slate500)
@@ -113,6 +119,20 @@ struct MealConfirmView: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
+        }
+        // 저장 버튼은 툴바에 고정돼 있지만 미선택 안내는 스크롤 맨 위에 있다 — 사진이
+        // 여러 장이라 여러 화면 분량인 경우 아래에서 검수하던 사용자가 저장을 눌러도
+        // 비활성 버튼은 아무 피드백이 없어 "앱이 멈췄다"로 읽힌다. 미선택일 때만 고정
+        // 영역에도 같은 이유를 띄운다(스크롤 안의 안내는 「피커 바로 아래」 원칙대로 그대로 둔다).
+        .safeAreaInset(edge: .bottom) {
+            if vm.mealType == nil {
+                Label("끼니를 골라야 저장할 수 있어요", systemImage: "exclamationmark.circle")
+                    .font(.caption)
+                    .foregroundStyle(Color.slate500)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                    .background(.thinMaterial)
+            }
         }
         .glassScreenBackground()
         .navigationTitle("확인")

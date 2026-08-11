@@ -112,7 +112,7 @@ struct MealCaptureSheet: View {
 
     private var mealTypePicker: some View {
         Picker("끼니", selection: $vm.mealType) {
-            ForEach(MealType.allCases) { Text($0.label).tag($0) }
+            ForEach(MealType.allCases) { Text($0.label).tag(Optional($0)) }
         }
         .pickerStyle(.segmented)
         .disabled(vm.isBusy)
