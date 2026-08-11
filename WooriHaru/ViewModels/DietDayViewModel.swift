@@ -240,13 +240,18 @@ final class DietDayViewModel {
     func select(_ date: Date) async {
         // **스와이프로 예약해 둔 조회를 취소한다.** 안 그러면 탭한 날짜 위에 0.35초 뒤
         // 스와이프가 겨눴던 날짜의 조회가 덮인다.
+        //
+        // **취소했으면 같은 날짜여도 조회를 내야 한다.** `stepDay`가 `selectedDate`를 미리
+        // 옮겨 두므로 스와이프 직후의 탭은 「같은 날짜」로 들어오는데, 아래 가드에서 그냥
+        // 빠져나가면 `stepDay`가 켜 둔 로딩과 빈 하루를 되돌릴 것이 아무것도 없다.
+        let hadPendingSelection = pendingSelection != nil
         pendingSelection?.cancel()
         pendingSelection = nil
 
         // 조회를 건너뛰는 경우에도 기준일은 맞춰야 한다 — 주를 넘긴 뒤 이미 선택돼 있는
         // 날짜를 다시 탭했을 때 기준일이 그대로면 「오늘」 버튼이 계속 남는다.
         visibleWeekAnchor = date
-        guard !Calendar.current.isDate(date, inSameDayAs: selectedDate) else { return }
+        guard hadPendingSelection || !Calendar.current.isDate(date, inSameDayAs: selectedDate) else { return }
         selectedDate = date
 
         // **이전 날짜의 하루를 새 날짜 라벨 아래 남겨 두지 않는다.** 화면은 `day`가 있으면

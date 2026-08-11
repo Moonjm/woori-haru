@@ -1658,4 +1658,22 @@ struct DietWeekStripTests {
         #expect(service.fetchedDates.count == before + 1)
         #expect(service.fetchedDates.last == "2026-07-20")
     }
+
+    /// **스와이프 직후 같은 날짜를 탭하는 경로.** `stepDay`가 `selectedDate`를 미리 옮겨
+    /// 두므로 그 탭은 「같은 날짜」로 들어온다. 예약만 취소하고 넘어가면 `stepDay`가 켜 둔
+    /// 로딩과 빈 하루가 영영 남는다.
+    @Test func 스와이프_직후_같은_날짜를_탭해도_조회가_나간다() async {
+        let (vm, service) = makeVM(on: "2026-07-15", daySwipeDelay: .milliseconds(200))
+        service.days = [makeDay(date: "2026-07-15"), makeDay(date: "2026-07-16")]
+        await vm.load()
+        let before = service.fetchedDates.count
+
+        vm.stepDay(by: 1)                            // 7/16으로 예약
+        await vm.select(Date.from("2026-07-16")!)    // 이미 선택된 그 날짜를 탭
+
+        #expect(service.fetchedDates.count == before + 1)
+        #expect(service.fetchedDates.last == "2026-07-16")
+        #expect(vm.day?.date == "2026-07-16")
+        #expect(!vm.isLoading)
+    }
 }
