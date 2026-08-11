@@ -69,8 +69,9 @@ struct DietHomeView: View {
         }
         .sheet(isPresented: $showManualEntry) {
             // 사진 없는 기록 — `MealConfirmView`를 그대로 재사용한다. `PhotoStrip`만 그릴 게 없다.
+            // **끼니는 넘기지 않는다** — 기본값을 박으면 그대로 저장된다.
             NavigationStack {
-                MealConfirmView(date: vm.selectedDate, mealType: .snack, analysis: nil) { _ in
+                MealConfirmView(date: vm.selectedDate, mealType: nil, analysis: nil) { _ in
                     showManualEntry = false
                     Task { await vm.reload() }
                 }
