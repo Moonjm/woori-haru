@@ -48,6 +48,8 @@ final class DietDayViewModel {
     /// 뒤늦게 돌아온 이전 결과를 버린다.
     private var generation = 0
     private var feedbackTask: Task<Void, Never>?
+    /// 예약해 둔 하루 조회. 스와이프가 이어지는 동안 취소하고 다시 잡는다.
+    private var pendingSelection: Task<Void, Never>?
     /// `syncActivity()`가 서버에 올린 값. 폴링·재조회 응답이 이 업로드보다 먼저 나갔을 수 있어,
     /// 응답을 얹은 뒤 이 값을 다시 씌운다(`apply(_:)` 참조).
     ///
@@ -60,13 +62,16 @@ final class DietDayViewModel {
     private let energyFetcher: any ActiveEnergyFetching
     private let pollInterval: Duration
     private let pollTimeout: Duration
+    /// 하루 스와이프가 멈췄다고 보고 조회를 내기까지의 시간. 테스트가 줄여 쓴다.
+    private let daySwipeDelay: Duration
 
     init(
         service: any DietServing = DietService(),
         energyFetcher: any ActiveEnergyFetching = HealthKitService(),
         date: Date = Date(),
         pollInterval: Duration = DietPolicy.pollInterval,
-        pollTimeout: Duration = DietPolicy.pollTimeout
+        pollTimeout: Duration = DietPolicy.pollTimeout,
+        daySwipeDelay: Duration = .milliseconds(350)
     ) {
         self.service = service
         self.energyFetcher = energyFetcher
@@ -74,6 +79,7 @@ final class DietDayViewModel {
         self.visibleWeekAnchor = date
         self.pollInterval = pollInterval
         self.pollTimeout = pollTimeout
+        self.daySwipeDelay = daySwipeDelay
     }
 
     /// 스트립에 보이는 주(일~토). **`selectedDate`가 아니라 `visibleWeekAnchor`에서 파생된다** —
@@ -115,6 +121,40 @@ final class DietDayViewModel {
     private func shiftVisibleWeek(by days: Int) {
         guard let moved = Calendar.current.date(byAdding: .day, value: days, to: visibleWeekAnchor) else { return }
         visibleWeekAnchor = moved
+    }
+
+    /// 하루 단위 이동(스트립 아래 좌우 스와이프). **화면은 즉시 옮기고 조회만 늦춘다** —
+    /// `select(_:)` 한 번은 활동량 업서트와 하루 조회이고 그 조회가 서버의 하루 피드백
+    /// 생성을 건다. 초당 서너 번 나가는 스와이프에 그대로 붙이면 왕복이 그만큼 늘어난다.
+    func stepDay(by days: Int) {
+        guard let moved = Calendar.current.date(byAdding: .day, value: days, to: selectedDate) else { return }
+
+        selectedDate = moved
+        // 선택이 화면 밖에 남지 않게 스트립도 따라간다.
+        visibleWeekAnchor = moved
+
+        // **이 방어는 조회와 함께 늦추면 안 된다.** 이전 날짜의 끼니가 새 날짜 라벨 아래
+        // 남아 있으면 사용자가 그것을 이 날짜 것으로 알고 열어 고치거나 지운다
+        // (`select(_:)`가 같은 이유로 같은 일을 한다).
+        day = nil
+        isLoading = true
+        // 진행 중이던 조회·폴링을 여기서 무효화한다 — 늦게 온 이전 날짜 응답이 되채운다.
+        generation += 1
+        feedbackTask?.cancel()
+
+        pendingSelection?.cancel()
+        let delay = daySwipeDelay
+        pendingSelection = Task { [weak self] in
+            try? await Task.sleep(for: delay)
+            guard !Task.isCancelled, let self else { return }
+            await syncActivity()
+            await load()
+        }
+    }
+
+    /// 예약된 하루 조회를 기다린다. **테스트가 쓴다** — 화면은 기다릴 일이 없다.
+    func waitForPendingSelection() async {
+        await pendingSelection?.value
     }
 
     /// 몇 주를 넘긴 뒤 돌아온다 — 선택과 기준일을 함께 오늘로 되돌린다.
@@ -198,6 +238,11 @@ final class DietDayViewModel {
     }
 
     func select(_ date: Date) async {
+        // **스와이프로 예약해 둔 조회를 취소한다.** 안 그러면 탭한 날짜 위에 0.35초 뒤
+        // 스와이프가 겨눴던 날짜의 조회가 덮인다.
+        pendingSelection?.cancel()
+        pendingSelection = nil
+
         // 조회를 건너뛰는 경우에도 기준일은 맞춰야 한다 — 주를 넘긴 뒤 이미 선택돼 있는
         // 날짜를 다시 탭했을 때 기준일이 그대로면 「오늘」 버튼이 계속 남는다.
         visibleWeekAnchor = date

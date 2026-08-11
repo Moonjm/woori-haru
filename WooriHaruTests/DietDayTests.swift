@@ -1435,12 +1435,23 @@ struct DietActivityMergeTests {
 struct DietWeekStripTests {
     /// 스트립의 기준일과 선택 날짜를 분리한 이유가 전부 여기 있다 — 주를 넘기는 것은
     /// 「보기」이고 조회가 아니다.
-    private func makeVM(on dateString: String) -> (DietDayViewModel, FakeDietService) {
+    private func makeVM(
+        on dateString: String,
+        daySwipeDelay: Duration = .milliseconds(350)
+    ) -> (DietDayViewModel, FakeDietService) {
         let service = FakeDietService()
         service.profile = makeProfile()
         service.days = [makeDay(date: dateString)]
         let date = Date.from(dateString)!
-        return (DietDayViewModel(service: service, energyFetcher: FakeActiveEnergyFetcher(), date: date), service)
+        return (
+            DietDayViewModel(
+                service: service,
+                energyFetcher: FakeActiveEnergyFetcher(),
+                date: date,
+                daySwipeDelay: daySwipeDelay
+            ),
+            service
+        )
     }
 
     @Test func 다음_주로_넘기면_보이는_주만_7일_뒤로_간다() async {
@@ -1581,5 +1592,70 @@ struct DietWeekStripTests {
         vm.showNextWeek()
 
         #expect(vm.showsTodayButton)
+    }
+
+    // MARK: - 하루 이동
+
+    /// **스와이프에 조회가 칸마다 붙으면 안 된다.** `select(_:)` 한 번은 활동량 업서트와
+    /// 하루 조회이고, 그 조회가 서버의 하루 피드백 생성을 건다.
+    @Test func 하루_이동을_연속하면_조회는_한_번만_나간다() async {
+        let (vm, service) = makeVM(on: "2026-07-15", daySwipeDelay: .milliseconds(10))
+        await vm.load()
+        let before = service.fetchedDates.count
+
+        vm.stepDay(by: 1)
+        vm.stepDay(by: 1)
+        vm.stepDay(by: 1)
+        await vm.waitForPendingSelection()
+
+        #expect(vm.selectedDate == Date.from("2026-07-18"))
+        #expect(service.fetchedDates.count == before + 1)
+        #expect(service.fetchedDates.last == "2026-07-18")
+    }
+
+    /// 하루 이동이 주 경계를 넘으면 스트립도 따라가야 한다 — 선택 날짜가 화면 밖에 남으면 안 된다.
+    @Test func 하루_이동이_주_경계를_넘으면_스트립도_따라간다() async {
+        let (vm, _) = makeVM(on: "2026-07-18", daySwipeDelay: .milliseconds(10))   // 토요일
+        await vm.load()
+
+        vm.stepDay(by: 1)   // 7/19 일요일 — 다음 주 첫날
+        await vm.waitForPendingSelection()
+
+        #expect(vm.weekDates.first == Date.from("2026-07-19"))
+    }
+
+    /// **이전 날짜의 하루를 새 날짜 라벨 아래 남기지 않는다** — 조회를 늦춰도 이 방어는
+    /// 즉시 걸려야 한다. 안 그러면 0.35초 동안 다른 날의 끼니를 이 날짜 것으로 알고 연다.
+    @Test func 하루_이동_직후에_이전_날짜의_하루가_지워진다() async {
+        let (vm, service) = makeVM(on: "2026-07-15", daySwipeDelay: .milliseconds(10))
+        service.days = [makeDay(date: "2026-07-15"), makeDay(date: "2026-07-16")]
+        await vm.load()
+        #expect(vm.day?.date == "2026-07-15")
+
+        vm.stepDay(by: 1)
+
+        #expect(vm.day == nil)
+        #expect(vm.isLoading)
+
+        await vm.waitForPendingSelection()
+        #expect(vm.day?.date == "2026-07-16")
+    }
+
+    /// 탭은 기다리지 않는다. **예약된 스와이프 조회는 취소해야 한다** — 안 그러면 탭한
+    /// 날짜 위에 0.35초 뒤 스와이프가 겨눴던 날짜의 조회가 덮인다.
+    @Test func 날짜를_탭하면_예약된_하루_조회가_취소된다() async {
+        let (vm, service) = makeVM(on: "2026-07-15", daySwipeDelay: .milliseconds(200))
+        service.days = [
+            makeDay(date: "2026-07-15"), makeDay(date: "2026-07-16"), makeDay(date: "2026-07-20")
+        ]
+        await vm.load()
+        let before = service.fetchedDates.count
+
+        vm.stepDay(by: 1)                           // 7/16으로 예약
+        await vm.select(Date.from("2026-07-20")!)   // 예약을 취소하고 즉시 조회
+
+        #expect(vm.selectedDate == Date.from("2026-07-20"))
+        #expect(service.fetchedDates.count == before + 1)
+        #expect(service.fetchedDates.last == "2026-07-20")
     }
 }
