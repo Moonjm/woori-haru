@@ -147,27 +147,28 @@ struct SwimWorkoutFormatTests {
         #expect(makeWorkout(location: .unknown, laneLength: nil).locationText == "수영")
     }
 
-    /// 잘못 시작해 바로 끝낸 기록. 카드에 채울 것이 「1분 미만」과 「-」뿐이다.
-    @Test func 짧으면서_거리가_없으면_감출_기록이다() {
-        #expect(makeWorkout(duration: 55, distance: nil).isEmptyRecord == true)
-        #expect(makeWorkout(duration: 55, distance: 0).isEmptyRecord == true)
-        #expect(makeWorkout(duration: 3, distance: nil).isEmptyRecord == true)
+    /// 잘못 시작한 기록. 헤엄친 흔적이 없어 카드의 거리·스트로크가 「-」뿐이다.
+    @Test func 거리도_스트로크도_없으면_감출_기록이다() {
+        #expect(makeWorkout(duration: 55, distance: nil, strokes: nil).isEmptyRecord == true)
+        #expect(makeWorkout(duration: 55, distance: 0, strokes: 0).isEmptyRecord == true)
+        #expect(makeWorkout(duration: 3, distance: nil, strokes: nil).isEmptyRecord == true)
+    }
+
+    /// 끄는 걸 잊어 몇 분씩 켜져 있고 워치가 칼로리를 몇 적어 넣어도 감춘다.
+    @Test func 시간이_길고_칼로리가_있어도_감출_기록이다() {
+        #expect(makeWorkout(duration: 360, distance: nil, energy: 5, strokes: nil).isEmptyRecord == true)
+        #expect(makeWorkout(duration: 1800, distance: 0, energy: 12, strokes: 0).isEmptyRecord == true)
     }
 
     /// 짧아도 헤엄친 거리가 있으면 남긴다 — 50m 스프린트 한 판이 사라지면 안 된다.
     @Test func 짧아도_거리가_있으면_남긴다() {
-        #expect(makeWorkout(duration: 40, distance: 50).isEmptyRecord == false)
+        #expect(makeWorkout(duration: 40, distance: 50, strokes: nil).isEmptyRecord == false)
     }
 
-    /// 거리를 못 잡은 개방 수역 기록이 통째로 사라지면 안 된다. 시간이 판정을 막는다.
-    @Test func 거리가_없어도_1분_이상이면_남긴다() {
-        #expect(makeWorkout(duration: 90, distance: 0).isEmptyRecord == false)
-        #expect(makeWorkout(duration: 1800, distance: nil).isEmptyRecord == false)
-    }
-
-    /// 경계는 「미만」이다 — 정확히 60초는 남긴다.
-    @Test func 정확히_1분이면_남긴다() {
-        #expect(makeWorkout(duration: 60, distance: 0).isEmptyRecord == false)
+    /// 거리를 못 잡은 개방 수역 기록이 통째로 사라지면 안 된다. 스트로크가 판정을 막는다.
+    @Test func 거리가_없어도_스트로크가_있으면_남긴다() {
+        #expect(makeWorkout(duration: 90, distance: 0, strokes: 300).isEmptyRecord == false)
+        #expect(makeWorkout(duration: 40, distance: nil, strokes: 20).isEmptyRecord == false)
     }
 
     @Test func 날짜에_연도가_포함된다() {
@@ -542,7 +543,7 @@ struct SwimRecordViewModelTests {
         return (0..<count).map { index in
             let start = newest.addingTimeInterval(TimeInterval(-index) * 86_400)
             return emptyAt.contains(index)
-                ? makeWorkout(start: start, duration: 5, distance: nil)
+                ? makeWorkout(start: start, duration: 5, distance: nil, strokes: nil)
                 : makeWorkout(start: start, duration: 1800, distance: 1200)
         }
     }
