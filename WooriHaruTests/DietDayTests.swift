@@ -1435,12 +1435,23 @@ struct DietActivityMergeTests {
 struct DietWeekStripTests {
     /// 스트립의 기준일과 선택 날짜를 분리한 이유가 전부 여기 있다 — 주를 넘기는 것은
     /// 「보기」이고 조회가 아니다.
-    private func makeVM(on dateString: String) -> (DietDayViewModel, FakeDietService) {
+    private func makeVM(
+        on dateString: String,
+        daySwipeDelay: Duration = .milliseconds(350)
+    ) -> (DietDayViewModel, FakeDietService) {
         let service = FakeDietService()
         service.profile = makeProfile()
         service.days = [makeDay(date: dateString)]
         let date = Date.from(dateString)!
-        return (DietDayViewModel(service: service, energyFetcher: FakeActiveEnergyFetcher(), date: date), service)
+        return (
+            DietDayViewModel(
+                service: service,
+                energyFetcher: FakeActiveEnergyFetcher(),
+                date: date,
+                daySwipeDelay: daySwipeDelay
+            ),
+            service
+        )
     }
 
     @Test func 다음_주로_넘기면_보이는_주만_7일_뒤로_간다() async {
@@ -1543,5 +1554,226 @@ struct DietWeekStripTests {
 
         vm.showNextWeek()   // 8/2~8/8 주
         #expect(vm.visibleMonthText == "8월")
+    }
+
+    // MARK: - 오늘 버튼
+
+    /// **이번 버그의 재현 케이스다.** 주를 넘겨 그 주의 날짜를 고르면 기준일이 선택 날짜에
+    /// 맞춰지는데, 그것으로 버튼을 감추면 2주 전을 보면서 돌아올 길이 없어진다.
+    /// **시작점을 오늘 기준 상대 날짜로 잡는다** — 고정 날짜로 두면 실행 시점에 따라
+    /// 넘어간 주가 오늘의 주와 겹쳐 아무것도 검증하지 못하는 날이 생긴다.
+    @Test func 주를_넘겨_고른_날짜에서도_오늘_버튼이_남는다() async {
+        let start = Calendar.current.date(byAdding: .day, value: -60, to: Date())!
+        let target = Calendar.current.date(byAdding: .day, value: 7, to: start)!
+        let (vm, service) = makeVM(on: start.dateString)
+        service.days = [makeDay(date: start.dateString), makeDay(date: target.dateString)]
+        await vm.load()
+
+        vm.showNextWeek()
+        await vm.select(target)
+
+        #expect(vm.isViewingSelectedWeek)   // 기준일은 선택 주로 맞춰졌지만
+        #expect(vm.showsTodayButton)        // 오늘로 돌아올 길은 남아야 한다
+    }
+
+    /// 오늘을 보고 있으면 돌아갈 곳이 없다 — 버튼도 없다.
+    @Test func 오늘을_보고_있으면_오늘_버튼이_없다() async {
+        let (vm, _) = makeVM(on: Date().dateString)
+        await vm.load()
+
+        #expect(!vm.showsTodayButton)
+    }
+
+    /// 오늘을 고른 채 주만 넘긴 경우 — 선택은 오늘이지만 화면 밖이라 돌아올 길이 필요하다.
+    @Test func 오늘을_고른_뒤_주를_넘기면_오늘_버튼이_다시_뜬다() async {
+        let (vm, _) = makeVM(on: Date().dateString)
+        await vm.load()
+
+        vm.showNextWeek()
+
+        #expect(vm.showsTodayButton)
+    }
+
+    // MARK: - 하루 이동
+
+    /// **스와이프에 조회가 칸마다 붙으면 안 된다.** `select(_:)` 한 번은 활동량 업서트와
+    /// 하루 조회이고, 그 조회가 서버의 하루 피드백 생성을 건다.
+    @Test func 하루_이동을_연속하면_조회는_한_번만_나간다() async {
+        let (vm, service) = makeVM(on: "2026-07-15", daySwipeDelay: .milliseconds(10))
+        await vm.load()
+        let before = service.fetchedDates.count
+
+        vm.stepDay(by: 1)
+        vm.stepDay(by: 1)
+        vm.stepDay(by: 1)
+        await vm.waitForPendingSelection()
+
+        #expect(vm.selectedDate == Date.from("2026-07-18"))
+        #expect(service.fetchedDates.count == before + 1)
+        #expect(service.fetchedDates.last == "2026-07-18")
+    }
+
+    /// 하루 이동이 주 경계를 넘으면 스트립도 따라가야 한다 — 선택 날짜가 화면 밖에 남으면 안 된다.
+    @Test func 하루_이동이_주_경계를_넘으면_스트립도_따라간다() async {
+        let (vm, _) = makeVM(on: "2026-07-18", daySwipeDelay: .milliseconds(10))   // 토요일
+        await vm.load()
+
+        vm.stepDay(by: 1)   // 7/19 일요일 — 다음 주 첫날
+        await vm.waitForPendingSelection()
+
+        #expect(vm.weekDates.first == Date.from("2026-07-19"))
+    }
+
+    /// **이전 날짜의 하루를 새 날짜 라벨 아래 남기지 않는다** — 조회를 늦춰도 이 방어는
+    /// 즉시 걸려야 한다. 안 그러면 0.35초 동안 다른 날의 끼니를 이 날짜 것으로 알고 연다.
+    @Test func 하루_이동_직후에_이전_날짜의_하루가_지워진다() async {
+        let (vm, service) = makeVM(on: "2026-07-15", daySwipeDelay: .milliseconds(10))
+        service.days = [makeDay(date: "2026-07-15"), makeDay(date: "2026-07-16")]
+        await vm.load()
+        #expect(vm.day?.date == "2026-07-15")
+
+        vm.stepDay(by: 1)
+
+        #expect(vm.day == nil)
+        #expect(vm.isLoading)
+
+        await vm.waitForPendingSelection()
+        #expect(vm.day?.date == "2026-07-16")
+    }
+
+    /// 탭은 기다리지 않는다. **예약된 스와이프 조회는 취소해야 한다** — 안 그러면 탭한
+    /// 날짜 위에 0.35초 뒤 스와이프가 겨눴던 날짜의 조회가 덮인다.
+    /// **지연을 넉넉히 잡는다** — 이 테스트는 예약을 기다리지 않으므로(취소되어야 하니까),
+    /// 부하 걸린 시뮬레이터에서 두 줄 사이가 조금만 늘어져도 예약이 먼저 나가면 깨진다.
+    @Test func 날짜를_탭하면_예약된_하루_조회가_취소된다() async {
+        let (vm, service) = makeVM(on: "2026-07-15", daySwipeDelay: .seconds(30))
+        // 7/16 픽스처를 두지 않는다 — 예약이 취소돼 그 요청은 나가지 않는다. 실제로 나가는
+        // 요청은 `load()`(7/15)와 `select(7/20)`(7/20) 두 번뿐이라, 커서 순서로 소비하는
+        // `FakeDietService.fetchDay`가 두 번째 요청에 7/20 픽스처를 돌려주게 맞춘다.
+        service.days = [makeDay(date: "2026-07-15"), makeDay(date: "2026-07-20")]
+        await vm.load()
+        let before = service.fetchedDates.count
+
+        vm.stepDay(by: 1)                           // 7/16으로 예약
+        await vm.select(Date.from("2026-07-20")!)   // 예약을 취소하고 즉시 조회
+
+        #expect(vm.selectedDate == Date.from("2026-07-20"))
+        #expect(service.fetchedDates.count == before + 1)
+        #expect(service.fetchedDates.last == "2026-07-20")
+        #expect(vm.day?.date == "2026-07-20")
+        #expect(!vm.isLoading)
+    }
+
+    /// **스와이프 직후 같은 날짜를 탭하는 경로.** `stepDay`가 `selectedDate`를 미리 옮겨
+    /// 두므로 그 탭은 「같은 날짜」로 들어온다. 예약만 취소하고 넘어가면 `stepDay`가 켜 둔
+    /// 로딩과 빈 하루가 영영 남는다.
+    /// **지연을 넉넉히 잡는다** — 이 테스트도 예약을 기다리지 않으므로 짧은 지연은 플레이크의
+    /// 원인일 뿐이다.
+    @Test func 스와이프_직후_같은_날짜를_탭해도_조회가_나간다() async {
+        let (vm, service) = makeVM(on: "2026-07-15", daySwipeDelay: .seconds(30))
+        service.days = [makeDay(date: "2026-07-15"), makeDay(date: "2026-07-16")]
+        await vm.load()
+        let before = service.fetchedDates.count
+
+        vm.stepDay(by: 1)                            // 7/16으로 예약
+        await vm.select(Date.from("2026-07-16")!)    // 이미 선택된 그 날짜를 탭
+
+        #expect(service.fetchedDates.count == before + 1)
+        #expect(service.fetchedDates.last == "2026-07-16")
+        #expect(vm.day?.date == "2026-07-16")
+        #expect(!vm.isLoading)
+    }
+
+    /// **예약이 조회로 해소된 뒤에는 우회가 꺼져야 한다.** 안 그러면 이미 선택된 날짜를
+    /// 다시 탭할 때마다 화면이 비었다가 다시 채워지고 왕복이 한 벌 더 나간다.
+    @Test func 스와이프_조회가_끝난_뒤_같은_날짜를_다시_탭하면_조회가_없다() async {
+        let (vm, service) = makeVM(on: "2026-07-15", daySwipeDelay: .milliseconds(10))
+        service.days = [makeDay(date: "2026-07-15"), makeDay(date: "2026-07-16")]
+        await vm.load()
+
+        vm.stepDay(by: 1)
+        await vm.waitForPendingSelection()
+        let after = service.fetchedDates.count
+
+        await vm.select(Date.from("2026-07-16")!)   // 이미 선택돼 있고 조회도 끝난 날짜
+
+        #expect(service.fetchedDates.count == after)
+        #expect(vm.day?.date == "2026-07-16")       // 화면이 비워지지 않는다
+        #expect(!vm.isLoading)
+    }
+
+    // MARK: - 활동량을 올리는 중에 날짜가 바뀌는 경합
+
+    /// **하루 조회는 그 날짜의 활동량이 올라간 뒤에 나가야 한다.** 서버는 하루 조회에서
+    /// 피드백 생성을 걸고, 뒤늦은 활동량 업서트는 그 캐시를 무효화하지 않는다 — 순서가
+    /// 뒤집히면 그날 피드백이 소모 칼로리를 영영 빠뜨린 채로 굳는다.
+    ///
+    /// 예약 Task는 깨어나면서 `pendingSelection`을 비우므로 **뒤이은 `stepDay`가 취소할
+    /// 수도 없고**, `syncActivity()`는 취소를 삼키고 정상 반환한다. 토큰을 다시 보지 않으면
+    /// 낡은 Task가 남의 날짜를 그 날짜의 업서트보다 먼저 조회한다.
+    @Test func 활동량을_올리는_중에_날짜가_바뀌면_낡은_예약은_조회하지_않는다() async {
+        let service = FakeDietService()
+        service.profile = makeProfile()
+        service.days = [makeDay(date: "2026-07-15"), makeDay(date: "2026-07-17")]
+        let energy = FakeActiveEnergyFetcher()
+        let vm = DietDayViewModel(
+            service: service,
+            energyFetcher: energy,
+            date: Date.from("2026-07-15")!,
+            daySwipeDelay: .milliseconds(10)
+        )
+        await vm.load()
+        let before = service.fetchedDates.count
+
+        // 7/16으로 스와이프 — 예약이 깨어나 활동량 조회에서 멈춘다.
+        let staleGate = AsyncGate()
+        energy.gate = staleGate
+        vm.stepDay(by: 1)
+        await staleGate.waitUntilBlocked()
+
+        // 그 사이 한 칸 더 — 선택 날짜가 7/17이 되고, 낡은 예약은 취소되지 않는다.
+        vm.stepDay(by: 1)
+        let freshGate = AsyncGate()
+        energy.gate = freshGate
+        await staleGate.open()
+
+        // 새 예약이 활동량 조회에 닿을 때까지 기다린다 — 낡은 예약은 그 전에 갈 길을 다 갔다.
+        await freshGate.waitUntilBlocked()
+        await freshGate.open()
+        await vm.waitForPendingSelection()
+
+        // 하루 조회는 새 예약의 것 **한 번**이다. 낡은 예약이 7/17을 먼저 조회했다면 두 번이 된다.
+        #expect(service.fetchedDates.count == before + 1)
+        #expect(service.fetchedDates.last == "2026-07-17")
+        // 낡은 예약도 자기 날짜(7/16)의 활동량은 올린다 — 그건 맞는 동작이라 그대로 둔다.
+        #expect(energy.requestedDates.map(\.dateString).contains("2026-07-16"))
+    }
+
+    /// 탭 경로에도 같은 창이 있다 — `select(_:)`도 `syncActivity()`를 기다린 뒤 조회한다.
+    @Test func 탭이_활동량을_올리는_중에_날짜가_바뀌면_그_조회는_버려진다() async {
+        let service = FakeDietService()
+        service.profile = makeProfile()
+        service.days = [makeDay(date: "2026-07-15"), makeDay(date: "2026-07-20")]
+        let energy = FakeActiveEnergyFetcher()
+        let vm = DietDayViewModel(
+            service: service,
+            energyFetcher: energy,
+            date: Date.from("2026-07-15")!,
+            daySwipeDelay: .seconds(30)   // 아래 stepDay의 예약은 이 테스트에서 안 깨어난다
+        )
+        await vm.load()
+        let before = service.fetchedDates.count
+
+        let gate = AsyncGate()
+        energy.gate = gate
+        let selecting = Task { await vm.select(Date.from("2026-07-16")!) }
+        await gate.waitUntilBlocked()
+
+        vm.stepDay(by: 1)   // 기다리는 사이 날짜가 7/17로 바뀐다
+        await gate.open()
+        await selecting.value
+
+        // 탭이 겨눴던 7/16은 이미 남의 날짜다 — 조회가 나가면 안 된다.
+        #expect(service.fetchedDates.count == before)
     }
 }

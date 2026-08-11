@@ -25,6 +25,11 @@ struct MealCaptureViewModelTests {
         (0..<count).map { Data(repeating: UInt8($0), count: 100) }
     }
 
+    /// **기본값이 박혀 있으면 그대로 저장된다.** 미선택으로 시작해 확인 화면에서 고르게 한다.
+    @Test func 끼니는_미선택으로_시작한다() {
+        #expect(MealCaptureViewModel(service: FakeDietService()).mealType == nil)
+    }
+
     @Test func 사진_N장을_순차로_올리고_인식을_요청한다() async {
         let service = FakeDietService()
         service.uploadFileIds = [11, 12, 13]

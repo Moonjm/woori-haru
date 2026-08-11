@@ -21,7 +21,8 @@ final class MealCaptureViewModel {
         case llmUnavailable
     }
 
-    var mealType: MealType = .lunch
+    /// **고르기 전에는 nil이다.** 확인 화면이 이 값을 그대로 받고, 거기서 저장이 막힌다.
+    var mealType: MealType?
     private(set) var photoDataList: [Data] = []
     private(set) var uploadedCount = 0
     private(set) var phase: Phase = .idle
