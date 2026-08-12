@@ -59,6 +59,9 @@ struct DispatchUploadView: View {
         }
         .onChange(of: pickerItem) { _, item in
             loadTask?.cancel()
+            // 진행 중이던 인식도 접는다. 결과를 버리는 것은 뷰모델의 generation이 맡지만,
+            // 사진을 바꾼 순간 이 요청은 이미 쓸모가 없다 — 유료 호출을 끌고 갈 이유가 없다.
+            recognizeTask?.cancel()
             guard let item else { return }
             loadTask = Task {
                 let data = try? await item.loadTransferable(type: Data.self)

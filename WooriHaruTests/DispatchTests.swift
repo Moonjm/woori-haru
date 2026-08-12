@@ -301,6 +301,42 @@ struct DispatchUploadViewModelTests {
         #expect(vm.phase == .completed)
     }
 
+    @Test func 인식_중에_사진을_바꾸면_이전_결과를_버린다() async {
+        let service = FakeDispatchService(recognizeResult: .success(sampleRecognition()))
+        let vm = DispatchUploadViewModel(service: service)
+        vm.setImage(Data([0x01]))
+        service.duringRecognize = { [vm] in
+            // 사진을 잘못 골라 곧바로 다시 고른 상황. 이전 인식이 아직 돌아오지 않았다.
+            await MainActor.run { vm.setImage(Data([0x09])) }
+        }
+
+        await vm.recognize()
+
+        // 완료를 세우면 **이전 사진의 인식 결과와 새 사진의 미리보기가 섞인** 검수 화면이
+        // 열리고, 그대로 저장하면 다른 사진의 근무가 들어간다.
+        #expect(vm.phase == .idle)
+        #expect(vm.recognition == nil)
+    }
+
+    @Test func 인식_중에_사진을_바꾸면_이전_실패도_보여주지_않는다() async {
+        let error = APIError.serverError(statusCode: 400, message: """
+        {"status":400,"message":"배차표 사진에서 대상 기사를 찾지 못했습니다.","code":"400","error":"TARGET_NOT_FOUND"}
+        """)
+        let service = FakeDispatchService(recognizeResult: .failure(error))
+        let vm = DispatchUploadViewModel(service: service)
+        vm.setImage(Data([0x01]))
+        service.duringRecognize = { [vm] in
+            await MainActor.run { vm.setImage(Data([0x09])) }
+        }
+
+        await vm.recognize()
+
+        // 방금 고른 사진이 실패한 줄 알게 된다. 실패한 것은 바뀌기 전 사진이다.
+        #expect(vm.phase == .idle)
+        #expect(vm.errorMessage == nil)
+        #expect(vm.canRecognize == true)
+    }
+
     @Test func 취소는_실패로_치지_않는다() async {
         let service = FakeDispatchService(recognizeResult: .failure(CancellationError()))
         let vm = DispatchUploadViewModel(service: service)
@@ -350,6 +386,21 @@ struct DispatchUploadViewModelTests {
         let date = calendar.date(from: DateComponents(year: 2026, month: 8, day: 12))!
 
         #expect(DispatchUploadViewModel.defaultYearMonth(now: date, calendar: calendar) == "2026-08")
+    }
+
+    @Test func 기기_달력이_불교력이어도_그레고리력으로_보낸다() {
+        var buddhist = Calendar(identifier: .buddhist)
+        buddhist.timeZone = TimeZone(identifier: "Asia/Seoul") ?? .current
+        var gregorian = Calendar.dispatchGregorian
+        gregorian.timeZone = TimeZone(identifier: "Asia/Seoul") ?? .current
+        let date = gregorian.date(from: DateComponents(year: 2026, month: 8, day: 12))!
+
+        // 기기 설정을 그대로 따르면(`Calendar.current`) 이 값이 만들어진다. 형식 검사를
+        // 통과하고 서버는 그대로 ISO로 읽어 543년 뒤를 인식하고 저장한다.
+        #expect(DispatchUploadViewModel.defaultYearMonth(now: date, calendar: buddhist) == "2569-08")
+        #expect(DispatchUploadViewModel.defaultYearMonth(now: date, calendar: gregorian) == "2026-08")
+        // 그래서 기본값은 기기 설정이 아니라 그레고리력이어야 한다.
+        #expect(Calendar.dispatchGregorian.identifier == .gregorian)
     }
 
     @Test func 한자리_월은_0을_채운다() {
@@ -556,6 +607,41 @@ struct DispatchReviewViewModelTests {
         let request = try #require(service.savedRequests.first)
         #expect(request.days[0].note == "간담회")
         #expect(vm.entries[0].conflict == false)
+    }
+
+    @Test func 순번만_고쳐도_원문_note를_버린다() async throws {
+        // OCR이 2번 칸을 1번으로 읽으면서 원문 "*97"을 함께 실어 온 경우.
+        let recognition = sampleRecognition(days: [
+            DispatchRecognitionDay(day: 1, working: true, slot: 1, note: "*97", conflict: false)
+        ])
+        let service = FakeDispatchService(recognizeResult: .success(recognition))
+        let vm = makeViewModel(recognition: recognition, service: service)
+
+        vm.setWorking(day: 1, working: true, slot: 2)
+
+        // 검수 화면 라벨은 note를 순번보다 우선한다. 남겨 두면 「2번」을 고른 뒤에도
+        // 화면에 `*97`이 그대로 보여 사용자가 고쳐진 줄 모른다.
+        #expect(vm.entries[0].note == nil)
+
+        await vm.save()
+
+        let request = try #require(service.savedRequests.first)
+        #expect(request.days[0].slot == 2)
+        #expect(request.days[0].note == nil)
+    }
+
+    @Test func 인식값을_그대로_확정하면_원문_note는_남는다() async throws {
+        let recognition = sampleRecognition(days: [
+            DispatchRecognitionDay(day: 1, working: true, slot: 1, note: "*97", conflict: true)
+        ])
+        let service = FakeDispatchService(recognizeResult: .success(recognition))
+        let vm = makeViewModel(recognition: recognition, service: service)
+
+        vm.setWorking(day: 1, working: true, slot: 1)
+        await vm.save()
+
+        let request = try #require(service.savedRequests.first)
+        #expect(request.days[0].note == "*97")
     }
 
     @Test func 저장_실패_메시지에서_봉투를_벗긴다() async {

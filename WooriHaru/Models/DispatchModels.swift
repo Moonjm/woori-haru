@@ -49,3 +49,13 @@ struct DispatchShiftSaveRequest: Encodable {
     let role: String
     let days: [DispatchShiftSaveDay]
 }
+
+extension Calendar {
+    /// 서버로 나가는 `yearMonth`·`date`는 ISO 그레고리력 문자열이다. `Calendar.current`는
+    /// 기기 설정을 따르므로 달력을 불교력으로 둔 기기에서는 오늘이 **`2026-08`이 아니라
+    /// `2569-08`**로 만들어진다. 형식 검사는 이 값을 통과시키고 서버는 그대로 ISO로 읽어,
+    /// 엉뚱한 연도를 인식하고 저장한다. 말일·요일 계산도 같은 이유로 여기에 맞춘다.
+    ///
+    /// 시간대는 `Calendar(identifier:)`가 기기 것을 그대로 쓰므로 「오늘」은 지역 시각이다.
+    static let dispatchGregorian = Calendar(identifier: .gregorian)
+}

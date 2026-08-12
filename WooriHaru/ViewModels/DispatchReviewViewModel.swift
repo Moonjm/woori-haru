@@ -33,7 +33,7 @@ final class DispatchReviewViewModel {
     init(
         recognition: DispatchRecognition,
         service: DispatchServing = DispatchService(),
-        calendar: Calendar = .current
+        calendar: Calendar = .dispatchGregorian
     ) {
         self.recognition = recognition
         self.service = service
@@ -61,11 +61,13 @@ final class DispatchReviewViewModel {
 
     func setWorking(day: Int, working: Bool, slot: Int?) {
         guard let index = entries.firstIndex(where: { $0.day == day }) else { return }
-        // **근무 여부가 뒤집혔으면 `note`를 버린다.** `note`는 사람이 방금 틀렸다고 판정한
+        // **사람이 인식값을 고쳤으면 `note`를 버린다.** `note`는 사람이 방금 틀렸다고 판정한
         // 바로 그 칸에서 나온 원문이다. 남겨 두면 `working: true, slot: 1, note: "휴"`가
-        // 저장되고, 웹 달력이 근무 뱃지에 원문을 덧붙여 「1번 휴」로 찍힌다.
-        // 휴무를 휴무로 둔 채 순번만 만지는 경우엔 `간담회` 같은 원문이 쓸모 있으므로 남긴다.
-        if entries[index].working != working {
+        // 저장되고, 웹 달력이 근무 뱃지에 원문을 덧붙여 「1번 휴」로 찍힌다. 순번만 고친
+        // 경우도 같다 — `note: "*97"`인 근무를 「2번」으로 고쳐도 검수 화면 라벨이 원문을
+        // 우선해 여전히 `*97`로 보이고, 저장에는 고친 순번과 낡은 원문이 함께 실린다.
+        // 인식값을 그대로 확정한 경우엔 `간담회` 같은 원문이 쓸모 있으므로 남긴다.
+        if entries[index].working != working || entries[index].slot != slot {
             entries[index].note = nil
         }
         entries[index].recognized = true
