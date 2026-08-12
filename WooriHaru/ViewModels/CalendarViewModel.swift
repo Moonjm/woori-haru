@@ -83,11 +83,25 @@ final class CalendarViewModel {
     // Track in-flight month loads to prevent duplicate concurrent requests
     private var inFlightMonths: [String: Task<Void, Never>] = [:]
 
-    // Track loaded year ranges to avoid duplicate holiday fetches
-    private var loadedHolidayYears: Set<Int> = []
+    /// 받아 둔 공휴일을 연 단위로 들고 있는다. **`months`가 다시 만들어져도 남는다.**
+    ///
+    /// 예전에는 받은 값이 `months` 안에만 있고 「이미 받았다」는 표시는 바깥에 따로 있었다.
+    /// `initialLoad()`가 `months`를 새로 만들면서 그 표시는 지우지 않아, 두 번째부터는
+    /// **공휴일이 없는 새 `months`를 두고 이미 받았다고 판단해 다시 받지 않았다.** 화면이
+    /// 다시 뜨는 순간부터 공휴일이 통째로 사라졌다. 값과 표시를 한곳에 두어 어긋날 수 없게 한다.
+    private var holidaysByYear: [Int: [String: [String]]] = [:]
 
     // Track in-flight holiday fetches to prevent duplicate concurrent requests
     private var inFlightHolidayYears: Set<Int> = []
+
+    /// 받아 둔 공휴일을 지금 `months`에 되채운다. `months`를 만들거나 늘린 뒤에 부른다.
+    private func applyHolidayCache() {
+        for idx in months.indices {
+            guard let yearHolidays = holidaysByYear[months[idx].year] else { continue }
+            let monthPrefix = months[idx].id
+            months[idx].holidays = yearHolidays.filter { $0.key.hasPrefix(monthPrefix) }
+        }
+    }
 
     // MARK: - Initial Load
 
@@ -111,6 +125,7 @@ final class CalendarViewModel {
             loadedMonthIds.insert(data.id)
         }
         months = monthList
+        applyHolidayCache()
         currentMonthLabel = currentStart.monthDisplayText
 
         // API 데이터는 현재 월 ±2 만 로드
@@ -178,6 +193,8 @@ final class CalendarViewModel {
         }
         guard !newMonths.isEmpty else { return }
         months.append(contentsOf: newMonths)
+        // 이미 받아 둔 해의 달이 새로 붙었을 수 있다. 되채우지 않으면 그 달만 공휴일이 없다.
+        applyHolidayCache()
     }
 
     // MARK: - Navigation
@@ -205,7 +222,6 @@ final class CalendarViewModel {
         let targetStart = targetDate.startOfMonth()
         loadedMonthIds.removeAll()
         dataLoadedMonths.removeAll()
-        loadedHolidayYears.removeAll()
         inFlightMonths.values.forEach { $0.cancel() }
         inFlightMonths.removeAll()
         inFlightHolidayYears.removeAll()
@@ -218,6 +234,7 @@ final class CalendarViewModel {
             loadedMonthIds.insert(data.id)
         }
         months = monthList
+        applyHolidayCache()
         currentMonthLabel = targetStart.monthDisplayText
         return true
     }
@@ -401,17 +418,11 @@ final class CalendarViewModel {
         }
 
         let year = monthData.year
-        if !loadedHolidayYears.contains(year) && !inFlightHolidayYears.contains(year) {
+        if holidaysByYear[year] == nil && !inFlightHolidayYears.contains(year) {
             inFlightHolidayYears.insert(year)
             do {
-                let fetchedHolidays = try await holidayService.fetchHolidays(year: yearStr)
-                for (date, names) in fetchedHolidays {
-                    let hMonthId = String(date.prefix(7))
-                    if let hIdx = months.firstIndex(where: { $0.id == hMonthId }) {
-                        months[hIdx].holidays[date] = names
-                    }
-                }
-                loadedHolidayYears.insert(year)
+                holidaysByYear[year] = try await holidayService.fetchHolidays(year: yearStr)
+                applyHolidayCache()
             } catch {
                 Logger.calendar.error("Failed to fetch holidays for \(yearStr): \(error.localizedDescription)")
             }

@@ -14,6 +14,52 @@ struct CalendarMonthTests {
         )
     }
 
+    /// 서버는 한 해치를 한 번에 주고, 뷰모델이 달별로 나눠 담는다.
+    private func makeViewModel(mock: MockAPIClient) -> CalendarViewModel {
+        CalendarViewModel(
+            recordService: RecordService(api: mock),
+            holidayService: HolidayService(api: mock),
+            pairService: PairService(api: mock),
+            pairEventService: PairEventService(api: mock)
+        )
+    }
+
+    private func stubMonthData(_ mock: MockAPIClient, holidays: [String: [String]]) {
+        mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: holidays))
+        mock.stubGet("/daily-records", result: DataResponse<[DailyRecord]>(data: []))
+        mock.stubGet("/daily-overeats", result: DataResponse<[DailyOvereat]>(data: []))
+    }
+
+    @Test func 초기_로드가_이번_달_공휴일을_채운다() async {
+        let mock = MockAPIClient()
+        let today = Date()
+        let monthId = String(format: "%04d-%02d", today.year, today.month)
+        let holidayDate = "\(monthId)-15"
+        stubMonthData(mock, holidays: [holidayDate: ["광복절"]])
+
+        let vm = makeViewModel(mock: mock)
+        vm.configure(pairStore: PairStore())
+        await vm.initialLoad()
+
+        #expect(vm.months.first { $0.id == monthId }?.holidays[holidayDate] == ["광복절"])
+    }
+
+    @Test func 다시_불러와도_공휴일이_남는다() async {
+        let mock = MockAPIClient()
+        let today = Date()
+        let monthId = String(format: "%04d-%02d", today.year, today.month)
+        let holidayDate = "\(monthId)-15"
+        stubMonthData(mock, holidays: [holidayDate: ["광복절"]])
+
+        let vm = makeViewModel(mock: mock)
+        vm.configure(pairStore: PairStore())
+        await vm.initialLoad()
+        // 화면이 다시 떠서 `.task`가 한 번 더 도는 경우. months는 새로 만들어진다.
+        await vm.initialLoad()
+
+        #expect(vm.months.first { $0.id == monthId }?.holidays[holidayDate] == ["광복절"])
+    }
+
     @Test func 이월_2026은_패딩_없이_정확히_4주() {
         let month = makeViewModel().buildMonthData(Date.from("2026-02-01")!)
         #expect(month.id == "2026-02")
