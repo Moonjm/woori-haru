@@ -5,17 +5,33 @@ import Testing
 /// 조회 전용 화면이다. 여기서 근무를 고치지 않는다 — 수정은 사진 → 검수 경로로만 한다.
 @MainActor
 struct ScheduleViewModelTests {
-    private func makeViewModel(
-        mock: MockAPIClient,
-        service: FakeScheduleService
-    ) -> ScheduleViewModel {
+    // 기본 인자에서 부르므로 `nonisolated`여야 한다 — 기본 인자는 액터 밖에서 평가된다.
+    private nonisolated static var seoulCalendar: Calendar {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "Asia/Seoul") ?? .current
-        return ScheduleViewModel(
+        return calendar
+    }
+
+    private nonisolated static func date(_ year: Int, _ month: Int, _ day: Int) -> Date {
+        seoulCalendar.date(from: DateComponents(year: year, month: month, day: day))!
+    }
+
+    /// 흐르는 시계. 날이 바뀌는 상황을 만들려면 뷰모델을 만든 뒤에도 시각을 옮길 수 있어야 한다.
+    private final class Clock: @unchecked Sendable {
+        var now: Date
+        init(_ now: Date) { self.now = now }
+    }
+
+    private func makeViewModel(
+        mock: MockAPIClient,
+        service: FakeScheduleService,
+        clock: Clock = Clock(ScheduleViewModelTests.date(2026, 8, 12))
+    ) -> ScheduleViewModel {
+        ScheduleViewModel(
             service: service,
             holidayService: HolidayService(api: mock),
-            now: calendar.date(from: DateComponents(year: 2026, month: 8, day: 12))!,
-            calendar: calendar
+            now: { clock.now },
+            calendar: Self.seoulCalendar
         )
     }
 
@@ -167,6 +183,94 @@ struct ScheduleViewModelTests {
 
         #expect(vm.yearMonth == "2027-01")
         #expect(vm.monthLabel == "2027년 1월")
+    }
+
+    @Test func 이번_달을_보고_있으면_오늘_버튼이_잠긴다() async {
+        let mock = MockAPIClient()
+        mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
+        let vm = makeViewModel(mock: mock, service: FakeScheduleService(days: []))
+        await vm.load()
+
+        #expect(vm.isViewingCurrentMonth)
+
+        await vm.move(by: 1)
+        #expect(!vm.isViewingCurrentMonth)
+    }
+
+    @Test func 오늘을_누르면_이번_달로_돌아온다() async {
+        let mock = MockAPIClient()
+        mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
+        let service = FakeScheduleService(days: [])
+        let vm = makeViewModel(mock: mock, service: service)
+        await vm.load()
+        await vm.move(by: 3)
+        #expect(vm.yearMonth == "2026-11")
+
+        await vm.goToToday()
+
+        #expect(vm.yearMonth == "2026-08")
+        #expect(vm.isViewingCurrentMonth)
+        #expect(service.requestedYearMonths == ["2026-08", "2026-11", "2026-08"])
+    }
+
+    /// 같은 달을 다시 부르는 값 없는 왕복을 막는다. 그 사이 화면만 흐려졌다 돌아온다.
+    @Test func 이미_이번_달이면_다시_조회하지_않는다() async {
+        let mock = MockAPIClient()
+        mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
+        let service = FakeScheduleService(days: [])
+        let vm = makeViewModel(mock: mock, service: service)
+        await vm.load()
+
+        await vm.goToToday()
+
+        #expect(service.requestedYearMonths == ["2026-08"])
+    }
+
+    @Test func 오늘은_주입된_시각을_따른다() async {
+        let mock = MockAPIClient()
+        mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
+        let vm = makeViewModel(mock: mock, service: FakeScheduleService(days: []))
+        await vm.load()
+
+        #expect(vm.isToday(Self.date(2026, 8, 12)))
+        #expect(!vm.isToday(Self.date(2026, 8, 13)))
+    }
+
+    /// 시간이 흐르는 것만으로는 화면이 다시 그려지지 않는다. 뷰모델이 「오늘」을 붙잡고
+    /// 있다가 알림을 받고서야 놓는다 — 그래야 SwiftUI가 걸 의존성이 생긴다.
+    @Test func 날이_바뀌어도_알리기_전에는_어제를_오늘로_본다() async {
+        let mock = MockAPIClient()
+        mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
+        let clock = Clock(Self.date(2026, 8, 31))
+        let vm = makeViewModel(mock: mock, service: FakeScheduleService(days: []), clock: clock)
+        await vm.load()
+        #expect(vm.isViewingCurrentMonth)
+
+        clock.now = Self.date(2026, 9, 1)
+        #expect(vm.isToday(Self.date(2026, 8, 31)))
+        #expect(vm.isViewingCurrentMonth)
+
+        vm.refreshToday()
+
+        #expect(vm.isToday(Self.date(2026, 9, 1)))
+        #expect(!vm.isViewingCurrentMonth)
+    }
+
+    /// 알림이 늦거나 오지 않아도 버튼은 제 일을 해야 한다.
+    @Test func 날이_바뀐_뒤_오늘을_누르면_새_달로_간다() async {
+        let mock = MockAPIClient()
+        mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
+        let clock = Clock(Self.date(2026, 8, 31))
+        let service = FakeScheduleService(days: [])
+        let vm = makeViewModel(mock: mock, service: service, clock: clock)
+        await vm.load()
+
+        clock.now = Self.date(2026, 9, 1)
+        await vm.goToToday()
+
+        #expect(vm.yearMonth == "2026-09")
+        #expect(vm.isViewingCurrentMonth)
+        #expect(service.requestedYearMonths == ["2026-08", "2026-09"])
     }
 
     @Test func 공휴일은_달을_오가도_남는다() async {
