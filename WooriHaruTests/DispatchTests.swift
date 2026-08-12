@@ -263,6 +263,39 @@ struct DispatchServiceTests {
         // postVoid는 recordedPostCalls에 남는다(MockAPIClient 기존 구현).
         #expect(api.postCalls.contains { $0.path == "/dispatch/shifts" })
     }
+
+    @Test func 하루_편집은_날짜를_경로에_붙인다() async throws {
+        let api = MockAPIClient()
+        let service = DispatchService(api: api)
+
+        try await service.editDay(
+            date: "2026-08-15",
+            request: DispatchDayEditRequest(
+                father: nil,
+                mother: DispatchRoleEdit(working: true, slot: nil, slotCode: "A")
+            )
+        )
+
+        #expect(api.putVoidCalls.map(\.path) == ["/dispatch/shifts/2026-08-15"])
+    }
+
+    /// 204라 본문이 없다. 디코딩을 기대하면 성공한 저장이 실패로 보인다.
+    @Test func 하루_편집은_204라_본문을_기대하지_않는다() async throws {
+        let api = MockAPIClient()
+        let service = DispatchService(api: api)
+
+        try await service.editDay(
+            date: "2026-08-15",
+            request: DispatchDayEditRequest(
+                father: DispatchRoleEdit(working: false, slot: nil, slotCode: nil),
+                mother: nil
+            )
+        )
+
+        let body = try #require(api.putVoidCalls.first?.body as? DispatchDayEditRequest)
+        #expect(body.father == DispatchRoleEdit(working: false, slot: nil, slotCode: nil))
+        #expect(body.mother == nil)
+    }
 }
 
 /// 인식만 하는 대역. 호출 인자를 기록하고 미리 정한 결과를 돌려준다.
@@ -291,6 +324,10 @@ private final class FakeDispatchService: DispatchServing, @unchecked Sendable {
     func saveShifts(_ request: DispatchShiftSaveRequest) async throws {
         savedRequests.append(request)
         if let saveError { throw saveError }
+    }
+
+    func editDay(date: String, request: DispatchDayEditRequest) async throws {
+        fatalError("이 화면은 하루를 고치지 않는다")
     }
 }
 

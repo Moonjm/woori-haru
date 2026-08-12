@@ -381,6 +381,10 @@ final class FakeScheduleService: DispatchServing, @unchecked Sendable {
     var duringFetch: (@Sendable () async -> Void)?
     private(set) var requestedYearMonths: [String] = []
 
+    /// 하루 편집이 받은 인자. 편집 뷰모델 테스트가 본다.
+    var editError: Error?
+    private(set) var editCalls: [(date: String, request: DispatchDayEditRequest)] = []
+
     init(days: [DispatchShiftDay]) {
         self.days = days
     }
@@ -400,5 +404,10 @@ final class FakeScheduleService: DispatchServing, @unchecked Sendable {
 
     func saveShifts(_ request: DispatchShiftSaveRequest) async throws {
         fatalError("이 화면은 저장하지 않는다")
+    }
+
+    func editDay(date: String, request: DispatchDayEditRequest) async throws {
+        editCalls.append((date, request))
+        if let editError { throw editError }
     }
 }
