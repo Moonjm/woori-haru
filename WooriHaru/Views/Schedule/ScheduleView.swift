@@ -1,3 +1,4 @@
+import Combine
 import SwiftUI
 
 /// 배차 근무 달력. 진입점이고, 오른쪽 위에서 사진 등록으로 들어간다.
@@ -7,6 +8,7 @@ struct ScheduleView: View {
     /// 안내를 보인 뒤 스스로 비운다 — 남겨 두면 다음에 이 화면을 다시 들를 때도 같은
     /// 안내가 뜬다.
     @Binding var savedYearMonth: String?
+    @Environment(\.scenePhase) private var scenePhase
     @State private var vm = ScheduleViewModel()
     @State private var showPicker = false
     @State private var loadTask: Task<Void, Never>?
@@ -54,6 +56,7 @@ struct ScheduleView: View {
                         day: cell.day,
                         month: cell.month,
                         isCurrentMonth: cell.isCurrentMonth,
+                        isToday: vm.isToday(cell.date),
                         holidayNames: cell.isCurrentMonth ? vm.holidayNames(on: cell.date.dateString) : [],
                         badges: cell.isCurrentMonth ? vm.badges(on: cell.date.dateString) : [],
                         isBothOff: cell.isCurrentMonth && vm.isBothOff(on: cell.date.dateString)
@@ -61,6 +64,8 @@ struct ScheduleView: View {
                 }
             }
             .padding(.horizontal, 8)
+
+            legend
 
             Spacer()
         }
@@ -104,6 +109,25 @@ struct ScheduleView: View {
                 await vm.load()
             }
         }
+        // **날이 바뀌면 화면에 알려 준다.** 시간이 흐르는 것만으로는 관찰되는 값이 하나도
+        // 바뀌지 않아 SwiftUI가 이 화면을 다시 그리지 않는다. 그대로 두면 말일 자정을
+        // 넘겨도 「오늘」 버튼이 잠긴 채로 굳고(눌리지 않으니 새 달로 갈 수단이 사라진다),
+        // 어제 날짜가 계속 굵게 남는다.
+        //
+        // 이 알림은 백그라운드 스레드로 온다. 앱이 뒤에 있었으면 앞으로 돌아올 때 온다.
+        .onReceive(
+            NotificationCenter.default
+                .publisher(for: .NSCalendarDayChanged)
+                .receive(on: RunLoop.main)
+        ) { _ in
+            vm.refreshToday()
+        }
+        // **앞으로 돌아올 때도 맞춘다.** 알림만으로는 뒤에 있는 동안 날이 바뀐 경우가
+        // 남는다. 그때 「오늘」 버튼이 잠긴 채로 있으면 탭이 `goToToday()`에 닿지
+        // 못해, 버튼 안에 둔 갱신도 함께 막힌다 — 잠긴 버튼은 스스로를 풀 수 없다.
+        .onChange(of: scenePhase) {
+            if scenePhase == .active { vm.refreshToday() }
+        }
         .onDisappear { loadTask?.cancel() }
     }
 
@@ -127,10 +151,46 @@ struct ScheduleView: View {
 
             Spacer()
 
-            if vm.isLoading { ProgressView() }
+            // **넣고 빼지 않고 감추기만 한다.** 오른쪽에 「오늘」이 있어서, 스피너가
+            // 들고 날 때마다 버튼이 좌우로 밀린다 — 조회는 짧아서 더 눈에 띈다.
+            ProgressView().opacity(vm.isLoading ? 1 : 0)
+
+            // **이번 달이어도 감추지 않고 잠그기만 한다.** 같은 이유다.
+            Button("오늘") { goToday() }
+                .font(.subheadline)
+                .disabled(vm.isViewingCurrentMonth)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
+    }
+
+    /// 색이 무엇을 뜻하는지 알려 준다. 이 화면은 근무를 글자 없이 색과 자리로만 그리므로,
+    /// 처음 보는 사람에게는 분홍과 파랑이 아무 뜻도 아니다.
+    private var legend: some View {
+        HStack(spacing: 14) {
+            legendItem(color: .pink500, label: "엄마")
+            legendItem(color: .blue500, label: "아빠")
+            // 옅은 색이라 테두리가 없으면 흰 배경에서 칩이 보이지 않는다.
+            legendItem(color: .green100, label: "둘 다 휴무", bordered: true)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 16)
+        .padding(.top, 12)
+    }
+
+    private func legendItem(color: Color, label: String, bordered: Bool = false) -> some View {
+        HStack(spacing: 5) {
+            RoundedRectangle(cornerRadius: 2)
+                .fill(color)
+                .frame(width: 14, height: 10)
+                .overlay {
+                    if bordered {
+                        RoundedRectangle(cornerRadius: 2).stroke(Color.slate300, lineWidth: 0.5)
+                    }
+                }
+            Text(label).font(.caption).foregroundStyle(Color.slate500)
+        }
+        .accessibilityElement(children: .combine)
     }
 
     /// 왼쪽으로 밀면 다음 달, 오른쪽으로 밀면 이전 달. 종이 달력을 넘기는 방향과 같다.
@@ -147,6 +207,12 @@ struct ScheduleView: View {
         savedMessage = nil
         loadTask?.cancel()
         loadTask = Task { await vm.move(by: months) }
+    }
+
+    private func goToday() {
+        savedMessage = nil
+        loadTask?.cancel()
+        loadTask = Task { await vm.goToToday() }
     }
 
     private func reload() {

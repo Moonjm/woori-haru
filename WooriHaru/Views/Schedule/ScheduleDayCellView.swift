@@ -15,6 +15,9 @@ struct ScheduleDayCellView: View {
     let day: Int
     let month: Int
     let isCurrentMonth: Bool
+    /// **뷰모델이 판단해 넘겨준다.** 여기서 `date.isToday`로 직접 보면, 날이 바뀌어도
+    /// 이 칸의 입력값은 그대로라 SwiftUI가 다시 그리지 않아 어제가 계속 굵게 남는다.
+    let isToday: Bool
     let holidayNames: [String]
     let badges: [ScheduleViewModel.Badge]
     /// 아빠와 엄마가 둘 다 쉬는 날. **미등록은 여기 들어오지 않는다**(뷰모델이 가린다).
@@ -30,7 +33,7 @@ struct ScheduleDayCellView: View {
             HStack {
                 Text("\(day)")
                     .font(.system(size: 13))
-                    .fontWeight(date.isToday && isCurrentMonth ? .bold : .regular)
+                    .fontWeight(isToday && isCurrentMonth ? .bold : .regular)
                     .foregroundStyle(dateColor)
                 Spacer()
             }
