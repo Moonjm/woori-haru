@@ -11,10 +11,11 @@ struct ScheduleViewModelTests {
     ) -> ScheduleViewModel {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "Asia/Seoul") ?? .current
+        let today = calendar.date(from: DateComponents(year: 2026, month: 8, day: 12))!
         return ScheduleViewModel(
             service: service,
             holidayService: HolidayService(api: mock),
-            now: calendar.date(from: DateComponents(year: 2026, month: 8, day: 12))!,
+            now: { today },
             calendar: calendar
         )
     }
@@ -167,6 +168,47 @@ struct ScheduleViewModelTests {
 
         #expect(vm.yearMonth == "2027-01")
         #expect(vm.monthLabel == "2027년 1월")
+    }
+
+    @Test func 이번_달을_보고_있으면_오늘_버튼이_잠긴다() async {
+        let mock = MockAPIClient()
+        mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
+        let vm = makeViewModel(mock: mock, service: FakeScheduleService(days: []))
+        await vm.load()
+
+        #expect(vm.isViewingCurrentMonth)
+
+        await vm.move(by: 1)
+        #expect(!vm.isViewingCurrentMonth)
+    }
+
+    @Test func 오늘을_누르면_이번_달로_돌아온다() async {
+        let mock = MockAPIClient()
+        mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
+        let service = FakeScheduleService(days: [])
+        let vm = makeViewModel(mock: mock, service: service)
+        await vm.load()
+        await vm.move(by: 3)
+        #expect(vm.yearMonth == "2026-11")
+
+        await vm.goToToday()
+
+        #expect(vm.yearMonth == "2026-08")
+        #expect(vm.isViewingCurrentMonth)
+        #expect(service.requestedYearMonths == ["2026-08", "2026-11", "2026-08"])
+    }
+
+    /// 같은 달을 다시 부르는 값 없는 왕복을 막는다. 그 사이 화면만 흐려졌다 돌아온다.
+    @Test func 이미_이번_달이면_다시_조회하지_않는다() async {
+        let mock = MockAPIClient()
+        mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
+        let service = FakeScheduleService(days: [])
+        let vm = makeViewModel(mock: mock, service: service)
+        await vm.load()
+
+        await vm.goToToday()
+
+        #expect(service.requestedYearMonths == ["2026-08"])
     }
 
     @Test func 공휴일은_달을_오가도_남는다() async {

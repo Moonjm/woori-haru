@@ -18,6 +18,11 @@ final class ScheduleViewModel {
     private let holidayService: HolidayService
     private let calendar: Calendar
 
+    /// **날짜를 얼려 두지 않고 부를 때마다 읽는다.** 「오늘」 버튼이 하는 일이 오늘로 가는
+    /// 것인데, 초기화 시점의 날짜를 들고 있으면 앱을 켜 둔 채 달이 바뀐 뒤에는 지난달로
+    /// 간다. 같은 화면의 날짜 강조(`Date.isToday`)도 실시간이라 둘이 어긋나기도 한다.
+    private let now: @Sendable () -> Date
+
     private(set) var yearMonth: String
     private(set) var cells: [MonthData.DayCell] = []
     private(set) var isLoading = false
@@ -41,13 +46,14 @@ final class ScheduleViewModel {
     init(
         service: DispatchServing = DispatchService(),
         holidayService: HolidayService = HolidayService(),
-        now: Date = Date(),
+        now: @escaping @Sendable () -> Date = { Date() },
         calendar: Calendar = .dispatchGregorian
     ) {
         self.service = service
         self.holidayService = holidayService
         self.calendar = calendar
-        let start = Self.startOfMonth(for: now, calendar: calendar)
+        self.now = now
+        let start = Self.startOfMonth(for: now(), calendar: calendar)
         self.startOfMonth = start
         self.yearMonth = Self.yearMonthString(for: start, calendar: calendar)
         self.cells = MonthGridBuilder.cells(for: start, calendar: calendar)
@@ -59,6 +65,11 @@ final class ScheduleViewModel {
 
     var pickerYear: Int { calendar.component(.year, from: startOfMonth) }
     var pickerMonth: Int { calendar.component(.month, from: startOfMonth) }
+
+    /// 이번 달을 보고 있는가. 「오늘」 버튼을 잠그는 데 쓴다.
+    var isViewingCurrentMonth: Bool {
+        startOfMonth == Self.startOfMonth(for: now(), calendar: calendar)
+    }
 
     func badges(on dateString: String) -> [Badge] {
         badgesByDate[dateString] ?? []
@@ -105,6 +116,13 @@ final class ScheduleViewModel {
     func move(by months: Int) async {
         guard let next = calendar.date(byAdding: .month, value: months, to: startOfMonth) else { return }
         await show(next)
+    }
+
+    /// 이번 달로 돌아간다. **이미 이번 달이면 아무것도 하지 않는다** — 같은 달을 다시
+    /// 조회하는 값 없는 왕복이고, 그 사이 화면이 흐려졌다 돌아와 눌린 것처럼만 보인다.
+    func goToToday() async {
+        guard !isViewingCurrentMonth else { return }
+        await show(now())
     }
 
     func jump(year: Int, month: Int) async {

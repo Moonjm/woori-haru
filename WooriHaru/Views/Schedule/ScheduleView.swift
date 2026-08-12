@@ -62,6 +62,8 @@ struct ScheduleView: View {
             }
             .padding(.horizontal, 8)
 
+            legend
+
             Spacer()
         }
         // 빈 자리에서 시작한 스와이프도 받는다. 칸 사이 여백에서만 안 먹으면 손짓이
@@ -127,10 +129,46 @@ struct ScheduleView: View {
 
             Spacer()
 
-            if vm.isLoading { ProgressView() }
+            // **넣고 빼지 않고 감추기만 한다.** 오른쪽에 「오늘」이 있어서, 스피너가
+            // 들고 날 때마다 버튼이 좌우로 밀린다 — 조회는 짧아서 더 눈에 띈다.
+            ProgressView().opacity(vm.isLoading ? 1 : 0)
+
+            // **이번 달이어도 감추지 않고 잠그기만 한다.** 같은 이유다.
+            Button("오늘") { goToday() }
+                .font(.subheadline)
+                .disabled(vm.isViewingCurrentMonth)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
+    }
+
+    /// 색이 무엇을 뜻하는지 알려 준다. 이 화면은 근무를 글자 없이 색과 자리로만 그리므로,
+    /// 처음 보는 사람에게는 분홍과 파랑이 아무 뜻도 아니다.
+    private var legend: some View {
+        HStack(spacing: 14) {
+            legendItem(color: .pink500, label: "엄마")
+            legendItem(color: .blue500, label: "아빠")
+            // 옅은 색이라 테두리가 없으면 흰 배경에서 칩이 보이지 않는다.
+            legendItem(color: .green100, label: "둘 다 휴무", bordered: true)
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 12)
+    }
+
+    private func legendItem(color: Color, label: String, bordered: Bool = false) -> some View {
+        HStack(spacing: 5) {
+            RoundedRectangle(cornerRadius: 2)
+                .fill(color)
+                .frame(width: 14, height: 10)
+                .overlay {
+                    if bordered {
+                        RoundedRectangle(cornerRadius: 2).stroke(Color.slate300, lineWidth: 0.5)
+                    }
+                }
+            Text(label).font(.caption).foregroundStyle(Color.slate500)
+        }
+        .accessibilityElement(children: .combine)
     }
 
     /// 왼쪽으로 밀면 다음 달, 오른쪽으로 밀면 이전 달. 종이 달력을 넘기는 방향과 같다.
@@ -147,6 +185,12 @@ struct ScheduleView: View {
         savedMessage = nil
         loadTask?.cancel()
         loadTask = Task { await vm.move(by: months) }
+    }
+
+    private func goToday() {
+        savedMessage = nil
+        loadTask?.cancel()
+        loadTask = Task { await vm.goToToday() }
     }
 
     private func reload() {
