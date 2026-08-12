@@ -256,6 +256,7 @@ private final class FakeDispatchService: DispatchServing, @unchecked Sendable {
 }
 
 private func sampleRecognition(
+    yearMonth: String? = "2026-08",
     matchedBy: DispatchMatchedBy = .name,
     warnings: [String] = [],
     days: [DispatchRecognitionDay] = [
@@ -263,7 +264,7 @@ private func sampleRecognition(
     ]
 ) -> DispatchRecognition {
     DispatchRecognition(
-        yearMonth: "2026-08",
+        yearMonth: yearMonth,
         hasNameColumn: matchedBy == .name,
         matchedBy: matchedBy,
         rowIndex: 2,
@@ -358,7 +359,6 @@ struct DispatchUploadViewModelTests {
         let service = FakeDispatchService(recognizeResult: .success(sampleRecognition()))
         let vm = DispatchUploadViewModel(service: service)
         vm.setImage(Data([0x01, 0x02]))
-        vm.yearMonth = "2026-08"
 
         await vm.recognize()
 
@@ -435,26 +435,6 @@ struct DispatchUploadViewModelTests {
         #expect(vm.recognition == nil)
     }
 
-    @Test func 인식_중에_연월을_바꾸면_이전_달_결과를_버린다() async {
-        let service = FakeDispatchService(recognizeResult: .success(sampleRecognition()))
-        let vm = DispatchUploadViewModel(service: service)
-        vm.setImage(Data([0x01]))
-        vm.yearMonth = "2026-08"
-        service.duringRecognize = { [vm] in
-            await MainActor.run { vm.yearMonth = "2026-09" }
-        }
-
-        await vm.recognize()
-
-        // 요청을 보낸 뒤 화면의 연월이 바뀌었다. 그 결과를 그대로 받으면 9월 배차표를
-        // 8월 화면에 채우게 된다.
-        #expect(vm.recognition == nil)
-        // 다시 인식할 수 있어야 한다 — 스피너가 남으면 화면이 멈춘 것처럼 보인다.
-        #expect(vm.phase == .idle)
-        #expect(vm.canRecognize == true)
-        #expect(vm.errorMessage != nil)
-    }
-
     @Test func 사진을_비우면_인식할_수_없다() {
         let vm = DispatchUploadViewModel(service: FakeDispatchService(recognizeResult: .success(sampleRecognition())))
         vm.setImage(Data([0x01]))
@@ -501,26 +481,6 @@ struct DispatchUploadViewModelTests {
         #expect(vm.errorMessage == nil)
     }
 
-    @Test func 연월_형식이_어긋나면_인식할_수_없다() {
-        let vm = DispatchUploadViewModel(service: FakeDispatchService(recognizeResult: .success(sampleRecognition())))
-        vm.setImage(Data([0x01]))
-
-        // 서버 `YearMonth`는 `2026-08`만 받는다.
-        for invalid in ["2026-3", "2026-13", "", "2026-00", "26-08", "2026-08-01", " 2026-08"] {
-            vm.yearMonth = invalid
-            #expect(vm.isYearMonthValid == false, "\(invalid)는 막아야 한다")
-            #expect(vm.canRecognize == false, "\(invalid)는 막아야 한다")
-        }
-
-        vm.yearMonth = "2026-08"
-        #expect(vm.isYearMonthValid == true)
-        #expect(vm.canRecognize == true)
-
-        // 월말에 다음 달 배차표를 미리 올리는 경로도 열려 있어야 한다.
-        vm.yearMonth = "2026-12"
-        #expect(vm.canRecognize == true)
-    }
-
     @Test func 사진을_읽지_못하면_조용히_넘기지_않는다() {
         let vm = DispatchUploadViewModel(service: FakeDispatchService(recognizeResult: .success(sampleRecognition())))
         vm.setImage(Data([0x01]))
@@ -532,37 +492,6 @@ struct DispatchUploadViewModelTests {
         #expect(vm.errorMessage != nil)
     }
 
-    @Test func 기본_연월은_이번_달이다() {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(identifier: "Asia/Seoul") ?? .current
-        let date = calendar.date(from: DateComponents(year: 2026, month: 8, day: 12))!
-
-        #expect(DispatchUploadViewModel.defaultYearMonth(now: date, calendar: calendar) == "2026-08")
-    }
-
-    @Test func 기기_달력이_불교력이어도_그레고리력으로_보낸다() {
-        var buddhist = Calendar(identifier: .buddhist)
-        buddhist.timeZone = TimeZone(identifier: "Asia/Seoul") ?? .current
-        var gregorian = Calendar.dispatchGregorian
-        gregorian.timeZone = TimeZone(identifier: "Asia/Seoul") ?? .current
-        let date = gregorian.date(from: DateComponents(year: 2026, month: 8, day: 12))!
-
-        // 기기 설정을 그대로 따르면(`Calendar.current`) 이 값이 만들어진다. 형식 검사를
-        // 통과하고 서버는 그대로 ISO로 읽어 543년 뒤를 인식하고 저장한다.
-        #expect(DispatchUploadViewModel.defaultYearMonth(now: date, calendar: buddhist) == "2569-08")
-        #expect(DispatchUploadViewModel.defaultYearMonth(now: date, calendar: gregorian) == "2026-08")
-        // 그래서 기본값은 기기 설정이 아니라 그레고리력이어야 한다.
-        #expect(Calendar.dispatchGregorian.identifier == .gregorian)
-    }
-
-    @Test func 한자리_월은_0을_채운다() {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(identifier: "Asia/Seoul") ?? .current
-        let date = calendar.date(from: DateComponents(year: 2026, month: 3, day: 1))!
-
-        // "2026-3"으로 보내면 서버의 YearMonth 파싱이 400을 낸다.
-        #expect(DispatchUploadViewModel.defaultYearMonth(now: date, calendar: calendar) == "2026-03")
-    }
 }
 
 @MainActor
@@ -832,5 +761,85 @@ struct DispatchReviewViewModelTests {
         #expect(vm.entries.count == 31)
         #expect(vm.entries[0].recognized == true)
         #expect(vm.entries[0].working == false)
+    }
+
+    @Test func 연월을_못_읽었으면_저장이_잠긴다() {
+        let recognition = sampleRecognition(yearMonth: nil)
+        let vm = makeViewModel(recognition: recognition, service: FakeDispatchService(recognizeResult: .success(recognition)))
+
+        // 날짜 값은 멀쩡히 있지만 어느 달인지 모른다. 그대로 저장하면 날짜를 만들 수 없다.
+        #expect(vm.yearMonth == "")
+        #expect(vm.canSave == false)
+
+        vm.setYearMonth("2026-08")
+        #expect(vm.canSave == true)
+    }
+
+    @Test func 연월_형식이_어긋나면_저장이_잠긴다() {
+        let recognition = sampleRecognition(yearMonth: nil)
+        let vm = makeViewModel(recognition: recognition, service: FakeDispatchService(recognizeResult: .success(recognition)))
+
+        // 서버 YearMonth 파싱은 2026-3에 400을 낸다.
+        for invalid in ["2026-3", "2026-13", "26-08", "2026-08-01", ""] {
+            vm.setYearMonth(invalid)
+            #expect(vm.isYearMonthValid == false, "\(invalid)는 막아야 한다")
+            #expect(vm.canSave == false, "\(invalid)는 막아야 한다")
+        }
+    }
+
+    @Test func 확정한_연월로_날짜를_만든다() async throws {
+        let recognition = sampleRecognition(yearMonth: nil, days: [
+            DispatchRecognitionDay(day: 1, working: true, slot: 1, note: nil, conflict: false)
+        ])
+        let service = FakeDispatchService(recognizeResult: .success(recognition))
+        let vm = makeViewModel(recognition: recognition, service: service)
+
+        vm.setYearMonth("2026-09")
+        await vm.save()
+
+        let request = try #require(service.savedRequests.first)
+        #expect(request.days[0].date == "2026-09-01")
+    }
+
+    @Test func 연월을_채우면_요일과_말일이_맞춰진다() {
+        let recognition = sampleRecognition(yearMonth: nil, days: [
+            DispatchRecognitionDay(day: 1, working: true, slot: 1, note: nil, conflict: false)
+        ])
+        let vm = makeViewModel(recognition: recognition, service: FakeDispatchService(recognizeResult: .success(recognition)))
+
+        // 연월을 모르면 며칠까지인지도 모른다. 넉넉히 31일로 두고 시작한다.
+        #expect(vm.entries.count == 31)
+        #expect(vm.entries[0].weekday == "")
+
+        vm.setYearMonth("2026-02")
+
+        // 2026년 2월은 28일까지고 1일은 일요일이다.
+        #expect(vm.entries.count == 28)
+        #expect(vm.entries[0].weekday == "일")
+        // 고쳐 둔 값은 남아야 한다 — 연월을 나중에 채운다고 검수한 내용이 날아가면 안 된다.
+        #expect(vm.entries[0].working == true)
+        #expect(vm.entries[0].slot == 1)
+    }
+
+    @Test func 다른_달_기준을_빌려_썼으면_알린다() {
+        let recognition = sampleRecognition(yearMonth: nil, warnings: ["ROSTER_FROM_OTHER_MONTH"])
+        let vm = makeViewModel(recognition: recognition, service: FakeDispatchService(recognizeResult: .success(recognition)))
+
+        #expect(vm.warningMessages == [
+            "저장된 줄 위치를 다른 달 것으로 맞췄습니다. 순번이 밀리지 않았는지 사진과 대조해 주세요."
+        ])
+    }
+
+    @Test func 요일은_기기_달력이_아니라_그레고리력으로_센다() {
+        // 기기 달력이 불교력이면 Calendar.current가 2569년으로 계산해 요일이 어긋난다.
+        #expect(Calendar.dispatchGregorian.identifier == .gregorian)
+
+        let recognition = sampleRecognition(yearMonth: "2026-08")
+        let vm = DispatchReviewViewModel(
+            recognition: recognition,
+            service: FakeDispatchService(recognizeResult: .success(recognition))
+        )
+        // 2026-08-01은 토요일이다.
+        #expect(vm.entries[0].weekday == "토")
     }
 }

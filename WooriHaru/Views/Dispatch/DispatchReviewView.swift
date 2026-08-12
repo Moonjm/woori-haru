@@ -21,6 +21,25 @@ struct DispatchReviewView: View {
 
     var body: some View {
         List {
+            Section {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("연월").font(.footnote).foregroundStyle(.secondary)
+                    TextField(
+                        "2026-08",
+                        text: Binding(get: { vm.yearMonth }, set: { vm.setYearMonth($0) })
+                    )
+                    .textFieldStyle(.roundedBorder)
+                    .autocorrectionDisabled()
+                    .keyboardType(.numbersAndPunctuation)
+                    if !vm.isYearMonthValid {
+                        // 사진 제목이 잘리면 서버가 못 읽는다. 사진을 보고 채워야 한다.
+                        Text("사진에서 연월을 읽지 못했습니다. 2026-08처럼 적어 주세요.")
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
+                }
+            }
+
             if let photo {
                 Section {
                     // **확대와 이동이 있어야 대조가 된다.** 배차표는 한 칸이 몇 픽셀이라

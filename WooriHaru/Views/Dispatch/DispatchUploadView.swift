@@ -1,7 +1,7 @@
 import PhotosUI
 import SwiftUI
 
-/// 연월과 사진을 골라 인식을 요청한다.
+/// 사진을 골라 인식을 요청한다. 연월은 검수 화면에서 확인·수정한다.
 ///
 /// **사진을 축소하지 않는다.** 식단처럼 장변 1024px로 줄이면 표가 뭉개져 인식이 망가진다.
 /// 다만 앨범 원본을 **그대로** 보내지도 않는다 — `loadTransferable(type: Data.self)`는 자산의
@@ -27,7 +27,6 @@ struct DispatchUploadView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                yearMonthField
                 photoSection
                 guideText
 
@@ -111,27 +110,6 @@ struct DispatchUploadView: View {
         .navigationDestination(isPresented: $showReview) {
             if let recognition = vm.recognition {
                 DispatchReviewView(recognition: recognition, photo: previewImage)
-            }
-        }
-    }
-
-    private var yearMonthField: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("연월").font(.footnote).foregroundStyle(.secondary)
-            TextField("2026-08", text: $vm.yearMonth)
-                .textFieldStyle(.roundedBorder)
-                .autocorrectionDisabled()
-                .keyboardType(.numbersAndPunctuation)
-                // 인식 중에 달을 고치면 **이전 달 기준 결과**를 받아 그 달로 저장하게 된다.
-                // 뷰모델이 그런 결과를 버리긴 하지만, 애초에 못 고치게 하는 편이 낫다 —
-                // 버려지면 사용자는 몇십 초를 기다렸다가 다시 눌러야 한다.
-                .disabled(vm.phase == .recognizing)
-            // 기본값은 이번 달이라 평소엔 안전하지만, 월말에 다음 달 배차표를 미리 올리려면
-            // 이 칸을 손으로 고치게 된다. `2026-3`은 서버 `YearMonth` 파싱이 400을 낸다.
-            if !vm.isYearMonthValid {
-                Text("연월은 2026-08처럼 네 자리 연도와 두 자리 월로 적어 주세요.")
-                    .font(.caption)
-                    .foregroundStyle(.red)
             }
         }
     }

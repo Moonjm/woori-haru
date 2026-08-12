@@ -1,6 +1,7 @@
 import Foundation
 
-/// 사진 한 장과 연월을 골라 인식을 요청한다.
+/// 사진 한 장을 골라 인식을 요청한다. 연월은 사진 위에 적혀 있어 서버가 읽어 주므로 여기서는
+/// 묻지 않는다 — 검수 화면에서 확인·수정한다.
 ///
 /// **사진을 축소하지 않는다.** 식단은 `UIImage.downsampledJPEG(maxDimension: 1024)`로 줄여
 /// 올리지만, 배차표는 표가 가로로 길어 한 칸이 몇 픽셀밖에 안 된다. 줄이면 서버가 잘라
@@ -19,7 +20,6 @@ final class DispatchUploadViewModel {
     private let service: DispatchServing
 
     var imageData: Data?
-    var yearMonth: String
     private(set) var phase: Phase = .idle
     private(set) var errorMessage: String?
     private(set) var recognition: DispatchRecognition?
@@ -30,22 +30,12 @@ final class DispatchUploadViewModel {
     /// (`DietDayViewModel.generation`과 같은 장치다.)
     private var generation = 0
 
-    init(
-        service: DispatchServing = DispatchService(),
-        now: Date = Date(),
-        calendar: Calendar = .dispatchGregorian
-    ) {
+    init(service: DispatchServing = DispatchService()) {
         self.service = service
-        self.yearMonth = Self.defaultYearMonth(now: now, calendar: calendar)
     }
 
     var canRecognize: Bool {
-        imageData != nil && phase != .recognizing && isYearMonthValid
-    }
-
-    /// 화면이 형식 오류를 알리는 데 쓴다.
-    var isYearMonthValid: Bool {
-        Self.isValidYearMonth(yearMonth)
+        imageData != nil && phase != .recognizing
     }
 
     func setImage(_ data: Data) {
@@ -84,9 +74,6 @@ final class DispatchUploadViewModel {
         phase = .recognizing
         errorMessage = nil
         let token = generation
-        // 어느 달로 보냈는지 찍어 둔다. 화면이 인식 중에는 칸을 잠그지만, 잠그는 것은 화면의
-        // 약속일 뿐이라 실제로 나간 값과 지금 값이 같은지는 여기서 확인한다.
-        let requestedYearMonth = yearMonth
         do {
             let result = try await service.recognize(imageData: imageData)
             // 인식이 도는 동안 사진이 바뀌었다. 이 결과는 화면에 보이는 사진의 것이 아니다.
@@ -94,14 +81,6 @@ final class DispatchUploadViewModel {
             // 있고, 그 스피너를 꺼 버리면 유료 요청이 두 번 나간다. `setImage`가 이미
             // `.idle`로 돌려놨으므로 그대로 버리기만 한다.
             guard token == generation else { return }
-            // 인식이 도는 동안 연월이 바뀌었다. 이 결과는 이전 달 기준이라 그대로 저장하면
-            // 엉뚱한 달에 근무가 들어간다. 사진은 그대로이니(generation이 같다) 새 인식이
-            // 시작됐을 수 없고, 따라서 이 요청이 아직 `phase`의 주인이다.
-            guard requestedYearMonth == yearMonth else {
-                phase = .idle
-                errorMessage = "연월이 바뀌어 인식을 취소했습니다. 다시 인식해 주세요."
-                return
-            }
             recognition = result
             phase = .completed
         } catch is CancellationError {
@@ -111,29 +90,10 @@ final class DispatchUploadViewModel {
             // 바뀌기 전 사진의 실패다. 새 사진으로 다시 인식하려는 참인데 오류만 떠 있으면
             // 사용자는 방금 고른 사진이 실패한 줄 안다.
             guard token == generation else { return }
-            // 바뀌기 전 달의 실패다. 위와 같은 이유로 이 요청이 `phase`의 주인이다.
-            guard requestedYearMonth == yearMonth else {
-                phase = .idle
-                return
-            }
             // 서버 메시지가 이미 사용자용 한국어다(`TARGET_NOT_FOUND` 등). 앱이 다시 쓰지 않는다.
             // 다만 봉투 JSON째 보여주면 안 되므로 `message`만 꺼낸다.
             errorMessage = error.serverMessage ?? error.localizedDescription
             phase = .failed
         }
-    }
-
-    /// `^\d{4}-(0[1-9]|1[0-2])$`. **월에 0을 채워야 한다** — `2026-3`·`2026-13`은
-    /// 서버의 `YearMonth` 파싱이 400을 낸다.
-    static func isValidYearMonth(_ value: String) -> Bool {
-        value.range(of: "^[0-9]{4}-(0[1-9]|1[0-2])$", options: .regularExpression) != nil
-    }
-
-    /// `2026-08` 형식. **월에 0을 채워야 한다** — `2026-3`은 서버의 `YearMonth` 파싱이 400을 낸다.
-    static func defaultYearMonth(now: Date = Date(), calendar: Calendar = .current) -> String {
-        let components = calendar.dateComponents([.year, .month], from: now)
-        let year = components.year ?? 2026
-        let month = components.month ?? 1
-        return String(format: "%04d-%02d", year, month)
     }
 }
