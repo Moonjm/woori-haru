@@ -190,7 +190,9 @@ final class FakeScheduleService: DispatchServing, @unchecked Sendable {
         requestedYearMonths.append(yearMonth)
         await duringFetch?()
         if let error { throw error }
-        return days
+        // 서버는 그 달의 날짜만 돌려준다. 대역도 같아야 「늦게 온 8월 응답을 버리는가」를
+        // 실제로 검증할 수 있다.
+        return days.filter { $0.date.hasPrefix(yearMonth) }
     }
 
     func recognize(imageData: Data) async throws -> DispatchRecognition {

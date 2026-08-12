@@ -66,17 +66,16 @@ final class ScheduleViewModel {
 
     func load() async {
         let token = generation
-        let requestedYearMonth = yearMonth
         isLoading = true
         errorMessage = nil
 
         await loadHolidaysIfNeeded(year: calendar.component(.year, from: startOfMonth))
 
         do {
-            let days = try await service.findShifts(yearMonth: requestedYearMonth)
+            let days = try await service.findShifts(yearMonth: yearMonth)
             // 조회 중에 달이 바뀌었다. 이 결과는 지금 보이는 달의 것이 아니다.
             guard token == generation else { return }
-            badgesByDate = Self.group(days, expectedYearMonth: requestedYearMonth)
+            badgesByDate = Self.group(days)
         } catch is CancellationError {
             return
         } catch {
@@ -120,12 +119,13 @@ final class ScheduleViewModel {
 
     /// 날짜별로 모으고 **역할 순서를 고정한다.** 응답 순서대로 그리면 날마다 위아래가 바뀐다.
     ///
-    /// `expectedYearMonth`에 속하지 않는 날짜는 버린다. 요청 자체는 `generation`으로
-    /// 최신성을 가리지만, 응답 안의 개별 항목이 요청한 달과 다른 달의 것이면(예: 서버가
-    /// 엉뚱한 범위를 함께 돌려주는 경우) 걸러지지 않고 그대로 새 달 화면에 섞여 들어간다.
-    private static func group(_ days: [DispatchShiftDay], expectedYearMonth: String) -> [String: [Badge]] {
+    /// **연월로 다시 거르지 않는다.** `findShifts(yearMonth:)`는 그 달의 날짜만 돌려주는
+    /// 계약이다 — 여기서 또 거르면 서버가 실제로 무엇을 보냈는지 조용히 감추고, 서버가
+    /// 계약을 어겨도 화면이 티 내지 않는다. 늦게 온 이전 달 응답을 막는 일은 `load()`의
+    /// `generation` 토큰이 한다.
+    private static func group(_ days: [DispatchShiftDay]) -> [String: [Badge]] {
         var result: [String: [Badge]] = [:]
-        for day in days where day.working && day.date.hasPrefix(expectedYearMonth) {
+        for day in days where day.working {
             result[day.date, default: []].append(Badge(role: day.role, slot: day.slot))
         }
         return result.mapValues { badges in
