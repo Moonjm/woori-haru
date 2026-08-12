@@ -30,6 +30,9 @@ struct ContentView: View {
     @State private var path = NavigationPath()
     @State private var quickActionCenter = QuickActionCenter.shared
     @State private var showMembershipCard = false
+    /// 배차표를 저장하고 돌아올 때 달력이 띄워야 할 달. 배차표는 다음 달치를 등록하는 게
+    /// 정상이라, 보고 있던 달로 그냥 돌아오면 방금 저장한 게 화면에 없다.
+    @State private var savedDispatchYearMonth: String?
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -52,8 +55,15 @@ struct ContentView: View {
                     case .ledgerInboundFailures: LedgerInboundFailuresView()
                     case .swimRecords: SwimRecordListView()
                     case .diet: DietHomeView()
-                    case .schedule: ScheduleView(navPath: $path)
-                    case .dispatchUpload: DispatchUploadView()
+                    case .schedule: ScheduleView(navPath: $path, savedYearMonth: $savedDispatchYearMonth)
+                    case .dispatchUpload:
+                        DispatchUploadView(onSaved: { yearMonth in
+                            savedDispatchYearMonth = yearMonth
+                            // 검수 화면은 `navigationDestination(isPresented:)`로 떠서 `path`에
+                            // 얹히지 않는다 — 업로드 화면을 `path`에서 빼면 검수 화면도 함께
+                            // 사라져 달력까지 한 번에 물러난다.
+                            if !path.isEmpty { path.removeLast() }
+                        })
                     }
                 }
         }

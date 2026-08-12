@@ -6,6 +6,11 @@ import SwiftUI
 /// 한 번에 등록하므로 미등록이면 달 전체가 비어 한눈에 보이고, 엄마는 패턴이라 늘 채워진다.
 struct ScheduleDayCellView: View {
     let date: Date
+    /// `MonthGridBuilder`가 주입 달력으로 이미 계산해 둔 값. `date.day`(기기 달력,
+    /// `Date+Extensions`)를 다시 쓰면 기기 달력이 그레고리력이 아닐 때 밴드 위치(고정
+    /// 포맷터 `dateString` 기준이라 맞다)와 숫자가 어긋난다.
+    let day: Int
+    let month: Int
     let isCurrentMonth: Bool
     let holidayNames: [String]
     let badges: [ScheduleViewModel.Badge]
@@ -15,7 +20,7 @@ struct ScheduleDayCellView: View {
     var body: some View {
         VStack(spacing: 2) {
             HStack {
-                Text("\(date.day)")
+                Text("\(day)")
                     .font(.system(size: 13))
                     .fontWeight(date.isToday && isCurrentMonth ? .bold : .regular)
                     .foregroundStyle(dateColor)
@@ -65,7 +70,7 @@ struct ScheduleDayCellView: View {
     }
 
     private var accessibilityDescription: String {
-        var parts = ["\(date.month)월 \(date.day)일"]
+        var parts = ["\(month)월 \(day)일"]
         parts += holidayNames
         for badge in badges {
             let who = badge.role == .father ? "아빠" : "엄마"

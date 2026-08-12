@@ -4,7 +4,6 @@ import SwiftUI
 struct DispatchReviewView: View {
     @State private var vm: DispatchReviewViewModel
     @State private var saveTask: Task<Void, Never>?
-    @Environment(\.dismiss) private var dismiss
 
     /// 확대 배율과 이동. 놓아도 유지한다(아래 주석 참고). 두 번 탭하면 원래대로 돌아간다.
     @State private var scale: CGFloat = 1
@@ -13,13 +12,24 @@ struct DispatchReviewView: View {
     @State private var lastOffset: CGSize = .zero
 
     private let photo: UIImage?
+    /// 저장에 성공하면 **저장된 연월**과 함께 부른다. 이 화면은 `navigationDestination(isPresented:)`로
+    /// 떠서 `dismiss()`는 업로드 화면까지만 물러난다 — 달력으로 돌아가 저장한 달을 띄우는
+    /// 일은 이 화면이 스스로 못 하고, 업로드 화면을 거쳐 `ContentView`가 `path`에서
+    /// `.dispatchUpload`를 빼는 방식으로만 된다(그러면 이 화면도 함께 사라진다).
+    private let onSaved: (String) -> Void
 
-    init(recognition: DispatchRecognition, photo: UIImage?) {
+    init(recognition: DispatchRecognition, photo: UIImage?, onSaved: @escaping (String) -> Void) {
         _vm = State(initialValue: DispatchReviewViewModel(recognition: recognition))
         self.photo = photo
+        self.onSaved = onSaved
     }
 
     var body: some View {
+        // **저장 중에는 못 고치게 막는다.** `save()`는 요청을 보내기 전에 연월과 `entries`를
+        // 찍어 두므로, 저장을 누른 뒤 고친 값은 화면에만 반영되고 요청에는 빠진다. 연월
+        // 칸도 예외가 아니다 — 저장 중에 연월을 고치면 이전 값으로 저장된 요청과 화면에
+        // 보이는 새 연월이 어긋나, 다른 달 값이 이번 달을 덮는 «그럴듯하게 틀린 저장»이
+        // 된다. 그래서 `List` 전체를 잠근다.
         List {
             Section {
                 VStack(alignment: .leading, spacing: 4) {
@@ -32,10 +42,18 @@ struct DispatchReviewView: View {
                     .autocorrectionDisabled()
                     .keyboardType(.numbersAndPunctuation)
                     if !vm.isYearMonthValid {
-                        // 사진 제목이 잘리면 서버가 못 읽는다. 사진을 보고 채워야 한다.
-                        Text("사진에서 연월을 읽지 못했습니다. 2026-08처럼 적어 주세요.")
-                            .font(.caption)
-                            .foregroundStyle(.red)
+                        // 비어 있는 경우와 형식이 틀린 경우를 가른다 — 사진에서 잘 읽었는데
+                        // 사용자가 한 글자 지운 순간까지 「못 읽었다」고 하면 상황과 안 맞는다.
+                        if vm.yearMonth.isEmpty {
+                            // 사진 제목이 잘리면 서버가 못 읽는다. 사진을 보고 채워야 한다.
+                            Text("사진에서 연월을 읽지 못했습니다. 2026-08처럼 적어 주세요.")
+                                .font(.caption)
+                                .foregroundStyle(.red)
+                        } else {
+                            Text("연월은 2026-08처럼 네 자리 연도와 두 자리 월로 적어 주세요.")
+                                .font(.caption)
+                                .foregroundStyle(.red)
+                        }
                     }
                 }
             }
@@ -103,10 +121,6 @@ struct DispatchReviewView: View {
                     dayRow(entry)
                 }
             }
-            // **저장 중에는 못 고치게 막는다.** `save()`는 요청을 보내기 전에 `entries`를
-            // 찍어 두므로, 저장을 누른 뒤 고친 값은 화면에만 반영되고 요청에는 빠진다.
-            // 게다가 성공하면 곧바로 화면이 닫혀 사용자는 그 수정도 저장된 줄 안다.
-            .disabled(vm.isSaving)
 
             if let message = vm.errorMessage {
                 Section {
@@ -114,6 +128,7 @@ struct DispatchReviewView: View {
                 }
             }
         }
+        .disabled(vm.isSaving)
         .navigationTitle("인식 결과 확인")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -122,7 +137,7 @@ struct DispatchReviewView: View {
                     saveTask?.cancel()
                     saveTask = Task {
                         await vm.save()
-                        if vm.didSave { dismiss() }
+                        if vm.didSave { onSaved(vm.yearMonth) }
                     }
                 }
                 // 보낼 날짜가 하나도 없으면 서버 `@NotEmpty`가 400을 낸다.

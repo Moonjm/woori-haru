@@ -811,14 +811,19 @@ struct DispatchReviewViewModelTests {
         #expect(vm.entries.count == 31)
         #expect(vm.entries[0].weekday == "")
 
+        // 사람이 손으로 고친 값 — 인식 결과(1일, 근무, 1번)와 다르게 「휴무」로 바꾼다.
+        // 병합이 지키려는 건 이 값이다. 인식 결과 그대로인 값으로 단언하면 `setYearMonth`가
+        // `entries`를 통째로 새로 만들기만 해도 테스트가 통과해 병합 로직을 검증하지 못한다.
+        vm.setWorking(day: 1, working: false, slot: nil)
+
         vm.setYearMonth("2026-02")
 
         // 2026년 2월은 28일까지고 1일은 일요일이다.
         #expect(vm.entries.count == 28)
         #expect(vm.entries[0].weekday == "일")
         // 고쳐 둔 값은 남아야 한다 — 연월을 나중에 채운다고 검수한 내용이 날아가면 안 된다.
-        #expect(vm.entries[0].working == true)
-        #expect(vm.entries[0].slot == 1)
+        #expect(vm.entries[0].working == false)
+        #expect(vm.entries[0].slot == nil)
     }
 
     @Test func 다른_달_기준을_빌려_썼으면_알린다() {

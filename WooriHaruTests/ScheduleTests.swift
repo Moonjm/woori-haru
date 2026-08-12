@@ -153,6 +153,41 @@ struct ScheduleViewModelTests {
         #expect(vm.errorMessage == "조회에 실패했습니다.")
     }
 
+    @Test func 연월_문자열로_그_달을_띄운다() async {
+        // 저장을 마치고 검수 화면에서 돌아올 때 이 경로를 탄다. 배차표는 다음 달치를
+        // 등록하는 게 정상이라, 보고 있던 달이 아니라 저장한 달을 띄워야 한다.
+        let mock = MockAPIClient()
+        mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
+        let service = FakeScheduleService(days: [
+            DispatchShiftDay(date: "2026-09-05", role: .father, working: true, slot: 2, note: nil)
+        ])
+        let vm = makeViewModel(mock: mock, service: service)
+        await vm.load()
+
+        await vm.show(yearMonth: "2026-09")
+
+        #expect(vm.yearMonth == "2026-09")
+        #expect(vm.monthLabel == "2026년 9월")
+        #expect(service.requestedYearMonths == ["2026-08", "2026-09"])
+        #expect(vm.badges(on: "2026-09-05") == [ScheduleViewModel.Badge(role: .father, slot: 2)])
+    }
+
+    @Test func 형식이_틀린_연월은_보고_있던_달을_유지한다() async {
+        let mock = MockAPIClient()
+        mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
+        let service = FakeScheduleService(days: [])
+        let vm = makeViewModel(mock: mock, service: service)
+        await vm.load()
+
+        await vm.show(yearMonth: "2026-9")
+        await vm.show(yearMonth: "")
+        await vm.show(yearMonth: "not-a-date")
+
+        // 엉뚱한 달로 튀는 것보다, 보고 있던 달을 그대로 유지하는 편이 낫다.
+        #expect(vm.yearMonth == "2026-08")
+        #expect(service.requestedYearMonths == ["2026-08"])
+    }
+
     @Test func 늦게_온_이전_달_응답을_버린다() async {
         let mock = MockAPIClient()
         mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))

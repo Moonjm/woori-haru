@@ -97,6 +97,16 @@ final class ScheduleViewModel {
         await show(next)
     }
 
+    /// `2026-09` 문자열로 그 달을 띄운다. 저장을 마치고 돌아올 때 **저장한 달**을 보여주는
+    /// 자리다 — 배차표는 다음 달치를 등록하는 것이 정상이라, 보고 있던 달로 돌아오면
+    /// 방금 넣은 것이 화면에 없다.
+    func show(yearMonth: String) async {
+        // 형식이 어긋나면 아무것도 하지 않는다. 보고 있던 달을 유지하는 편이,
+        // 엉뚱한 달로 튀는 것보다 낫다.
+        guard let parsed = Self.parseYearMonth(yearMonth) else { return }
+        await jump(year: parsed.year, month: parsed.month)
+    }
+
     private func show(_ start: Date) async {
         generation += 1
         startOfMonth = Self.startOfMonth(for: start, calendar: calendar)
@@ -156,5 +166,15 @@ final class ScheduleViewModel {
     private static func yearMonthString(for date: Date, calendar: Calendar) -> String {
         let comps = calendar.dateComponents([.year, .month], from: date)
         return String(format: "%04d-%02d", comps.year!, comps.month!)
+    }
+
+    /// `DispatchReviewViewModel.isValidYearMonth`와 같은 형식(`^\d{4}-(0[1-9]|1[0-2])$`)만
+    /// 받는다 — 검수 화면이 이미 그 형식으로만 저장을 허용하므로, 여기서 어긋난 값이
+    /// 온다면 호출자 쪽 문제다. 그래도 크래시 대신 조용히 실패한다.
+    private static func parseYearMonth(_ value: String) -> (year: Int, month: Int)? {
+        guard value.range(of: "^[0-9]{4}-(0[1-9]|1[0-2])$", options: .regularExpression) != nil else { return nil }
+        let parts = value.split(separator: "-")
+        guard let year = Int(parts[0]), let month = Int(parts[1]) else { return nil }
+        return (year, month)
     }
 }

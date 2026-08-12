@@ -27,14 +27,16 @@ enum MonthGridBuilder {
                 id: "\(id)-prev-\(dateString(for: prevDate, calendar: calendar))",
                 date: prevDate,
                 day: calendar.component(.day, from: prevDate),
+                month: calendar.component(.month, from: prevDate),
                 isCurrentMonth: false
             ))
         }
 
         // 현재 월 날짜
+        let month = calendar.component(.month, from: startOfMonth)
         for day in 1...daysInMonth {
             let dayDate = calendar.date(byAdding: .day, value: day - 1, to: startOfMonth)!
-            cells.append(.init(id: dateString(for: dayDate, calendar: calendar), date: dayDate, day: day, isCurrentMonth: true))
+            cells.append(.init(id: dateString(for: dayDate, calendar: calendar), date: dayDate, day: day, month: month, isCurrentMonth: true))
         }
 
         // 다음 월 날짜 (trailing) - 마지막 주만 채움 (7의 배수)
@@ -48,6 +50,7 @@ enum MonthGridBuilder {
                     id: "\(id)-next-\(dateString(for: nextDate, calendar: calendar))",
                     date: nextDate,
                     day: calendar.component(.day, from: nextDate),
+                    month: calendar.component(.month, from: nextDate),
                     isCurrentMonth: false
                 ))
             }

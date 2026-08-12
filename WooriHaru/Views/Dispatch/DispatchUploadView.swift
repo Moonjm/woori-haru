@@ -11,6 +11,10 @@ import SwiftUI
 /// 불러 JPEG로 다시 굽고 회전을 픽셀에 반영한다 — 그 함수가 상한을 `min(maxDimension, originalMax)`로
 /// 낮추므로 **해상도는 원본 그대로다.**
 struct DispatchUploadView: View {
+    /// 검수 화면까지 그대로 넘긴다. 저장에 성공하면 저장된 연월과 함께 불린다 —
+    /// `ContentView`가 이걸로 달력을 그 달로 띄운다.
+    var onSaved: (String) -> Void = { _ in }
+
     @State private var vm = DispatchUploadViewModel()
     @State private var pickerItem: PhotosPickerItem?
     @State private var previewImage: UIImage?
@@ -109,7 +113,7 @@ struct DispatchUploadView: View {
         }
         .navigationDestination(isPresented: $showReview) {
             if let recognition = vm.recognition {
-                DispatchReviewView(recognition: recognition, photo: previewImage)
+                DispatchReviewView(recognition: recognition, photo: previewImage, onSaved: onSaved)
             }
         }
     }

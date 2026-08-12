@@ -31,6 +31,7 @@ struct MonthData: Identifiable {
         let id: String      // "yyyy-MM-dd"
         let date: Date
         let day: Int
+        let month: Int
         let isCurrentMonth: Bool
     }
 }
