@@ -110,6 +110,7 @@
 		E10006 /* SearchViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20006 /* SearchViewModel.swift */; };
 		E10007 /* CategoriesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20007 /* CategoriesViewModel.swift */; };
 		E388FF0F4AE279B6C9099FEE /* ScheduleDayCellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 813FA531B52FC382C20B699F /* ScheduleDayCellView.swift */; };
+		EB02C36F09E042FBA560DB49 /* ScheduleDayEditViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27B9109A23976C3D60DF063E /* ScheduleDayEditViewModel.swift */; };
 		F10001 /* Date+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20001 /* Date+Extensions.swift */; };
 		F10002 /* Color+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20002 /* Color+Extensions.swift */; };
 		F10003 /* Double+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20003 /* Double+Extensions.swift */; };
@@ -209,6 +210,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		27B9109A23976C3D60DF063E /* ScheduleDayEditViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ScheduleDayEditViewModel.swift; sourceTree = "<group>"; };
 		2969E3F2EAA5A9B4E033CC8F /* ScheduleViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ScheduleViewModel.swift; sourceTree = "<group>"; };
 		2A1655D9FB504D22636292C1 /* DispatchReviewViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DispatchReviewViewModel.swift; sourceTree = "<group>"; };
 		7EE2658BE836DAFED195B3A5 /* DispatchReviewView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DispatchReviewView.swift; path = Dispatch/DispatchReviewView.swift; sourceTree = "<group>"; };
@@ -640,6 +642,7 @@
 				B580B47689143646299A23EE /* DispatchUploadViewModel.swift */,
 				2A1655D9FB504D22636292C1 /* DispatchReviewViewModel.swift */,
 				2969E3F2EAA5A9B4E033CC8F /* ScheduleViewModel.swift */,
+				27B9109A23976C3D60DF063E /* ScheduleDayEditViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -1145,6 +1148,7 @@
 				A10AD40468D182F380D2EDED /* ScheduleViewModel.swift in Sources */,
 				02C05E2522888FC9FA1914FE /* ScheduleView.swift in Sources */,
 				E388FF0F4AE279B6C9099FEE /* ScheduleDayCellView.swift in Sources */,
+				EB02C36F09E042FBA560DB49 /* ScheduleDayEditViewModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
