@@ -27,6 +27,7 @@
 		A10002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20002 /* ContentView.swift */; };
 		A10003 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20003 /* Assets.xcassets */; };
 		A10004 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20004 /* Preview Assets.xcassets */; };
+		A10AD40468D182F380D2EDED /* ScheduleViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2969E3F2EAA5A9B4E033CC8F /* ScheduleViewModel.swift */; };
 		A96AC1C7074B35DF261C1958 /* DispatchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD3CE59E8DF1F82DF405E788 /* DispatchService.swift */; };
 		AA100001 /* PairStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200001 /* PairStore.swift */; };
 		AA100002 /* CategoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200002 /* CategoryStore.swift */; };
@@ -206,6 +207,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		2969E3F2EAA5A9B4E033CC8F /* ScheduleViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ScheduleViewModel.swift; sourceTree = "<group>"; };
 		2A1655D9FB504D22636292C1 /* DispatchReviewViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DispatchReviewViewModel.swift; sourceTree = "<group>"; };
 		7EE2658BE836DAFED195B3A5 /* DispatchReviewView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DispatchReviewView.swift; path = Dispatch/DispatchReviewView.swift; sourceTree = "<group>"; };
 		880AD4662F5F071100777742 /* StudyTimerWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = StudyTimerWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -624,6 +626,7 @@
 				DT20034 /* MealItemPickViewModel.swift */,
 				B580B47689143646299A23EE /* DispatchUploadViewModel.swift */,
 				2A1655D9FB504D22636292C1 /* DispatchReviewViewModel.swift */,
+				2969E3F2EAA5A9B4E033CC8F /* ScheduleViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -1125,6 +1128,7 @@
 				1634F29B8B1A65276DEFCC09 /* DispatchUploadView.swift in Sources */,
 				01E5347F6D87126F3B0EEDF0 /* DispatchReviewView.swift in Sources */,
 				8CB8971CA8F25A48887B5650 /* MonthGridBuilder.swift in Sources */,
+				A10AD40468D182F380D2EDED /* ScheduleViewModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

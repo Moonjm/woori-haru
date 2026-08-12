@@ -1,0 +1,150 @@
+import Foundation
+import os
+
+/// 배차 근무를 월 단위로 보여준다. **조회 전용이다** — 여기서 고치지 않는다.
+///
+/// 서버 조회가 월 단위(`GET /dispatch/shifts?yearMonth=`)라 화면 단위도 한 달로 맞춘다.
+/// 기본 달력처럼 세로로 이어 붙이면 화면 단위와 조회 단위가 어긋나 조회가 흩어진다.
+@MainActor
+@Observable
+final class ScheduleViewModel {
+    /// 칸 하나에 그릴 근무 표시. 순번이 없으면 색만 칠한다.
+    struct Badge: Equatable {
+        let role: DispatchRole
+        let slot: Int?
+    }
+
+    private let service: DispatchServing
+    private let holidayService: HolidayService
+    private let calendar: Calendar
+
+    private(set) var yearMonth: String
+    private(set) var cells: [MonthData.DayCell] = []
+    private(set) var isLoading = false
+    private(set) var errorMessage: String?
+
+    private var startOfMonth: Date
+    private var badgesByDate: [String: [Badge]] = [:]
+
+    /// 받아 둔 공휴일을 연 단위로 들고 있는다. **달을 옮겨도 남는다.**
+    /// 화면 상태 안에만 두고 「이미 받았다」는 표시를 바깥에 따로 두면 둘이 어긋나
+    /// 공휴일이 통째로 사라진다 — 기본 달력에서 실제로 그렇게 됐다(#70).
+    private var holidaysByYear: [Int: [String: [String]]] = [:]
+
+    /// 달을 옮길 때마다 올린다. 늦게 온 이전 달 응답이 새 달 화면을 채우지 못하게 막는다.
+    private var generation = 0
+
+    init(
+        service: DispatchServing = DispatchService(),
+        holidayService: HolidayService = HolidayService(),
+        now: Date = Date(),
+        calendar: Calendar = .dispatchGregorian
+    ) {
+        self.service = service
+        self.holidayService = holidayService
+        self.calendar = calendar
+        let start = Self.startOfMonth(for: now, calendar: calendar)
+        self.startOfMonth = start
+        self.yearMonth = Self.yearMonthString(for: start, calendar: calendar)
+        self.cells = MonthGridBuilder.cells(for: start, calendar: calendar)
+    }
+
+    var monthLabel: String {
+        "\(calendar.component(.year, from: startOfMonth))년 \(calendar.component(.month, from: startOfMonth))월"
+    }
+
+    var pickerYear: Int { calendar.component(.year, from: startOfMonth) }
+    var pickerMonth: Int { calendar.component(.month, from: startOfMonth) }
+
+    func badges(on dateString: String) -> [Badge] {
+        badgesByDate[dateString] ?? []
+    }
+
+    func holidayNames(on dateString: String) -> [String] {
+        holidaysByYear[calendar.component(.year, from: startOfMonth)]?[dateString] ?? []
+    }
+
+    func load() async {
+        let token = generation
+        let requestedYearMonth = yearMonth
+        isLoading = true
+        errorMessage = nil
+
+        await loadHolidaysIfNeeded(year: calendar.component(.year, from: startOfMonth))
+
+        do {
+            let days = try await service.findShifts(yearMonth: requestedYearMonth)
+            // 조회 중에 달이 바뀌었다. 이 결과는 지금 보이는 달의 것이 아니다.
+            guard token == generation else { return }
+            badgesByDate = Self.group(days, expectedYearMonth: requestedYearMonth)
+        } catch is CancellationError {
+            return
+        } catch {
+            guard token == generation else { return }
+            // 서버 메시지가 이미 사용자용 한국어다. 봉투 JSON째 보여주지 않는다.
+            errorMessage = error.serverMessage ?? error.localizedDescription
+        }
+        guard token == generation else { return }
+        isLoading = false
+    }
+
+    func move(by months: Int) async {
+        guard let next = calendar.date(byAdding: .month, value: months, to: startOfMonth) else { return }
+        await show(next)
+    }
+
+    func jump(year: Int, month: Int) async {
+        guard let next = calendar.date(from: DateComponents(year: year, month: month, day: 1)) else { return }
+        await show(next)
+    }
+
+    private func show(_ start: Date) async {
+        generation += 1
+        startOfMonth = Self.startOfMonth(for: start, calendar: calendar)
+        yearMonth = Self.yearMonthString(for: startOfMonth, calendar: calendar)
+        cells = MonthGridBuilder.cells(for: startOfMonth, calendar: calendar)
+        // 이전 달 값을 지운다. 남겨 두면 조회가 끝나기 전까지 이전 달 근무가 새 달에 보인다.
+        badgesByDate = [:]
+        await load()
+    }
+
+    /// **실패해도 조용히 넘어간다.** 근무가 주 정보고 공휴일은 부가다.
+    private func loadHolidaysIfNeeded(year: Int) async {
+        guard holidaysByYear[year] == nil else { return }
+        do {
+            holidaysByYear[year] = try await holidayService.fetchHolidays(year: String(year))
+        } catch {
+            Logger.calendar.error("공휴일 조회 실패: \(year) \(error.localizedDescription)")
+        }
+    }
+
+    /// 날짜별로 모으고 **역할 순서를 고정한다.** 응답 순서대로 그리면 날마다 위아래가 바뀐다.
+    ///
+    /// `expectedYearMonth`에 속하지 않는 날짜는 버린다. 요청 자체는 `generation`으로
+    /// 최신성을 가리지만, 응답 안의 개별 항목이 요청한 달과 다른 달의 것이면(예: 서버가
+    /// 엉뚱한 범위를 함께 돌려주는 경우) 걸러지지 않고 그대로 새 달 화면에 섞여 들어간다.
+    private static func group(_ days: [DispatchShiftDay], expectedYearMonth: String) -> [String: [Badge]] {
+        var result: [String: [Badge]] = [:]
+        for day in days where day.working && day.date.hasPrefix(expectedYearMonth) {
+            result[day.date, default: []].append(Badge(role: day.role, slot: day.slot))
+        }
+        return result.mapValues { badges in
+            badges.sorted { lhs, _ in lhs.role == .father }
+        }
+    }
+
+    /// `Date.startOfMonth()`(Date+Extensions)는 `Calendar.current`를 쓴다. 기기 달력이
+    /// 불교력이면 연도가 어긋나므로(`DispatchModels.swift`의 `Calendar.dispatchGregorian`
+    /// 참고) 주입받은 `calendar`로 직접 계산한다.
+    private static func startOfMonth(for date: Date, calendar: Calendar) -> Date {
+        let comps = calendar.dateComponents([.year, .month], from: date)
+        return calendar.date(from: comps)!
+    }
+
+    /// `Date.yearMonth`(Date+Extensions)와 같은 이유로 여기서 직접 만든다 — 서버로
+    /// 나가는 값이라 `Calendar.current`를 타면 안 된다.
+    private static func yearMonthString(for date: Date, calendar: Calendar) -> String {
+        let comps = calendar.dateComponents([.year, .month], from: date)
+        return String(format: "%04d-%02d", comps.year!, comps.month!)
+    }
+}
