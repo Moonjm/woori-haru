@@ -8,6 +8,7 @@ struct ScheduleView: View {
     /// 안내를 보인 뒤 스스로 비운다 — 남겨 두면 다음에 이 화면을 다시 들를 때도 같은
     /// 안내가 뜬다.
     @Binding var savedYearMonth: String?
+    @Environment(\.scenePhase) private var scenePhase
     @State private var vm = ScheduleViewModel()
     @State private var showPicker = false
     @State private var loadTask: Task<Void, Never>?
@@ -120,6 +121,12 @@ struct ScheduleView: View {
                 .receive(on: RunLoop.main)
         ) { _ in
             vm.refreshToday()
+        }
+        // **앞으로 돌아올 때도 맞춘다.** 알림만으로는 뒤에 있는 동안 날이 바뀐 경우가
+        // 남는다. 그때 「오늘」 버튼이 잠긴 채로 있으면 탭이 `goToToday()`에 닿지
+        // 못해, 버튼 안에 둔 갱신도 함께 막힌다 — 잠긴 버튼은 스스로를 풀 수 없다.
+        .onChange(of: scenePhase) {
+            if scenePhase == .active { vm.refreshToday() }
         }
         .onDisappear { loadTask?.cancel() }
     }
