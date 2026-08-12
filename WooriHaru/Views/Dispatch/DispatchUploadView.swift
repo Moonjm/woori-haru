@@ -154,8 +154,10 @@ struct DispatchUploadView: View {
     private var guideText: some View {
         Text("""
         시간표만 확대해서 찍은 사진이 가장 잘 읽힙니다. \
+        밴드 글 전체를 담으면 표가 작아져 잘 안 읽힙니다. \
         첫 장은 성명 컬럼이 보이게 왼쪽부터 찍어 주세요. \
-        기사 줄이 잘리면 순번이 어긋납니다.
+        기사 줄이 잘리면 순번이 어긋납니다. \
+        인식에는 1~2분 걸립니다.
         """)
         .font(.footnote)
         .foregroundStyle(.secondary)

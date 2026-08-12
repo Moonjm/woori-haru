@@ -150,6 +150,9 @@ final class APIClient: APIClientProtocol, Sendable {
         return id
     }
 
+    /// JSON을 돌려받는 multipart의 타임아웃. 지금 이 경로를 쓰는 것은 배차 인식뿐이다.
+    private static let recognitionTimeout: TimeInterval = 180
+
     func postMultipart<T: Decodable>(
         _ path: String,
         query: [String: String],
@@ -160,7 +163,15 @@ final class APIClient: APIClientProtocol, Sendable {
         let boundary = "Boundary-\(UUID().uuidString)"
         let body = Self.multipartBody(boundary: boundary, fileData: fileData, fileName: fileName, mimeType: mimeType)
         let pathWithQuery = Self.appending(query: query, to: path)
-        let (data, _) = try await rawMultipartFetch(pathWithQuery, body: body, boundary: boundary)
+        // **배차 인식은 오래 걸린다.** 서버가 사진을 조각내 비전 모델로 읽고 조각마다 한 번
+        // 재시도하므로 실측 85초가 나왔다. 세션 기본값 60초로는 서버가 멀쩡히 답하는 중에
+        // 앱이 먼저 포기하고, 사용자는 유료 인식을 한 번 더 돌리게 된다.
+        let (data, _) = try await rawMultipartFetch(
+            pathWithQuery,
+            body: body,
+            boundary: boundary,
+            timeout: Self.recognitionTimeout
+        )
         return try JSONDecoder().decode(T.self, from: data)
     }
 
@@ -310,6 +321,7 @@ final class APIClient: APIClientProtocol, Sendable {
         _ path: String,
         body: Data,
         boundary: String,
+        timeout: TimeInterval? = nil,
         isRetry: Bool = false
     ) async throws -> (Data, HTTPURLResponse) {
         guard let url = URL(string: baseURL + path) else { throw APIError.invalidURL }
@@ -318,6 +330,9 @@ final class APIClient: APIClientProtocol, Sendable {
         request.httpMethod = "POST"
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
         request.httpBody = body
+        // 세션 기본값은 60초다. 오래 걸리는 요청만 개별로 늘린다 — 세션 전체를 늘리면
+        // 네트워크가 끊긴 화면들이 전부 그만큼 멈춰 선다.
+        if let timeout { request.timeoutInterval = timeout }
 
         let session = SessionManager.shared.urlSession
 
@@ -337,7 +352,7 @@ final class APIClient: APIClientProtocol, Sendable {
         if httpResponse.statusCode == 401 && !isRetry {
             let shouldRetry = await SessionManager.shared.handleUnauthorized()
             if shouldRetry {
-                return try await rawMultipartFetch(path, body: body, boundary: boundary, isRetry: true)
+                return try await rawMultipartFetch(path, body: body, boundary: boundary, timeout: timeout, isRetry: true)
             }
             throw APIError.unauthorized
         }
