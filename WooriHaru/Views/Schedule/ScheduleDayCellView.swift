@@ -1,9 +1,12 @@
 import SwiftUI
 
-/// 스케줄표의 한 칸. 날짜 → 공휴일 → 근무 밴드 순으로 쌓는다.
+/// 스케줄표의 한 칸. 날짜 아래로 근무 밴드가 쌓인다.
 ///
 /// **근무일에만 밴드를 그린다.** 휴무와 미등록은 둘 다 밴드가 없다 — 아빠는 그 달 전체를
 /// 한 번에 등록하므로 미등록이면 달 전체가 비어 한눈에 보이고, 엄마는 패턴이라 늘 채워진다.
+///
+/// **공휴일은 이름을 쓰지 않고 날짜만 빨갛게 한다.** 이 화면은 누가 언제 일하는지를 보는
+/// 자리라, 공휴일 이름표가 밴드와 자리를 다투면 정작 볼 것이 밀린다.
 struct ScheduleDayCellView: View {
     let date: Date
     /// `MonthGridBuilder`가 주입 달력으로 이미 계산해 둔 값. `date.day`(기기 달력,
@@ -15,11 +18,7 @@ struct ScheduleDayCellView: View {
     let holidayNames: [String]
     let badges: [ScheduleViewModel.Badge]
 
-    static let cellHeight: CGFloat = 88
-
-    /// 공휴일 줄의 높이. **공휴일이 없어도 이만큼을 비워 둔다** — 없는 날만 근무 밴드가
-    /// 위로 올라오면 줄이 어긋나 한 주를 가로로 훑어볼 수 없다.
-    private static let holidayRowHeight: CGFloat = 14
+    static let cellHeight: CGFloat = 76
 
     /// 근무 밴드 한 줄의 높이. 역할마다 한 줄씩, 근무가 없어도 자리를 남긴다.
     private static let badgeRowHeight: CGFloat = 17
@@ -35,12 +34,11 @@ struct ScheduleDayCellView: View {
             }
 
             if isCurrentMonth {
-                holidayRow
-                // **역할마다 자리가 고정이다.** 위가 아빠, 아래가 엄마. 근무가 없는 쪽은
-                // 비워 두고 다른 쪽을 끌어올리지 않는다 — 올리면 같은 파랑이 날마다 다른
+                // **역할마다 자리가 고정이다.** 위가 엄마, 아래가 아빠. 근무가 없는 쪽은
+                // 비워 두고 다른 쪽을 끌어올리지 않는다 — 올리면 같은 색이 날마다 다른
                 // 줄에 놓여, 한 주를 훑을 때 누구 근무인지 색과 위치가 따로 논다.
-                badgeRow(for: .father)
                 badgeRow(for: .mother)
+                badgeRow(for: .father)
             }
 
             Spacer(minLength: 0)
@@ -50,23 +48,6 @@ struct ScheduleDayCellView: View {
         .frame(height: Self.cellHeight)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityDescription)
-    }
-
-    /// 공휴일 — 기본 달력과 같은 모양이라 두 화면이 같은 것으로 읽힌다.
-    /// 없는 날은 같은 높이의 빈 자리를 둬서 아래 근무 밴드의 줄을 맞춘다.
-    @ViewBuilder
-    private var holidayRow: some View {
-        if let name = holidayNames.first {
-            Text(name.replacingOccurrences(of: "\\(.*\\)", with: "", options: .regularExpression))
-                .font(.system(size: 8))
-                .lineLimit(1)
-                .frame(maxWidth: .infinity, minHeight: Self.holidayRowHeight)
-                .background(Color.red.opacity(0.1))
-                .foregroundStyle(Color.red500)
-                .cornerRadius(2)
-        } else {
-            Color.clear.frame(height: Self.holidayRowHeight)
-        }
     }
 
     /// 아빠는 파랑, 엄마는 분홍. 순번이 있으면 숫자를, 없으면 색만 칠한다.
@@ -96,8 +77,8 @@ struct ScheduleDayCellView: View {
     private var accessibilityDescription: String {
         var parts = ["\(month)월 \(day)일"]
         parts += holidayNames
-        // 화면과 같은 순서로 읽는다 — 아빠가 위, 엄마가 아래다.
-        for role in [DispatchRole.father, .mother] {
+        // 화면과 같은 순서로 읽는다 — 엄마가 위, 아빠가 아래다.
+        for role in [DispatchRole.mother, .father] {
             guard let badge = badges.first(where: { $0.role == role }) else { continue }
             let who = role == .father ? "아빠" : "엄마"
             parts.append(badge.slot.map { "\(who) \($0)번 근무" } ?? "\(who) 근무")

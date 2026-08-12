@@ -143,13 +143,13 @@ final class ScheduleViewModel {
         }
     }
 
-    /// 아빠를 먼저 그린다. 역할별 순위를 매겨 비교해야 엄격 약순서를 지킨다 —
-    /// `lhs.role == .father`처럼 한쪽만 보고 비교하면 `아빠, 아빠`처럼 자기 자신과
+    /// 엄마를 먼저 그린다(화면에서 위). 역할별 순위를 매겨 비교해야 엄격 약순서를 지킨다 —
+    /// `lhs.role == .mother`처럼 한쪽만 보고 비교하면 `엄마, 엄마`처럼 자기 자신과
     /// 견줄 때도 참이 나와 정렬 결과가 정의되지 않는다.
     private static func roleRank(_ role: DispatchRole) -> Int {
         switch role {
-        case .father: return 0
-        case .mother: return 1
+        case .mother: return 0
+        case .father: return 1
         }
     }
 

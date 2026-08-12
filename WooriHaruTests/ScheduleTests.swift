@@ -76,9 +76,10 @@ struct ScheduleViewModelTests {
         await vm.load()
 
         // 순서를 역할로 고정한다 — 응답 순서대로 그리면 날마다 위아래가 바뀐다.
+        // 화면과 같은 순서다: 엄마가 위, 아빠가 아래.
         #expect(vm.badges(on: "2026-08-15") == [
-            ScheduleViewModel.Badge(role: .father, slot: 2),
-            ScheduleViewModel.Badge(role: .mother, slot: nil)
+            ScheduleViewModel.Badge(role: .mother, slot: nil),
+            ScheduleViewModel.Badge(role: .father, slot: 2)
         ])
     }
 
