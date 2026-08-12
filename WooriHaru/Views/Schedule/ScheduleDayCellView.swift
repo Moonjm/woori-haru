@@ -15,7 +15,11 @@ struct ScheduleDayCellView: View {
     let holidayNames: [String]
     let badges: [ScheduleViewModel.Badge]
 
-    static let cellHeight: CGFloat = 64
+    static let cellHeight: CGFloat = 88
+
+    /// 공휴일 줄의 높이. **공휴일이 없어도 이만큼을 비워 둔다** — 없는 날만 근무 밴드가
+    /// 위로 올라오면 줄이 어긋나 한 주를 가로로 훑어볼 수 없다.
+    private static let holidayRowHeight: CGFloat = 14
 
     var body: some View {
         VStack(spacing: 2) {
@@ -28,17 +32,7 @@ struct ScheduleDayCellView: View {
             }
 
             if isCurrentMonth {
-                // 공휴일 — 기본 달력과 같은 모양이라 두 화면이 같은 것으로 읽힌다.
-                ForEach(holidayNames.prefix(1), id: \.self) { name in
-                    Text(name.replacingOccurrences(of: "\\(.*\\)", with: "", options: .regularExpression))
-                        .font(.system(size: 8))
-                        .lineLimit(1)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 1)
-                        .background(Color.red.opacity(0.1))
-                        .foregroundStyle(Color.red500)
-                        .cornerRadius(2)
-                }
+                holidayRow
 
                 ForEach(badges, id: \.role) { badge in
                     Text(badge.slot.map(String.init) ?? " ")
@@ -60,6 +54,23 @@ struct ScheduleDayCellView: View {
         .frame(height: Self.cellHeight)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityDescription)
+    }
+
+    /// 공휴일 — 기본 달력과 같은 모양이라 두 화면이 같은 것으로 읽힌다.
+    /// 없는 날은 같은 높이의 빈 자리를 둬서 아래 근무 밴드의 줄을 맞춘다.
+    @ViewBuilder
+    private var holidayRow: some View {
+        if let name = holidayNames.first {
+            Text(name.replacingOccurrences(of: "\\(.*\\)", with: "", options: .regularExpression))
+                .font(.system(size: 8))
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, minHeight: Self.holidayRowHeight)
+                .background(Color.red.opacity(0.1))
+                .foregroundStyle(Color.red500)
+                .cornerRadius(2)
+        } else {
+            Color.clear.frame(height: Self.holidayRowHeight)
+        }
     }
 
     private var dateColor: Color {
