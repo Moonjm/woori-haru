@@ -21,6 +21,9 @@ struct ScheduleDayCellView: View {
     /// 위로 올라오면 줄이 어긋나 한 주를 가로로 훑어볼 수 없다.
     private static let holidayRowHeight: CGFloat = 14
 
+    /// 근무 밴드 한 줄의 높이. 역할마다 한 줄씩, 근무가 없어도 자리를 남긴다.
+    private static let badgeRowHeight: CGFloat = 17
+
     var body: some View {
         VStack(spacing: 2) {
             HStack {
@@ -33,18 +36,11 @@ struct ScheduleDayCellView: View {
 
             if isCurrentMonth {
                 holidayRow
-
-                ForEach(badges, id: \.role) { badge in
-                    Text(badge.slot.map(String.init) ?? " ")
-                        .font(.system(size: 10))
-                        .fontWeight(.bold)
-                        .lineLimit(1)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 2)
-                        .background(badge.role == .father ? Color.blue500 : Color.purple400)
-                        .foregroundStyle(.white)
-                        .cornerRadius(2)
-                }
+                // **역할마다 자리가 고정이다.** 위가 아빠, 아래가 엄마. 근무가 없는 쪽은
+                // 비워 두고 다른 쪽을 끌어올리지 않는다 — 올리면 같은 파랑이 날마다 다른
+                // 줄에 놓여, 한 주를 훑을 때 누구 근무인지 색과 위치가 따로 논다.
+                badgeRow(for: .father)
+                badgeRow(for: .mother)
             }
 
             Spacer(minLength: 0)
@@ -73,6 +69,23 @@ struct ScheduleDayCellView: View {
         }
     }
 
+    /// 아빠는 파랑, 엄마는 분홍. 순번이 있으면 숫자를, 없으면 색만 칠한다.
+    @ViewBuilder
+    private func badgeRow(for role: DispatchRole) -> some View {
+        if let badge = badges.first(where: { $0.role == role }) {
+            Text(badge.slot.map(String.init) ?? " ")
+                .font(.system(size: 10))
+                .fontWeight(.bold)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, minHeight: Self.badgeRowHeight)
+                .background(role == .father ? Color.blue500 : Color.pink500)
+                .foregroundStyle(.white)
+                .cornerRadius(2)
+        } else {
+            Color.clear.frame(height: Self.badgeRowHeight)
+        }
+    }
+
     private var dateColor: Color {
         guard isCurrentMonth else { return .slate300 }
         if !holidayNames.isEmpty || date.weekday == 1 { return .red500 }
@@ -83,8 +96,10 @@ struct ScheduleDayCellView: View {
     private var accessibilityDescription: String {
         var parts = ["\(month)월 \(day)일"]
         parts += holidayNames
-        for badge in badges {
-            let who = badge.role == .father ? "아빠" : "엄마"
+        // 화면과 같은 순서로 읽는다 — 아빠가 위, 엄마가 아래다.
+        for role in [DispatchRole.father, .mother] {
+            guard let badge = badges.first(where: { $0.role == role }) else { continue }
+            let who = role == .father ? "아빠" : "엄마"
             parts.append(badge.slot.map { "\(who) \($0)번 근무" } ?? "\(who) 근무")
         }
         return parts.joined(separator: ", ")
