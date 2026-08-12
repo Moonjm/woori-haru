@@ -135,24 +135,19 @@ struct MonthGridBuilderTests {
         #expect(fromViewModel.map(\.id) == fromBuilder.map(\.id))
     }
 
-    @Test func 비그레고리력을_넘겨도_패딩과_날짜_수가_같다() {
-        // 불교력은 그레고리력과 연도 표기만 다르고 달의 길이·요일 배치는 같다.
-        // 계산이 주입받은 calendar가 아니라 기기 달력(Calendar.current)을 새 나가면
-        // 이 값들이 기기 설정에 따라 달라진다 — 서버로 나가는 연월만 그레고리력이고
-        // 화면 칸은 기기 달력을 따르는 어긋남이 여기서 드러난다.
+    @Test func 넘겨받은_달력대로_칸을_만든다() {
+        // 기기 달력이 비그레고리력이어도 화면이 그 달력을 따라야 한다. `Calendar.current`로
+        // 계산하던 옛 코드는 무엇을 넘기든 그레고리력 31일을 냈다 — 불교력은 그레고리력과
+        // 연도 표기만 달라 이 차이를 드러내지 못한다.
+        let islamic = Calendar(identifier: .islamicUmmAlQura)
         let start = Date.from("2026-08-01")!
-        let gregorian = Calendar(identifier: .gregorian)
-        let buddhist = Calendar(identifier: .buddhist)
 
-        let gregorianCells = MonthGridBuilder.cells(for: start, calendar: gregorian)
-        let buddhistCells = MonthGridBuilder.cells(for: start, calendar: buddhist)
+        let cells = MonthGridBuilder.cells(for: start, calendar: islamic)
+        let expected = islamic.range(of: .day, in: .month, for: start)!.count
 
-        #expect(buddhistCells.count == gregorianCells.count)
-        let gregorianLeading = gregorianCells.prefix(while: { !$0.isCurrentMonth }).count
-        let buddhistLeading = buddhistCells.prefix(while: { !$0.isCurrentMonth }).count
-        #expect(buddhistLeading == gregorianLeading)
-        #expect(buddhistCells.filter(\.isCurrentMonth).count == gregorianCells.filter(\.isCurrentMonth).count)
-        #expect(buddhistCells.map(\.day) == gregorianCells.map(\.day))
-        #expect(buddhistCells.map(\.date) == gregorianCells.map(\.date))
+        #expect(cells.filter { $0.isCurrentMonth }.count == expected)
+        #expect(expected != 31, "전제가 깨졌다 — 이 달력이 그레고리력과 같은 길이면 이 테스트는 아무것도 못 잡는다")
+        #expect(cells.count % 7 == 0)
+        #expect(Set(cells.map(\.id)).count == cells.count)
     }
 }
