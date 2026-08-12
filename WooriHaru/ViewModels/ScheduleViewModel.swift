@@ -9,9 +9,11 @@ import os
 @Observable
 final class ScheduleViewModel {
     /// 칸 하나에 그릴 근무 표시. 순번이 없으면 색만 칠한다.
+    /// **아빠는 `slot`, 엄마는 `slotCode`다.** 역할마다 쓰는 필드가 다르다.
     struct Badge: Equatable {
         let role: DispatchRole
         let slot: Int?
+        let slotCode: String?
     }
 
     private let service: DispatchServing
@@ -38,6 +40,10 @@ final class ScheduleViewModel {
 
     private var startOfMonth: Date
     private var badgesByDate: [String: [Badge]] = [:]
+
+    /// 날짜별 원본. **편집 시트가 휴무와 미등록을 갈라야 해서 필요하다** — `badgesByDate`는
+    /// 근무일만 담으므로 「휴무로 저장됨」과 「저장된 적 없음」이 둘 다 빈 값으로 보인다.
+    private var daysByDate: [String: [DispatchShiftDay]] = [:]
 
     /// 아빠와 엄마가 **둘 다 확정 휴무**인 날. 부모님이 함께 시간을 낼 수 있는 날이라
     /// 이 달력을 여는 실제 이유에 가깝다.
@@ -107,6 +113,36 @@ final class ScheduleViewModel {
         bothOffDates.contains(dateString)
     }
 
+    /// 편집 시트에 넘길 그날의 원본. 휴무도 들어 있고, 미등록이면 비어 있다.
+    func shiftDays(on dateString: String) -> [DispatchShiftDay] {
+        daysByDate[dateString] ?? []
+    }
+
+    /// 하루 편집의 저장 결과를 화면에 반영한다. **그 날짜만 갈아 끼운다.**
+    ///
+    /// 달 전체를 다시 조회하지 않는다 — 칸 하나를 고치자고 한 달치를 다시 받는 왕복이고,
+    /// 그 사이 화면이 잠깐 비었다 채워진다. 서버가 204를 주는 근거도 같다: 두 역할이 한
+    /// 트랜잭션이라 성공했으면 보낸 것이 전부 들어갔고, 안 보낸 역할은 안 바뀐다.
+    ///
+    /// **「둘 다 휴무」도 같이 다시 센다.** 밴드만 갈면, 두 사람이 함께 쉬게 된 날의 초록
+    /// 배경이 달을 옮겼다 돌아올 때까지 따라오지 않는다.
+    func apply(_ days: [DispatchShiftDay], on dateString: String) {
+        daysByDate[dateString] = days
+
+        let badges = Self.group(days)[dateString] ?? []
+        if badges.isEmpty {
+            badgesByDate.removeValue(forKey: dateString)
+        } else {
+            badgesByDate[dateString] = badges
+        }
+
+        if Self.datesBothOff(days).contains(dateString) {
+            bothOffDates.insert(dateString)
+        } else {
+            bothOffDates.remove(dateString)
+        }
+    }
+
     func holidayNames(on dateString: String) -> [String] {
         holidaysByYear[calendar.component(.year, from: startOfMonth)]?[dateString] ?? []
     }
@@ -122,6 +158,7 @@ final class ScheduleViewModel {
             guard token == generation else { return }
             badgesByDate = Self.group(days)
             bothOffDates = Self.datesBothOff(days)
+            daysByDate = Dictionary(grouping: days, by: \.date)
         } catch is CancellationError {
             return
         } catch {
@@ -177,6 +214,7 @@ final class ScheduleViewModel {
         // 이전 달 값을 지운다. 남겨 두면 조회가 끝나기 전까지 이전 달 근무가 새 달에 보인다.
         badgesByDate = [:]
         bothOffDates = []
+        daysByDate = [:]
         await load()
     }
 
@@ -199,7 +237,7 @@ final class ScheduleViewModel {
     private static func group(_ days: [DispatchShiftDay]) -> [String: [Badge]] {
         var result: [String: [Badge]] = [:]
         for day in days where day.working {
-            result[day.date, default: []].append(Badge(role: day.role, slot: day.slot))
+            result[day.date, default: []].append(Badge(role: day.role, slot: day.slot, slotCode: day.slotCode))
         }
         return result.mapValues { badges in
             badges.sorted { roleRank($0.role) < roleRank($1.role) }
