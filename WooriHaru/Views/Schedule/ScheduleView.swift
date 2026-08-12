@@ -6,7 +6,6 @@ struct ScheduleView: View {
     @State private var vm = ScheduleViewModel()
     @State private var showPicker = false
     @State private var loadTask: Task<Void, Never>?
-    @State private var hasAppeared = false
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 0), count: 7)
 
@@ -53,19 +52,11 @@ struct ScheduleView: View {
             }
             .presentationDetents([.height(320)])
         }
+        // 첫 등장에서 조회하고, 사진 등록에서 돌아올 때도 다시 조회한다 — `.task`는 뷰가
+        // 사라질 때 취소되고 다시 나타날 때 스스로 재실행된다(같은 저장소의
+        // `SwimRecordListView`가 그 성질을 전제로 `loadIfNeeded` 가드를 둔 이유다).
+        // 별도 트리거를 달면 복귀 때 조회가 두 번 나간다.
         .task { await vm.load() }
-        // 사진 등록에서 돌아오면 다시 조회한다. 방금 넣은 것이 안 보이면 이 화면의 뜻이 없다.
-        // **경로 깊이가 아니라 「다시 보이는 순간」에 건다** — 검수 화면은 navigationDestination(isPresented:)로
-        // 떠서 navPath에 얹히지 않고, 저장 뒤 한 단계만 물러난다. 깊이로 거는 조건은 화면이
-        // 하나만 더 끼어도 조용히 어긋난다.
-        .onAppear {
-            guard hasAppeared else {
-                // 첫 등장은 위의 .task가 맡는다. 여기서 또 부르면 조회가 두 번 나간다.
-                hasAppeared = true
-                return
-            }
-            reload()
-        }
         .onDisappear { loadTask?.cancel() }
     }
 
