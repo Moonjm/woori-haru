@@ -16,6 +16,9 @@ struct DispatchUploadView: View {
     @State private var previewImage: UIImage?
     @State private var recognizeTask: Task<Void, Never>?
     @State private var loadTask: Task<Void, Never>?
+    /// 로딩 동안 「인식하기」가 잠긴다. 왜 잠겼는지 알리지 않으면 앨범 자산이 iCloud에서
+    /// 내려오는 몇 초 동안 화면이 고장 난 것처럼 보인다.
+    @State private var isLoadingPhoto = false
     /// 인식이 처음 끝났을 때 한 번만 연다. `DispatchRecognition`이 `Hashable`이 아니라
     /// `navigationDestination(item:)`을 쓸 수 없어(요구하는 건 `Hashable`), `MealCaptureSheet`가
     /// `MealConfirmView`로 넘어갈 때 쓰는 `isPresented` + `onChange(of: phase)` 방식을 그대로 따른다.
@@ -56,30 +59,40 @@ struct DispatchUploadView: View {
         .onDisappear {
             recognizeTask?.cancel()
             loadTask?.cancel()
+            // 취소된 Task는 아래 가드에서 돌아가므로 이 값을 스스로 내리지 못한다. 그대로
+            // 두면 화면으로 돌아왔을 때 스피너가 남고 「인식하기」가 잠긴 채로 있는다.
+            isLoadingPhoto = false
         }
         .onChange(of: pickerItem) { _, item in
             loadTask?.cancel()
             // 진행 중이던 인식도 접는다. 결과를 버리는 것은 뷰모델의 generation이 맡지만,
             // 사진을 바꾼 순간 이 요청은 이미 쓸모가 없다 — 유료 호출을 끌고 갈 이유가 없다.
             recognizeTask?.cancel()
+            // 새 사진이 다 로딩될 때까지 이전 사진을 들고 있으면 그 사이에 「인식하기」가
+            // 눌려 **이전 사진이 나간다.** 미리보기도 같이 지운다 — 남겨 두면 화면은 이전
+            // 사진을 보여주면서 버튼만 잠겨 있어 무엇을 기다리는지 알 수 없다.
+            previewImage = nil
+            vm.clearImage()
             guard let item else { return }
+            isLoadingPhoto = true
             loadTask = Task {
                 let data = try? await item.loadTransferable(type: Data.self)
+                // 굽기는 4,800만 화소에서 몇 초씩 걸린다. 이 Task는 뷰의 액터를 물려받아
+                // 메인에서 도므로, 그대로 두면 그동안 화면이 멈춘다.
+                let normalized = await Task.detached(priority: .userInitiated) {
+                    data.flatMap { UIImage.jpegWithinByteLimit(from: $0) }
+                }.value
+
                 // 사진을 잘못 골라 곧바로 다시 고르는 건 흔한 동작이다. 앨범 읽기는 사진마다
                 // 걸리는 시간이 달라 먼저 시작한 쪽이 나중에 끝날 수 있는데, 그대로 두면
                 // **화면에는 새 사진이 보이는데 인식은 이전 사진으로 돈다.** 실패 갈래도
                 // 마찬가지라 상태를 건드리기 전에 한 번에 막는다.
                 guard !Task.isCancelled, pickerItem == item else { return }
+                isLoadingPhoto = false
 
                 // 읽기·변환 어느 쪽이 실패해도 조용히 돌아가지 않는다 — 예전에는 사진 섹션이
                 // 그대로 비어 있어 사용자가 「고른 사진이 안 들어갔다」는 사실조차 몰랐다.
-                guard let data,
-                      let normalized = UIImage.downsampledJPEG(
-                          from: data,
-                          maxDimension: .greatestFiniteMagnitude,
-                          quality: 0.95
-                      ),
-                      let preview = UIImage(data: normalized) else {
+                guard let normalized, let preview = UIImage(data: normalized) else {
                     previewImage = nil
                     vm.setImageLoadFailed()
                     return
@@ -109,6 +122,10 @@ struct DispatchUploadView: View {
                 .textFieldStyle(.roundedBorder)
                 .autocorrectionDisabled()
                 .keyboardType(.numbersAndPunctuation)
+                // 인식 중에 달을 고치면 **이전 달 기준 결과**를 받아 그 달로 저장하게 된다.
+                // 뷰모델이 그런 결과를 버리긴 하지만, 애초에 못 고치게 하는 편이 낫다 —
+                // 버려지면 사용자는 몇십 초를 기다렸다가 다시 눌러야 한다.
+                .disabled(vm.phase == .recognizing)
             // 기본값은 이번 달이라 평소엔 안전하지만, 월말에 다음 달 배차표를 미리 올리려면
             // 이 칸을 손으로 고치게 된다. `2026-3`은 서버 `YearMonth` 파싱이 400을 낸다.
             if !vm.isYearMonthValid {
@@ -123,6 +140,12 @@ struct DispatchUploadView: View {
         VStack(alignment: .leading, spacing: 8) {
             PhotosPicker(selection: $pickerItem, matching: .images) {
                 Label(previewImage == nil ? "사진 고르기" : "사진 바꾸기", systemImage: "photo")
+            }
+            if isLoadingPhoto {
+                HStack(spacing: 8) {
+                    ProgressView()
+                    Text("사진을 불러오는 중…").font(.footnote).foregroundStyle(.secondary)
+                }
             }
             if let previewImage {
                 Image(uiImage: previewImage)

@@ -84,6 +84,10 @@ struct DispatchReviewView: View {
                     dayRow(entry)
                 }
             }
+            // **저장 중에는 못 고치게 막는다.** `save()`는 요청을 보내기 전에 `entries`를
+            // 찍어 두므로, 저장을 누른 뒤 고친 값은 화면에만 반영되고 요청에는 빠진다.
+            // 게다가 성공하면 곧바로 화면이 닫혀 사용자는 그 수정도 저장된 줄 안다.
+            .disabled(vm.isSaving)
 
             if let message = vm.errorMessage {
                 Section {

@@ -56,6 +56,17 @@ final class DispatchUploadViewModel {
         recognition = nil
     }
 
+    /// 새 사진을 고른 순간 이전 사진은 무효다. **비워 두지 않으면** 새 사진이 아직 로딩
+    /// 중인데도 「인식하기」가 살아 있어 **이전 사진이 그대로 나간다.** 앨범 자산이 iCloud에
+    /// 있으면 로딩이 몇 초씩 걸려 충분히 눌린다.
+    func clearImage() {
+        generation += 1
+        imageData = nil
+        phase = .idle
+        errorMessage = nil
+        recognition = nil
+    }
+
     /// 앨범에서 읽거나 JPEG로 굽는 데 실패했다. 조용히 넘기면 사진 섹션이 빈 채로 남아
     /// 사용자가 「사진이 안 들어갔다」는 것조차 모른다.
     func setImageLoadFailed() {
@@ -73,11 +84,24 @@ final class DispatchUploadViewModel {
         phase = .recognizing
         errorMessage = nil
         let token = generation
+        // 어느 달로 보냈는지 찍어 둔다. 화면이 인식 중에는 칸을 잠그지만, 잠그는 것은 화면의
+        // 약속일 뿐이라 실제로 나간 값과 지금 값이 같은지는 여기서 확인한다.
+        let requestedYearMonth = yearMonth
         do {
-            let result = try await service.recognize(imageData: imageData, yearMonth: yearMonth)
+            let result = try await service.recognize(imageData: imageData, yearMonth: requestedYearMonth)
             // 인식이 도는 동안 사진이 바뀌었다. 이 결과는 화면에 보이는 사진의 것이 아니다.
-            // 사진을 바꿀 때 `setImage`가 이미 `phase`를 `.idle`로 돌려놨으므로 그대로 버린다.
+            // **여기서 phase를 건드리면 안 된다** — 사진을 바꾼 뒤 이미 새 인식이 시작됐을 수
+            // 있고, 그 스피너를 꺼 버리면 유료 요청이 두 번 나간다. `setImage`가 이미
+            // `.idle`로 돌려놨으므로 그대로 버리기만 한다.
             guard token == generation else { return }
+            // 인식이 도는 동안 연월이 바뀌었다. 이 결과는 이전 달 기준이라 그대로 저장하면
+            // 엉뚱한 달에 근무가 들어간다. 사진은 그대로이니(generation이 같다) 새 인식이
+            // 시작됐을 수 없고, 따라서 이 요청이 아직 `phase`의 주인이다.
+            guard requestedYearMonth == yearMonth else {
+                phase = .idle
+                errorMessage = "연월이 바뀌어 인식을 취소했습니다. 다시 인식해 주세요."
+                return
+            }
             recognition = result
             phase = .completed
         } catch is CancellationError {
@@ -87,6 +111,11 @@ final class DispatchUploadViewModel {
             // 바뀌기 전 사진의 실패다. 새 사진으로 다시 인식하려는 참인데 오류만 떠 있으면
             // 사용자는 방금 고른 사진이 실패한 줄 안다.
             guard token == generation else { return }
+            // 바뀌기 전 달의 실패다. 위와 같은 이유로 이 요청이 `phase`의 주인이다.
+            guard requestedYearMonth == yearMonth else {
+                phase = .idle
+                return
+            }
             // 서버 메시지가 이미 사용자용 한국어다(`TARGET_NOT_FOUND` 등). 앱이 다시 쓰지 않는다.
             // 다만 봉투 JSON째 보여주면 안 되므로 `message`만 꺼낸다.
             errorMessage = error.serverMessage ?? error.localizedDescription

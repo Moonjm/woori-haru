@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+import UIKit
 @testable import WooriHaru
 
 @MainActor
@@ -226,6 +227,77 @@ private func sampleRecognition(
     )
 }
 
+/// 단색 이미지는 JPEG로 거의 0바이트가 되어 바이트 상한을 검증할 수 없다. 압축이 잘 안 되는
+/// 무늬를 그린다. `Date`·난수를 쓰지 않아 매번 같은 바이트가 나온다.
+private func makeNoisyJPEG(width: Int, height: Int) -> Data {
+    let size = CGSize(width: width, height: height)
+    let format = UIGraphicsImageRendererFormat()
+    format.scale = 1
+    let image = UIGraphicsImageRenderer(size: size, format: format).image { context in
+        for x in stride(from: 0, to: width, by: 4) {
+            for y in stride(from: 0, to: height, by: 4) {
+                let hue = CGFloat((x * 7 + y * 13) % 360) / 360
+                UIColor(hue: hue, saturation: 1, brightness: 1, alpha: 1).setFill()
+                context.fill(CGRect(x: x, y: y, width: 4, height: 4))
+            }
+        }
+    }
+    return image.jpegData(compressionQuality: 1.0)!
+}
+
+/// 서버 multipart 한도(10MB)를 넘기면 멀쩡한 배차표 사진이 인식에 들어가 보지도 못하고 실패한다.
+struct DispatchImageSizeTests {
+    @Test func 상한에_여유가_있으면_원본_해상도_최고_품질_그대로다() throws {
+        let original = makeNoisyJPEG(width: 800, height: 800)
+        let full = try #require(
+            UIImage.downsampledJPEG(from: original, maxDimension: .greatestFiniteMagnitude, quality: 0.95)
+        )
+
+        let capped = try #require(UIImage.jpegWithinByteLimit(from: original, byteLimit: 10 * 1024 * 1024))
+
+        // 상한에 걸리지 않았는데 품질을 깎으면 인식만 나빠진다.
+        #expect(capped.count == full.count)
+    }
+
+    @Test func 상한을_넘으면_해상도가_아니라_품질을_먼저_낮춘다() throws {
+        let original = makeNoisyJPEG(width: 800, height: 800)
+        let full = try #require(
+            UIImage.downsampledJPEG(from: original, maxDimension: .greatestFiniteMagnitude, quality: 0.95)
+        )
+        let lower = try #require(
+            UIImage.downsampledJPEG(from: original, maxDimension: .greatestFiniteMagnitude, quality: 0.5)
+        )
+        #expect(lower.count < full.count, "전제가 깨졌다 — 품질을 낮췄는데 커졌다")
+
+        let capped = try #require(
+            UIImage.jpegWithinByteLimit(
+                from: original,
+                byteLimit: lower.count,
+                qualities: [0.95, 0.5],
+                dimensions: [.greatestFiniteMagnitude]
+            )
+        )
+
+        #expect(capped.count <= lower.count)
+        // **해상도는 마지막에 포기한다.** 배차표는 한 칸이 몇 픽셀이라 줄이면 인식이 무너진다.
+        let image = try #require(UIImage(data: capped))
+        #expect(max(image.size.width, image.size.height) == 800)
+    }
+
+    @Test func 어느_단계도_상한에_못_들어가면_가장_작은_것을_준다() throws {
+        let original = makeNoisyJPEG(width: 400, height: 400)
+
+        let capped = try #require(UIImage.jpegWithinByteLimit(from: original, byteLimit: 1))
+
+        // 여기서 nil을 주면 화면이 「사진을 읽지 못했습니다」를 띄우는데, 읽기는 멀쩡히 됐다.
+        #expect(capped.count > 1)
+    }
+
+    @Test func 이미지가_아닌_데이터는_nil() {
+        #expect(UIImage.jpegWithinByteLimit(from: Data("not an image".utf8)) == nil)
+    }
+}
+
 @MainActor
 struct DispatchUploadViewModelTests {
     @Test func 사진이_없으면_인식할_수_없다() {
@@ -316,6 +388,41 @@ struct DispatchUploadViewModelTests {
         // 열리고, 그대로 저장하면 다른 사진의 근무가 들어간다.
         #expect(vm.phase == .idle)
         #expect(vm.recognition == nil)
+    }
+
+    @Test func 인식_중에_연월을_바꾸면_이전_달_결과를_버린다() async {
+        let service = FakeDispatchService(recognizeResult: .success(sampleRecognition()))
+        let vm = DispatchUploadViewModel(service: service)
+        vm.setImage(Data([0x01]))
+        vm.yearMonth = "2026-08"
+        service.duringRecognize = { [vm] in
+            await MainActor.run { vm.yearMonth = "2026-09" }
+        }
+
+        await vm.recognize()
+
+        // 요청은 8월로 나갔다. 그 결과를 그대로 받으면 9월 배차표를 8월에 저장하게 된다.
+        #expect(service.recognizeCalls.first?.yearMonth == "2026-08")
+        #expect(vm.recognition == nil)
+        // 다시 인식할 수 있어야 한다 — 스피너가 남으면 화면이 멈춘 것처럼 보인다.
+        #expect(vm.phase == .idle)
+        #expect(vm.canRecognize == true)
+        #expect(vm.errorMessage != nil)
+    }
+
+    @Test func 사진을_비우면_인식할_수_없다() {
+        let vm = DispatchUploadViewModel(service: FakeDispatchService(recognizeResult: .success(sampleRecognition())))
+        vm.setImage(Data([0x01]))
+        #expect(vm.canRecognize == true)
+
+        // 새 사진을 고른 순간 화면이 부른다. 비우지 않으면 로딩이 끝나기 전에 「인식하기」가
+        // 눌려 이전 사진이 나간다.
+        vm.clearImage()
+
+        #expect(vm.imageData == nil)
+        #expect(vm.canRecognize == false)
+        // 오류가 아니다 — 새 사진을 불러오는 중일 뿐이다.
+        #expect(vm.errorMessage == nil)
     }
 
     @Test func 인식_중에_사진을_바꾸면_이전_실패도_보여주지_않는다() async {
