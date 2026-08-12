@@ -15,6 +15,9 @@ struct ScheduleView: View {
     /// 저장 직후 한 번 보여줄 안내. 사용자가 달을 옮기면 더는 그 저장을 가리키는 말이
     /// 아니므로 지운다.
     @State private var savedMessage: String?
+    /// 편집 시트에 넘길 뷰모델. **날짜가 아니라 뷰모델을 담는다** — 시트가 뜨는 순간의
+    /// 근무 값으로 폼을 채워야 하므로, 만들 때 한 번 읽고 그 뒤로는 시트가 홀로 들고 있는다.
+    @State private var editing: ScheduleDayEditViewModel?
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 0), count: 7)
 
@@ -59,7 +62,8 @@ struct ScheduleView: View {
                         isToday: vm.isToday(cell.date),
                         holidayNames: cell.isCurrentMonth ? vm.holidayNames(on: cell.date.dateString) : [],
                         badges: cell.isCurrentMonth ? vm.badges(on: cell.date.dateString) : [],
-                        isBothOff: cell.isCurrentMonth && vm.isBothOff(on: cell.date.dateString)
+                        isBothOff: cell.isCurrentMonth && vm.isBothOff(on: cell.date.dateString),
+                        onTap: { openEditor(for: cell) }
                     )
                 }
             }
@@ -90,6 +94,12 @@ struct ScheduleView: View {
                 loadTask = Task { await vm.jump(year: year, month: month) }
             }
             .presentationDetents([.height(320)])
+        }
+        .sheet(item: $editing) { editVM in
+            ScheduleDayEditSheet(vm: editVM) { days in
+                vm.apply(days, on: editVM.date)
+                savedMessage = "\(editVM.dayLabel) 근무를 저장했습니다."
+            }
         }
         // 첫 등장에서 조회하고, 사진 등록에서 돌아올 때도 다시 조회한다 — `.task`는 뷰가
         // 사라질 때 취소되고 다시 나타날 때 스스로 재실행된다(같은 저장소의
@@ -218,6 +228,27 @@ struct ScheduleView: View {
     private func reload() {
         loadTask?.cancel()
         loadTask = Task { await vm.load() }
+    }
+
+    /// **이번 달 칸에서만 연다.** 그리드 앞뒤 패딩(지난달·다음달 날짜)을 고치면 저장한
+    /// 결과가 지금 보이는 화면 어디에도 나타나지 않는다.
+    ///
+    /// 제목의 요일까지 여기서 만든다. 시트가 스스로 계산하면 기기 달력이 비그레고리력일 때
+    /// 달력 칸과 시트가 서로 다른 날을 가리킨다.
+    private func openEditor(for cell: MonthData.DayCell) {
+        guard cell.isCurrentMonth else { return }
+        let dateString = cell.date.dateString
+        editing = ScheduleDayEditViewModel(
+            date: dateString,
+            dayLabel: dayLabel(for: cell),
+            days: vm.shiftDays(on: dateString)
+        )
+    }
+
+    private func dayLabel(for cell: MonthData.DayCell) -> String {
+        let weekdays = ["일", "월", "화", "수", "목", "금", "토"]
+        let index = Calendar.dispatchGregorian.component(.weekday, from: cell.date) - 1
+        return "\(cell.month)월 \(cell.day)일 (\(weekdays[index]))"
     }
 }
 
