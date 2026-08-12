@@ -263,3 +263,125 @@ struct DispatchUploadViewModelTests {
         #expect(DispatchUploadViewModel.defaultYearMonth(now: date, calendar: calendar) == "2026-03")
     }
 }
+
+@MainActor
+struct DispatchReviewViewModelTests {
+    private func makeViewModel(
+        recognition: DispatchRecognition,
+        service: FakeDispatchService
+    ) -> DispatchReviewViewModel {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Seoul") ?? .current
+        return DispatchReviewViewModel(recognition: recognition, service: service, calendar: calendar)
+    }
+
+    @Test func 그_달_전체를_보여주되_사진에_없던_날은_미인식이다() {
+        let recognition = sampleRecognition(days: [
+            DispatchRecognitionDay(day: 1, working: true, slot: 1, note: nil, conflict: false),
+            DispatchRecognitionDay(day: 2, working: false, slot: nil, note: nil, conflict: false)
+        ])
+        let vm = makeViewModel(recognition: recognition, service: FakeDispatchService(recognizeResult: .success(recognition)))
+
+        // 2026-08은 31일까지다.
+        #expect(vm.entries.count == 31)
+        #expect(vm.entries[0].recognized == true)
+        #expect(vm.entries[1].recognized == true)
+        #expect(vm.entries[2].recognized == false)
+        #expect(vm.entries[30].recognized == false)
+    }
+
+    @Test func 미인식_날짜는_저장에서_빠진다() async throws {
+        let recognition = sampleRecognition(days: [
+            DispatchRecognitionDay(day: 1, working: true, slot: 1, note: nil, conflict: false),
+            DispatchRecognitionDay(day: 2, working: false, slot: nil, note: nil, conflict: false)
+        ])
+        let service = FakeDispatchService(recognizeResult: .success(recognition))
+        let vm = makeViewModel(recognition: recognition, service: service)
+
+        await vm.save()
+
+        let request = try #require(service.savedRequests.first)
+        // 서버는 「보낸 날짜만 upsert」한다. 미인식 날짜를 휴무로 채워 보내면
+        // 멀쩡한 기존 값이 휴무로 덮인다.
+        #expect(request.days.count == 2)
+        #expect(request.days.map(\.date) == ["2026-08-01", "2026-08-02"])
+        #expect(request.role == "FATHER")
+    }
+
+    @Test func 값을_고치면_저장에_반영된다() async throws {
+        let recognition = sampleRecognition(days: [
+            DispatchRecognitionDay(day: 1, working: true, slot: 1, note: nil, conflict: false)
+        ])
+        let service = FakeDispatchService(recognizeResult: .success(recognition))
+        let vm = makeViewModel(recognition: recognition, service: service)
+
+        vm.setWorking(day: 1, working: true, slot: 2)
+        await vm.save()
+
+        let request = try #require(service.savedRequests.first)
+        #expect(request.days[0].slot == 2)
+        #expect(request.days[0].working == true)
+    }
+
+    @Test func 미인식이던_날을_직접_채우면_저장에_들어간다() async throws {
+        let recognition = sampleRecognition(days: [
+            DispatchRecognitionDay(day: 1, working: true, slot: 1, note: nil, conflict: false)
+        ])
+        let service = FakeDispatchService(recognizeResult: .success(recognition))
+        let vm = makeViewModel(recognition: recognition, service: service)
+
+        vm.setWorking(day: 5, working: false, slot: nil)
+        await vm.save()
+
+        let request = try #require(service.savedRequests.first)
+        #expect(request.days.map(\.date).contains("2026-08-05"))
+    }
+
+    @Test func 인식된_날을_미인식으로_되돌리면_저장에서_빠진다() async throws {
+        let recognition = sampleRecognition(days: [
+            DispatchRecognitionDay(day: 1, working: true, slot: 1, note: nil, conflict: false),
+            DispatchRecognitionDay(day: 2, working: false, slot: nil, note: nil, conflict: false)
+        ])
+        let service = FakeDispatchService(recognizeResult: .success(recognition))
+        let vm = makeViewModel(recognition: recognition, service: service)
+
+        vm.markUnrecognized(day: 2)
+        await vm.save()
+
+        let request = try #require(service.savedRequests.first)
+        #expect(request.days.map(\.date) == ["2026-08-01"])
+    }
+
+    @Test func 행_위치로_매칭했으면_배너를_띄운다() {
+        let byIndex = sampleRecognition(matchedBy: .rowIndex)
+        let vm = makeViewModel(recognition: byIndex, service: FakeDispatchService(recognizeResult: .success(byIndex)))
+        // 성명 컬럼이 없어 저장된 행 위치로 맞춘 것이라 사람이 사진과 대조해야 한다.
+        #expect(vm.needsRowIndexWarning == true)
+
+        let byName = sampleRecognition(matchedBy: .name)
+        let vm2 = makeViewModel(recognition: byName, service: FakeDispatchService(recognizeResult: .success(byName)))
+        #expect(vm2.needsRowIndexWarning == false)
+    }
+
+    @Test func 서버_경고를_사람이_읽는_문장으로_바꾼다() {
+        let recognition = sampleRecognition(warnings: ["ROW_COUNT_CHANGED", "YEAR_MONTH_MISMATCH"])
+        let vm = makeViewModel(recognition: recognition, service: FakeDispatchService(recognizeResult: .success(recognition)))
+
+        #expect(vm.warningMessages.count == 2)
+        #expect(vm.warningMessages[0].contains("인원"))
+        #expect(vm.warningMessages[1].contains("달"))
+    }
+
+    @Test func 저장에_실패하면_메시지를_남기고_완료로_치지_않는다() async {
+        let recognition = sampleRecognition()
+        let service = FakeDispatchService(recognizeResult: .success(recognition))
+        service.saveError = APIError.serverError(statusCode: 400, message: "저장에 실패했습니다")
+        let vm = makeViewModel(recognition: recognition, service: service)
+
+        await vm.save()
+
+        #expect(vm.didSave == false)
+        #expect(vm.errorMessage != nil)
+        #expect(vm.isSaving == false)
+    }
+}

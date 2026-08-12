@@ -32,6 +32,7 @@
 		AA100005 /* Logger+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200005 /* Logger+Extensions.swift */; };
 		AA100006 /* SessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200006 /* SessionManager.swift */; };
 		B10001 /* DDayBadgeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20001 /* DDayBadgeService.swift */; };
+		B266A4283E345D5B46CD51CA /* DispatchReviewViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A1655D9FB504D22636292C1 /* DispatchReviewViewModel.swift */; };
 		C10001 /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20001 /* User.swift */; };
 		C10002 /* Category.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20002 /* Category.swift */; };
 		C10003 /* DailyRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20003 /* DailyRecord.swift */; };
@@ -202,6 +203,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		2A1655D9FB504D22636292C1 /* DispatchReviewViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DispatchReviewViewModel.swift; sourceTree = "<group>"; };
 		880AD4662F5F071100777742 /* StudyTimerWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = StudyTimerWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		880AD4682F5F071100777742 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		880AD46A2F5F071200777742 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
@@ -606,6 +608,7 @@
 				DT20032 /* FoodDetailViewModel.swift */,
 				DT20034 /* MealItemPickViewModel.swift */,
 				B580B47689143646299A23EE /* DispatchUploadViewModel.swift */,
+				2A1655D9FB504D22636292C1 /* DispatchReviewViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -1101,6 +1104,7 @@
 				453AA4BE6F7BD87A2E9F53F2 /* DispatchModels.swift in Sources */,
 				A96AC1C7074B35DF261C1958 /* DispatchService.swift in Sources */,
 				FA164F9609CE37556A81E26A /* DispatchUploadViewModel.swift in Sources */,
+				B266A4283E345D5B46CD51CA /* DispatchReviewViewModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
