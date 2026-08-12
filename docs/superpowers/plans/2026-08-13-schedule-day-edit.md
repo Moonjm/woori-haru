@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- 서버는 아직 없다. **앱만 만든다.** 서버 스펙은 `toy-back/docs/superpowers/specs/2026-08-13-dispatch-day-edit-design.md`이고, 앱은 그 계약에 맞춰 대역(fake)으로 검증한다.
+- 서버는 `toy-back`의 `feat/dispatch-day-edit-spec` 브랜치에 **이미 구현돼 있다**(`11cb1b8`). 계약은 `toy-back/docs/superpowers/specs/2026-08-13-dispatch-day-edit-design.md`. 앱 테스트는 대역(fake)으로 검증하고, 실제 왕복은 기기에서 확인한다.
 - 설계 문서: `docs/superpowers/specs/2026-08-13-schedule-day-edit-design.md`. 여기 적힌 판단과 어긋나게 구현하지 않는다.
 - **새로 만든 `WooriHaru/` 아래 Swift 파일은 반드시 `ruby scripts/xcode-add-files.rb <경로>`로 앱 타겟에 등록한다.** 앱 타겟은 폴더 동기화가 아니라서 파일만 만들면 컴파일 대상에 잡히지 않는다. `WooriHaruTests/`는 자동으로 잡히므로 등록하지 않는다.
 - 날짜 계산은 `Calendar.dispatchGregorian`(주입된 `calendar`)만 쓴다. `Date+Extensions`의 `.day`·`.month`·`.year`·`.weekday`는 `Calendar.current`(기기 설정)를 타므로 쓰지 않는다. **`.dateString`은 예외로 써도 된다** — 고정 포맷터(`ko_KR` + `yyyy-MM-dd`)라 기기 달력을 타지 않고, 기존 `ScheduleView`가 이미 조회 키로 쓰고 있다.
@@ -19,7 +19,7 @@
 - 빌드·테스트 명령:
   ```bash
   xcodebuild test -project WooriHaru.xcodeproj -scheme WooriHaru \
-    -destination 'platform=iOS Simulator,name=iPhone 16' \
+    -destination 'platform=iOS Simulator,name=iPhone 17' \
     -only-testing:WooriHaruTests/<테스트타입이름> 2>&1 | tail -30
   ```
   전체는 `-only-testing`을 빼고 돌린다.
@@ -93,7 +93,7 @@
 Run:
 ```bash
 xcodebuild test -project WooriHaru.xcodeproj -scheme WooriHaru \
-  -destination 'platform=iOS Simulator,name=iPhone 16' \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
   -only-testing:WooriHaruTests/DispatchModelTests 2>&1 | tail -30
 ```
 Expected: 컴파일 실패 — `cannot find 'DispatchDayEditRequest' in scope`, `value of type 'DispatchShiftDay' has no member 'slotCode'`
@@ -165,7 +165,7 @@ DispatchShiftDay(date: "2026-08-15", role: .father, working: true, slot: 1, slot
 Run:
 ```bash
 xcodebuild test -project WooriHaru.xcodeproj -scheme WooriHaru \
-  -destination 'platform=iOS Simulator,name=iPhone 16' 2>&1 | tail -30
+  -destination 'platform=iOS Simulator,name=iPhone 17' 2>&1 | tail -30
 ```
 Expected: 전체 PASS (모든 타겟이 다시 컴파일돼야 하므로 여기서는 전체를 돌린다)
 
@@ -237,7 +237,7 @@ git commit -m "feat: 근무 모델에 엄마 순번코드와 하루 편집 요�
 Run:
 ```bash
 xcodebuild test -project WooriHaru.xcodeproj -scheme WooriHaru \
-  -destination 'platform=iOS Simulator,name=iPhone 16' \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
   -only-testing:WooriHaruTests/DispatchServiceTests 2>&1 | tail -30
 ```
 Expected: 컴파일 실패 — `value of type 'DispatchService' has no member 'editDay'`
@@ -291,7 +291,7 @@ Expected: 컴파일 실패 — `value of type 'DispatchService' has no member 'e
 Run:
 ```bash
 xcodebuild test -project WooriHaru.xcodeproj -scheme WooriHaru \
-  -destination 'platform=iOS Simulator,name=iPhone 16' 2>&1 | tail -30
+  -destination 'platform=iOS Simulator,name=iPhone 17' 2>&1 | tail -30
 ```
 Expected: 전체 PASS
 
@@ -500,7 +500,7 @@ struct ScheduleDayEditViewModelTests {
 Run:
 ```bash
 xcodebuild test -project WooriHaru.xcodeproj -scheme WooriHaru \
-  -destination 'platform=iOS Simulator,name=iPhone 16' \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
   -only-testing:WooriHaruTests/ScheduleDayEditViewModelTests 2>&1 | tail -30
 ```
 Expected: 컴파일 실패 — `cannot find 'ScheduleDayEditViewModel' in scope`
@@ -670,7 +670,7 @@ ruby scripts/xcode-add-files.rb WooriHaru/ViewModels/ScheduleDayEditViewModel.sw
 Run:
 ```bash
 xcodebuild test -project WooriHaru.xcodeproj -scheme WooriHaru \
-  -destination 'platform=iOS Simulator,name=iPhone 16' \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
   -only-testing:WooriHaruTests/ScheduleDayEditViewModelTests 2>&1 | tail -30
 ```
 Expected: 전부 PASS
@@ -820,7 +820,7 @@ grep -rn "ScheduleViewModel.Badge(" WooriHaruTests/
 Run:
 ```bash
 xcodebuild test -project WooriHaru.xcodeproj -scheme WooriHaru \
-  -destination 'platform=iOS Simulator,name=iPhone 16' \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
   -only-testing:WooriHaruTests/ScheduleViewModelTests 2>&1 | tail -30
 ```
 Expected: 컴파일 실패 — `extra argument 'slotCode' in call`, `value of type 'ScheduleViewModel' has no member 'apply'`
@@ -910,7 +910,7 @@ Expected: 컴파일 실패 — `extra argument 'slotCode' in call`, `value of ty
 Run:
 ```bash
 xcodebuild test -project WooriHaru.xcodeproj -scheme WooriHaru \
-  -destination 'platform=iOS Simulator,name=iPhone 16' 2>&1 | tail -30
+  -destination 'platform=iOS Simulator,name=iPhone 17' 2>&1 | tail -30
 ```
 Expected: 전체 PASS
 
@@ -1059,7 +1059,7 @@ ruby scripts/xcode-add-files.rb WooriHaru/Views/Schedule/ScheduleDayEditSheet.sw
 Run:
 ```bash
 xcodebuild build -project WooriHaru.xcodeproj -scheme WooriHaru \
-  -destination 'platform=iOS Simulator,name=iPhone 16' 2>&1 | tail -30
+  -destination 'platform=iOS Simulator,name=iPhone 17' 2>&1 | tail -30
 ```
 Expected: `BUILD SUCCEEDED`
 
@@ -1158,7 +1158,7 @@ git commit -m "feat: 하루 근무를 고치는 시트를 만든다"
 Run:
 ```bash
 xcodebuild build -project WooriHaru.xcodeproj -scheme WooriHaru \
-  -destination 'platform=iOS Simulator,name=iPhone 16' 2>&1 | tail -20
+  -destination 'platform=iOS Simulator,name=iPhone 17' 2>&1 | tail -20
 ```
 Expected: 실패 — `ScheduleView.swift`가 `onTap`을 넘기지 않는다. Task 7에서 잇는다.
 
@@ -1263,7 +1263,7 @@ final class ScheduleDayEditViewModel: Identifiable {
 Run:
 ```bash
 xcodebuild test -project WooriHaru.xcodeproj -scheme WooriHaru \
-  -destination 'platform=iOS Simulator,name=iPhone 16' 2>&1 | tail -30
+  -destination 'platform=iOS Simulator,name=iPhone 17' 2>&1 | tail -30
 ```
 Expected: `BUILD SUCCEEDED` + 전체 PASS
 
@@ -1276,25 +1276,13 @@ git commit -m "feat: 달력 칸을 눌러 그날 근무를 고친다"
 
 ---
 
-### Task 8: 시뮬레이터에서 확인
+### Task 8: 실기에서 확인 — **사용자가 직접 한다**
 
 **Files:** 없음 (검증만)
 
-**왜 필요한가:** 설계의 열린 항목 하나가 여기서만 풀린다 — **칸 탭과 달 이동 스와이프가 겹치지 않는가.** `monthSwipe`는 `DragGesture(minimumDistance: 30)`이라 논리상 탭과 갈리지만, 칸이 76pt로 작아 실제로는 손가락이 미세하게 움직여 스와이프로 새는 경우가 있다. 단위 테스트가 닿지 않는 자리다.
+**왜 필요한가:** 설계의 열린 항목 하나가 여기서만 풀린다 — **칸 탭과 달 이동 스와이프가 겹치지 않는가.** `monthSwipe`는 `DragGesture(minimumDistance: 30)`이라 논리상 탭과 갈리지만, 칸이 76pt로 작아 실제로는 손가락이 미세하게 움직여 스와이프로 새는 경우가 있다. 단위 테스트가 닿지 않는 자리이고, 손가락의 흔들림은 시뮬레이터 클릭으로 재현되지도 않는다.
 
-서버가 아직 없으므로 저장은 실패한다. **그것도 확인할 것 중 하나다** — 실패해도 시트가 닫히지 않아야 한다.
-
-- [ ] **Step 1: 앱을 띄운다**
-
-`superpowers` 밖의 `run` 스킬을 쓰거나 다음으로 직접 띄운다.
-
-```bash
-xcodebuild -project WooriHaru.xcodeproj -scheme WooriHaru \
-  -destination 'platform=iOS Simulator,name=iPhone 16' build
-xcrun simctl boot "iPhone 16" 2>/dev/null; open -a Simulator
-```
-
-- [ ] **Step 2: 다음을 눈으로 확인한다**
+- [ ] **Step 1: 기기에서 다음을 눈으로 확인한다**
 
 - 사이드 메뉴 → 스케줄표 → 아무 칸이나 탭하면 시트가 뜬다
 - 좌우로 밀면 시트가 뜨지 않고 달이 넘어간다
@@ -1302,15 +1290,17 @@ xcrun simctl boot "iPhone 16" 2>/dev/null; open -a Simulator
 - 미등록인 날을 열면 근무/휴무 어느 쪽도 선택돼 있지 않다
 - 휴무를 고르면 순번 칸이 잠긴다
 - 아무것도 안 고르면 저장 버튼이 잠겨 있다
-- 저장을 누르면(서버가 없으니 실패한다) **시트가 닫히지 않고** 안에 빨간 메시지가 뜬다
+- 저장하면 시트가 닫히고 그 칸의 밴드가 바뀐다. 두 사람이 함께 쉬게 되면 배경이 초록으로 바뀐다
+- 엄마 순번을 넣으면 분홍 밴드에 `A`가 뜬다
+- 실패하면 **시트가 닫히지 않고** 안에 빨간 메시지가 뜬다
 
-- [ ] **Step 3: 어긋난 것이 있으면 고치고, 없으면 다음으로 넘어간다**
+- [ ] **Step 2: 어긋난 것이 있으면 고친다**
 
 칸 탭이 스와이프에 먹히면 `ScheduleDayCellView`의 `.onTapGesture`를 `.simultaneousGesture(TapGesture().onEnded { ... })`로 바꿔 본다.
 
 ---
 
-### Task 9: 설계 문서의 열린 항목 정리
+### Task 9: 설계 문서의 열린 항목 정리 — **Task 8 이후**
 
 **Files:**
 - Modify: `docs/superpowers/specs/2026-08-13-schedule-day-edit-design.md`
@@ -1330,6 +1320,5 @@ git commit -m "docs: 칸 탭과 스와이프 확인 결과를 적는다"
 
 ## 남는 것 (이 계획 밖)
 
-- **서버 구현.** `toy-back/docs/superpowers/specs/2026-08-13-dispatch-day-edit-design.md`, 브랜치 `feat/dispatch-day-edit-spec`.
+- **서버 배포.** 구현은 `toy-back`의 `feat/dispatch-day-edit-spec`(`11cb1b8`)에 있다. 배포 전에는 앱에서 저장이 실패한다.
 - **엄마 배차표 사진 인식.** `slotCode`를 채우는 길이 지금은 하루 편집뿐이다.
-- **서버가 붙은 뒤의 실제 저장 확인.** Task 8은 실패 경로만 본다.
