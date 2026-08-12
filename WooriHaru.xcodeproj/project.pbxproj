@@ -7,9 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		DT10037 /* PhotoViewerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20037 /* PhotoViewerSheet.swift */; };
-		DT10036 /* PhotoViewerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20036 /* PhotoViewerViewModel.swift */; };
-		DT10035 /* PhotoLibrarySaver.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20035 /* PhotoLibrarySaver.swift */; };
+		01E5347F6D87126F3B0EEDF0 /* DispatchReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EE2658BE836DAFED195B3A5 /* DispatchReviewView.swift */; };
+		02C05E2522888FC9FA1914FE /* ScheduleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F178E8439FA7AF1E8234A2B /* ScheduleView.swift */; };
+		1634F29B8B1A65276DEFCC09 /* DispatchUploadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6BB6AAFBAB44DCD1635C839 /* DispatchUploadView.swift */; };
+		453AA4BE6F7BD87A2E9F53F2 /* DispatchModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = D49A101711DCAF5B5FAFD364 /* DispatchModels.swift */; };
 		880AD4692F5F071200777742 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 880AD4682F5F071100777742 /* WidgetKit.framework */; };
 		880AD46B2F5F071200777742 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 880AD46A2F5F071200777742 /* SwiftUI.framework */; };
 		880AD47C2F5F071300777742 /* StudyTimerWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 880AD4662F5F071100777742 /* StudyTimerWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -22,10 +23,13 @@
 		8825C75A2F5B1A4400E46B14 /* UserManagementViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8825C7592F5B1A4400E46B14 /* UserManagementViewModel.swift */; };
 		8825C75C2F5B1A4C00E46B14 /* UserService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8825C75B2F5B1A4C00E46B14 /* UserService.swift */; };
 		88DD96ED2F61B3A900E60283 /* StudyRecordView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88DD96EC2F61B3A900E60283 /* StudyRecordView.swift */; };
+		8CB8971CA8F25A48887B5650 /* MonthGridBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECC4B98A560D4DF30F7501E2 /* MonthGridBuilder.swift */; };
 		A10001 /* WooriHaruApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20001 /* WooriHaruApp.swift */; };
 		A10002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20002 /* ContentView.swift */; };
 		A10003 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20003 /* Assets.xcassets */; };
 		A10004 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20004 /* Preview Assets.xcassets */; };
+		A10AD40468D182F380D2EDED /* ScheduleViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2969E3F2EAA5A9B4E033CC8F /* ScheduleViewModel.swift */; };
+		A96AC1C7074B35DF261C1958 /* DispatchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD3CE59E8DF1F82DF405E788 /* DispatchService.swift */; };
 		AA100001 /* PairStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200001 /* PairStore.swift */; };
 		AA100002 /* CategoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200002 /* CategoryStore.swift */; };
 		AA100003 /* SubjectStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200003 /* SubjectStore.swift */; };
@@ -33,6 +37,7 @@
 		AA100005 /* Logger+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200005 /* Logger+Extensions.swift */; };
 		AA100006 /* SessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200006 /* SessionManager.swift */; };
 		B10001 /* DDayBadgeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20001 /* DDayBadgeService.swift */; };
+		B266A4283E345D5B46CD51CA /* DispatchReviewViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A1655D9FB504D22636292C1 /* DispatchReviewViewModel.swift */; };
 		C10001 /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20001 /* User.swift */; };
 		C10002 /* Category.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20002 /* Category.swift */; };
 		C10003 /* DailyRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20003 /* DailyRecord.swift */; };
@@ -50,20 +55,12 @@
 		DT10001 /* UIImage+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20001 /* UIImage+Extensions.swift */; };
 		DT10002 /* DietErrorCode.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20002 /* DietErrorCode.swift */; };
 		DT10003 /* Diet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20003 /* Diet.swift */; };
-		DT1CH01 /* DietChat.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT2CH01 /* DietChat.swift */; };
-		DT1CH02 /* DietChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT2CH02 /* DietChatViewModel.swift */; };
-		DT1CH03 /* DietChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT2CH03 /* DietChatView.swift */; };
-		DT1CH04 /* ChatBubble.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT2CH04 /* ChatBubble.swift */; };
-		DT1CH05 /* ChatMealCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT2CH05 /* ChatMealCardView.swift */; };
-		DT1CH06 /* ChatDayCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT2CH06 /* ChatDayCardView.swift */; };
-		DT1CH07 /* MacroStackBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT2CH07 /* MacroStackBar.swift */; };
 		DT10004 /* MealAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20004 /* MealAnalysis.swift */; };
 		DT10005 /* NutritionProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20005 /* NutritionProfile.swift */; };
 		DT10006 /* Food.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20006 /* Food.swift */; };
 		DT10007 /* FrequentItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20007 /* FrequentItem.swift */; };
 		DT10008 /* DietStats.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20008 /* DietStats.swift */; };
 		DT10009 /* NutritionMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20009 /* NutritionMath.swift */; };
-		DT10099 /* DietInputLimits.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20099 /* DietInputLimits.swift */; };
 		DT10010 /* DietService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20010 /* DietService.swift */; };
 		DT10011 /* NutritionProfileViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20011 /* NutritionProfileViewModel.swift */; };
 		DT10012 /* NutritionProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20012 /* NutritionProfileView.swift */; };
@@ -79,21 +76,32 @@
 		DT10022 /* MealConfirmViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20022 /* MealConfirmViewModel.swift */; };
 		DT10023 /* MealConfirmView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20023 /* MealConfirmView.swift */; };
 		DT10024 /* FrequentItemList.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20024 /* FrequentItemList.swift */; };
+		DT10025 /* MealItemEditView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20025 /* MealItemEditView.swift */; };
+		DT10026 /* MealDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20026 /* MealDetailViewModel.swift */; };
+		DT10027 /* MealDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20027 /* MealDetailView.swift */; };
+		DT10028 /* DietStatsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20028 /* DietStatsViewModel.swift */; };
+		DT10029 /* DietStatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20029 /* DietStatsView.swift */; };
 		DT10030 /* FoodPickSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20030 /* FoodPickSource.swift */; };
-		DT10041 /* GramStepper.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20041 /* GramStepper.swift */; };
-		DT10040 /* NutrientRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20040 /* NutrientRow.swift */; };
-		DT10044 /* PhotoDragDismiss.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20044 /* PhotoDragDismiss.swift */; };
 		DT10031 /* FoodPickRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20031 /* FoodPickRow.swift */; };
 		DT10032 /* FoodDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20032 /* FoodDetailViewModel.swift */; };
 		DT10033 /* FoodDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20033 /* FoodDetailSheet.swift */; };
 		DT10034 /* MealItemPickViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20034 /* MealItemPickViewModel.swift */; };
-		DT10025 /* MealItemEditView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20025 /* MealItemEditView.swift */; };
-		DT10043 /* MealItemQuantitySheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20043 /* MealItemQuantitySheet.swift */; };
-		DT10026 /* MealDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20026 /* MealDetailViewModel.swift */; };
+		DT10035 /* PhotoLibrarySaver.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20035 /* PhotoLibrarySaver.swift */; };
+		DT10036 /* PhotoViewerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20036 /* PhotoViewerViewModel.swift */; };
+		DT10037 /* PhotoViewerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20037 /* PhotoViewerSheet.swift */; };
+		DT10040 /* NutrientRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20040 /* NutrientRow.swift */; };
+		DT10041 /* GramStepper.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20041 /* GramStepper.swift */; };
 		DT10042 /* MealItemQuantityViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20042 /* MealItemQuantityViewModel.swift */; };
-		DT10027 /* MealDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20027 /* MealDetailView.swift */; };
-		DT10028 /* DietStatsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20028 /* DietStatsViewModel.swift */; };
-		DT10029 /* DietStatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20029 /* DietStatsView.swift */; };
+		DT10043 /* MealItemQuantitySheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20043 /* MealItemQuantitySheet.swift */; };
+		DT10044 /* PhotoDragDismiss.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20044 /* PhotoDragDismiss.swift */; };
+		DT10099 /* DietInputLimits.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20099 /* DietInputLimits.swift */; };
+		DT1CH01 /* DietChat.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT2CH01 /* DietChat.swift */; };
+		DT1CH02 /* DietChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT2CH02 /* DietChatViewModel.swift */; };
+		DT1CH03 /* DietChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT2CH03 /* DietChatView.swift */; };
+		DT1CH04 /* ChatBubble.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT2CH04 /* ChatBubble.swift */; };
+		DT1CH05 /* ChatMealCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT2CH05 /* ChatMealCardView.swift */; };
+		DT1CH06 /* ChatDayCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT2CH06 /* ChatDayCardView.swift */; };
+		DT1CH07 /* MacroStackBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT2CH07 /* MacroStackBar.swift */; };
 		E10001 /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20001 /* AuthViewModel.swift */; };
 		E10002 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20002 /* LoginView.swift */; };
 		E10003 /* RecordViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20003 /* RecordViewModel.swift */; };
@@ -101,9 +109,11 @@
 		E10005 /* StatsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20005 /* StatsViewModel.swift */; };
 		E10006 /* SearchViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20006 /* SearchViewModel.swift */; };
 		E10007 /* CategoriesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20007 /* CategoriesViewModel.swift */; };
+		E388FF0F4AE279B6C9099FEE /* ScheduleDayCellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 813FA531B52FC382C20B699F /* ScheduleDayCellView.swift */; };
 		F10001 /* Date+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20001 /* Date+Extensions.swift */; };
 		F10002 /* Color+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20002 /* Color+Extensions.swift */; };
 		F10003 /* Double+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20003 /* Double+Extensions.swift */; };
+		FA164F9609CE37556A81E26A /* DispatchUploadViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B580B47689143646299A23EE /* DispatchUploadViewModel.swift */; };
 		G10001 /* WeekdayHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = G20001 /* WeekdayHeaderView.swift */; };
 		G10002 /* DayCellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = G20002 /* DayCellView.swift */; };
 		G10003 /* CalendarHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = G20003 /* CalendarHeaderView.swift */; };
@@ -199,9 +209,11 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		DT20037 /* PhotoViewerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoViewerSheet.swift; sourceTree = "<group>"; };
-		DT20036 /* PhotoViewerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoViewerViewModel.swift; sourceTree = "<group>"; };
-		DT20035 /* PhotoLibrarySaver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoLibrarySaver.swift; sourceTree = "<group>"; };
+		2969E3F2EAA5A9B4E033CC8F /* ScheduleViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ScheduleViewModel.swift; sourceTree = "<group>"; };
+		2A1655D9FB504D22636292C1 /* DispatchReviewViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DispatchReviewViewModel.swift; sourceTree = "<group>"; };
+		7EE2658BE836DAFED195B3A5 /* DispatchReviewView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DispatchReviewView.swift; path = Dispatch/DispatchReviewView.swift; sourceTree = "<group>"; };
+		7F178E8439FA7AF1E8234A2B /* ScheduleView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ScheduleView.swift; path = Schedule/ScheduleView.swift; sourceTree = "<group>"; };
+		813FA531B52FC382C20B699F /* ScheduleDayCellView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ScheduleDayCellView.swift; path = Schedule/ScheduleDayCellView.swift; sourceTree = "<group>"; };
 		880AD4662F5F071100777742 /* StudyTimerWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = StudyTimerWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		880AD4682F5F071100777742 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		880AD46A2F5F071200777742 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
@@ -225,6 +237,8 @@
 		AA200005 /* Logger+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Logger+Extensions.swift"; sourceTree = "<group>"; };
 		AA200006 /* SessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionManager.swift; sourceTree = "<group>"; };
 		B20001 /* DDayBadgeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DDayBadgeService.swift; sourceTree = "<group>"; };
+		B580B47689143646299A23EE /* DispatchUploadViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DispatchUploadViewModel.swift; sourceTree = "<group>"; };
+		B6BB6AAFBAB44DCD1635C839 /* DispatchUploadView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DispatchUploadView.swift; path = Dispatch/DispatchUploadView.swift; sourceTree = "<group>"; };
 		C20001 /* User.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = User.swift; sourceTree = "<group>"; };
 		C20002 /* Category.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Category.swift; sourceTree = "<group>"; };
 		C20003 /* DailyRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyRecord.swift; sourceTree = "<group>"; };
@@ -239,23 +253,16 @@
 		D20005 /* PairService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairService.swift; sourceTree = "<group>"; };
 		D20006 /* PairEventService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairEventService.swift; sourceTree = "<group>"; };
 		D20007 /* HolidayService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HolidayService.swift; sourceTree = "<group>"; };
+		D49A101711DCAF5B5FAFD364 /* DispatchModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DispatchModels.swift; sourceTree = "<group>"; };
 		DT20001 /* UIImage+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIImage+Extensions.swift"; sourceTree = "<group>"; };
 		DT20002 /* DietErrorCode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DietErrorCode.swift; sourceTree = "<group>"; };
 		DT20003 /* Diet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Diet.swift; sourceTree = "<group>"; };
-		DT2CH01 /* DietChat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DietChat.swift; sourceTree = "<group>"; };
-		DT2CH02 /* DietChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DietChatViewModel.swift; sourceTree = "<group>"; };
-		DT2CH03 /* DietChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DietChatView.swift; sourceTree = "<group>"; };
-		DT2CH04 /* ChatBubble.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatBubble.swift; sourceTree = "<group>"; };
-		DT2CH05 /* ChatMealCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatMealCardView.swift; sourceTree = "<group>"; };
-		DT2CH06 /* ChatDayCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatDayCardView.swift; sourceTree = "<group>"; };
-		DT2CH07 /* MacroStackBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacroStackBar.swift; sourceTree = "<group>"; };
 		DT20004 /* MealAnalysis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealAnalysis.swift; sourceTree = "<group>"; };
 		DT20005 /* NutritionProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionProfile.swift; sourceTree = "<group>"; };
 		DT20006 /* Food.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Food.swift; sourceTree = "<group>"; };
 		DT20007 /* FrequentItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrequentItem.swift; sourceTree = "<group>"; };
 		DT20008 /* DietStats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DietStats.swift; sourceTree = "<group>"; };
 		DT20009 /* NutritionMath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionMath.swift; sourceTree = "<group>"; };
-		DT20099 /* DietInputLimits.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DietInputLimits.swift; sourceTree = "<group>"; };
 		DT20010 /* DietService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DietService.swift; sourceTree = "<group>"; };
 		DT20011 /* NutritionProfileViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionProfileViewModel.swift; sourceTree = "<group>"; };
 		DT20012 /* NutritionProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionProfileView.swift; sourceTree = "<group>"; };
@@ -271,21 +278,32 @@
 		DT20022 /* MealConfirmViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealConfirmViewModel.swift; sourceTree = "<group>"; };
 		DT20023 /* MealConfirmView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealConfirmView.swift; sourceTree = "<group>"; };
 		DT20024 /* FrequentItemList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrequentItemList.swift; sourceTree = "<group>"; };
+		DT20025 /* MealItemEditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealItemEditView.swift; sourceTree = "<group>"; };
+		DT20026 /* MealDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealDetailViewModel.swift; sourceTree = "<group>"; };
+		DT20027 /* MealDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealDetailView.swift; sourceTree = "<group>"; };
+		DT20028 /* DietStatsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DietStatsViewModel.swift; sourceTree = "<group>"; };
+		DT20029 /* DietStatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DietStatsView.swift; sourceTree = "<group>"; };
 		DT20030 /* FoodPickSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodPickSource.swift; sourceTree = "<group>"; };
-		DT20041 /* GramStepper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GramStepper.swift; sourceTree = "<group>"; };
-		DT20040 /* NutrientRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutrientRow.swift; sourceTree = "<group>"; };
-		DT20044 /* PhotoDragDismiss.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoDragDismiss.swift; sourceTree = "<group>"; };
 		DT20031 /* FoodPickRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodPickRow.swift; sourceTree = "<group>"; };
 		DT20032 /* FoodDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodDetailViewModel.swift; sourceTree = "<group>"; };
 		DT20033 /* FoodDetailSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodDetailSheet.swift; sourceTree = "<group>"; };
 		DT20034 /* MealItemPickViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealItemPickViewModel.swift; sourceTree = "<group>"; };
-		DT20025 /* MealItemEditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealItemEditView.swift; sourceTree = "<group>"; };
-		DT20043 /* MealItemQuantitySheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealItemQuantitySheet.swift; sourceTree = "<group>"; };
-		DT20026 /* MealDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealDetailViewModel.swift; sourceTree = "<group>"; };
+		DT20035 /* PhotoLibrarySaver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoLibrarySaver.swift; sourceTree = "<group>"; };
+		DT20036 /* PhotoViewerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoViewerViewModel.swift; sourceTree = "<group>"; };
+		DT20037 /* PhotoViewerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoViewerSheet.swift; sourceTree = "<group>"; };
+		DT20040 /* NutrientRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutrientRow.swift; sourceTree = "<group>"; };
+		DT20041 /* GramStepper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GramStepper.swift; sourceTree = "<group>"; };
 		DT20042 /* MealItemQuantityViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealItemQuantityViewModel.swift; sourceTree = "<group>"; };
-		DT20027 /* MealDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealDetailView.swift; sourceTree = "<group>"; };
-		DT20028 /* DietStatsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DietStatsViewModel.swift; sourceTree = "<group>"; };
-		DT20029 /* DietStatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DietStatsView.swift; sourceTree = "<group>"; };
+		DT20043 /* MealItemQuantitySheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealItemQuantitySheet.swift; sourceTree = "<group>"; };
+		DT20044 /* PhotoDragDismiss.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoDragDismiss.swift; sourceTree = "<group>"; };
+		DT20099 /* DietInputLimits.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DietInputLimits.swift; sourceTree = "<group>"; };
+		DT2CH01 /* DietChat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DietChat.swift; sourceTree = "<group>"; };
+		DT2CH02 /* DietChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DietChatViewModel.swift; sourceTree = "<group>"; };
+		DT2CH03 /* DietChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DietChatView.swift; sourceTree = "<group>"; };
+		DT2CH04 /* ChatBubble.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatBubble.swift; sourceTree = "<group>"; };
+		DT2CH05 /* ChatMealCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatMealCardView.swift; sourceTree = "<group>"; };
+		DT2CH06 /* ChatDayCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatDayCardView.swift; sourceTree = "<group>"; };
+		DT2CH07 /* MacroStackBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacroStackBar.swift; sourceTree = "<group>"; };
 		E20001 /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
 		E20002 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 		E20003 /* RecordViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordViewModel.swift; sourceTree = "<group>"; };
@@ -293,9 +311,11 @@
 		E20005 /* StatsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsViewModel.swift; sourceTree = "<group>"; };
 		E20006 /* SearchViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchViewModel.swift; sourceTree = "<group>"; };
 		E20007 /* CategoriesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoriesViewModel.swift; sourceTree = "<group>"; };
+		ECC4B98A560D4DF30F7501E2 /* MonthGridBuilder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MonthGridBuilder.swift; sourceTree = "<group>"; };
 		F20001 /* Date+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Date+Extensions.swift"; sourceTree = "<group>"; };
 		F20002 /* Color+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Extensions.swift"; sourceTree = "<group>"; };
 		F20003 /* Double+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Double+Extensions.swift"; sourceTree = "<group>"; };
+		FD3CE59E8DF1F82DF405E788 /* DispatchService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DispatchService.swift; sourceTree = "<group>"; };
 		G20001 /* WeekdayHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekdayHeaderView.swift; sourceTree = "<group>"; };
 		G20002 /* DayCellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayCellView.swift; sourceTree = "<group>"; };
 		G20003 /* CalendarHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarHeaderView.swift; sourceTree = "<group>"; };
@@ -362,7 +382,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		880AD4802F5F071300777742 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+		880AD4802F5F071300777742 /* Exceptions for "StudyTimerWidget" folder in "StudyTimerWidgetExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -372,8 +392,29 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		880AD46C2F5F071200777742 /* StudyTimerWidget */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (880AD4802F5F071300777742 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = StudyTimerWidget; sourceTree = "<group>"; };
-		TT100001 /* WooriHaruTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = WooriHaruTests; sourceTree = "<group>"; };
+		880AD46C2F5F071200777742 /* StudyTimerWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				880AD4802F5F071300777742 /* Exceptions for "StudyTimerWidget" folder in "StudyTimerWidgetExtension" target */,
+			);
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = StudyTimerWidget;
+			sourceTree = "<group>";
+		};
+		TT100001 /* WooriHaruTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = WooriHaruTests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -428,6 +469,15 @@
 				8825C7552F5B1A1E00E46B14 /* UserManagementView.swift */,
 			);
 			path = Admin;
+			sourceTree = "<group>";
+		};
+		9030C9537F5D37B0A62F1A9D /* Schedule */ = {
+			isa = PBXGroup;
+			children = (
+				7F178E8439FA7AF1E8234A2B /* ScheduleView.swift */,
+				813FA531B52FC382C20B699F /* ScheduleDayCellView.swift */,
+			);
+			name = Schedule;
 			sourceTree = "<group>";
 		};
 		A40001 = {
@@ -490,6 +540,15 @@
 			path = Stores;
 			sourceTree = "<group>";
 		};
+		B2DCD63DCF31A7775D50544D /* Dispatch */ = {
+			isa = PBXGroup;
+			children = (
+				B6BB6AAFBAB44DCD1635C839 /* DispatchUploadView.swift */,
+				7EE2658BE836DAFED195B3A5 /* DispatchReviewView.swift */,
+			);
+			name = Dispatch;
+			sourceTree = "<group>";
+		};
 		B40001 /* Models */ = {
 			isa = PBXGroup;
 			children = (
@@ -521,6 +580,7 @@
 				DT20041 /* GramStepper.swift */,
 				DT20040 /* NutrientRow.swift */,
 				DT20044 /* PhotoDragDismiss.swift */,
+				D49A101711DCAF5B5FAFD364 /* DispatchModels.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -545,6 +605,7 @@
 				LG20002 /* LedgerService.swift */,
 				SW20002 /* HealthKitService.swift */,
 				DT20010 /* DietService.swift */,
+				FD3CE59E8DF1F82DF405E788 /* DispatchService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -576,6 +637,9 @@
 				DT20028 /* DietStatsViewModel.swift */,
 				DT20032 /* FoodDetailViewModel.swift */,
 				DT20034 /* MealItemPickViewModel.swift */,
+				B580B47689143646299A23EE /* DispatchUploadViewModel.swift */,
+				2A1655D9FB504D22636292C1 /* DispatchReviewViewModel.swift */,
+				2969E3F2EAA5A9B4E033CC8F /* ScheduleViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -597,6 +661,8 @@
 				LG40001 /* Ledger */,
 				SW40001 /* Swim */,
 				DT40001 /* Diet */,
+				B2DCD63DCF31A7775D50544D /* Dispatch */,
+				9030C9537F5D37B0A62F1A9D /* Schedule */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -611,6 +677,7 @@
 				I20001 /* MonthGridView.swift */,
 				G20001 /* WeekdayHeaderView.swift */,
 				MPS20001 /* MonthPickerSheet.swift */,
+				ECC4B98A560D4DF30F7501E2 /* MonthGridBuilder.swift */,
 			);
 			path = Calendar;
 			sourceTree = "<group>";
@@ -798,8 +865,6 @@
 				880AD46C2F5F071200777742 /* StudyTimerWidget */,
 			);
 			name = StudyTimerWidgetExtension;
-			packageProductDependencies = (
-			);
 			productName = StudyTimerWidgetExtension;
 			productReference = 880AD4662F5F071100777742 /* StudyTimerWidgetExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
@@ -839,8 +904,6 @@
 				TT100001 /* WooriHaruTests */,
 			);
 			name = WooriHaruTests;
-			packageProductDependencies = (
-			);
 			productName = WooriHaruTests;
 			productReference = TT100002 /* WooriHaruTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -877,8 +940,6 @@
 				Base,
 			);
 			mainGroup = A40001;
-			packageReferences = (
-			);
 			productRefGroup = A40003 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -1074,6 +1135,16 @@
 				SW10005 /* SwimLap.swift in Sources */,
 				SW10006 /* SwimWorkoutDetailView.swift in Sources */,
 				SW10007 /* SwimSet.swift in Sources */,
+				453AA4BE6F7BD87A2E9F53F2 /* DispatchModels.swift in Sources */,
+				A96AC1C7074B35DF261C1958 /* DispatchService.swift in Sources */,
+				FA164F9609CE37556A81E26A /* DispatchUploadViewModel.swift in Sources */,
+				B266A4283E345D5B46CD51CA /* DispatchReviewViewModel.swift in Sources */,
+				1634F29B8B1A65276DEFCC09 /* DispatchUploadView.swift in Sources */,
+				01E5347F6D87126F3B0EEDF0 /* DispatchReviewView.swift in Sources */,
+				8CB8971CA8F25A48887B5650 /* MonthGridBuilder.swift in Sources */,
+				A10AD40468D182F380D2EDED /* ScheduleViewModel.swift in Sources */,
+				02C05E2522888FC9FA1914FE /* ScheduleView.swift in Sources */,
+				E388FF0F4AE279B6C9099FEE /* ScheduleDayCellView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

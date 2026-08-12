@@ -1,0 +1,179 @@
+import SwiftUI
+
+/// 배차 근무 달력. 진입점이고, 오른쪽 위에서 사진 등록으로 들어간다.
+struct ScheduleView: View {
+    @Binding var navPath: NavigationPath
+    /// 사진 등록에서 방금 저장한 연월. `ContentView`가 올려 두면 이 화면이 그 달을 띄우고
+    /// 안내를 보인 뒤 스스로 비운다 — 남겨 두면 다음에 이 화면을 다시 들를 때도 같은
+    /// 안내가 뜬다.
+    @Binding var savedYearMonth: String?
+    @State private var vm = ScheduleViewModel()
+    @State private var showPicker = false
+    @State private var loadTask: Task<Void, Never>?
+    /// 저장 직후 한 번 보여줄 안내. 사용자가 달을 옮기면 더는 그 저장을 가리키는 말이
+    /// 아니므로 지운다.
+    @State private var savedMessage: String?
+
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: 0), count: 7)
+
+    var body: some View {
+        VStack(spacing: 0) {
+            header
+            WeekdayHeaderView()
+
+            if let message = savedMessage {
+                HStack(spacing: 8) {
+                    Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+                    Text(message).font(.footnote).foregroundStyle(.green)
+                    Spacer()
+                    Button {
+                        savedMessage = nil
+                    } label: {
+                        Image(systemName: "xmark").font(.footnote).foregroundStyle(.secondary)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+            }
+
+            if let message = vm.errorMessage {
+                HStack(spacing: 8) {
+                    Text(message).font(.footnote).foregroundStyle(.red)
+                    Button("다시 시도") { reload() }.font(.footnote)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+            }
+
+            LazyVGrid(columns: columns, spacing: 0) {
+                ForEach(vm.cells) { cell in
+                    ScheduleDayCellView(
+                        date: cell.date,
+                        day: cell.day,
+                        month: cell.month,
+                        isCurrentMonth: cell.isCurrentMonth,
+                        holidayNames: cell.isCurrentMonth ? vm.holidayNames(on: cell.date.dateString) : [],
+                        badges: cell.isCurrentMonth ? vm.badges(on: cell.date.dateString) : [],
+                        isBothOff: cell.isCurrentMonth && vm.isBothOff(on: cell.date.dateString)
+                    )
+                }
+            }
+            .padding(.horizontal, 8)
+
+            Spacer()
+        }
+        // 빈 자리에서 시작한 스와이프도 받는다. 칸 사이 여백에서만 안 먹으면 손짓이
+        // 될 때와 안 될 때가 갈려 고장 난 것처럼 느껴진다.
+        .contentShape(Rectangle())
+        .gesture(monthSwipe)
+        // 좌우 스와이프를 달 이동에 쓰므로 화면 가장자리에서 시작하는 뒤로가기를 끈다.
+        // 두 동작이 겹치면 이전 달로 가려던 손짓이 화면을 닫아 버린다.
+        .background(SwipeBackDisabler().frame(width: 0, height: 0))
+        .navigationTitle("스케줄표")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button("사진 등록") { navPath.append(AppDestination.dispatchUpload) }
+            }
+        }
+        .sheet(isPresented: $showPicker) {
+            MonthPickerSheet(initialYear: vm.pickerYear, initialMonth: vm.pickerMonth) { year, month in
+                savedMessage = nil
+                loadTask?.cancel()
+                loadTask = Task { await vm.jump(year: year, month: month) }
+            }
+            .presentationDetents([.height(320)])
+        }
+        // 첫 등장에서 조회하고, 사진 등록에서 돌아올 때도 다시 조회한다 — `.task`는 뷰가
+        // 사라질 때 취소되고 다시 나타날 때 스스로 재실행된다(같은 저장소의
+        // `SwimRecordListView`가 그 성질을 전제로 `loadIfNeeded` 가드를 둔 이유다).
+        // 별도 트리거를 달면 복귀 때 조회가 두 번 나간다.
+        //
+        // 저장하고 돌아온 경우엔 보고 있던 달이 아니라 **저장한 달**을 띄운다 — 배차표는
+        // 다음 달치를 등록하는 게 정상이라, 그냥 돌아오면 방금 넣은 것이 화면에 없다.
+        .task {
+            if let target = savedYearMonth {
+                savedYearMonth = nil
+                await vm.show(yearMonth: target)
+                if vm.yearMonth == target {
+                    savedMessage = "\(vm.monthLabel) 근무를 저장했습니다."
+                }
+            } else {
+                await vm.load()
+            }
+        }
+        .onDisappear { loadTask?.cancel() }
+    }
+
+    private var header: some View {
+        HStack(spacing: 12) {
+            Button { move(-1) } label: {
+                Image(systemName: "chevron.left").font(.title3).foregroundStyle(Color.slate700)
+            }
+            .accessibilityLabel("이전 달")
+
+            Button { showPicker = true } label: {
+                Text(vm.monthLabel)
+                    .font(.title3).fontWeight(.bold).foregroundStyle(Color.slate900)
+            }
+            .accessibilityHint("연월 선택 열기")
+
+            Button { move(1) } label: {
+                Image(systemName: "chevron.right").font(.title3).foregroundStyle(Color.slate700)
+            }
+            .accessibilityLabel("다음 달")
+
+            Spacer()
+
+            if vm.isLoading { ProgressView() }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+    }
+
+    /// 왼쪽으로 밀면 다음 달, 오른쪽으로 밀면 이전 달. 종이 달력을 넘기는 방향과 같다.
+    private var monthSwipe: some Gesture {
+        DragGesture(minimumDistance: 30)
+            .onEnded { value in
+                // 세로로 더 많이 움직였으면 달을 넘기려던 손짓이 아니다.
+                guard abs(value.translation.width) > abs(value.translation.height) else { return }
+                move(value.translation.width < 0 ? 1 : -1)
+            }
+    }
+
+    private func move(_ months: Int) {
+        savedMessage = nil
+        loadTask?.cancel()
+        loadTask = Task { await vm.move(by: months) }
+    }
+
+    private func reload() {
+        loadTask?.cancel()
+        loadTask = Task { await vm.load() }
+    }
+}
+
+/// 이 화면이 떠 있는 동안 가장자리 스와이프 뒤로가기를 끈다.
+///
+/// SwiftUI에는 이 제스처를 끄는 수단이 없어 `UINavigationController`를 직접 만진다.
+/// **떠날 때 반드시 되돌린다** — 되돌리지 않으면 이 화면을 한 번 들른 뒤로 앱 전체에서
+/// 뒤로가기 스와이프가 죽는다.
+private struct SwipeBackDisabler: UIViewControllerRepresentable {
+    func makeUIViewController(context: Context) -> UIViewController { Controller() }
+
+    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {}
+
+    final class Controller: UIViewController {
+        override func viewWillAppear(_ animated: Bool) {
+            super.viewWillAppear(animated)
+            navigationController?.interactivePopGestureRecognizer?.isEnabled = false
+        }
+
+        override func viewWillDisappear(_ animated: Bool) {
+            super.viewWillDisappear(animated)
+            navigationController?.interactivePopGestureRecognizer?.isEnabled = true
+        }
+    }
+}

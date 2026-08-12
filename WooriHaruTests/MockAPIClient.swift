@@ -16,6 +16,7 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
     private var postCreatedResults: [String: Int] = [:]
     private var patchCreatedResults: [String: Int] = [:]
     private var multipartResults: [Int] = []
+    private var multipartJSONResults: [String: Any] = [:]
     private var errors: [String: Error] = [:]
     private var putVoidError: Error?
 
@@ -24,6 +25,15 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
     private var recordedPostCreatedCalls: [(path: String, body: (any Encodable)?)] = []
     private var recordedPatchCreatedCalls: [(path: String, body: (any Encodable)?)] = []
     private var recordedMultipartCalls: [(path: String, byteCount: Int)] = []
+    /// `fileName`·`mimeType`도 기록한다 — 서버는 이 값으로 디코더를 고르므로, 버리면
+    /// 「HEIC 원본을 image/jpeg로 위장해 보낸다」 같은 결함을 잡을 자리가 없다.
+    private var recordedMultipartJSONCalls: [(
+        path: String,
+        query: [String: String],
+        fileData: Data,
+        fileName: String,
+        mimeType: String
+    )] = []
     private var recordedPutVoidCalls: [(path: String, body: (any Encodable)?)] = []
     private var recordedDeleteCalls: [String] = []
 
@@ -54,6 +64,12 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
     func stubMultipart(fileIds: [Int]) {
         lock.lock(); defer { lock.unlock() }
         multipartResults = fileIds
+    }
+
+    /// `postMultipart<T>`가 돌려줄 JSON 결과를 경로별로 등록한다.
+    func stubMultipartJSON<T>(_ path: String, result: T) {
+        lock.lock(); defer { lock.unlock() }
+        multipartJSONResults[path] = result
     }
 
     /// `"POST /diet/analyses"`처럼 `메서드 경로` 키로 던질 에러를 등록한다.
@@ -94,6 +110,17 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
     var multipartCalls: [(path: String, byteCount: Int)] {
         lock.lock(); defer { lock.unlock() }
         return recordedMultipartCalls
+    }
+
+    var multipartJSONCalls: [(
+        path: String,
+        query: [String: String],
+        fileData: Data,
+        fileName: String,
+        mimeType: String
+    )] {
+        lock.lock(); defer { lock.unlock() }
+        return recordedMultipartJSONCalls
     }
 
     var putVoidCalls: [(path: String, body: (any Encodable)?)] {
@@ -174,6 +201,26 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
         if let error { throw error }
         guard let id = result else { throw MockAPIError.unstubbed("POST \(path) #\(index)") }
         return id
+    }
+
+    func postMultipart<T: Decodable>(
+        _ path: String,
+        query: [String: String],
+        fileData: Data,
+        fileName: String,
+        mimeType: String
+    ) async throws -> T {
+        lock.lock()
+        recordedMultipartJSONCalls.append((path, query, fileData, fileName, mimeType))
+        let error = errors["POST \(path)"]
+        let result = multipartJSONResults[path]
+        lock.unlock()
+
+        if let error { throw error }
+        guard let value = result as? T else {
+            throw MockAPIError.unstubbed("postMultipart \(path)")
+        }
+        return value
     }
 
     func put<T: Decodable>(_ path: String, body: (any Encodable)?) async throws -> T {

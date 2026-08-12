@@ -45,6 +45,16 @@ protocol APIClientProtocol: Sendable {
     /// 여러 장은 이 메서드를 순차로 여러 번 부르는 것으로 처리한다 — 서버 `/files`가 단건이고,
     /// 병렬로 밀어넣으면 실패했을 때 어디까지 올라갔는지 추적이 지저분해진다.
     func postMultipartCreated(_ path: String, fileData: Data, fileName: String, mimeType: String) async throws -> Int
+
+    /// multipart로 보내고 **JSON 본문을 돌려받는다.** 기존 `postMultipartCreated`는
+    /// 201 + Location에서 id만 꺼내는 형태라 배차 인식(200 + 결과 JSON)에는 쓸 수 없다.
+    func postMultipart<T: Decodable>(
+        _ path: String,
+        query: [String: String],
+        fileData: Data,
+        fileName: String,
+        mimeType: String
+    ) async throws -> T
 }
 
 extension APIClientProtocol {
@@ -138,6 +148,45 @@ final class APIClient: APIClientProtocol, Sendable {
             throw APIError.serverError(statusCode: response.statusCode, message: "Location 헤더에서 ID를 찾을 수 없습니다")
         }
         return id
+    }
+
+    /// JSON을 돌려받는 multipart의 타임아웃. 지금 이 경로를 쓰는 것은 배차 인식뿐이다.
+    private static let recognitionTimeout: TimeInterval = 180
+
+    func postMultipart<T: Decodable>(
+        _ path: String,
+        query: [String: String],
+        fileData: Data,
+        fileName: String,
+        mimeType: String
+    ) async throws -> T {
+        let boundary = "Boundary-\(UUID().uuidString)"
+        let body = Self.multipartBody(boundary: boundary, fileData: fileData, fileName: fileName, mimeType: mimeType)
+        let pathWithQuery = Self.appending(query: query, to: path)
+        // **배차 인식은 오래 걸린다.** 서버가 사진을 조각내 비전 모델로 읽고 조각마다 한 번
+        // 재시도하므로 실측 85초가 나왔다. 세션 기본값 60초로는 서버가 멀쩡히 답하는 중에
+        // 앱이 먼저 포기하고, 사용자는 유료 인식을 한 번 더 돌리게 된다.
+        let (data, _) = try await rawMultipartFetch(
+            pathWithQuery,
+            body: body,
+            boundary: boundary,
+            timeout: Self.recognitionTimeout
+        )
+        return try JSONDecoder().decode(T.self, from: data)
+    }
+
+    /// 쿼리를 경로에 붙인다. `rawMultipartFetch`가 경로 문자열만 받기 때문이다.
+    ///
+    /// 문자열을 손으로 잇지 않고 `URLComponents`에 맡긴다 — `.urlQueryAllowed`는
+    /// `&`·`=`·`+`·`;`·`,` 같은 sub-delim을 허용 문자로 봐서 그대로 남기는데, 값에
+    /// `&`가 들어오면 이스케이프되는 대신 없던 두 번째 파라미터가 생긴다. `queryItems`를
+    /// 채워 `percentEncodedQuery`를 꺼내면 키·값 모두 델리미터 규칙대로 인코딩된다.
+    static func appending(query: [String: String], to path: String) -> String {
+        guard !query.isEmpty else { return path }
+        var components = URLComponents()
+        components.queryItems = query.map { URLQueryItem(name: $0.key, value: $0.value) }
+        guard let encoded = components.percentEncodedQuery else { return path }
+        return path.contains("?") ? "\(path)&\(encoded)" : "\(path)?\(encoded)"
     }
 
     /// multipart 본문을 순수 함수로 뽑아 둔다 — 서버 `FileController.upload`의
@@ -272,6 +321,7 @@ final class APIClient: APIClientProtocol, Sendable {
         _ path: String,
         body: Data,
         boundary: String,
+        timeout: TimeInterval? = nil,
         isRetry: Bool = false
     ) async throws -> (Data, HTTPURLResponse) {
         guard let url = URL(string: baseURL + path) else { throw APIError.invalidURL }
@@ -280,6 +330,9 @@ final class APIClient: APIClientProtocol, Sendable {
         request.httpMethod = "POST"
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
         request.httpBody = body
+        // 세션 기본값은 60초다. 오래 걸리는 요청만 개별로 늘린다 — 세션 전체를 늘리면
+        // 네트워크가 끊긴 화면들이 전부 그만큼 멈춰 선다.
+        if let timeout { request.timeoutInterval = timeout }
 
         let session = SessionManager.shared.urlSession
 
@@ -299,7 +352,7 @@ final class APIClient: APIClientProtocol, Sendable {
         if httpResponse.statusCode == 401 && !isRetry {
             let shouldRetry = await SessionManager.shared.handleUnauthorized()
             if shouldRetry {
-                return try await rawMultipartFetch(path, body: body, boundary: boundary, isRetry: true)
+                return try await rawMultipartFetch(path, body: body, boundary: boundary, timeout: timeout, isRetry: true)
             }
             throw APIError.unauthorized
         }
