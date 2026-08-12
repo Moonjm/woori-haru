@@ -19,18 +19,39 @@
 - **`note`에 개인 식별 정보를 넣지 않는다.** 무인증 `GET /dispatch/shifts`로 그대로 나간다. 서버 컬럼 길이가 100자다.
 - ViewModel은 `@MainActor @Observable final class`, 서비스는 `protocol XxxServing: Sendable` + 구현. 기존 `DietService`·`MealCaptureViewModel` 패턴을 따른다.
 - 테스트는 **Swift Testing**(`import Testing`, `@Test`, `#expect`). XCTest를 쓰지 마라.
-- Xcode 프로젝트가 **폴더 동기화 방식**(`PBXFileSystemSynchronizedRootGroup`)이라 **파일을 폴더에 만들면 타겟에 자동 포함된다.** `.xcodeproj`를 편집하지 마라.
+- **새로 만든 Swift 파일은 앱 타겟에 등록해야 컴파일된다.** 폴더 동기화(`PBXFileSystemSynchronizedRootGroup`)가 걸린 곳은 `WooriHaruTests`와 `StudyTimerWidget` 뿐이고, **앱 타겟 `WooriHaru`는 `PBXSourcesBuildPhase`에 파일을 하나씩 등록하는 전통 방식**이다. `WooriHaru/` 아래에 파일만 만들면 「테스트는 컴파일되는데 본 코드가 없다」는 형태로 깨진다. 파일을 만든 뒤 반드시 돌려라:
+
+  ```bash
+  export PATH="$(ruby -e 'puts Gem.user_dir')/bin:$PATH"
+  ruby scripts/xcode-add-files.rb WooriHaru/경로/파일.swift
+  ```
+
+  여러 번 돌려도 안전하다(이미 등록된 파일은 건너뛴다). **`WooriHaruTests/` 파일은 등록하지 마라** — 그쪽은 자동으로 잡힌다.
+- **파일 이름을 Apple 시스템 모듈과 같게 짓지 마라.** `Dispatch.swift`는 GCD 모듈 `Dispatch`와 겹쳐 `Circular dependency between modules 'Dispatch' and 'Foundation'`으로 빌드가 깨진다. 이 계획의 모델 파일이 `DispatchModels.swift`인 이유다.
 - 커밋 메시지는 **한국어**. 기존 관례를 따른다.
 
-**테스트 실행 명령** (모든 태스크 공통):
+**테스트 실행 명령**
 
 ```bash
 xcodebuild test -project WooriHaru.xcodeproj -scheme WooriHaru \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
-  -only-testing:WooriHaruTests/DispatchTests 2>&1 | tail -20
+  -only-testing:WooriHaruTests/<스위트명> 2>&1 | tail -20
 ```
 
-전체 스위트는 `-only-testing`을 빼고 돌린다.
+**`-only-testing`은 파일명이 아니라 스위트명(struct 이름)을 받는다.** 파일명(`DispatchTests`)을
+넣으면 아무 테스트도 매치되지 않고 **0개가 돌면서 조용히 `TEST SUCCEEDED`가 뜬다** — 실제로
+한 번 그렇게 속았다. 스위트명은 태스크마다 다르다:
+
+| 태스크 | 스위트명 |
+|---|---|
+| 1 | `DispatchModelTests` |
+| 2 | `DispatchServiceTests` |
+| 3 | `DispatchUploadViewModelTests` |
+| 4 | `DispatchReviewViewModelTests` |
+
+**통과했다고 보고하기 전에 출력에서 「Test run with N tests」의 N이 0이 아닌지 확인해라.**
+
+전체 스위트는 `-only-testing`을 빼고 돌린다(453개 기준).
 
 ---
 
@@ -87,7 +108,7 @@ xcodebuild test -project WooriHaru.xcodeproj -scheme WooriHaru \
 
 | 파일 | 책임 |
 |---|---|
-| `WooriHaru/Models/Dispatch.swift` | 요청·응답 모델 전부 |
+| `WooriHaru/Models/DispatchModels.swift` | 요청·응답 모델 전부 |
 | `WooriHaru/Services/DispatchService.swift` | `DispatchServing` 프로토콜과 구현 |
 | `WooriHaru/ViewModels/DispatchUploadViewModel.swift` | 사진·연월 보유, 인식 요청 |
 | `WooriHaru/ViewModels/DispatchReviewViewModel.swift` | 인식 결과 편집, 저장 요청 구성 |
@@ -109,7 +130,7 @@ xcodebuild test -project WooriHaru.xcodeproj -scheme WooriHaru \
 ### Task 1: 모델과 multipart JSON 응답
 
 **Files:**
-- Create: `WooriHaru/Models/Dispatch.swift`
+- Create: `WooriHaru/Models/DispatchModels.swift`
 - Modify: `WooriHaru/Services/APIClient.swift`
 - Modify: `WooriHaruTests/MockAPIClient.swift`
 - Test: `WooriHaruTests/DispatchTests.swift`
@@ -220,7 +241,7 @@ Expected: 컴파일 실패 — `cannot find 'DispatchRecognition' in scope`
 
 - [ ] **Step 3: 모델 작성**
 
-`WooriHaru/Models/Dispatch.swift`
+`WooriHaru/Models/DispatchModels.swift`
 
 ```swift
 import Foundation
@@ -368,7 +389,14 @@ struct DispatchShiftSaveRequest: Encodable {
 
 > `errors[path]`·`lock`·`MockAPIError`는 이 파일에 이미 있다. 없으면 기존 메서드가 쓰는 이름을 그대로 따라라.
 
-- [ ] **Step 6: 테스트 통과 확인**
+- [ ] **Step 6: 앱 타겟에 등록하고 테스트 통과 확인**
+
+새 파일은 등록하지 않으면 컴파일되지 않는다.
+
+```bash
+export PATH="$(ruby -e 'puts Gem.user_dir')/bin:$PATH"
+ruby scripts/xcode-add-files.rb WooriHaru/Models/DispatchModels.swift
+```
 
 Run: 테스트 실행 명령
 Expected: PASS (4개)
@@ -376,7 +404,8 @@ Expected: PASS (4개)
 - [ ] **Step 7: 커밋**
 
 ```bash
-git add WooriHaru/Models/Dispatch.swift WooriHaru/Services/APIClient.swift \
+git add WooriHaru/Models/DispatchModels.swift WooriHaru/Services/APIClient.swift \
+        WooriHaru.xcodeproj scripts/xcode-add-files.rb \
         WooriHaruTests/DispatchTests.swift WooriHaruTests/MockAPIClient.swift
 git commit -m "feat: 배차표 인식 모델과 multipart JSON 응답 경로를 만든다
 
@@ -517,7 +546,12 @@ struct DispatchService: DispatchServing {
 
 > `APIClient.shared`가 이 이름이 아니면 `DietService`가 쓰는 기본값을 그대로 따라라.
 
-- [ ] **Step 4: 테스트 통과 확인**
+- [ ] **Step 4: 앱 타겟에 등록하고 테스트 통과 확인**
+
+```bash
+export PATH="$(ruby -e 'puts Gem.user_dir')/bin:$PATH"
+ruby scripts/xcode-add-files.rb WooriHaru/Services/DispatchService.swift
+```
 
 Run: 테스트 실행 명령
 Expected: PASS
@@ -525,7 +559,7 @@ Expected: PASS
 - [ ] **Step 5: 커밋**
 
 ```bash
-git add WooriHaru/Services/DispatchService.swift WooriHaruTests/
+git add WooriHaru/Services/DispatchService.swift WooriHaru.xcodeproj WooriHaruTests/
 git commit -m "feat: 배차 인식·저장 서비스를 만든다
 
 인식 요청에 연월을 함께 보낸다. 서버가 사진에서 읽어 정하면 어느 달 기준을
@@ -734,7 +768,12 @@ final class DispatchUploadViewModel {
 
 > `APIError.serverError`의 `localizedDescription`이 서버 메시지를 담지 않으면, `DietService`나 기존 ViewModel이 서버 메시지를 꺼내는 방식을 그대로 따라라. 그 방식이 이 저장소의 관례다.
 
-- [ ] **Step 4: 테스트 통과 확인**
+- [ ] **Step 4: 앱 타겟에 등록하고 테스트 통과 확인**
+
+```bash
+export PATH="$(ruby -e 'puts Gem.user_dir')/bin:$PATH"
+ruby scripts/xcode-add-files.rb WooriHaru/ViewModels/DispatchUploadViewModel.swift
+```
 
 Run: 테스트 실행 명령
 Expected: PASS
@@ -742,7 +781,7 @@ Expected: PASS
 - [ ] **Step 5: 커밋**
 
 ```bash
-git add WooriHaru/ViewModels/DispatchUploadViewModel.swift WooriHaruTests/DispatchTests.swift
+git add WooriHaru/ViewModels/DispatchUploadViewModel.swift WooriHaru.xcodeproj WooriHaruTests/DispatchTests.swift
 git commit -m "feat: 배차표 사진 업로드 ViewModel을 만든다
 
 사진을 축소하지 않는다. 배차표는 표가 가로로 길어 한 칸이 몇 픽셀이라,
@@ -1041,7 +1080,12 @@ final class DispatchReviewViewModel {
 }
 ```
 
-- [ ] **Step 4: 테스트 통과 확인**
+- [ ] **Step 4: 앱 타겟에 등록하고 테스트 통과 확인**
+
+```bash
+export PATH="$(ruby -e 'puts Gem.user_dir')/bin:$PATH"
+ruby scripts/xcode-add-files.rb WooriHaru/ViewModels/DispatchReviewViewModel.swift
+```
 
 Run: 테스트 실행 명령
 Expected: PASS (8개)
@@ -1049,7 +1093,7 @@ Expected: PASS (8개)
 - [ ] **Step 5: 커밋**
 
 ```bash
-git add WooriHaru/ViewModels/DispatchReviewViewModel.swift WooriHaruTests/DispatchTests.swift
+git add WooriHaru/ViewModels/DispatchReviewViewModel.swift WooriHaru.xcodeproj WooriHaruTests/DispatchTests.swift
 git commit -m "feat: 배차표 인식 결과 검수 ViewModel을 만든다
 
 그 달 전체를 보여주되 사진에 없던 날은 미인식으로 두고 저장에서 뺀다.
@@ -1357,7 +1401,14 @@ struct DispatchReviewView: View {
                 }
 ```
 
-- [ ] **Step 4: 빌드와 전체 테스트**
+- [ ] **Step 4: 앱 타겟에 등록하고 빌드·전체 테스트**
+
+```bash
+export PATH="$(ruby -e 'puts Gem.user_dir')/bin:$PATH"
+ruby scripts/xcode-add-files.rb \
+  WooriHaru/Views/Dispatch/DispatchUploadView.swift \
+  WooriHaru/Views/Dispatch/DispatchReviewView.swift
+```
 
 Run:
 ```bash
@@ -1376,7 +1427,7 @@ Expected: TEST SUCCEEDED — 기존 테스트가 하나도 깨지지 않아야 �
 - [ ] **Step 5: 커밋**
 
 ```bash
-git add WooriHaru/Views/Dispatch WooriHaru/ContentView.swift \
+git add WooriHaru/Views/Dispatch WooriHaru.xcodeproj WooriHaru/ContentView.swift \
         WooriHaru/Views/Components/SideDrawerView.swift
 git commit -m "feat: 배차표 업로드·검수 화면을 연다
 
