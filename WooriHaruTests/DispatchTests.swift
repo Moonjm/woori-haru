@@ -167,3 +167,99 @@ struct DispatchServiceTests {
         #expect(api.postCalls.contains { $0.path == "/dispatch/shifts" })
     }
 }
+
+/// 인식만 하는 대역. 호출 인자를 기록하고 미리 정한 결과를 돌려준다.
+private final class FakeDispatchService: DispatchServing, @unchecked Sendable {
+    var recognizeResult: Result<DispatchRecognition, Error>
+    var saveError: Error?
+    private(set) var recognizeCalls: [(imageData: Data, yearMonth: String)] = []
+    private(set) var savedRequests: [DispatchShiftSaveRequest] = []
+
+    init(recognizeResult: Result<DispatchRecognition, Error>) {
+        self.recognizeResult = recognizeResult
+    }
+
+    func recognize(imageData: Data, yearMonth: String) async throws -> DispatchRecognition {
+        recognizeCalls.append((imageData, yearMonth))
+        return try recognizeResult.get()
+    }
+
+    func saveShifts(_ request: DispatchShiftSaveRequest) async throws {
+        savedRequests.append(request)
+        if let saveError { throw saveError }
+    }
+}
+
+private func sampleRecognition(
+    matchedBy: DispatchMatchedBy = .name,
+    warnings: [String] = [],
+    days: [DispatchRecognitionDay] = [
+        DispatchRecognitionDay(day: 1, working: true, slot: 1, note: nil, conflict: false)
+    ]
+) -> DispatchRecognition {
+    DispatchRecognition(
+        yearMonth: "2026-08",
+        hasNameColumn: matchedBy == .name,
+        matchedBy: matchedBy,
+        rowIndex: 2,
+        rowCount: 13,
+        warnings: warnings,
+        days: days
+    )
+}
+
+@MainActor
+struct DispatchUploadViewModelTests {
+    @Test func 사진이_없으면_인식할_수_없다() {
+        let vm = DispatchUploadViewModel(service: FakeDispatchService(recognizeResult: .success(sampleRecognition())))
+        #expect(vm.canRecognize == false)
+
+        vm.setImage(Data([0x01]))
+        #expect(vm.canRecognize == true)
+    }
+
+    @Test func 인식에_성공하면_결과를_들고_완료된다() async {
+        let service = FakeDispatchService(recognizeResult: .success(sampleRecognition()))
+        let vm = DispatchUploadViewModel(service: service)
+        vm.setImage(Data([0x01, 0x02]))
+        vm.yearMonth = "2026-08"
+
+        await vm.recognize()
+
+        #expect(vm.phase == .completed)
+        #expect(vm.recognition?.yearMonth == "2026-08")
+        #expect(service.recognizeCalls.first?.yearMonth == "2026-08")
+        // 원본 바이트가 그대로 가야 한다 — 줄이면 인식이 망가진다.
+        #expect(service.recognizeCalls.first?.imageData == Data([0x01, 0x02]))
+    }
+
+    @Test func 인식에_실패하면_서버_메시지를_그대로_보여준다() async {
+        let error = APIError.serverError(statusCode: 400, message: "배차표 사진에서 대상 기사를 찾지 못했습니다. 사진을 확인해 주세요.")
+        let service = FakeDispatchService(recognizeResult: .failure(error))
+        let vm = DispatchUploadViewModel(service: service)
+        vm.setImage(Data([0x01]))
+
+        await vm.recognize()
+
+        #expect(vm.phase == .failed)
+        // 서버 메시지가 이미 사용자용 한국어다. 앱이 다시 쓰지 않는다.
+        #expect(vm.errorMessage?.contains("대상 기사를 찾지 못했습니다") == true)
+    }
+
+    @Test func 기본_연월은_이번_달이다() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Seoul") ?? .current
+        let date = calendar.date(from: DateComponents(year: 2026, month: 8, day: 12))!
+
+        #expect(DispatchUploadViewModel.defaultYearMonth(now: date, calendar: calendar) == "2026-08")
+    }
+
+    @Test func 한자리_월은_0을_채운다() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Seoul") ?? .current
+        let date = calendar.date(from: DateComponents(year: 2026, month: 3, day: 1))!
+
+        // "2026-3"으로 보내면 서버의 YearMonth 파싱이 400을 낸다.
+        #expect(DispatchUploadViewModel.defaultYearMonth(now: date, calendar: calendar) == "2026-03")
+    }
+}

@@ -106,6 +106,7 @@
 		F10001 /* Date+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20001 /* Date+Extensions.swift */; };
 		F10002 /* Color+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20002 /* Color+Extensions.swift */; };
 		F10003 /* Double+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20003 /* Double+Extensions.swift */; };
+		FA164F9609CE37556A81E26A /* DispatchUploadViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B580B47689143646299A23EE /* DispatchUploadViewModel.swift */; };
 		G10001 /* WeekdayHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = G20001 /* WeekdayHeaderView.swift */; };
 		G10002 /* DayCellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = G20002 /* DayCellView.swift */; };
 		G10003 /* CalendarHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = G20003 /* CalendarHeaderView.swift */; };
@@ -224,6 +225,7 @@
 		AA200005 /* Logger+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Logger+Extensions.swift"; sourceTree = "<group>"; };
 		AA200006 /* SessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionManager.swift; sourceTree = "<group>"; };
 		B20001 /* DDayBadgeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DDayBadgeService.swift; sourceTree = "<group>"; };
+		B580B47689143646299A23EE /* DispatchUploadViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DispatchUploadViewModel.swift; sourceTree = "<group>"; };
 		C20001 /* User.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = User.swift; sourceTree = "<group>"; };
 		C20002 /* Category.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Category.swift; sourceTree = "<group>"; };
 		C20003 /* DailyRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyRecord.swift; sourceTree = "<group>"; };
@@ -603,6 +605,7 @@
 				DT20028 /* DietStatsViewModel.swift */,
 				DT20032 /* FoodDetailViewModel.swift */,
 				DT20034 /* MealItemPickViewModel.swift */,
+				B580B47689143646299A23EE /* DispatchUploadViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -1097,6 +1100,7 @@
 				SW10007 /* SwimSet.swift in Sources */,
 				453AA4BE6F7BD87A2E9F53F2 /* DispatchModels.swift in Sources */,
 				A96AC1C7074B35DF261C1958 /* DispatchService.swift in Sources */,
+				FA164F9609CE37556A81E26A /* DispatchUploadViewModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
