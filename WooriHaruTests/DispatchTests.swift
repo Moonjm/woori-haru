@@ -857,3 +857,14 @@ struct DispatchReviewViewModelTests {
         #expect(gregorianVM.entries[0].weekday == "토")
     }
 }
+
+@MainActor
+struct DispatchCalendarTests {
+    /// 시간대가 GMT로 잡히면 한국에서 매달 1일 오전 9시 이전에 「오늘」이 지난달로 계산돼
+    /// 스케줄표가 지난달을 연다. `Calendar(identifier:)`의 기본값이 문서화돼 있지 않으므로
+    /// 상수 쪽에서 못 박고 여기서 지킨다.
+    @Test func 배차_달력은_기기_시간대를_쓴다() {
+        #expect(Calendar.dispatchGregorian.timeZone == TimeZone.current)
+        #expect(Calendar.dispatchGregorian.identifier == .gregorian)
+    }
+}

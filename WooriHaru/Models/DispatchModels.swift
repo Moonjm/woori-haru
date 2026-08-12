@@ -79,6 +79,12 @@ extension Calendar {
     /// `2569-08`**로 만들어진다. 형식 검사는 이 값을 통과시키고 서버는 그대로 ISO로 읽어,
     /// 엉뚱한 연도를 인식하고 저장한다. 말일·요일 계산도 같은 이유로 여기에 맞춘다.
     ///
-    /// 시간대는 `Calendar(identifier:)`가 기기 것을 그대로 쓰므로 「오늘」은 지역 시각이다.
-    static let dispatchGregorian = Calendar(identifier: .gregorian)
+    /// **시간대를 명시한다.** `Calendar(identifier:)`의 시간대 기본값은 문서화돼 있지 않다.
+    /// 실측으로는 기기 시간대를 물려받지만, 그것이 GMT로 바뀌면 한국에서 매달 1일 오전 9시
+    /// 이전에 「오늘」이 지난달로 계산돼 **스케줄표가 지난달을 연다.** 기대지 않고 못 박는다.
+    static let dispatchGregorian: Calendar = {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .current
+        return calendar
+    }()
 }
