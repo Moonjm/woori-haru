@@ -134,4 +134,25 @@ struct MonthGridBuilderTests {
 
         #expect(fromViewModel.map(\.id) == fromBuilder.map(\.id))
     }
+
+    @Test func 비그레고리력을_넘겨도_패딩과_날짜_수가_같다() {
+        // 불교력은 그레고리력과 연도 표기만 다르고 달의 길이·요일 배치는 같다.
+        // 계산이 주입받은 calendar가 아니라 기기 달력(Calendar.current)을 새 나가면
+        // 이 값들이 기기 설정에 따라 달라진다 — 서버로 나가는 연월만 그레고리력이고
+        // 화면 칸은 기기 달력을 따르는 어긋남이 여기서 드러난다.
+        let start = Date.from("2026-08-01")!
+        let gregorian = Calendar(identifier: .gregorian)
+        let buddhist = Calendar(identifier: .buddhist)
+
+        let gregorianCells = MonthGridBuilder.cells(for: start, calendar: gregorian)
+        let buddhistCells = MonthGridBuilder.cells(for: start, calendar: buddhist)
+
+        #expect(buddhistCells.count == gregorianCells.count)
+        let gregorianLeading = gregorianCells.prefix(while: { !$0.isCurrentMonth }).count
+        let buddhistLeading = buddhistCells.prefix(while: { !$0.isCurrentMonth }).count
+        #expect(buddhistLeading == gregorianLeading)
+        #expect(buddhistCells.filter(\.isCurrentMonth).count == gregorianCells.filter(\.isCurrentMonth).count)
+        #expect(buddhistCells.map(\.day) == gregorianCells.map(\.day))
+        #expect(buddhistCells.map(\.date) == gregorianCells.map(\.date))
+    }
 }

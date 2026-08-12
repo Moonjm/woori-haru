@@ -129,7 +129,17 @@ final class ScheduleViewModel {
             result[day.date, default: []].append(Badge(role: day.role, slot: day.slot))
         }
         return result.mapValues { badges in
-            badges.sorted { lhs, _ in lhs.role == .father }
+            badges.sorted { roleRank($0.role) < roleRank($1.role) }
+        }
+    }
+
+    /// 아빠를 먼저 그린다. 역할별 순위를 매겨 비교해야 엄격 약순서를 지킨다 —
+    /// `lhs.role == .father`처럼 한쪽만 보고 비교하면 `아빠, 아빠`처럼 자기 자신과
+    /// 견줄 때도 참이 나와 정렬 결과가 정의되지 않는다.
+    private static func roleRank(_ role: DispatchRole) -> Int {
+        switch role {
+        case .father: return 0
+        case .mother: return 1
         }
     }
 
