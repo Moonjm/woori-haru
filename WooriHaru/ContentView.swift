@@ -18,6 +18,7 @@ enum AppDestination: Hashable {
     case ledgerInboundFailures
     case swimRecords
     case diet
+    case dispatch
 }
 
 struct ContentView: View {
@@ -50,6 +51,7 @@ struct ContentView: View {
                     case .ledgerInboundFailures: LedgerInboundFailuresView()
                     case .swimRecords: SwimRecordListView()
                     case .diet: DietHomeView()
+                    case .dispatch: DispatchUploadView()
                     }
                 }
         }
