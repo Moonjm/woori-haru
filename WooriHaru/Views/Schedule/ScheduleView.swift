@@ -63,6 +63,13 @@ struct ScheduleView: View {
 
             Spacer()
         }
+        // 빈 자리에서 시작한 스와이프도 받는다. 칸 사이 여백에서만 안 먹으면 손짓이
+        // 될 때와 안 될 때가 갈려 고장 난 것처럼 느껴진다.
+        .contentShape(Rectangle())
+        .gesture(monthSwipe)
+        // 좌우 스와이프를 달 이동에 쓰므로 화면 가장자리에서 시작하는 뒤로가기를 끈다.
+        // 두 동작이 겹치면 이전 달로 가려던 손짓이 화면을 닫아 버린다.
+        .background(SwipeBackDisabler().frame(width: 0, height: 0))
         .navigationTitle("스케줄표")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -125,6 +132,16 @@ struct ScheduleView: View {
         .padding(.vertical, 12)
     }
 
+    /// 왼쪽으로 밀면 다음 달, 오른쪽으로 밀면 이전 달. 종이 달력을 넘기는 방향과 같다.
+    private var monthSwipe: some Gesture {
+        DragGesture(minimumDistance: 30)
+            .onEnded { value in
+                // 세로로 더 많이 움직였으면 달을 넘기려던 손짓이 아니다.
+                guard abs(value.translation.width) > abs(value.translation.height) else { return }
+                move(value.translation.width < 0 ? 1 : -1)
+            }
+    }
+
     private func move(_ months: Int) {
         savedMessage = nil
         loadTask?.cancel()
@@ -134,5 +151,28 @@ struct ScheduleView: View {
     private func reload() {
         loadTask?.cancel()
         loadTask = Task { await vm.load() }
+    }
+}
+
+/// 이 화면이 떠 있는 동안 가장자리 스와이프 뒤로가기를 끈다.
+///
+/// SwiftUI에는 이 제스처를 끄는 수단이 없어 `UINavigationController`를 직접 만진다.
+/// **떠날 때 반드시 되돌린다** — 되돌리지 않으면 이 화면을 한 번 들른 뒤로 앱 전체에서
+/// 뒤로가기 스와이프가 죽는다.
+private struct SwipeBackDisabler: UIViewControllerRepresentable {
+    func makeUIViewController(context: Context) -> UIViewController { Controller() }
+
+    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {}
+
+    final class Controller: UIViewController {
+        override func viewWillAppear(_ animated: Bool) {
+            super.viewWillAppear(animated)
+            navigationController?.interactivePopGestureRecognizer?.isEnabled = false
+        }
+
+        override func viewWillDisappear(_ animated: Bool) {
+            super.viewWillDisappear(animated)
+            navigationController?.interactivePopGestureRecognizer?.isEnabled = true
+        }
     }
 }
