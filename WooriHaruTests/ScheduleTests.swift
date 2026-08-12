@@ -39,7 +39,7 @@ struct ScheduleViewModelTests {
         let mock = MockAPIClient()
         mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
         let service = FakeScheduleService(days: [
-            DispatchShiftDay(date: "2026-08-15", role: .father, working: true, slot: 1, note: nil)
+            DispatchShiftDay(date: "2026-08-15", role: .father, working: true, slot: 1, slotCode: nil, note: nil)
         ])
         let vm = makeViewModel(mock: mock, service: service)
 
@@ -55,7 +55,7 @@ struct ScheduleViewModelTests {
         let mock = MockAPIClient()
         mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
         let service = FakeScheduleService(days: [
-            DispatchShiftDay(date: "2026-08-15", role: .father, working: false, slot: nil, note: "휴")
+            DispatchShiftDay(date: "2026-08-15", role: .father, working: false, slot: nil, slotCode: nil, note: "휴")
         ])
         let vm = makeViewModel(mock: mock, service: service)
 
@@ -70,7 +70,7 @@ struct ScheduleViewModelTests {
         let mock = MockAPIClient()
         mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
         let service = FakeScheduleService(days: [
-            DispatchShiftDay(date: "2026-08-15", role: .mother, working: true, slot: nil, note: nil)
+            DispatchShiftDay(date: "2026-08-15", role: .mother, working: true, slot: nil, slotCode: nil, note: nil)
         ])
         let vm = makeViewModel(mock: mock, service: service)
 
@@ -84,8 +84,8 @@ struct ScheduleViewModelTests {
         let mock = MockAPIClient()
         mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
         let service = FakeScheduleService(days: [
-            DispatchShiftDay(date: "2026-08-15", role: .mother, working: true, slot: nil, note: nil),
-            DispatchShiftDay(date: "2026-08-15", role: .father, working: true, slot: 2, note: nil)
+            DispatchShiftDay(date: "2026-08-15", role: .mother, working: true, slot: nil, slotCode: nil, note: nil),
+            DispatchShiftDay(date: "2026-08-15", role: .father, working: true, slot: 2, slotCode: nil, note: nil)
         ])
         let vm = makeViewModel(mock: mock, service: service)
 
@@ -103,8 +103,8 @@ struct ScheduleViewModelTests {
         let mock = MockAPIClient()
         mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
         let service = FakeScheduleService(days: [
-            DispatchShiftDay(date: "2026-08-15", role: .father, working: false, slot: nil, note: nil),
-            DispatchShiftDay(date: "2026-08-15", role: .mother, working: false, slot: nil, note: nil)
+            DispatchShiftDay(date: "2026-08-15", role: .father, working: false, slot: nil, slotCode: nil, note: nil),
+            DispatchShiftDay(date: "2026-08-15", role: .mother, working: false, slot: nil, slotCode: nil, note: nil)
         ])
         let vm = makeViewModel(mock: mock, service: service)
 
@@ -117,8 +117,8 @@ struct ScheduleViewModelTests {
         let mock = MockAPIClient()
         mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
         let service = FakeScheduleService(days: [
-            DispatchShiftDay(date: "2026-08-15", role: .father, working: true, slot: 1, note: nil),
-            DispatchShiftDay(date: "2026-08-15", role: .mother, working: false, slot: nil, note: nil)
+            DispatchShiftDay(date: "2026-08-15", role: .father, working: true, slot: 1, slotCode: nil, note: nil),
+            DispatchShiftDay(date: "2026-08-15", role: .mother, working: false, slot: nil, slotCode: nil, note: nil)
         ])
         let vm = makeViewModel(mock: mock, service: service)
 
@@ -132,7 +132,7 @@ struct ScheduleViewModelTests {
         mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
         // 엄마는 패턴이라 늘 값이 있고, 아빠는 등록한 날만 온다.
         let service = FakeScheduleService(days: [
-            DispatchShiftDay(date: "2026-08-15", role: .mother, working: false, slot: nil, note: nil)
+            DispatchShiftDay(date: "2026-08-15", role: .mother, working: false, slot: nil, slotCode: nil, note: nil)
         ])
         let vm = makeViewModel(mock: mock, service: service)
 
@@ -147,8 +147,8 @@ struct ScheduleViewModelTests {
         let mock = MockAPIClient()
         mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
         let service = FakeScheduleService(days: [
-            DispatchShiftDay(date: "2026-08-15", role: .father, working: false, slot: nil, note: nil),
-            DispatchShiftDay(date: "2026-08-15", role: .mother, working: false, slot: nil, note: nil)
+            DispatchShiftDay(date: "2026-08-15", role: .father, working: false, slot: nil, slotCode: nil, note: nil),
+            DispatchShiftDay(date: "2026-08-15", role: .mother, working: false, slot: nil, slotCode: nil, note: nil)
         ])
         let vm = makeViewModel(mock: mock, service: service)
         await vm.load()
@@ -292,7 +292,7 @@ struct ScheduleViewModelTests {
         let mock = MockAPIClient()
         mock.setError(APIError.serverError(statusCode: 500, message: "nope"), for: "GET /holidays")
         let service = FakeScheduleService(days: [
-            DispatchShiftDay(date: "2026-08-15", role: .father, working: true, slot: 1, note: nil)
+            DispatchShiftDay(date: "2026-08-15", role: .father, working: true, slot: 1, slotCode: nil, note: nil)
         ])
         let vm = makeViewModel(mock: mock, service: service)
 
@@ -323,7 +323,7 @@ struct ScheduleViewModelTests {
         let mock = MockAPIClient()
         mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
         let service = FakeScheduleService(days: [
-            DispatchShiftDay(date: "2026-09-05", role: .father, working: true, slot: 2, note: nil)
+            DispatchShiftDay(date: "2026-09-05", role: .father, working: true, slot: 2, slotCode: nil, note: nil)
         ])
         let vm = makeViewModel(mock: mock, service: service)
         await vm.load()
@@ -356,7 +356,7 @@ struct ScheduleViewModelTests {
         let mock = MockAPIClient()
         mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
         let service = FakeScheduleService(days: [
-            DispatchShiftDay(date: "2026-08-15", role: .father, working: true, slot: 1, note: nil)
+            DispatchShiftDay(date: "2026-08-15", role: .father, working: true, slot: 1, slotCode: nil, note: nil)
         ])
         let vm = makeViewModel(mock: mock, service: service)
         service.duringFetch = { [vm] in

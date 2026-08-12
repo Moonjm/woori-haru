@@ -100,6 +100,45 @@ struct DispatchModelTests {
         #expect(range.days[1].slot == nil)
     }
 
+    @Test func 조회_응답의_순번코드를_디코딩한다() throws {
+        let json = """
+        {"data":{"days":[
+          {"date":"2026-08-15","role":"MOTHER","working":true,"slot":null,"slotCode":"A","note":null}
+        ]}}
+        """
+        let response = try JSONDecoder().decode(DataResponse<DispatchShiftRange>.self, from: Data(json.utf8))
+
+        #expect(response.data?.days.first?.slotCode == "A")
+    }
+
+    /// 서버가 아직 내려주지 않는 동안에도 조회가 깨지지 않아야 한다.
+    @Test func 순번코드가_없어도_디코딩된다() throws {
+        let json = """
+        {"data":{"days":[
+          {"date":"2026-08-15","role":"FATHER","working":true,"slot":1,"note":null}
+        ]}}
+        """
+        let response = try JSONDecoder().decode(DataResponse<DispatchShiftRange>.self, from: Data(json.utf8))
+
+        #expect(response.data?.days.first?.slotCode == nil)
+    }
+
+    @Test func 하루_편집_요청은_건드린_역할만_싣는다() throws {
+        let request = DispatchDayEditRequest(
+            father: nil,
+            mother: DispatchRoleEdit(working: true, slot: nil, slotCode: "B")
+        )
+
+        let data = try JSONEncoder().encode(request)
+        let json = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+
+        // **키 자체가 없어야 한다.** null로 나가면 서버가 「비우라」로 읽을 여지가 생긴다.
+        #expect(json["father"] == nil)
+        let mother = try #require(json["mother"] as? [String: Any])
+        #expect(mother["working"] as? Bool == true)
+        #expect(mother["slotCode"] as? String == "B")
+    }
+
     @Test func 인식_응답의_연월은_비어_올_수_있다() throws {
         // 제목이 잘린 사진은 서버가 연월을 못 읽는다. 검수 화면이 채운다.
         let json = """
@@ -161,7 +200,7 @@ struct DispatchServiceTests {
     @Test func 근무를_연월로_조회한다() async throws {
         let api = MockAPIClient()
         api.stubGet("/dispatch/shifts", result: DataResponse(data: DispatchShiftRange(days: [
-            DispatchShiftDay(date: "2026-08-01", role: .father, working: true, slot: 1, note: nil)
+            DispatchShiftDay(date: "2026-08-01", role: .father, working: true, slot: 1, slotCode: nil, note: nil)
         ])))
         let service = DispatchService(api: api)
 
