@@ -83,6 +83,65 @@ struct ScheduleViewModelTests {
         ])
     }
 
+    @Test func 둘_다_쉬는_날을_알려준다() async {
+        let mock = MockAPIClient()
+        mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
+        let service = FakeScheduleService(days: [
+            DispatchShiftDay(date: "2026-08-15", role: .father, working: false, slot: nil, note: nil),
+            DispatchShiftDay(date: "2026-08-15", role: .mother, working: false, slot: nil, note: nil)
+        ])
+        let vm = makeViewModel(mock: mock, service: service)
+
+        await vm.load()
+
+        #expect(vm.isBothOff(on: "2026-08-15") == true)
+    }
+
+    @Test func 한쪽만_쉬면_알리지_않는다() async {
+        let mock = MockAPIClient()
+        mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
+        let service = FakeScheduleService(days: [
+            DispatchShiftDay(date: "2026-08-15", role: .father, working: true, slot: 1, note: nil),
+            DispatchShiftDay(date: "2026-08-15", role: .mother, working: false, slot: nil, note: nil)
+        ])
+        let vm = makeViewModel(mock: mock, service: service)
+
+        await vm.load()
+
+        #expect(vm.isBothOff(on: "2026-08-15") == false)
+    }
+
+    @Test func 아빠_배차표를_안_올린_달은_알리지_않는다() async {
+        let mock = MockAPIClient()
+        mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
+        // 엄마는 패턴이라 늘 값이 있고, 아빠는 등록한 날만 온다.
+        let service = FakeScheduleService(days: [
+            DispatchShiftDay(date: "2026-08-15", role: .mother, working: false, slot: nil, note: nil)
+        ])
+        let vm = makeViewModel(mock: mock, service: service)
+
+        await vm.load()
+
+        // **없는 것과 쉬는 것은 다르다.** 아빠 레코드가 없을 뿐인데 휴무로 세면
+        // 배차표를 안 올린 달이 통째로 「둘 다 쉬는 날」이 된다.
+        #expect(vm.isBothOff(on: "2026-08-15") == false)
+    }
+
+    @Test func 달을_옮기면_이전_달의_겹친_휴무가_남지_않는다() async {
+        let mock = MockAPIClient()
+        mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
+        let service = FakeScheduleService(days: [
+            DispatchShiftDay(date: "2026-08-15", role: .father, working: false, slot: nil, note: nil),
+            DispatchShiftDay(date: "2026-08-15", role: .mother, working: false, slot: nil, note: nil)
+        ])
+        let vm = makeViewModel(mock: mock, service: service)
+        await vm.load()
+
+        await vm.move(by: 1)
+
+        #expect(vm.isBothOff(on: "2026-08-15") == false)
+    }
+
     @Test func 달을_옮기면_그_달을_조회한다() async {
         let mock = MockAPIClient()
         mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))

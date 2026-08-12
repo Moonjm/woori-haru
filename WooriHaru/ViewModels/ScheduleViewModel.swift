@@ -26,6 +26,10 @@ final class ScheduleViewModel {
     private var startOfMonth: Date
     private var badgesByDate: [String: [Badge]] = [:]
 
+    /// 아빠와 엄마가 **둘 다 확정 휴무**인 날. 부모님이 함께 시간을 낼 수 있는 날이라
+    /// 이 달력을 여는 실제 이유에 가깝다.
+    private var bothOffDates: Set<String> = []
+
     /// 받아 둔 공휴일을 연 단위로 들고 있는다. **달을 옮겨도 남는다.**
     /// 화면 상태 안에만 두고 「이미 받았다」는 표시를 바깥에 따로 두면 둘이 어긋나
     /// 공휴일이 통째로 사라진다 — 기본 달력에서 실제로 그렇게 됐다(#70).
@@ -60,6 +64,13 @@ final class ScheduleViewModel {
         badgesByDate[dateString] ?? []
     }
 
+    /// 두 사람이 **둘 다 쉬는** 날인가. **미등록은 여기 들어오지 않는다** — 아빠 배차표를
+    /// 아직 안 올린 달은 값이 없을 뿐인데, 그것을 휴무로 세면 한 달 내내 「둘 다 쉬는 날」이
+    /// 된다. 서버가 아빠의 휴무도 레코드로 내려주므로 없는 것과 쉬는 것이 갈린다.
+    func isBothOff(on dateString: String) -> Bool {
+        bothOffDates.contains(dateString)
+    }
+
     func holidayNames(on dateString: String) -> [String] {
         holidaysByYear[calendar.component(.year, from: startOfMonth)]?[dateString] ?? []
     }
@@ -76,6 +87,7 @@ final class ScheduleViewModel {
             // 조회 중에 달이 바뀌었다. 이 결과는 지금 보이는 달의 것이 아니다.
             guard token == generation else { return }
             badgesByDate = Self.group(days)
+            bothOffDates = Self.datesBothOff(days)
         } catch is CancellationError {
             return
         } catch {
@@ -114,6 +126,7 @@ final class ScheduleViewModel {
         cells = MonthGridBuilder.cells(for: startOfMonth, calendar: calendar)
         // 이전 달 값을 지운다. 남겨 두면 조회가 끝나기 전까지 이전 달 근무가 새 달에 보인다.
         badgesByDate = [:]
+        bothOffDates = []
         await load()
     }
 
@@ -141,6 +154,19 @@ final class ScheduleViewModel {
         return result.mapValues { badges in
             badges.sorted { roleRank($0.role) < roleRank($1.role) }
         }
+    }
+
+    /// 두 사람이 **둘 다 쉬는** 날짜들.
+    ///
+    /// **레코드가 있고 그것이 휴무여야 한다.** 없는 것과 쉬는 것은 다르다 — 아빠 배차표를
+    /// 아직 안 올린 달은 아빠 레코드가 통째로 없는데, 그것을 휴무로 세면 그 달 전체가
+    /// 「둘 다 쉬는 날」이 되어 달력이 그럴듯한 거짓말을 한다.
+    private static func datesBothOff(_ days: [DispatchShiftDay]) -> Set<String> {
+        var offRolesByDate: [String: Set<DispatchRole>] = [:]
+        for day in days where !day.working {
+            offRolesByDate[day.date, default: []].insert(day.role)
+        }
+        return Set(offRolesByDate.filter { $0.value == [.father, .mother] }.keys)
     }
 
     /// 엄마를 먼저 그린다(화면에서 위). 역할별 순위를 매겨 비교해야 엄격 약순서를 지킨다 —

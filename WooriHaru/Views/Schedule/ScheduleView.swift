@@ -55,7 +55,8 @@ struct ScheduleView: View {
                         month: cell.month,
                         isCurrentMonth: cell.isCurrentMonth,
                         holidayNames: cell.isCurrentMonth ? vm.holidayNames(on: cell.date.dateString) : [],
-                        badges: cell.isCurrentMonth ? vm.badges(on: cell.date.dateString) : []
+                        badges: cell.isCurrentMonth ? vm.badges(on: cell.date.dateString) : [],
+                        isBothOff: cell.isCurrentMonth && vm.isBothOff(on: cell.date.dateString)
                     )
                 }
             }

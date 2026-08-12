@@ -17,6 +17,8 @@ struct ScheduleDayCellView: View {
     let isCurrentMonth: Bool
     let holidayNames: [String]
     let badges: [ScheduleViewModel.Badge]
+    /// 아빠와 엄마가 둘 다 쉬는 날. **미등록은 여기 들어오지 않는다**(뷰모델이 가린다).
+    let isBothOff: Bool
 
     static let cellHeight: CGFloat = 76
 
@@ -46,6 +48,9 @@ struct ScheduleDayCellView: View {
         .padding(.horizontal, 3)
         .padding(.top, 3)
         .frame(height: Self.cellHeight)
+        // **둘 다 쉬는 날은 칸을 옅게 칠한다.** 밴드 자리를 뺏지 않아 정렬이 그대로고,
+        // 한 달을 훑을 때 덩어리로 보인다. 그런 날은 밴드가 없어 색이 섞이지도 않는다.
+        .background(isBothOff ? Color.green100 : .clear)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityDescription)
     }
@@ -77,6 +82,7 @@ struct ScheduleDayCellView: View {
     private var accessibilityDescription: String {
         var parts = ["\(month)월 \(day)일"]
         parts += holidayNames
+        if isBothOff { parts.append("둘 다 휴무") }
         // 화면과 같은 순서로 읽는다 — 엄마가 위, 아빠가 아래다.
         for role in [DispatchRole.mother, .father] {
             guard let badge = badges.first(where: { $0.role == role }) else { continue }
