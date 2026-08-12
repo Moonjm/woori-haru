@@ -830,16 +830,25 @@ struct DispatchReviewViewModelTests {
         ])
     }
 
-    @Test func 요일은_기기_달력이_아니라_그레고리력으로_센다() {
-        // 기기 달력이 불교력이면 Calendar.current가 2569년으로 계산해 요일이 어긋난다.
-        #expect(Calendar.dispatchGregorian.identifier == .gregorian)
-
+    @Test func 요일은_넘겨받은_달력으로_센다() {
+        // 기본 인자가 `.dispatchGregorian`인 것은 그레고리력 기기에서 테스트로 구별할 수
+        // 없다(`.current`와 같은 값을 낸다). 대신 계산이 `Calendar.current`에 박혀 있지
+        // 않다는 것을 확인한다 — 박혀 있으면 무엇을 넘기든 그레고리력 요일이 나온다.
         let recognition = sampleRecognition(yearMonth: "2026-08")
-        let vm = DispatchReviewViewModel(
-            recognition: recognition,
-            service: FakeDispatchService(recognizeResult: .success(recognition))
-        )
-        // 2026-08-01은 토요일이다.
-        #expect(vm.entries[0].weekday == "토")
+        let service = FakeDispatchService(recognizeResult: .success(recognition))
+
+        var buddhist = Calendar(identifier: .buddhist)
+        buddhist.timeZone = TimeZone(identifier: "Asia/Seoul") ?? .current
+        let symbols = ["일", "월", "화", "수", "목", "금", "토"]
+        let buddhistDate = buddhist.date(from: DateComponents(year: 2026, month: 8, day: 1))!
+        let expected = symbols[buddhist.component(.weekday, from: buddhistDate) - 1]
+        #expect(expected != "토", "전제가 깨졌다 — 그레고리력과 같은 요일이면 이 테스트는 아무것도 못 잡는다")
+
+        let vm = DispatchReviewViewModel(recognition: recognition, service: service, calendar: buddhist)
+        #expect(vm.entries[0].weekday == expected)
+
+        // 그레고리력을 넘기면 실제 요일이 나온다. 2026-08-01은 토요일이다.
+        let gregorianVM = DispatchReviewViewModel(recognition: recognition, service: service)
+        #expect(gregorianVM.entries[0].weekday == "토")
     }
 }
