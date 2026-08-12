@@ -34,7 +34,12 @@ final class DispatchUploadViewModel {
     }
 
     var canRecognize: Bool {
-        imageData != nil && phase != .recognizing
+        imageData != nil && phase != .recognizing && isYearMonthValid
+    }
+
+    /// 화면이 형식 오류를 알리는 데 쓴다.
+    var isYearMonthValid: Bool {
+        Self.isValidYearMonth(yearMonth)
     }
 
     func setImage(_ data: Data) {
@@ -44,18 +49,39 @@ final class DispatchUploadViewModel {
         recognition = nil
     }
 
+    /// 앨범에서 읽거나 JPEG로 굽는 데 실패했다. 조용히 넘기면 사진 섹션이 빈 채로 남아
+    /// 사용자가 「사진이 안 들어갔다」는 것조차 모른다.
+    func setImageLoadFailed() {
+        imageData = nil
+        phase = .idle
+        recognition = nil
+        errorMessage = "사진을 읽지 못했습니다. 다른 사진으로 다시 시도해 주세요."
+    }
+
     func recognize() async {
+        // 연타나 화면 복귀로 두 번 들어오면 유료 인식이 두 번 나간다.
+        guard phase != .recognizing else { return }
         guard let imageData else { return }
         phase = .recognizing
         errorMessage = nil
         do {
             recognition = try await service.recognize(imageData: imageData, yearMonth: yearMonth)
             phase = .completed
+        } catch is CancellationError {
+            // 사용자가 화면을 떠난 것이지 실패가 아니다. 영문 시스템 메시지를 띄우지 않는다.
+            return
         } catch {
             // 서버 메시지가 이미 사용자용 한국어다(`TARGET_NOT_FOUND` 등). 앱이 다시 쓰지 않는다.
-            errorMessage = error.localizedDescription
+            // 다만 봉투 JSON째 보여주면 안 되므로 `message`만 꺼낸다.
+            errorMessage = error.serverMessage ?? error.localizedDescription
             phase = .failed
         }
+    }
+
+    /// `^\d{4}-(0[1-9]|1[0-2])$`. **월에 0을 채워야 한다** — `2026-3`·`2026-13`은
+    /// 서버의 `YearMonth` 파싱이 400을 낸다.
+    static func isValidYearMonth(_ value: String) -> Bool {
+        value.range(of: "^[0-9]{4}-(0[1-9]|1[0-2])$", options: .regularExpression) != nil
     }
 
     /// `2026-08` 형식. **월에 0을 채워야 한다** — `2026-3`은 서버의 `YearMonth` 파싱이 400을 낸다.

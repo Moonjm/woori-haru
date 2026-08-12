@@ -3,8 +3,13 @@ import SwiftUI
 
 /// 연월과 사진을 골라 인식을 요청한다.
 ///
-/// **사진을 축소하지 않는다.** `PhotosPickerItem`에서 받은 원본 `Data`를 그대로 넘긴다 —
-/// 식단처럼 `downsampledJPEG`를 거치면 표가 뭉개져 인식이 망가진다.
+/// **사진을 축소하지 않는다.** 식단처럼 장변 1024px로 줄이면 표가 뭉개져 인식이 망가진다.
+/// 다만 앨범 원본을 **그대로** 보내지도 않는다 — `loadTransferable(type: Data.self)`는 자산의
+/// 원본 포맷(아이폰 카메라 기본값은 HEIC)을 주는데 서버 `ImageIO.read`에는 HEIC 리더가 없어
+/// `IMAGE_UNREADABLE`이 되고, EXIF 방향 플래그도 적용되지 않아 **화면에는 똑바로 보이는 사진을
+/// 서버는 눕혀서 받아 가로로 2등분한다.** `downsampledJPEG`를 상한 없이(`.greatestFiniteMagnitude`)
+/// 불러 JPEG로 다시 굽고 회전을 픽셀에 반영한다 — 그 함수가 상한을 `min(maxDimension, originalMax)`로
+/// 낮추므로 **해상도는 원본 그대로다.**
 struct DispatchUploadView: View {
     @State private var vm = DispatchUploadViewModel()
     @State private var pickerItem: PhotosPickerItem?
@@ -51,9 +56,21 @@ struct DispatchUploadView: View {
         .onChange(of: pickerItem) { _, item in
             guard let item else { return }
             Task {
-                guard let data = try? await item.loadTransferable(type: Data.self) else { return }
-                vm.setImage(data)
-                previewImage = UIImage(data: data)
+                // 읽기·변환 어느 쪽이 실패해도 조용히 돌아가지 않는다 — 예전에는 사진 섹션이
+                // 그대로 비어 있어 사용자가 「고른 사진이 안 들어갔다」는 사실조차 몰랐다.
+                guard let data = try? await item.loadTransferable(type: Data.self),
+                      let normalized = UIImage.downsampledJPEG(
+                          from: data,
+                          maxDimension: .greatestFiniteMagnitude,
+                          quality: 0.95
+                      ),
+                      let preview = UIImage(data: normalized) else {
+                    previewImage = nil
+                    vm.setImageLoadFailed()
+                    return
+                }
+                vm.setImage(normalized)
+                previewImage = preview
             }
         }
         .onChange(of: vm.phase) { _, newPhase in
@@ -76,6 +93,14 @@ struct DispatchUploadView: View {
             TextField("2026-08", text: $vm.yearMonth)
                 .textFieldStyle(.roundedBorder)
                 .autocorrectionDisabled()
+                .keyboardType(.numbersAndPunctuation)
+            // 기본값은 이번 달이라 평소엔 안전하지만, 월말에 다음 달 배차표를 미리 올리려면
+            // 이 칸을 손으로 고치게 된다. `2026-3`은 서버 `YearMonth` 파싱이 400을 낸다.
+            if !vm.isYearMonthValid {
+                Text("연월은 2026-08처럼 네 자리 연도와 두 자리 월로 적어 주세요.")
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
         }
     }
 

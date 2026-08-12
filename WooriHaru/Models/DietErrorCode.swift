@@ -19,6 +19,10 @@ private struct DietErrorBody: Decodable {
     let error: String
 }
 
+private struct ServerErrorBody: Decodable {
+    let message: String?
+}
+
 extension Error {
     /// `APIError.serverError`의 message에 실려 온 JSON 본문에서 `error`를 읽는다.
     /// 본문이 JSON이 아니거나 아는 코드가 아니면 nil — 호출부는 일반 오류로 다룬다.
@@ -30,5 +34,24 @@ extension Error {
             return nil
         }
         return DietErrorCode(rawValue: body.error)
+    }
+
+    /// 같은 본문에서 사용자용 `message`만 꺼낸다.
+    ///
+    /// `APIError.serverError(message:)`에는 **서버 메시지가 아니라 응답 본문 전체**가 들어간다
+    /// (`APIClient`가 `String(data: data, encoding: .utf8)`을 그대로 싣는다). 그래서
+    /// `localizedDescription`을 그대로 띄우면 `{"status":400,"message":"...","code":"400", ...}`가
+    /// 사용자 눈앞에 나온다. 본문이 JSON이 아니거나 `message`가 비어 있으면 nil —
+    /// 호출부는 기존처럼 `localizedDescription`으로 떨어진다.
+    var serverMessage: String? {
+        guard let apiError = self as? APIError,
+              case let .serverError(_, message) = apiError,
+              let data = message?.data(using: .utf8),
+              let body = try? JSONDecoder().decode(ServerErrorBody.self, from: data),
+              let text = body.message,
+              !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return nil
+        }
+        return text
     }
 }
