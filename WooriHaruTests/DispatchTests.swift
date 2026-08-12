@@ -140,6 +140,21 @@ struct DispatchServiceTests {
         #expect(call.fileData == Data([0x01, 0x02]))
     }
 
+    @Test func 사진은_JPEG로_보낸다() async throws {
+        let api = MockAPIClient()
+        api.stubMultipartJSON("/dispatch/recognitions", result: DataResponse(data: recognition()))
+        let service = DispatchService(api: api)
+
+        _ = try await service.recognize(imageData: Data([0x01]), yearMonth: "2026-08")
+
+        let call = try #require(api.multipartJSONCalls.first)
+        // 서버는 파트의 mime으로 디코더를 고른다. HEIC 원본을 image/jpeg로 위장해 보내면
+        // `ImageIO.read`가 null을 돌려줘 IMAGE_UNREADABLE(400)이 된다 — 화면에서 원본을
+        // JPEG로 다시 구운 뒤 넘기기로 한 약속이 이 값이다.
+        #expect(call.mimeType == "image/jpeg")
+        #expect(call.fileName == "dispatch.jpg")
+    }
+
     @Test func 인식_결과를_그대로_돌려준다() async throws {
         let api = MockAPIClient()
         api.stubMultipartJSON("/dispatch/recognitions", result: DataResponse(data: recognition()))
@@ -172,6 +187,8 @@ struct DispatchServiceTests {
 private final class FakeDispatchService: DispatchServing, @unchecked Sendable {
     var recognizeResult: Result<DispatchRecognition, Error>
     var saveError: Error?
+    /// 인식이 진행 중인 순간에 끼어들 자리. 재진입 가드를 재우지 않고 확인하는 데 쓴다.
+    var duringRecognize: (@Sendable () async -> Void)?
     private(set) var recognizeCalls: [(imageData: Data, yearMonth: String)] = []
     private(set) var savedRequests: [DispatchShiftSaveRequest] = []
 
@@ -181,6 +198,7 @@ private final class FakeDispatchService: DispatchServing, @unchecked Sendable {
 
     func recognize(imageData: Data, yearMonth: String) async throws -> DispatchRecognition {
         recognizeCalls.append((imageData, yearMonth))
+        await duringRecognize?()
         return try recognizeResult.get()
     }
 
@@ -234,7 +252,14 @@ struct DispatchUploadViewModelTests {
     }
 
     @Test func 인식에_실패하면_서버_메시지를_그대로_보여준다() async {
-        let error = APIError.serverError(statusCode: 400, message: "배차표 사진에서 대상 기사를 찾지 못했습니다. 사진을 확인해 주세요.")
+        // **`APIClient`가 실제로 만드는 모양이어야 한다.** `rawMultipartFetch`는 실패 본문
+        // 전체를 `message`에 담으므로, 손으로 만든 한 줄짜리 메시지를 넣으면 봉투 JSON이
+        // 그대로 노출되는 결함을 못 잡는다.
+        let envelope = """
+        {"status":400,"message":"배차표 사진에서 대상 기사를 찾지 못했습니다. 사진을 확인해 주세요.",\
+        "timestamp":"2026-08-12T10:00:00","code":"400","error":"TARGET_NOT_FOUND"}
+        """
+        let error = APIError.serverError(statusCode: 400, message: envelope)
         let service = FakeDispatchService(recognizeResult: .failure(error))
         let vm = DispatchUploadViewModel(service: service)
         vm.setImage(Data([0x01]))
@@ -243,7 +268,80 @@ struct DispatchUploadViewModelTests {
 
         #expect(vm.phase == .failed)
         // 서버 메시지가 이미 사용자용 한국어다. 앱이 다시 쓰지 않는다.
-        #expect(vm.errorMessage?.contains("대상 기사를 찾지 못했습니다") == true)
+        #expect(vm.errorMessage == "배차표 사진에서 대상 기사를 찾지 못했습니다. 사진을 확인해 주세요.")
+        // 봉투가 새어 나오면 안 된다.
+        #expect(vm.errorMessage?.contains("TARGET_NOT_FOUND") == false)
+        #expect(vm.errorMessage?.contains("timestamp") == false)
+    }
+
+    @Test func 봉투가_아니면_기존_메시지로_떨어진다() async {
+        let error = APIError.serverError(statusCode: 502, message: "<html>Bad Gateway</html>")
+        let service = FakeDispatchService(recognizeResult: .failure(error))
+        let vm = DispatchUploadViewModel(service: service)
+        vm.setImage(Data([0x01]))
+
+        await vm.recognize()
+
+        #expect(vm.phase == .failed)
+        #expect(vm.errorMessage == "<html>Bad Gateway</html>")
+    }
+
+    @Test func 인식_중에_다시_불러도_요청은_한_번만_나간다() async {
+        let service = FakeDispatchService(recognizeResult: .success(sampleRecognition()))
+        let vm = DispatchUploadViewModel(service: service)
+        vm.setImage(Data([0x01]))
+        service.duringRecognize = { [vm] in
+            // 이미 인식 중이다. 두 번째 호출은 그대로 돌아가야 한다 — 유료 인식이 두 번 나간다.
+            await vm.recognize()
+        }
+
+        await vm.recognize()
+
+        #expect(service.recognizeCalls.count == 1)
+        #expect(vm.phase == .completed)
+    }
+
+    @Test func 취소는_실패로_치지_않는다() async {
+        let service = FakeDispatchService(recognizeResult: .failure(CancellationError()))
+        let vm = DispatchUploadViewModel(service: service)
+        vm.setImage(Data([0x01]))
+
+        await vm.recognize()
+
+        // 화면을 떠난 것이지 실패가 아니다. 영문 시스템 메시지를 띄우지 않는다.
+        #expect(vm.phase != .failed)
+        #expect(vm.errorMessage == nil)
+    }
+
+    @Test func 연월_형식이_어긋나면_인식할_수_없다() {
+        let vm = DispatchUploadViewModel(service: FakeDispatchService(recognizeResult: .success(sampleRecognition())))
+        vm.setImage(Data([0x01]))
+
+        // 서버 `YearMonth`는 `2026-08`만 받는다.
+        for invalid in ["2026-3", "2026-13", "", "2026-00", "26-08", "2026-08-01", " 2026-08"] {
+            vm.yearMonth = invalid
+            #expect(vm.isYearMonthValid == false, "\(invalid)는 막아야 한다")
+            #expect(vm.canRecognize == false, "\(invalid)는 막아야 한다")
+        }
+
+        vm.yearMonth = "2026-08"
+        #expect(vm.isYearMonthValid == true)
+        #expect(vm.canRecognize == true)
+
+        // 월말에 다음 달 배차표를 미리 올리는 경로도 열려 있어야 한다.
+        vm.yearMonth = "2026-12"
+        #expect(vm.canRecognize == true)
+    }
+
+    @Test func 사진을_읽지_못하면_조용히_넘기지_않는다() {
+        let vm = DispatchUploadViewModel(service: FakeDispatchService(recognizeResult: .success(sampleRecognition())))
+        vm.setImage(Data([0x01]))
+
+        vm.setImageLoadFailed()
+
+        #expect(vm.imageData == nil)
+        #expect(vm.canRecognize == false)
+        #expect(vm.errorMessage != nil)
     }
 
     @Test func 기본_연월은_이번_달이다() {
@@ -399,6 +497,90 @@ struct DispatchReviewViewModelTests {
         // 첫 저장의 성공 표시가 남아 「저장됨」과 오류가 동시에 뜨면 안 된다.
         #expect(vm.didSave == false)
         #expect(vm.errorMessage != nil)
+    }
+
+    @Test func 보낼_날짜가_없으면_요청하지_않는다() async {
+        // 서버 `ShiftSaveRequest.days`에 `@NotEmpty`가 걸려 있어 빈 배열은 400이다.
+        let recognition = sampleRecognition(days: [
+            DispatchRecognitionDay(day: 1, working: true, slot: 1, note: nil, conflict: false)
+        ])
+        let service = FakeDispatchService(recognizeResult: .success(recognition))
+        let vm = makeViewModel(recognition: recognition, service: service)
+
+        #expect(vm.canSave == true)
+        vm.markUnrecognized(day: 1)
+        #expect(vm.canSave == false)
+
+        await vm.save()
+
+        #expect(service.savedRequests.isEmpty)
+        #expect(vm.didSave == false)
+        #expect(vm.errorMessage != nil)
+    }
+
+    @Test func 인식_결과가_비어_오면_저장이_막힌다() {
+        let recognition = sampleRecognition(days: [])
+        let vm = makeViewModel(recognition: recognition, service: FakeDispatchService(recognizeResult: .success(recognition)))
+
+        #expect(vm.canSave == false)
+    }
+
+    @Test func 근무_여부를_뒤집으면_원문_note를_버린다() async throws {
+        // OCR이 「1번」 칸을 휴무로 잘못 읽고 note에 "휴"를 실어 온 경우.
+        let recognition = sampleRecognition(days: [
+            DispatchRecognitionDay(day: 1, working: false, slot: nil, note: "휴", conflict: false)
+        ])
+        let service = FakeDispatchService(recognizeResult: .success(recognition))
+        let vm = makeViewModel(recognition: recognition, service: service)
+
+        vm.setWorking(day: 1, working: true, slot: 1)
+        await vm.save()
+
+        let request = try #require(service.savedRequests.first)
+        // note를 남기면 웹 달력이 근무 뱃지에 원문을 붙여 「1번 휴」로 찍는다.
+        #expect(request.days[0].working == true)
+        #expect(request.days[0].slot == 1)
+        #expect(request.days[0].note == nil)
+    }
+
+    @Test func 휴무를_휴무로_두면_원문_note는_남는다() async throws {
+        let recognition = sampleRecognition(days: [
+            DispatchRecognitionDay(day: 1, working: false, slot: nil, note: "간담회", conflict: true)
+        ])
+        let service = FakeDispatchService(recognizeResult: .success(recognition))
+        let vm = makeViewModel(recognition: recognition, service: service)
+
+        vm.setWorking(day: 1, working: false, slot: nil)
+        await vm.save()
+
+        let request = try #require(service.savedRequests.first)
+        #expect(request.days[0].note == "간담회")
+        #expect(vm.entries[0].conflict == false)
+    }
+
+    @Test func 저장_실패_메시지에서_봉투를_벗긴다() async {
+        let recognition = sampleRecognition()
+        let service = FakeDispatchService(recognizeResult: .success(recognition))
+        service.saveError = APIError.serverError(
+            statusCode: 400,
+            message: #"{"status":400,"message":"저장에 실패했습니다","code":"400","error":"INVALID_REQUEST"}"#
+        )
+        let vm = makeViewModel(recognition: recognition, service: service)
+
+        await vm.save()
+
+        #expect(vm.errorMessage == "저장에 실패했습니다")
+    }
+
+    @Test func 요일을_함께_보여준다() {
+        let recognition = sampleRecognition()
+        let vm = makeViewModel(recognition: recognition, service: FakeDispatchService(recognizeResult: .success(recognition)))
+
+        // 2026-08-01은 토요일이다. 사진의 표가 요일 머리글로 정렬돼 있어 대조에 쓰인다.
+        #expect(vm.entries[0].weekday == "토")
+        #expect(vm.entries[1].weekday == "일")
+        #expect(vm.entries[2].weekday == "월")
+        #expect(vm.entries[30].weekday == "월")
     }
 
     @Test func 중복된_날짜가_와도_죽지_않고_하나만_반영한다() {

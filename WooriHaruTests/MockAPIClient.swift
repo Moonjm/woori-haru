@@ -25,7 +25,15 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
     private var recordedPostCreatedCalls: [(path: String, body: (any Encodable)?)] = []
     private var recordedPatchCreatedCalls: [(path: String, body: (any Encodable)?)] = []
     private var recordedMultipartCalls: [(path: String, byteCount: Int)] = []
-    private var recordedMultipartJSONCalls: [(path: String, query: [String: String], fileData: Data)] = []
+    /// `fileName`·`mimeType`도 기록한다 — 서버는 이 값으로 디코더를 고르므로, 버리면
+    /// 「HEIC 원본을 image/jpeg로 위장해 보낸다」 같은 결함을 잡을 자리가 없다.
+    private var recordedMultipartJSONCalls: [(
+        path: String,
+        query: [String: String],
+        fileData: Data,
+        fileName: String,
+        mimeType: String
+    )] = []
     private var recordedPutVoidCalls: [(path: String, body: (any Encodable)?)] = []
     private var recordedDeleteCalls: [String] = []
 
@@ -104,7 +112,13 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
         return recordedMultipartCalls
     }
 
-    var multipartJSONCalls: [(path: String, query: [String: String], fileData: Data)] {
+    var multipartJSONCalls: [(
+        path: String,
+        query: [String: String],
+        fileData: Data,
+        fileName: String,
+        mimeType: String
+    )] {
         lock.lock(); defer { lock.unlock() }
         return recordedMultipartJSONCalls
     }
@@ -197,7 +211,7 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
         mimeType: String
     ) async throws -> T {
         lock.lock()
-        recordedMultipartJSONCalls.append((path, query, fileData))
+        recordedMultipartJSONCalls.append((path, query, fileData, fileName, mimeType))
         let error = errors["POST \(path)"]
         let result = multipartJSONResults[path]
         lock.unlock()
