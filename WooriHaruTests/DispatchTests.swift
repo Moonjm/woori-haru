@@ -384,4 +384,33 @@ struct DispatchReviewViewModelTests {
         #expect(vm.errorMessage != nil)
         #expect(vm.isSaving == false)
     }
+
+    @Test func 저장_성공_후_다시_실패하면_저장됨_표시가_남지_않는다() async {
+        let recognition = sampleRecognition()
+        let service = FakeDispatchService(recognizeResult: .success(recognition))
+        let vm = makeViewModel(recognition: recognition, service: service)
+
+        await vm.save()
+        #expect(vm.didSave == true)
+
+        service.saveError = APIError.serverError(statusCode: 400, message: "저장에 실패했습니다")
+        await vm.save()
+
+        // 첫 저장의 성공 표시가 남아 「저장됨」과 오류가 동시에 뜨면 안 된다.
+        #expect(vm.didSave == false)
+        #expect(vm.errorMessage != nil)
+    }
+
+    @Test func 중복된_날짜가_와도_죽지_않고_하나만_반영한다() {
+        let recognition = sampleRecognition(days: [
+            DispatchRecognitionDay(day: 1, working: true, slot: 1, note: nil, conflict: false),
+            DispatchRecognitionDay(day: 1, working: false, slot: nil, note: nil, conflict: false)
+        ])
+        let vm = makeViewModel(recognition: recognition, service: FakeDispatchService(recognizeResult: .success(recognition)))
+
+        // 크래시하지 않고, 뒤에 온 값(휴무)으로 반영된다.
+        #expect(vm.entries.count == 31)
+        #expect(vm.entries[0].recognized == true)
+        #expect(vm.entries[0].working == false)
+    }
 }

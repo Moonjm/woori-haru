@@ -76,6 +76,9 @@ final class DispatchReviewViewModel {
         guard !isSaving else { return }
         isSaving = true
         errorMessage = nil
+        // 첫 저장이 성공한 뒤 값을 고쳐 다시 저장했다가 실패하면, 이 값이 남아 있어
+        // 화면이 「저장됨」과 오류를 동시에 보여준다.
+        didSave = false
 
         let days = entries
             .filter(\.recognized)
@@ -98,7 +101,10 @@ final class DispatchReviewViewModel {
     }
 
     private static func buildEntries(from recognition: DispatchRecognition, calendar: Calendar) -> [DayEntry] {
-        let recognizedByDay = Dictionary(uniqueKeysWithValues: recognition.days.map { ($0.day, $0) })
+        // `uniqueKeysWithValues`는 같은 키가 두 번 오면 **크래시한다.** 서버가 중복 `day`를
+        // 주는 일은 없어야 하지만, 모델 응답 하나 때문에 검수 화면이 죽는 것보다는
+        // 뒤에 온 값을 쓰는 편이 낫다.
+        let recognizedByDay = Dictionary(recognition.days.map { ($0.day, $0) }, uniquingKeysWith: { _, latest in latest })
         let dayCount = Self.dayCount(of: recognition.yearMonth, calendar: calendar)
 
         return (1...dayCount).map { day in
