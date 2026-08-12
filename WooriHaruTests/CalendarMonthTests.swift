@@ -95,3 +95,43 @@ struct CalendarMonthTests {
         #expect(currentDays == Array(1...start.daysInMonth()))
     }
 }
+
+/// 기본 달력과 스케줄표가 같은 규칙으로 칸을 만든다. 한쪽만 고쳐 어긋나면
+/// 두 화면의 날짜가 서로 다른 자리에 놓인다.
+@MainActor
+struct MonthGridBuilderTests {
+    private let calendar = Calendar(identifier: .gregorian)
+
+    @Test func 일요일_시작으로_앞을_채운다() throws {
+        // 2026-08-01은 토요일이라 앞에 6칸이 붙는다.
+        let cells = MonthGridBuilder.cells(for: Date.from("2026-08-01")!, calendar: calendar)
+
+        #expect(cells.count % 7 == 0)
+        #expect(cells.prefix(while: { !$0.isCurrentMonth }).count == 6)
+        #expect(cells.filter(\.isCurrentMonth).count == 31)
+    }
+
+    @Test func 패딩이_없는_달도_있다() {
+        // 2026-02-01은 일요일이고 28일까지라 정확히 4주다.
+        let cells = MonthGridBuilder.cells(for: Date.from("2026-02-01")!, calendar: calendar)
+
+        #expect(cells.count == 28)
+        #expect(cells.allSatisfy { $0.isCurrentMonth })
+    }
+
+    @Test func 셀_id는_유일하다() {
+        let cells = MonthGridBuilder.cells(for: Date.from("2026-08-01")!, calendar: calendar)
+        #expect(Set(cells.map(\.id)).count == cells.count)
+    }
+
+    @Test func 기본_달력과_같은_칸을_만든다() {
+        // 기본 달력이 이 빌더를 쓰도록 바꿨는지 확인한다. 한쪽만 고치면 어긋난다.
+        let vm = CalendarViewModel()
+        let start = Date.from("2026-08-01")!
+
+        let fromViewModel = vm.buildMonthData(start).cells
+        let fromBuilder = MonthGridBuilder.cells(for: start, calendar: Calendar.current)
+
+        #expect(fromViewModel.map(\.id) == fromBuilder.map(\.id))
+    }
+}

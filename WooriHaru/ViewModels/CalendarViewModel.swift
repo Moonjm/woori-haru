@@ -279,45 +279,12 @@ final class CalendarViewModel {
     /// Builds the grid of DayCells for a given month start date.
     /// internal — 단위 테스트에서 그리드 생성 규칙을 직접 검증한다.
     func buildMonthData(_ startOfMonth: Date) -> MonthData {
-        let year = startOfMonth.year
-        let month = startOfMonth.month
-        let id = startOfMonth.yearMonth
-
-        let firstWeekday = startOfMonth.weekday
-        let leadingEmpties = firstWeekday - 1
-        let daysInMonth = startOfMonth.daysInMonth()
-
-        var cells: [MonthData.DayCell] = []
-
-        // 이전 월 날짜 (leading)
-        for i in (0..<leadingEmpties).reversed() {
-            let prevDate = calendar.date(byAdding: .day, value: -(i + 1), to: startOfMonth)!
-            cells.append(.init(id: "\(id)-prev-\(prevDate.dateString)", date: prevDate, day: prevDate.day, isCurrentMonth: false))
-        }
-
-        // 현재 월 날짜
-        for day in 1...daysInMonth {
-            let dayDate = calendar.date(byAdding: .day, value: day - 1, to: startOfMonth)!
-            cells.append(.init(id: dayDate.dateString, date: dayDate, day: day, isCurrentMonth: true))
-        }
-
-        // 다음 월 날짜 (trailing) - 마지막 주만 채움 (7의 배수)
-        let remainder = cells.count % 7
-        if remainder > 0 {
-            let trailingCount = 7 - remainder
-            let lastDay = calendar.date(byAdding: .day, value: daysInMonth - 1, to: startOfMonth)!
-            for i in 1...trailingCount {
-                let nextDate = calendar.date(byAdding: .day, value: i, to: lastDay)!
-                cells.append(.init(id: "\(id)-next-\(nextDate.dateString)", date: nextDate, day: nextDate.day, isCurrentMonth: false))
-            }
-        }
-
-        return MonthData(
-            id: id,
-            year: year,
-            month: month,
+        MonthData(
+            id: startOfMonth.yearMonth,
+            year: startOfMonth.year,
+            month: startOfMonth.month,
             startDate: startOfMonth,
-            cells: cells
+            cells: MonthGridBuilder.cells(for: startOfMonth, calendar: calendar)
         )
     }
 

@@ -22,6 +22,7 @@
 		8825C75A2F5B1A4400E46B14 /* UserManagementViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8825C7592F5B1A4400E46B14 /* UserManagementViewModel.swift */; };
 		8825C75C2F5B1A4C00E46B14 /* UserService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8825C75B2F5B1A4C00E46B14 /* UserService.swift */; };
 		88DD96ED2F61B3A900E60283 /* StudyRecordView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88DD96EC2F61B3A900E60283 /* StudyRecordView.swift */; };
+		8CB8971CA8F25A48887B5650 /* MonthGridBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECC4B98A560D4DF30F7501E2 /* MonthGridBuilder.swift */; };
 		A10001 /* WooriHaruApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20001 /* WooriHaruApp.swift */; };
 		A10002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20002 /* ContentView.swift */; };
 		A10003 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20003 /* Assets.xcassets */; };
@@ -304,6 +305,7 @@
 		E20005 /* StatsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsViewModel.swift; sourceTree = "<group>"; };
 		E20006 /* SearchViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchViewModel.swift; sourceTree = "<group>"; };
 		E20007 /* CategoriesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoriesViewModel.swift; sourceTree = "<group>"; };
+		ECC4B98A560D4DF30F7501E2 /* MonthGridBuilder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MonthGridBuilder.swift; sourceTree = "<group>"; };
 		F20001 /* Date+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Date+Extensions.swift"; sourceTree = "<group>"; };
 		F20002 /* Color+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Extensions.swift"; sourceTree = "<group>"; };
 		F20003 /* Double+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Double+Extensions.swift"; sourceTree = "<group>"; };
@@ -658,6 +660,7 @@
 				I20001 /* MonthGridView.swift */,
 				G20001 /* WeekdayHeaderView.swift */,
 				MPS20001 /* MonthPickerSheet.swift */,
+				ECC4B98A560D4DF30F7501E2 /* MonthGridBuilder.swift */,
 			);
 			path = Calendar;
 			sourceTree = "<group>";
@@ -1121,6 +1124,7 @@
 				B266A4283E345D5B46CD51CA /* DispatchReviewViewModel.swift in Sources */,
 				1634F29B8B1A65276DEFCC09 /* DispatchUploadView.swift in Sources */,
 				01E5347F6D87126F3B0EEDF0 /* DispatchReviewView.swift in Sources */,
+				8CB8971CA8F25A48887B5650 /* MonthGridBuilder.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
