@@ -45,6 +45,16 @@ protocol APIClientProtocol: Sendable {
     /// 여러 장은 이 메서드를 순차로 여러 번 부르는 것으로 처리한다 — 서버 `/files`가 단건이고,
     /// 병렬로 밀어넣으면 실패했을 때 어디까지 올라갔는지 추적이 지저분해진다.
     func postMultipartCreated(_ path: String, fileData: Data, fileName: String, mimeType: String) async throws -> Int
+
+    /// multipart로 보내고 **JSON 본문을 돌려받는다.** 기존 `postMultipartCreated`는
+    /// 201 + Location에서 id만 꺼내는 형태라 배차 인식(200 + 결과 JSON)에는 쓸 수 없다.
+    func postMultipart<T: Decodable>(
+        _ path: String,
+        query: [String: String],
+        fileData: Data,
+        fileName: String,
+        mimeType: String
+    ) async throws -> T
 }
 
 extension APIClientProtocol {
@@ -138,6 +148,32 @@ final class APIClient: APIClientProtocol, Sendable {
             throw APIError.serverError(statusCode: response.statusCode, message: "Location 헤더에서 ID를 찾을 수 없습니다")
         }
         return id
+    }
+
+    func postMultipart<T: Decodable>(
+        _ path: String,
+        query: [String: String],
+        fileData: Data,
+        fileName: String,
+        mimeType: String
+    ) async throws -> T {
+        let boundary = "Boundary-\(UUID().uuidString)"
+        let body = Self.multipartBody(boundary: boundary, fileData: fileData, fileName: fileName, mimeType: mimeType)
+        let pathWithQuery = Self.appending(query: query, to: path)
+        let (data, _) = try await rawMultipartFetch(pathWithQuery, body: body, boundary: boundary)
+        return try JSONDecoder().decode(T.self, from: data)
+    }
+
+    /// 쿼리를 경로에 붙인다. `rawMultipartFetch`가 경로 문자열만 받기 때문이다.
+    static func appending(query: [String: String], to path: String) -> String {
+        guard !query.isEmpty else { return path }
+        let encoded = query
+            .map { key, value in
+                let escaped = value.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? value
+                return "\(key)=\(escaped)"
+            }
+            .joined(separator: "&")
+        return path.contains("?") ? "\(path)&\(encoded)" : "\(path)?\(encoded)"
     }
 
     /// multipart 본문을 순수 함수로 뽑아 둔다 — 서버 `FileController.upload`의
