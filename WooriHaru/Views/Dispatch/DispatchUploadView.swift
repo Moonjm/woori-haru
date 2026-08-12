@@ -15,6 +15,7 @@ struct DispatchUploadView: View {
     @State private var pickerItem: PhotosPickerItem?
     @State private var previewImage: UIImage?
     @State private var recognizeTask: Task<Void, Never>?
+    @State private var loadTask: Task<Void, Never>?
     /// 인식이 처음 끝났을 때 한 번만 연다. `DispatchRecognition`이 `Hashable`이 아니라
     /// `navigationDestination(item:)`을 쓸 수 없어(요구하는 건 `Hashable`), `MealCaptureSheet`가
     /// `MealConfirmView`로 넘어갈 때 쓰는 `isPresented` + `onChange(of: phase)` 방식을 그대로 따른다.
@@ -52,13 +53,24 @@ struct DispatchUploadView: View {
         }
         .navigationTitle("배차표 등록")
         .navigationBarTitleDisplayMode(.inline)
-        .onDisappear { recognizeTask?.cancel() }
+        .onDisappear {
+            recognizeTask?.cancel()
+            loadTask?.cancel()
+        }
         .onChange(of: pickerItem) { _, item in
+            loadTask?.cancel()
             guard let item else { return }
-            Task {
+            loadTask = Task {
+                let data = try? await item.loadTransferable(type: Data.self)
+                // 사진을 잘못 골라 곧바로 다시 고르는 건 흔한 동작이다. 앨범 읽기는 사진마다
+                // 걸리는 시간이 달라 먼저 시작한 쪽이 나중에 끝날 수 있는데, 그대로 두면
+                // **화면에는 새 사진이 보이는데 인식은 이전 사진으로 돈다.** 실패 갈래도
+                // 마찬가지라 상태를 건드리기 전에 한 번에 막는다.
+                guard !Task.isCancelled, pickerItem == item else { return }
+
                 // 읽기·변환 어느 쪽이 실패해도 조용히 돌아가지 않는다 — 예전에는 사진 섹션이
                 // 그대로 비어 있어 사용자가 「고른 사진이 안 들어갔다」는 사실조차 몰랐다.
-                guard let data = try? await item.loadTransferable(type: Data.self),
+                guard let data,
                       let normalized = UIImage.downsampledJPEG(
                           from: data,
                           maxDimension: .greatestFiniteMagnitude,
