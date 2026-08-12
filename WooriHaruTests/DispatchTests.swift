@@ -80,6 +80,37 @@ struct DispatchModelTests {
         #expect(days[0]["working"] as? Bool == true)
         #expect(days[0]["slot"] as? Int == 1)
     }
+
+    @Test func 근무_조회_응답을_디코딩한다() throws {
+        let json = """
+        {"data":{"days":[
+          {"date":"2026-08-01","role":"FATHER","working":true,"slot":1,"note":null},
+          {"date":"2026-08-01","role":"MOTHER","working":true,"slot":null,"note":null},
+          {"date":"2026-08-02","role":"FATHER","working":false,"slot":null,"note":"휴"}
+        ]}}
+        """
+        let response = try JSONDecoder().decode(DataResponse<DispatchShiftRange>.self, from: Data(json.utf8))
+        let range = try #require(response.data)
+
+        #expect(range.days.count == 3)
+        #expect(range.days[0].role == .father)
+        #expect(range.days[1].role == .mother)
+        // 엄마는 순번을 넣지 않는다. 근무 판정은 working만 본다.
+        #expect(range.days[1].working == true)
+        #expect(range.days[1].slot == nil)
+    }
+
+    @Test func 인식_응답의_연월은_비어_올_수_있다() throws {
+        // 제목이 잘린 사진은 서버가 연월을 못 읽는다. 검수 화면이 채운다.
+        let json = """
+        {"data":{"yearMonth":null,"hasNameColumn":false,"matchedBy":"ROW_INDEX",
+        "rowIndex":2,"rowCount":13,"warnings":["ROSTER_FROM_OTHER_MONTH"],"days":[]}}
+        """
+        let recognition = try #require(
+            try JSONDecoder().decode(DataResponse<DispatchRecognition>.self, from: Data(json.utf8)).data
+        )
+        #expect(recognition.yearMonth == nil)
+    }
 }
 
 /// `APIClient.appending(query:to:)` — 배차 인식 API가 처음으로 실제 쿼리(`yearMonth`)를
@@ -127,18 +158,29 @@ struct DispatchServiceTests {
         )
     }
 
-    @Test func 인식은_연월을_쿼리로_보낸다() async throws {
+    @Test func 근무를_연월로_조회한다() async throws {
+        let api = MockAPIClient()
+        api.stubGet("/dispatch/shifts", result: DataResponse(data: DispatchShiftRange(days: [
+            DispatchShiftDay(date: "2026-08-01", role: .father, working: true, slot: 1, note: nil)
+        ])))
+        let service = DispatchService(api: api)
+
+        let days = try await service.findShifts(yearMonth: "2026-08")
+
+        #expect(days.count == 1)
+        #expect(api.getCalls.contains { $0.path == "/dispatch/shifts" && $0.query["yearMonth"] == "2026-08" })
+    }
+
+    @Test func 인식은_연월을_보내지_않는다() async throws {
         let api = MockAPIClient()
         api.stubMultipartJSON("/dispatch/recognitions", result: DataResponse(data: recognition()))
         let service = DispatchService(api: api)
 
-        _ = try await service.recognize(imageData: Data([0x01, 0x02]), yearMonth: "2026-08")
+        _ = try await service.recognize(imageData: Data([0x01]))
 
         let call = try #require(api.multipartJSONCalls.first)
-        #expect(call.path == "/dispatch/recognitions")
-        // 연월을 안 보내면 서버가 어느 달 기준을 조회할지 모른다.
-        #expect(call.query["yearMonth"] == "2026-08")
-        #expect(call.fileData == Data([0x01, 0x02]))
+        // 연월은 서버가 사진에서 읽는다. 앱이 보내면 그 값이 기준이 되어 사진 제목을 덮는다.
+        #expect(call.query.isEmpty)
     }
 
     @Test func 사진은_JPEG로_보낸다() async throws {
@@ -146,7 +188,7 @@ struct DispatchServiceTests {
         api.stubMultipartJSON("/dispatch/recognitions", result: DataResponse(data: recognition()))
         let service = DispatchService(api: api)
 
-        _ = try await service.recognize(imageData: Data([0x01]), yearMonth: "2026-08")
+        _ = try await service.recognize(imageData: Data([0x01]))
 
         let call = try #require(api.multipartJSONCalls.first)
         // 서버는 파트의 mime으로 디코더를 고른다. HEIC 원본을 image/jpeg로 위장해 보내면
@@ -161,7 +203,7 @@ struct DispatchServiceTests {
         api.stubMultipartJSON("/dispatch/recognitions", result: DataResponse(data: recognition()))
         let service = DispatchService(api: api)
 
-        let result = try await service.recognize(imageData: Data([0x01]), yearMonth: "2026-08")
+        let result = try await service.recognize(imageData: Data([0x01]))
 
         #expect(result.yearMonth == "2026-08")
         #expect(result.matchedBy == .name)
@@ -190,15 +232,19 @@ private final class FakeDispatchService: DispatchServing, @unchecked Sendable {
     var saveError: Error?
     /// 인식이 진행 중인 순간에 끼어들 자리. 재진입 가드를 재우지 않고 확인하는 데 쓴다.
     var duringRecognize: (@Sendable () async -> Void)?
-    private(set) var recognizeCalls: [(imageData: Data, yearMonth: String)] = []
+    private(set) var recognizeCalls: [Data] = []
     private(set) var savedRequests: [DispatchShiftSaveRequest] = []
 
     init(recognizeResult: Result<DispatchRecognition, Error>) {
         self.recognizeResult = recognizeResult
     }
 
-    func recognize(imageData: Data, yearMonth: String) async throws -> DispatchRecognition {
-        recognizeCalls.append((imageData, yearMonth))
+    func findShifts(yearMonth: String) async throws -> [DispatchShiftDay] {
+        []
+    }
+
+    func recognize(imageData: Data) async throws -> DispatchRecognition {
+        recognizeCalls.append(imageData)
         await duringRecognize?()
         return try recognizeResult.get()
     }
@@ -318,9 +364,8 @@ struct DispatchUploadViewModelTests {
 
         #expect(vm.phase == .completed)
         #expect(vm.recognition?.yearMonth == "2026-08")
-        #expect(service.recognizeCalls.first?.yearMonth == "2026-08")
         // 원본 바이트가 그대로 가야 한다 — 줄이면 인식이 망가진다.
-        #expect(service.recognizeCalls.first?.imageData == Data([0x01, 0x02]))
+        #expect(service.recognizeCalls.first == Data([0x01, 0x02]))
     }
 
     @Test func 인식에_실패하면_서버_메시지를_그대로_보여준다() async {
@@ -401,8 +446,8 @@ struct DispatchUploadViewModelTests {
 
         await vm.recognize()
 
-        // 요청은 8월로 나갔다. 그 결과를 그대로 받으면 9월 배차표를 8월에 저장하게 된다.
-        #expect(service.recognizeCalls.first?.yearMonth == "2026-08")
+        // 요청을 보낸 뒤 화면의 연월이 바뀌었다. 그 결과를 그대로 받으면 9월 배차표를
+        // 8월 화면에 채우게 된다.
         #expect(vm.recognition == nil)
         // 다시 인식할 수 있어야 한다 — 스피너가 남으면 화면이 멈춘 것처럼 보인다.
         #expect(vm.phase == .idle)

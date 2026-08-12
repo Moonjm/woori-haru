@@ -107,7 +107,7 @@ final class DispatchReviewViewModel {
             .filter(\.recognized)
             .map { entry in
                 DispatchShiftSaveDay(
-                    date: String(format: "%@-%02d", recognition.yearMonth, entry.day),
+                    date: String(format: "%@-%02d", recognition.yearMonth ?? "", entry.day),
                     working: entry.working,
                     slot: entry.slot,
                     note: entry.note
@@ -129,7 +129,7 @@ final class DispatchReviewViewModel {
         // 주는 일은 없어야 하지만, 모델 응답 하나 때문에 검수 화면이 죽는 것보다는
         // 뒤에 온 값을 쓰는 편이 낫다.
         let recognizedByDay = Dictionary(recognition.days.map { ($0.day, $0) }, uniquingKeysWith: { _, latest in latest })
-        let yearMonth = Self.parseYearMonth(recognition.yearMonth)
+        let yearMonth = Self.parseYearMonth(recognition.yearMonth ?? "")
         let dayCount = Self.dayCount(of: yearMonth, calendar: calendar)
 
         return (1...dayCount).map { day in

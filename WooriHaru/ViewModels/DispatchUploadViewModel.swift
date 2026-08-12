@@ -88,7 +88,7 @@ final class DispatchUploadViewModel {
         // 약속일 뿐이라 실제로 나간 값과 지금 값이 같은지는 여기서 확인한다.
         let requestedYearMonth = yearMonth
         do {
-            let result = try await service.recognize(imageData: imageData, yearMonth: requestedYearMonth)
+            let result = try await service.recognize(imageData: imageData)
             // 인식이 도는 동안 사진이 바뀌었다. 이 결과는 화면에 보이는 사진의 것이 아니다.
             // **여기서 phase를 건드리면 안 된다** — 사진을 바꾼 뒤 이미 새 인식이 시작됐을 수
             // 있고, 그 스피너를 꺼 버리면 유료 요청이 두 번 나간다. `setImage`가 이미

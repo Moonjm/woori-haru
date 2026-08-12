@@ -1,5 +1,27 @@
 import Foundation
 
+/// 달력에 표시할 대상. **실명을 쓰지 않는다** — 무인증 조회로 나가는 값이다.
+enum DispatchRole: String, Codable, Equatable {
+    case father = "FATHER"
+    case mother = "MOTHER"
+}
+
+/// 조회된 하루. 엄마는 패턴에서 계산돼 내려오므로 `slot`이 늘 nil이다.
+struct DispatchShiftDay: Codable, Equatable {
+    /// `2026-08-01` 형식.
+    let date: String
+    let role: DispatchRole
+    /// 그날 일하는가. **판정은 이 값만 본다** — `slot`이 nil이어도 근무일 수 있다.
+    let working: Bool
+    let slot: Int?
+    /// 칸의 원문. 달력에는 쓰지 않는다 — 무인증 응답에 실려 나가는 자유 입력이다.
+    let note: String?
+}
+
+struct DispatchShiftRange: Codable, Equatable {
+    let days: [DispatchShiftDay]
+}
+
 /// 서버가 대상 행을 어떻게 찾았는지.
 ///
 /// `rowIndex`면 **사진에 성명 컬럼이 없어 저장된 행 위치로 맞춘 것**이라, 검수 화면이
@@ -25,7 +47,8 @@ struct DispatchRecognitionDay: Codable, Equatable {
 }
 
 struct DispatchRecognition: Codable, Equatable {
-    let yearMonth: String
+    /// 사진 제목이 잘려 서버가 못 읽으면 nil이다. **검수 화면이 채운다.**
+    let yearMonth: String?
     let hasNameColumn: Bool
     let matchedBy: DispatchMatchedBy
     let rowIndex: Int
