@@ -20,6 +20,8 @@ struct DispatchUploadView: View {
     @State private var previewImage: UIImage?
     @State private var recognizeTask: Task<Void, Never>?
     @State private var loadTask: Task<Void, Never>?
+    /// 굽기는 `Task.detached`로 돈다 — 취소를 물려받지 않으므로 따로 붙들어 접는다.
+    @State private var normalizeTask: Task<Data?, Never>?
     /// 로딩 동안 「인식하기」가 잠긴다. 왜 잠겼는지 알리지 않으면 앨범 자산이 iCloud에서
     /// 내려오는 몇 초 동안 화면이 고장 난 것처럼 보인다.
     @State private var isLoadingPhoto = false
@@ -62,12 +64,16 @@ struct DispatchUploadView: View {
         .onDisappear {
             recognizeTask?.cancel()
             loadTask?.cancel()
+            normalizeTask?.cancel()
             // 취소된 Task는 아래 가드에서 돌아가므로 이 값을 스스로 내리지 못한다. 그대로
             // 두면 화면으로 돌아왔을 때 스피너가 남고 「인식하기」가 잠긴 채로 있는다.
             isLoadingPhoto = false
         }
         .onChange(of: pickerItem) { _, item in
             loadTask?.cancel()
+            // 굽기는 분리된 Task라 위 취소가 닿지 않는다. 따로 접지 않으면 이전 사진의
+            // 굽기가 끝까지 도는 동안 새 굽기가 시작된다.
+            normalizeTask?.cancel()
             // 진행 중이던 인식도 접는다. 결과를 버리는 것은 뷰모델의 generation이 맡지만,
             // 사진을 바꾼 순간 이 요청은 이미 쓸모가 없다 — 유료 호출을 끌고 갈 이유가 없다.
             recognizeTask?.cancel()
@@ -82,9 +88,15 @@ struct DispatchUploadView: View {
                 let data = try? await item.loadTransferable(type: Data.self)
                 // 굽기는 4,800만 화소에서 몇 초씩 걸린다. 이 Task는 뷰의 액터를 물려받아
                 // 메인에서 도므로, 그대로 두면 그동안 화면이 멈춘다.
-                let normalized = await Task.detached(priority: .userInitiated) {
+                //
+                // **분리된 Task는 취소를 물려받지 않는다.** 붙들어 두고 사진을 바꿀 때
+                // 함께 취소하지 않으면, 결과는 버려도 굽기 자체는 끝까지 돈다 — 겹친
+                // 디코드·인코드가 메모리를 밀어 올려 앱이 내려갈 수 있다.
+                let normalize = Task.detached(priority: .userInitiated) {
                     data.flatMap { UIImage.jpegWithinByteLimit(from: $0) }
-                }.value
+                }
+                normalizeTask = normalize
+                let normalized = await normalize.value
 
                 // 사진을 잘못 골라 곧바로 다시 고르는 건 흔한 동작이다. 앨범 읽기는 사진마다
                 // 걸리는 시간이 달라 먼저 시작한 쪽이 나중에 끝날 수 있는데, 그대로 두면

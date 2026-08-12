@@ -343,6 +343,22 @@ struct DispatchImageSizeTests {
     @Test func 이미지가_아닌_데이터는_nil() {
         #expect(UIImage.jpegWithinByteLimit(from: Data("not an image".utf8)) == nil)
     }
+
+    @Test func 취소되면_굽기를_접는다() throws {
+        let original = makeNoisyJPEG(width: 400, height: 400)
+
+        // 상한을 1로 두면 원래는 모든 단계(품질 4 × 해상도 4)를 다 굽고 가장 작은 것을 준다.
+        // 취소됐으면 첫 단계에 들어가기 전에 접어야 한다 — 한 단계가 4,800만 화소에서
+        // 몇 초씩 걸려, 사진을 빠르게 바꾸면 겹친 굽기가 메모리를 밀어 올린다.
+        let cancelled = UIImage.jpegWithinByteLimit(from: original, byteLimit: 1, isCancelled: { true })
+        #expect(cancelled == nil)
+
+        // 취소되지 않았으면 끝까지 굽는다. 위의 nil이 「취소 때문」임을 이 줄이 못 박는다.
+        let notCancelled = try #require(
+            UIImage.jpegWithinByteLimit(from: original, byteLimit: 1, isCancelled: { false })
+        )
+        #expect(notCancelled.count > 1)
+    }
 }
 
 @MainActor

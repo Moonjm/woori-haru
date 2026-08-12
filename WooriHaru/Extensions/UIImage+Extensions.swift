@@ -45,15 +45,22 @@ extension UIImage {
     /// 「사진을 읽지 못했습니다」를 띄우는데, 읽기는 멀쩡히 됐으므로 틀린 안내다.
     ///
     /// **디코딩과 인코딩이 무겁다.** 메인 액터에서 부르지 마라.
+    ///
+    /// **취소에 협조한다.** 한 단계가 4,800만 화소에서 몇 초씩 걸리고 최대 열여섯 단계를
+    /// 돌 수 있다. 사진을 빠르게 바꾸면 이전 굽기가 끝까지 도는 동안 새 굽기가 시작돼
+    /// 겹친 디코드·인코드가 메모리를 밀어 올린다. 단계 사이에서 확인해 바로 접는다.
     static func jpegWithinByteLimit(
         from data: Data,
         byteLimit: Int = 9 * 1024 * 1024,
         qualities: [CGFloat] = [0.95, 0.8, 0.65, 0.5],
-        dimensions: [CGFloat] = [.greatestFiniteMagnitude, 4000, 3000, 2400]
+        dimensions: [CGFloat] = [.greatestFiniteMagnitude, 4000, 3000, 2400],
+        isCancelled: () -> Bool = { Task.isCancelled }
     ) -> Data? {
         var smallest: Data?
         for dimension in dimensions {
             for quality in qualities {
+                // 취소됐으면 여기까지 구운 것도 버린다. 화면은 이 결과를 이미 안 쓴다.
+                if isCancelled() { return nil }
                 guard let encoded = downsampledJPEG(from: data, maxDimension: dimension, quality: quality) else {
                     // 첫 시도부터 실패했다면 이미지가 아니다. 그 뒤 단계도 마찬가지다.
                     return smallest
