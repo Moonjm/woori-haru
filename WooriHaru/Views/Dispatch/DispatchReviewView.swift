@@ -102,7 +102,8 @@ struct DispatchReviewView: View {
                         if vm.didSave { dismiss() }
                     }
                 }
-                .disabled(vm.isSaving)
+                // 보낼 날짜가 하나도 없으면 서버 `@NotEmpty`가 400을 낸다.
+                .disabled(vm.isSaving || !vm.canSave)
             }
         }
         .onDisappear { saveTask?.cancel() }
@@ -111,8 +112,14 @@ struct DispatchReviewView: View {
     private func dayRow(_ entry: DispatchReviewViewModel.DayEntry) -> some View {
         HStack {
             Text("\(entry.day)일")
-                .frame(width: 48, alignment: .leading)
+                .frame(width: 40, alignment: .leading)
                 .foregroundStyle(entry.recognized ? .primary : .secondary)
+
+            // 사진의 표가 요일 머리글로 정렬돼 있어 대조할 때 실제로 쓸모가 있다.
+            Text(entry.weekday)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .frame(width: 20, alignment: .leading)
 
             if entry.conflict {
                 Image(systemName: "questionmark.circle.fill")

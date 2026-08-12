@@ -12,6 +12,9 @@ final class DispatchReviewViewModel {
     struct DayEntry: Identifiable, Equatable {
         var id: Int { day }
         let day: Int
+        /// `"토"`. 사진의 표가 요일 머리글로 정렬돼 있어 대조할 때 실제로 쓰인다.
+        /// 연월을 못 읽으면 빈 문자열이다.
+        let weekday: String
         var recognized: Bool
         var working: Bool
         var slot: Int?
@@ -58,6 +61,13 @@ final class DispatchReviewViewModel {
 
     func setWorking(day: Int, working: Bool, slot: Int?) {
         guard let index = entries.firstIndex(where: { $0.day == day }) else { return }
+        // **근무 여부가 뒤집혔으면 `note`를 버린다.** `note`는 사람이 방금 틀렸다고 판정한
+        // 바로 그 칸에서 나온 원문이다. 남겨 두면 `working: true, slot: 1, note: "휴"`가
+        // 저장되고, 웹 달력이 근무 뱃지에 원문을 덧붙여 「1번 휴」로 찍힌다.
+        // 휴무를 휴무로 둔 채 순번만 만지는 경우엔 `간담회` 같은 원문이 쓸모 있으므로 남긴다.
+        if entries[index].working != working {
+            entries[index].note = nil
+        }
         entries[index].recognized = true
         entries[index].working = working
         entries[index].slot = slot
@@ -72,8 +82,19 @@ final class DispatchReviewViewModel {
         entries[index].conflict = false
     }
 
+    /// 보낼 날짜가 하나라도 있는가. 화면은 이 값으로 저장 버튼을 잠근다.
+    var canSave: Bool {
+        entries.contains(where: \.recognized)
+    }
+
     func save() async {
         guard !isSaving else { return }
+        // 서버 `ShiftSaveRequest.days`에 `@NotEmpty`가 걸려 있다. 모든 날을 「미인식으로
+        // 두기」로 돌리거나 인식 결과가 비어 오면 빈 배열이 나가 400을 받는다.
+        guard canSave else {
+            errorMessage = "저장할 날짜가 없습니다. 한 날 이상 값을 정해 주세요."
+            return
+        }
         isSaving = true
         errorMessage = nil
         // 첫 저장이 성공한 뒤 값을 고쳐 다시 저장했다가 실패하면, 이 값이 남아 있어
@@ -95,7 +116,8 @@ final class DispatchReviewViewModel {
             try await service.saveShifts(DispatchShiftSaveRequest(role: "FATHER", days: days))
             didSave = true
         } catch {
-            errorMessage = error.localizedDescription
+            // 봉투 JSON째 보여주지 않는다 — `APIError.serverError`의 message에는 본문 전체가 실린다.
+            errorMessage = error.serverMessage ?? error.localizedDescription
         }
         isSaving = false
     }
@@ -105,12 +127,15 @@ final class DispatchReviewViewModel {
         // 주는 일은 없어야 하지만, 모델 응답 하나 때문에 검수 화면이 죽는 것보다는
         // 뒤에 온 값을 쓰는 편이 낫다.
         let recognizedByDay = Dictionary(recognition.days.map { ($0.day, $0) }, uniquingKeysWith: { _, latest in latest })
-        let dayCount = Self.dayCount(of: recognition.yearMonth, calendar: calendar)
+        let yearMonth = Self.parseYearMonth(recognition.yearMonth)
+        let dayCount = Self.dayCount(of: yearMonth, calendar: calendar)
 
         return (1...dayCount).map { day in
+            let weekday = Self.weekdaySymbol(of: yearMonth, day: day, calendar: calendar)
             if let recognized = recognizedByDay[day] {
                 return DayEntry(
                     day: day,
+                    weekday: weekday,
                     recognized: true,
                     working: recognized.working,
                     slot: recognized.slot,
@@ -118,20 +143,46 @@ final class DispatchReviewViewModel {
                     conflict: recognized.conflict
                 )
             }
-            return DayEntry(day: day, recognized: false, working: false, slot: nil, note: nil, conflict: false)
+            return DayEntry(
+                day: day,
+                weekday: weekday,
+                recognized: false,
+                working: false,
+                slot: nil,
+                note: nil,
+                conflict: false
+            )
         }
     }
 
-    private static func dayCount(of yearMonth: String, calendar: Calendar) -> Int {
+    private static func parseYearMonth(_ yearMonth: String) -> (year: Int, month: Int)? {
         let parts = yearMonth.split(separator: "-")
-        guard parts.count == 2,
-              let year = Int(parts[0]),
-              let month = Int(parts[1]),
-              let date = calendar.date(from: DateComponents(year: year, month: month, day: 1)),
+        guard parts.count == 2, let year = Int(parts[0]), let month = Int(parts[1]) else { return nil }
+        return (year, month)
+    }
+
+    private static func dayCount(of yearMonth: (year: Int, month: Int)?, calendar: Calendar) -> Int {
+        guard let yearMonth,
+              let date = calendar.date(from: DateComponents(year: yearMonth.year, month: yearMonth.month, day: 1)),
               let range = calendar.range(of: .day, in: .month, for: date)
         else {
             return 31
         }
         return range.count
+    }
+
+    /// 로케일에 기대지 않고 고정 표기를 쓴다 — 기기 언어가 무엇이든 사진의 한글 요일 머리글과
+    /// 맞아야 대조가 된다. `Calendar`는 주입받은 것을 그대로 쓴다(테스트가 시계에 안 묶인다).
+    private static let weekdaySymbols = ["일", "월", "화", "수", "목", "금", "토"]
+
+    private static func weekdaySymbol(of yearMonth: (year: Int, month: Int)?, day: Int, calendar: Calendar) -> String {
+        guard let yearMonth,
+              let date = calendar.date(from: DateComponents(year: yearMonth.year, month: yearMonth.month, day: day))
+        else {
+            return ""
+        }
+        let weekday = calendar.component(.weekday, from: date)
+        guard weekdaySymbols.indices.contains(weekday - 1) else { return "" }
+        return weekdaySymbols[weekday - 1]
     }
 }
