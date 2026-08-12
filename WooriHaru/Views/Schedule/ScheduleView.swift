@@ -172,8 +172,8 @@ struct ScheduleView: View {
             legendItem(color: .blue500, label: "아빠")
             // 옅은 색이라 테두리가 없으면 흰 배경에서 칩이 보이지 않는다.
             legendItem(color: .green100, label: "둘 다 휴무", bordered: true)
-            Spacer()
         }
+        .frame(maxWidth: .infinity)
         .padding(.horizontal, 16)
         .padding(.top, 12)
     }
