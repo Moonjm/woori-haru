@@ -82,6 +82,10 @@ struct SideDrawerView: View {
                 drawerItem(icon: "chart.bar", label: "통계") { isOpen = false; navPath.append(AppDestination.stats) }
                 drawerItem(icon: "figure.pool.swim", label: "수영 기록") { isOpen = false; navPath.append(AppDestination.swimRecords) }
                 drawerItem(icon: "fork.knife", label: "식단") { isOpen = false; navPath.append(AppDestination.diet) }
+                drawerItem(icon: "calendar", label: "스케줄표") {
+                    isOpen = false
+                    navPath.append(AppDestination.schedule)
+                }
                 drawerItem(icon: "person.circle", label: "내 정보") { isOpen = false; navPath.append(AppDestination.profile) }
 
                 if authVM.user?.authority == .admin {

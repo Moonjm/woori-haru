@@ -40,6 +40,10 @@ extension Color {
     static let orange700 = Color(red: 0.769, green: 0.365, blue: 0.039)
 
     // MARK: - Purple
+    // Pink
+    static let pink400 = Color(red: 0.957, green: 0.447, blue: 0.714)
+    static let pink500 = Color(red: 0.925, green: 0.282, blue: 0.600)
+
     static let purple50 = Color(red: 0.960, green: 0.953, blue: 0.980)
     static let purple100 = Color(red: 0.941, green: 0.933, blue: 0.965)
     static let purple200 = Color(red: 0.863, green: 0.808, blue: 0.980)
