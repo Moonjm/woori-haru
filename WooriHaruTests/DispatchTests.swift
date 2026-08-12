@@ -80,3 +80,34 @@ struct DispatchModelTests {
         #expect(days[0]["slot"] as? Int == 1)
     }
 }
+
+/// `APIClient.appending(query:to:)` — 배차 인식 API가 처음으로 실제 쿼리(`yearMonth`)를
+/// 붙이는 자리라, 값에 델리미터가 들어와도 깨지지 않는지 별도로 검증한다.
+@MainActor
+struct APIClientAppendingQueryTests {
+    @Test func 값에_앰퍼샌드가_들어가면_이스케이프된다() throws {
+        let result = APIClient.appending(query: ["note": "a&b=c"], to: "/dispatch/recognize")
+
+        let components = try #require(URLComponents(string: "https://example.com" + result))
+        let items = try #require(components.queryItems)
+
+        #expect(items.count == 1)
+        #expect(items[0].name == "note")
+        #expect(items[0].value == "a&b=c")
+    }
+
+    @Test func 경로에_이미_물음표가_있으면_앰퍼샌드로_잇는다() throws {
+        let result = APIClient.appending(query: ["yearMonth": "2026-08"], to: "/dispatch/recognize?debug=1")
+
+        #expect(result.hasPrefix("/dispatch/recognize?debug=1&"))
+        let components = try #require(URLComponents(string: "https://example.com" + result))
+        let items = try #require(components.queryItems)
+        #expect(items.contains { $0.name == "debug" && $0.value == "1" })
+        #expect(items.contains { $0.name == "yearMonth" && $0.value == "2026-08" })
+    }
+
+    @Test func 쿼리가_비어있으면_경로가_그대로다() {
+        let result = APIClient.appending(query: [:], to: "/dispatch/recognize")
+        #expect(result == "/dispatch/recognize")
+    }
+}

@@ -165,14 +165,16 @@ final class APIClient: APIClientProtocol, Sendable {
     }
 
     /// 쿼리를 경로에 붙인다. `rawMultipartFetch`가 경로 문자열만 받기 때문이다.
+    ///
+    /// 문자열을 손으로 잇지 않고 `URLComponents`에 맡긴다 — `.urlQueryAllowed`는
+    /// `&`·`=`·`+`·`;`·`,` 같은 sub-delim을 허용 문자로 봐서 그대로 남기는데, 값에
+    /// `&`가 들어오면 이스케이프되는 대신 없던 두 번째 파라미터가 생긴다. `queryItems`를
+    /// 채워 `percentEncodedQuery`를 꺼내면 키·값 모두 델리미터 규칙대로 인코딩된다.
     static func appending(query: [String: String], to path: String) -> String {
         guard !query.isEmpty else { return path }
-        let encoded = query
-            .map { key, value in
-                let escaped = value.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? value
-                return "\(key)=\(escaped)"
-            }
-            .joined(separator: "&")
+        var components = URLComponents()
+        components.queryItems = query.map { URLQueryItem(name: $0.key, value: $0.value) }
+        guard let encoded = components.percentEncodedQuery else { return path }
         return path.contains("?") ? "\(path)&\(encoded)" : "\(path)?\(encoded)"
     }
 
