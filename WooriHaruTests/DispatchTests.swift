@@ -111,3 +111,59 @@ struct APIClientAppendingQueryTests {
         #expect(result == "/dispatch/recognize")
     }
 }
+
+@MainActor
+struct DispatchServiceTests {
+    private func recognition(yearMonth: String = "2026-08") -> DispatchRecognition {
+        DispatchRecognition(
+            yearMonth: yearMonth,
+            hasNameColumn: true,
+            matchedBy: .name,
+            rowIndex: 2,
+            rowCount: 13,
+            warnings: [],
+            days: [DispatchRecognitionDay(day: 1, working: true, slot: 1, note: nil, conflict: false)]
+        )
+    }
+
+    @Test func 인식은_연월을_쿼리로_보낸다() async throws {
+        let api = MockAPIClient()
+        api.stubMultipartJSON("/dispatch/recognitions", result: DataResponse(data: recognition()))
+        let service = DispatchService(api: api)
+
+        _ = try await service.recognize(imageData: Data([0x01, 0x02]), yearMonth: "2026-08")
+
+        let call = try #require(api.multipartJSONCalls.first)
+        #expect(call.path == "/dispatch/recognitions")
+        // 연월을 안 보내면 서버가 어느 달 기준을 조회할지 모른다.
+        #expect(call.query["yearMonth"] == "2026-08")
+        #expect(call.fileData == Data([0x01, 0x02]))
+    }
+
+    @Test func 인식_결과를_그대로_돌려준다() async throws {
+        let api = MockAPIClient()
+        api.stubMultipartJSON("/dispatch/recognitions", result: DataResponse(data: recognition()))
+        let service = DispatchService(api: api)
+
+        let result = try await service.recognize(imageData: Data([0x01]), yearMonth: "2026-08")
+
+        #expect(result.yearMonth == "2026-08")
+        #expect(result.matchedBy == .name)
+        #expect(result.days.count == 1)
+    }
+
+    @Test func 저장은_204라_본문을_기대하지_않는다() async throws {
+        let api = MockAPIClient()
+        let service = DispatchService(api: api)
+
+        try await service.saveShifts(
+            DispatchShiftSaveRequest(
+                role: "FATHER",
+                days: [DispatchShiftSaveDay(date: "2026-08-01", working: true, slot: 1, note: nil)]
+            )
+        )
+
+        // postVoid는 recordedPostCalls에 남는다(MockAPIClient 기존 구현).
+        #expect(api.postCalls.contains { $0.path == "/dispatch/shifts" })
+    }
+}
