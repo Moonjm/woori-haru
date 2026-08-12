@@ -80,8 +80,6 @@ final class ScheduleViewModel {
         isLoading = true
         errorMessage = nil
 
-        await loadHolidaysIfNeeded(year: calendar.component(.year, from: startOfMonth))
-
         do {
             let days = try await service.findShifts(yearMonth: yearMonth)
             // 조회 중에 달이 바뀌었다. 이 결과는 지금 보이는 달의 것이 아니다.
@@ -97,6 +95,11 @@ final class ScheduleViewModel {
         }
         guard token == generation else { return }
         isLoading = false
+
+        // **공휴일은 근무를 그린 뒤에 채운다.** 부가 정보를 먼저 기다리면, 공휴일 쪽이
+        // 느리기만 해도 근무 조회가 시작조차 못 해 화면이 빈 채로 남는다. 실패는 캐시하지
+        // 않으므로 달을 옮길 때마다 그 지연이 되풀이된다.
+        await loadHolidaysIfNeeded(year: calendar.component(.year, from: startOfMonth))
     }
 
     func move(by months: Int) async {
