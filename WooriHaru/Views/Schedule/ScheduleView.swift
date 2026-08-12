@@ -1,3 +1,4 @@
+import Combine
 import SwiftUI
 
 /// 배차 근무 달력. 진입점이고, 오른쪽 위에서 사진 등록으로 들어간다.
@@ -54,6 +55,7 @@ struct ScheduleView: View {
                         day: cell.day,
                         month: cell.month,
                         isCurrentMonth: cell.isCurrentMonth,
+                        isToday: vm.isToday(cell.date),
                         holidayNames: cell.isCurrentMonth ? vm.holidayNames(on: cell.date.dateString) : [],
                         badges: cell.isCurrentMonth ? vm.badges(on: cell.date.dateString) : [],
                         isBothOff: cell.isCurrentMonth && vm.isBothOff(on: cell.date.dateString)
@@ -105,6 +107,19 @@ struct ScheduleView: View {
             } else {
                 await vm.load()
             }
+        }
+        // **날이 바뀌면 화면에 알려 준다.** 시간이 흐르는 것만으로는 관찰되는 값이 하나도
+        // 바뀌지 않아 SwiftUI가 이 화면을 다시 그리지 않는다. 그대로 두면 말일 자정을
+        // 넘겨도 「오늘」 버튼이 잠긴 채로 굳고(눌리지 않으니 새 달로 갈 수단이 사라진다),
+        // 어제 날짜가 계속 굵게 남는다.
+        //
+        // 이 알림은 백그라운드 스레드로 온다. 앱이 뒤에 있었으면 앞으로 돌아올 때 온다.
+        .onReceive(
+            NotificationCenter.default
+                .publisher(for: .NSCalendarDayChanged)
+                .receive(on: RunLoop.main)
+        ) { _ in
+            vm.refreshToday()
         }
         .onDisappear { loadTask?.cancel() }
     }

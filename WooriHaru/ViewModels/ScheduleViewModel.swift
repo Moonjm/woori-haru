@@ -18,10 +18,18 @@ final class ScheduleViewModel {
     private let holidayService: HolidayService
     private let calendar: Calendar
 
-    /// **날짜를 얼려 두지 않고 부를 때마다 읽는다.** 「오늘」 버튼이 하는 일이 오늘로 가는
-    /// 것인데, 초기화 시점의 날짜를 들고 있으면 앱을 켜 둔 채 달이 바뀐 뒤에는 지난달로
-    /// 간다. 같은 화면의 날짜 강조(`Date.isToday`)도 실시간이라 둘이 어긋나기도 한다.
+    /// 시계. `refreshToday()`가 이것으로 `today`를 다시 읽는다.
     private let now: @Sendable () -> Date
+
+    /// 화면이 「오늘」로 여기는 날. **관찰되는 저장 프로퍼티여야 한다.**
+    ///
+    /// 시계를 그때그때 읽는 계산 프로퍼티로 두면 SwiftUI가 의존성을 걸 대상이 없다 —
+    /// 시간이 흐르는 것만으로는 저장 프로퍼티가 하나도 안 바뀌므로 화면을 다시 그리지
+    /// 않고, 말일 자정을 넘겨도 「오늘」 버튼이 잠긴 채로 굳는다. 버튼이 잠기면 탭이
+    /// `goToToday()`에 닿지도 못해, 정작 필요한 순간에 못 쓰게 된다.
+    ///
+    /// 날짜가 바뀌면 화면이 `refreshToday()`를 불러 여기를 갱신한다.
+    private(set) var today: Date
 
     private(set) var yearMonth: String
     private(set) var cells: [MonthData.DayCell] = []
@@ -53,7 +61,9 @@ final class ScheduleViewModel {
         self.holidayService = holidayService
         self.calendar = calendar
         self.now = now
-        let start = Self.startOfMonth(for: now(), calendar: calendar)
+        let today = now()
+        self.today = today
+        let start = Self.startOfMonth(for: today, calendar: calendar)
         self.startOfMonth = start
         self.yearMonth = Self.yearMonthString(for: start, calendar: calendar)
         self.cells = MonthGridBuilder.cells(for: start, calendar: calendar)
@@ -68,7 +78,22 @@ final class ScheduleViewModel {
 
     /// 이번 달을 보고 있는가. 「오늘」 버튼을 잠그는 데 쓴다.
     var isViewingCurrentMonth: Bool {
-        startOfMonth == Self.startOfMonth(for: now(), calendar: calendar)
+        startOfMonth == Self.startOfMonth(for: today, calendar: calendar)
+    }
+
+    /// 그 날짜가 오늘인가. **칸이 스스로 `Date.isToday`로 판단하지 않고 여기서 받아 간다.**
+    ///
+    /// 두 가지가 걸려 있다. 하나는 날이 바뀌었을 때 — 칸 안에서 시계를 읽으면 입력값이
+    /// 그대로라 SwiftUI가 칸을 다시 그리지 않아 어제가 계속 굵게 남는다. 다른 하나는
+    /// 기기 달력 — `Date.isToday`는 `Calendar.current`를 쓰므로, 기기가 비그레고리력이면
+    /// 같은 화면의 다른 값들(주입 달력으로 계산한 것)과 어긋난다.
+    func isToday(_ date: Date) -> Bool {
+        calendar.isDate(date, inSameDayAs: today)
+    }
+
+    /// 날이 바뀌었다. 화면이 날짜 변경 알림을 받아 부른다.
+    func refreshToday() {
+        today = now()
     }
 
     func badges(on dateString: String) -> [Badge] {
@@ -120,9 +145,13 @@ final class ScheduleViewModel {
 
     /// 이번 달로 돌아간다. **이미 이번 달이면 아무것도 하지 않는다** — 같은 달을 다시
     /// 조회하는 값 없는 왕복이고, 그 사이 화면이 흐려졌다 돌아와 눌린 것처럼만 보인다.
+    ///
+    /// **누른 시점의 날짜로 먼저 맞춘다.** 날짜 변경 알림이 늦거나 오지 않은 경우에도
+    /// 「오늘」이 어제로 가지 않게 한다.
     func goToToday() async {
+        refreshToday()
         guard !isViewingCurrentMonth else { return }
-        await show(now())
+        await show(today)
     }
 
     func jump(year: Int, month: Int) async {
