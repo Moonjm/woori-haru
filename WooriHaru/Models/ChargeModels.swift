@@ -2,21 +2,6 @@ import Foundation
 
 // MARK: - 응답
 
-/// 충전 내역 목록 — 합계는 서버가 같은 필터로 SQL 집계한 값이다.
-/// **목록을 순회해 다시 더하지 않는다** — 나중에 페이지네이션이 붙으면 조용히 틀린 합계가 된다.
-struct ChargeListResponse: Codable {
-    let summary: ChargeSummary
-    let items: [ChargeItem]
-}
-
-struct ChargeSummary: Codable, Equatable {
-    let count: Int
-    let totalEnergyAddedKwh: Decimal?
-    let totalCost: Decimal?
-
-    static let empty = ChargeSummary(count: 0, totalEnergyAddedKwh: nil, totalCost: nil)
-}
-
 /// 목록 한 줄. 진행 중인 충전(`end_date IS NULL`)은 서버가 걸러서 내려주지 않는다.
 struct ChargeItem: Codable, Identifiable, Hashable {
     let id: Int
