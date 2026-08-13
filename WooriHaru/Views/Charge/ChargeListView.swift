@@ -155,10 +155,11 @@ struct ChargeListView: View {
             GlassCard(padding: 0) {
                 VStack(spacing: 0) {
                     ForEach(Array(section.items.enumerated()), id: \.element.id) { index, item in
-                        Button { selectedItem = item } label: {
-                            ChargeRow(item: item)
-                        }
-                        .buttonStyle(.plain)
+                        // Button 대신 onTapGesture: 월 스와이프 제스처와 함께 두면 Button은
+                        // 끌고 놓는 동안에도 눌린 것으로 쳐서 상세가 열린다. 탭 제스처는
+                        // 드래그가 시작되면 자동으로 실패한다.
+                        ChargeRow(item: item)
+                            .onTapGesture { selectedItem = item }
                         if index < section.items.count - 1 {
                             Divider().padding(.leading, 16)
                         }

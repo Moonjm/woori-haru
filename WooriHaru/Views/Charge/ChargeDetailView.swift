@@ -61,9 +61,13 @@ struct ChargeDetailView: View {
             }
             .sheet(isPresented: $showingCostEdit) {
                 ChargeCostEditSheet(chargeId: item.id, initialCost: cost) { saved in
+                    // 저장한 값을 먼저 세워 시트가 닫히는 순간 화면이 맞게 한다.
+                    // 새로고침은 시트 밖에서 돈다 — 시트를 붙잡아 둘 이유가 없다.
                     savedCost = saved
-                    await reloadDetail()
-                    await onChanged()
+                    Task {
+                        await reloadDetail()
+                        await onChanged()
+                    }
                 }
                 .presentationDetents([.height(280)])
             }
@@ -223,7 +227,10 @@ struct ChargeCostEditSheet: View {
     let chargeId: Int
     let initialCost: Decimal?
     /// 저장에 성공한 금액을 그대로 넘긴다 — 부르는 쪽이 상세를 다시 못 받아도 화면을 맞출 수 있다.
-    let onSaved: (Decimal) async -> Void
+    ///
+    /// **async가 아니다.** 이어지는 새로고침을 여기서 기다리면, 저장은 이미 끝났는데도
+    /// 시트가 그 요청들의 타임아웃만큼 닫히지 않고 잠긴 채로 남는다.
+    let onSaved: (Decimal) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @State private var text: String
@@ -233,7 +240,7 @@ struct ChargeCostEditSheet: View {
 
     private let service = ChargeService()
 
-    init(chargeId: Int, initialCost: Decimal?, onSaved: @escaping (Decimal) async -> Void) {
+    init(chargeId: Int, initialCost: Decimal?, onSaved: @escaping (Decimal) -> Void) {
         self.chargeId = chargeId
         self.initialCost = initialCost
         self.onSaved = onSaved
@@ -294,7 +301,7 @@ struct ChargeCostEditSheet: View {
             defer { isSaving = false }
             do {
                 try await service.updateCost(id: chargeId, cost: cost)
-                await onSaved(cost)
+                onSaved(cost)
                 dismiss()
             } catch {
                 // 404는 「없는 충전」이 아니라 「아직 안 끝난 충전」인 경우가 대부분이다 —
