@@ -116,6 +116,7 @@
 		E10007 /* CategoriesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20007 /* CategoriesViewModel.swift */; };
 		E258883E63844B231847FCF0 /* ChargeDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16A698C7EEF686C57695DBA8 /* ChargeDetailView.swift */; };
 		E388FF0F4AE279B6C9099FEE /* ScheduleDayCellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 813FA531B52FC382C20B699F /* ScheduleDayCellView.swift */; };
+		EAD60DE46F1B149DA45D02A0 /* VehicleModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 690A0D0A21A54E8BE01CDC21 /* VehicleModels.swift */; };
 		EB02C36F09E042FBA560DB49 /* ScheduleDayEditViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27B9109A23976C3D60DF063E /* ScheduleDayEditViewModel.swift */; };
 		F10001 /* Date+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20001 /* Date+Extensions.swift */; };
 		F10002 /* Color+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20002 /* Color+Extensions.swift */; };
@@ -223,6 +224,7 @@
 		2A1655D9FB504D22636292C1 /* DispatchReviewViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DispatchReviewViewModel.swift; sourceTree = "<group>"; };
 		3BE34C241CBA8854FC3246DE /* ChargeModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ChargeModels.swift; sourceTree = "<group>"; };
 		4A9AC0D8BBDE4C21273823D6 /* ChargeListViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ChargeListViewModel.swift; sourceTree = "<group>"; };
+		690A0D0A21A54E8BE01CDC21 /* VehicleModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VehicleModels.swift; sourceTree = "<group>"; };
 		6E59CAB7AF4EF308DC5BD364 /* ChargeListView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ChargeListView.swift; path = Charge/ChargeListView.swift; sourceTree = "<group>"; };
 		7EE2658BE836DAFED195B3A5 /* DispatchReviewView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DispatchReviewView.swift; path = Dispatch/DispatchReviewView.swift; sourceTree = "<group>"; };
 		7F178E8439FA7AF1E8234A2B /* ScheduleView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ScheduleView.swift; path = Schedule/ScheduleView.swift; sourceTree = "<group>"; };
@@ -396,7 +398,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		880AD4802F5F071300777742 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+		880AD4802F5F071300777742 /* Exceptions for "StudyTimerWidget" folder in "StudyTimerWidgetExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -406,8 +408,29 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		880AD46C2F5F071200777742 /* StudyTimerWidget */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (880AD4802F5F071300777742 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = StudyTimerWidget; sourceTree = "<group>"; };
-		TT100001 /* WooriHaruTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = WooriHaruTests; sourceTree = "<group>"; };
+		880AD46C2F5F071200777742 /* StudyTimerWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				880AD4802F5F071300777742 /* Exceptions for "StudyTimerWidget" folder in "StudyTimerWidgetExtension" target */,
+			);
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = StudyTimerWidget;
+			sourceTree = "<group>";
+		};
+		TT100001 /* WooriHaruTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = WooriHaruTests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -585,6 +608,7 @@
 				DT20044 /* PhotoDragDismiss.swift */,
 				D49A101711DCAF5B5FAFD364 /* DispatchModels.swift */,
 				3BE34C241CBA8854FC3246DE /* ChargeModels.swift */,
+				690A0D0A21A54E8BE01CDC21 /* VehicleModels.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -1160,6 +1184,7 @@
 				65BAF4E38B125AF925993399 /* ChargeListViewModel.swift in Sources */,
 				DA642965750A818A8E0D847B /* ChargeListView.swift in Sources */,
 				E258883E63844B231847FCF0 /* ChargeDetailView.swift in Sources */,
+				EAD60DE46F1B149DA45D02A0 /* VehicleModels.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
