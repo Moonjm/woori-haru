@@ -1,0 +1,237 @@
+import SwiftUI
+
+/// 충전 내역 — 월 단위 목록 + 기간 합계. 항목을 누르면 상세에서 금액을 고친다.
+struct ChargeListView: View {
+    @State private var viewModel = ChargeListViewModel()
+    @State private var selectedItem: ChargeItem?
+    @State private var showingMonthPicker = false
+
+    /// 히어로 금액은 Dynamic Type을 따라 커진다 (넘치면 minimumScaleFactor로 축소).
+    @ScaledMetric(relativeTo: .largeTitle) private var summaryAmountSize: CGFloat = 34
+
+    var body: some View {
+        ScrollView {
+            LazyVStack(spacing: 0) {
+                summaryCard.padding(.top, 8)
+
+                if let error = viewModel.errorMessage {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundStyle(Color.red500)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, 8)
+                }
+
+                if viewModel.isLoading && viewModel.items.isEmpty {
+                    ProgressView().padding(.top, 60)
+                } else if viewModel.sections.isEmpty {
+                    emptyState.padding(.top, 48)
+                } else {
+                    ForEach(viewModel.sections) { section in
+                        daySection(section)
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 32)
+        }
+        .refreshable { await viewModel.reload() }
+        .glassScreenBackground()
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) { monthSwitcher }
+        }
+        .sensoryFeedback(.selection, trigger: viewModel.month)
+        .sheet(isPresented: $showingMonthPicker) {
+            MonthPickerSheet(
+                initialYear: viewModel.month.year,
+                initialMonth: viewModel.month.month
+            ) { year, month in
+                Task { await viewModel.selectMonth(year: year, month: month) }
+            }
+            .presentationDetents([.height(320)])
+            .presentationDragIndicator(.visible)
+        }
+        // 목록에서 아는 값(장소·시각·금액)을 먼저 그려 두고 상세를 덧입힌다 — 시트가 빈 채로 뜨지 않는다.
+        // 금액을 고치고 닫으면 목록을 다시 불러 합계까지 맞춘다.
+        .sheet(item: $selectedItem) { item in
+            ChargeDetailView(item: item) { await viewModel.reload() }
+        }
+        .task { await viewModel.load() }
+    }
+
+    // MARK: - 합계 히어로
+
+    private var summaryTitle: String {
+        let current = LedgerYearMonth.current()
+        if viewModel.month == current { return "이번 달 충전" }
+        if viewModel.month.year == current.year { return "\(viewModel.month.month)월 충전" }
+        return "\(viewModel.month.year)년 \(viewModel.month.month)월 충전"
+    }
+
+    private var summaryCard: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(summaryTitle)
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundStyle(.white.opacity(0.8))
+            Text(ChargeFormat.cost(viewModel.summary.totalCost))
+                .font(.system(size: summaryAmountSize, weight: .heavy))
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
+                .foregroundStyle(.white)
+                .padding(.top, 4)
+                .contentTransition(.numericText())
+                .animation(.snappy, value: viewModel.summary)
+
+            HStack(spacing: 6) {
+                summaryChip("\(viewModel.summary.count)회")
+                summaryChip(ChargeFormat.energy(viewModel.summary.totalEnergyAddedKwh))
+                // 금액이 빈 건은 이 화면에 오는 이유 그 자체라 합계 옆에 붙여 둔다.
+                if viewModel.missingCostCount > 0 {
+                    summaryChip("금액 없음 \(viewModel.missingCostCount)건", emphasized: true)
+                }
+            }
+            .padding(.top, 12)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(18)
+        .background(
+            LinearGradient(colors: [Color.green600, Color.blue700],
+                           startPoint: .topLeading, endPoint: .bottomTrailing),
+            in: RoundedRectangle(cornerRadius: 20)
+        )
+        .shadow(color: Color.blue600.opacity(0.35), radius: 14, y: 8)
+        .padding(.bottom, 4)
+    }
+
+    private func summaryChip(_ text: String, emphasized: Bool = false) -> some View {
+        Text(text)
+            .font(.caption2)
+            .fontWeight(.bold)
+            .monospacedDigit()
+            .foregroundStyle(.white)
+            .lineLimit(1)
+            .fixedSize()
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(.white.opacity(emphasized ? 0.32 : 0.2), in: Capsule())
+    }
+
+    // MARK: - 목록
+
+    private func daySection(_ section: ChargeListViewModel.DaySection) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(LedgerFormat.dayHeader(section.date))
+                .font(.caption)
+                .fontWeight(.bold)
+                .foregroundStyle(Color.slate500)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 4)
+                .padding(.top, 16)
+
+            GlassCard(padding: 0) {
+                VStack(spacing: 0) {
+                    ForEach(Array(section.items.enumerated()), id: \.element.id) { index, item in
+                        Button { selectedItem = item } label: {
+                            ChargeRow(item: item)
+                        }
+                        .buttonStyle(.plain)
+                        if index < section.items.count - 1 {
+                            Divider().padding(.leading, 16)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private var emptyState: some View {
+        ContentUnavailableView {
+            Label("이 달 충전 기록이 없어요", systemImage: "bolt.slash")
+        } description: {
+            Text("다른 달을 보려면 위 연월을 눌러 주세요")
+        }
+    }
+
+    private var monthSwitcher: some View {
+        // 화살표는 아이콘만 13pt여도 히트 영역은 44pt를 확보한다 (HIG 최소 터치 타깃).
+        HStack(spacing: 0) {
+            Button { Task { await viewModel.shiftMonth(-1) } } label: {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 13, weight: .bold))
+                    .frame(width: 44, height: 44)
+                    .contentShape(.rect)
+            }
+            .accessibilityLabel("이전 달")
+            Button { showingMonthPicker = true } label: {
+                Text(viewModel.month.displayLong)
+                    .font(.subheadline)
+                    .fontWeight(.bold)
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                    .padding(.horizontal, 4)
+                    .frame(height: 44)
+                    .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint("연월 선택 열기")
+            Button { Task { await viewModel.shiftMonth(1) } } label: {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .bold))
+                    .frame(width: 44, height: 44)
+                    .contentShape(.rect)
+            }
+            .accessibilityLabel("다음 달")
+            .disabled(viewModel.isAtCurrentMonth)
+            .opacity(viewModel.isAtCurrentMonth ? 0.3 : 1)
+        }
+        .foregroundStyle(Color.slate700)
+    }
+}
+
+/// 한 줄 충전 — 장소 + 시각·소요시간 + 충전량·배터리 + 금액.
+struct ChargeRow: View {
+    let item: ChargeItem
+
+    var body: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(item.locationName ?? "장소 없음")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(Color.slate900)
+                    .lineLimit(1)
+                HStack(spacing: 6) {
+                    Text(LedgerFormat.time(item.startDate))
+                    Text("·")
+                    Text(ChargeFormat.duration(item.durationMin))
+                }
+                .font(.caption2)
+                .foregroundStyle(Color.slate400)
+            }
+            Spacer(minLength: 8)
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(ChargeFormat.cost(item.cost))
+                    .font(.subheadline)
+                    .fontWeight(.bold)
+                    .monospacedDigit()
+                    // 금액이 빈 건은 회색으로 죽이지 않고 따로 표시한다 — 채우러 오는 화면이다.
+                    .foregroundStyle(item.cost == nil ? Color.orange700 : Color.slate900)
+                    .lineLimit(1)
+                HStack(spacing: 6) {
+                    Text(ChargeFormat.energy(item.energyAddedKwh))
+                    Text(ChargeFormat.batteryRange(item.startBatteryLevel, item.endBatteryLevel))
+                }
+                .font(.caption2)
+                .monospacedDigit()
+                .foregroundStyle(Color.slate400)
+                .lineLimit(1)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .contentShape(.rect)
+    }
+}
