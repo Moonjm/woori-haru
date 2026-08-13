@@ -16,12 +16,13 @@ struct ChargeCostQueueView: View {
     var body: some View {
         NavigationStack {
             Group {
-                if viewModel.isLoading {
-                    ProgressView()
-                } else if let item = viewModel.current {
+                if let item = viewModel.current {
                     form(item)
-                } else {
+                } else if viewModel.isFinished {
                     finishedState
+                } else {
+                    // 아직 못 받았다. 빈 큐를 「다 채웠다」로 보여주지 않는다 — 뷰모델의 hasLoaded가 그 구분이다.
+                    ProgressView()
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -95,6 +96,7 @@ struct ChargeCostQueueView: View {
                     fillSuggestion()
                 }
                 .buttonStyle(.bordered)
+                .disabled(viewModel.isSaving)
                 Button("저장 · 다음") { save() }
                     .buttonStyle(.borderedProminent)
                     .disabled(parsedCost == nil || viewModel.isSaving)
