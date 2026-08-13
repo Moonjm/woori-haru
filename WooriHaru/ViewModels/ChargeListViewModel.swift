@@ -55,6 +55,10 @@ final class ChargeListViewModel {
     /// 오늘이 속한 달인지 — 미래 달 이동 차단·버튼 비활성 표시에 쓴다.
     var isAtCurrentMonth: Bool { month >= currentMonth }
 
+    /// 보고 있는 달의 응답을 실제로 받았는지. 로딩 중·실패 상태의 빈 합계를
+    /// 「0원 썼다」로 그리지 않으려면 화면이 이 둘을 구분해야 한다.
+    var isMonthLoaded: Bool { loadedMonth == month }
+
     private var currentMonth: LedgerYearMonth {
         let components = calendar.dateComponents([.year, .month], from: now())
         return LedgerYearMonth(year: components.year ?? 2026, month: components.month ?? 1)

@@ -14,7 +14,8 @@ struct ChargeListView: View {
             LazyVStack(spacing: 0) {
                 summaryCard.padding(.top, 8)
 
-                if let error = viewModel.errorMessage {
+                // 보고 있던 목록이 남아 있는 새로고침 실패는 한 줄로만 알린다.
+                if let error = viewModel.errorMessage, !viewModel.items.isEmpty {
                     Text(error)
                         .font(.caption)
                         .foregroundStyle(Color.red500)
@@ -24,6 +25,10 @@ struct ChargeListView: View {
 
                 if viewModel.isLoading && viewModel.items.isEmpty {
                     ProgressView().padding(.top, 60)
+                } else if let error = viewModel.errorMessage {
+                    // **못 불러온 것을 「기록 없음」으로 보여주지 않는다** — 둘은 다른 사실이고,
+                    // 빈 화면을 본 사용자는 기록이 날아간 줄 안다.
+                    errorState(error).padding(.top, 48)
                 } else if viewModel.sections.isEmpty {
                     emptyState.padding(.top, 48)
                 } else {
@@ -75,7 +80,11 @@ struct ChargeListView: View {
                 .font(.caption)
                 .fontWeight(.semibold)
                 .foregroundStyle(.white.opacity(0.8))
-            Text(ChargeFormat.cost(viewModel.summary.totalCost))
+            Text(ChargeFormat.summaryTotal(
+                viewModel.summary.totalCost,
+                count: viewModel.summary.count,
+                loaded: viewModel.isMonthLoaded
+            ))
                 .font(.system(size: summaryAmountSize, weight: .heavy))
                 .monospacedDigit()
                 .lineLimit(1)
@@ -152,6 +161,17 @@ struct ChargeListView: View {
             Label("이 달 충전 기록이 없어요", systemImage: "bolt.slash")
         } description: {
             Text("다른 달을 보려면 위 연월을 눌러 주세요")
+        }
+    }
+
+    private func errorState(_ message: String) -> some View {
+        ContentUnavailableView {
+            Label("불러오지 못했어요", systemImage: "exclamationmark.triangle")
+        } description: {
+            Text(message)
+        } actions: {
+            Button("다시 시도") { Task { await viewModel.reload() } }
+                .buttonStyle(.borderedProminent)
         }
     }
 

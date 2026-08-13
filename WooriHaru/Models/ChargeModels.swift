@@ -131,6 +131,18 @@ enum ChargeFormat {
         return LedgerFormat.amount(value, currency: "KRW")
     }
 
+    /// 기간 합계 금액. **「미입력」을 쓰지 않는다** — 그것은 충전 1건의 금액이 비었다는 뜻이라
+    /// 합계 자리에 놓으면 「아직 못 받았다」·「충전이 없다」와 구분되지 않는다.
+    ///
+    /// - `loaded == false`: 아직 못 받았다 → 「—」
+    /// - 충전 0건: 쓴 돈이 없다 → 「₩0」
+    /// - 충전은 있는데 합계가 없다(전 건의 금액이 빔): 그 사실을 그대로 → 「금액 없음」
+    static func summaryTotal(_ total: Decimal?, count: Int, loaded: Bool) -> String {
+        guard loaded else { return placeholder }
+        if let total { return LedgerFormat.amount(total, currency: "KRW") }
+        return count == 0 ? LedgerFormat.amount(0, currency: "KRW") : "금액 없음"
+    }
+
     /// 257 → "4시간 17분", 45 → "45분"
     static func duration(_ minutes: Int?) -> String {
         guard let minutes else { return placeholder }

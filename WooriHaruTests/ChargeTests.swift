@@ -134,6 +134,23 @@ struct ChargeListViewModelTests {
         #expect(viewModel.errorMessage != nil)
         #expect(viewModel.items.isEmpty)
         #expect(viewModel.summary == .empty)
+        // 화면이 「기록 없음」·「0원」으로 그리지 않도록 못 받았다는 사실이 남아야 한다.
+        #expect(!viewModel.isMonthLoaded)
+    }
+
+    @Test func 응답을_받아야_로드된_달이다() async {
+        let mock = MockAPIClient()
+        Self.stubList(mock)
+        let viewModel = makeViewModel(mock: mock)
+        #expect(!viewModel.isMonthLoaded)
+
+        await viewModel.load()
+        #expect(viewModel.isMonthLoaded)
+
+        // 달을 옮기면 그 달의 응답을 받기 전까지는 다시 「모르는 상태」다.
+        mock.setError(MockAPIClient.MockAPIError.forced, for: "GET /tesla/charges")
+        await viewModel.shiftMonth(-1)
+        #expect(!viewModel.isMonthLoaded)
     }
 
     @Test func 금액이_빈_건수를_센다() async {
@@ -239,10 +256,22 @@ struct ChargeFormatTests {
         #expect(ChargeFormat.duration(nil) == "—")
     }
 
-    /// 금액만은 「미입력」이다 — 채우러 오는 화면이라 빈 값이 눈에 띄어야 한다.
+    /// 건별 금액만 「미입력」이다 — 채우러 오는 화면이라 빈 값이 눈에 띄어야 한다.
     @Test func 금액이_없으면_미입력이다() {
         #expect(ChargeFormat.cost(nil) == "미입력")
         #expect(ChargeFormat.cost(14100) == "₩14,100")
+    }
+
+    /// 합계 자리에는 「미입력」을 쓰지 않는다 — 못 받았다·충전이 없다와 구분되지 않는다.
+    @Test func 합계는_모르는_것과_없는_것을_구분한다() {
+        // 아직 못 받았다
+        #expect(ChargeFormat.summaryTotal(nil, count: 0, loaded: false) == "—")
+        #expect(ChargeFormat.summaryTotal(98400, count: 12, loaded: false) == "—")
+        // 충전이 한 건도 없는 달
+        #expect(ChargeFormat.summaryTotal(nil, count: 0, loaded: true) == "₩0")
+        // 충전은 있는데 금액이 전부 비었다
+        #expect(ChargeFormat.summaryTotal(nil, count: 3, loaded: true) == "금액 없음")
+        #expect(ChargeFormat.summaryTotal(98400, count: 12, loaded: true) == "₩98,400")
     }
 
     @Test func 소요시간을_시간과_분으로_쓴다() {

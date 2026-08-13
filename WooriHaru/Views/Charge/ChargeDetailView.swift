@@ -12,11 +12,17 @@ struct ChargeDetailView: View {
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var showingCostEdit = false
+    /// 진행 중 상세 요청의 세대 번호 — 첫 요청이 도는 중에 금액을 저장하면 요청이 겹치는데,
+    /// 늦게 도착한 옛 응답이 방금 저장한 금액을 덮어쓰면 안 된다.
+    @State private var detailGeneration = 0
+    /// 저장에 성공한 금액. 이어지는 상세 조회가 실패해도 화면이 옛 금액으로 되돌아가지 않게 한다.
+    /// 상세를 다시 받으면 서버 값이 사실이므로 비운다.
+    @State private var savedCost: Decimal?
 
     private let service = ChargeService()
 
-    /// 금액은 상세를 받았으면 상세 값, 아니면 목록 값. 수정 직후 화면이 옛 값으로 되돌아가지 않게 한다.
-    private var cost: Decimal? { detail?.cost ?? item.cost }
+    /// 금액은 방금 저장한 값 > 상세 값 > 목록 값 순으로 고른다.
+    private var cost: Decimal? { savedCost ?? detail?.cost ?? item.cost }
 
     var body: some View {
         NavigationStack {
@@ -51,7 +57,8 @@ struct ChargeDetailView: View {
                 }
             }
             .sheet(isPresented: $showingCostEdit) {
-                ChargeCostEditSheet(chargeId: item.id, initialCost: cost) {
+                ChargeCostEditSheet(chargeId: item.id, initialCost: cost) { saved in
+                    savedCost = saved
                     await reloadDetail()
                     await onChanged()
                 }
@@ -184,14 +191,22 @@ struct ChargeDetailView: View {
     // MARK: - 로드
 
     private func reloadDetail() async {
+        detailGeneration += 1
+        let generation = detailGeneration
         isLoading = true
-        defer { isLoading = false }
+        defer {
+            if generation == detailGeneration { isLoading = false }
+        }
         do {
-            detail = try await service.fetchDetail(id: item.id)
+            let loaded = try await service.fetchDetail(id: item.id)
+            guard generation == detailGeneration else { return } // 밀려난 응답은 폐기
+            detail = loaded
+            savedCost = nil // 서버 값이 사실이다
             errorMessage = nil
         } catch is CancellationError {
             return
         } catch {
+            guard generation == detailGeneration else { return }
             // 목록에서 아는 값은 그대로 두고 못 받은 사실만 알린다.
             errorMessage = "상세를 불러오지 못했습니다."
         }
@@ -202,7 +217,8 @@ struct ChargeDetailView: View {
 struct ChargeCostEditSheet: View {
     let chargeId: Int
     let initialCost: Decimal?
-    let onSaved: () async -> Void
+    /// 저장에 성공한 금액을 그대로 넘긴다 — 부르는 쪽이 상세를 다시 못 받아도 화면을 맞출 수 있다.
+    let onSaved: (Decimal) async -> Void
 
     @Environment(\.dismiss) private var dismiss
     @State private var text: String
@@ -212,7 +228,7 @@ struct ChargeCostEditSheet: View {
 
     private let service = ChargeService()
 
-    init(chargeId: Int, initialCost: Decimal?, onSaved: @escaping () async -> Void) {
+    init(chargeId: Int, initialCost: Decimal?, onSaved: @escaping (Decimal) async -> Void) {
         self.chargeId = chargeId
         self.initialCost = initialCost
         self.onSaved = onSaved
@@ -273,7 +289,7 @@ struct ChargeCostEditSheet: View {
             defer { isSaving = false }
             do {
                 try await service.updateCost(id: chargeId, cost: cost)
-                await onSaved()
+                await onSaved(cost)
                 dismiss()
             } catch {
                 // 404는 「없는 충전」이 아니라 「아직 안 끝난 충전」인 경우가 대부분이다 —
