@@ -2,6 +2,7 @@ import SwiftUI
 
 /// 충전 내역 — 월 단위 목록 + 기간 합계. 항목을 누르면 상세에서 금액을 고친다.
 struct ChargeListView: View {
+    @Environment(\.dismiss) private var dismiss
     @State private var viewModel = ChargeListViewModel()
     @State private var selectedItem: ChargeItem?
     @State private var showingMonthPicker = false
@@ -40,10 +41,17 @@ struct ChargeListView: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 32)
         }
+        // 좌우 스와이프 = 월 이동.
+        .simultaneousGesture(monthSwipeGesture)
         .refreshable { await viewModel.reload() }
         .glassScreenBackground()
+        .navigationBarBackButtonHidden(true) // 월 이동 스와이프와 겹치는 엣지 뒤로가기 제스처 차단
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button { dismiss() } label: { Image(systemName: "chevron.backward") }
+                    .accessibilityLabel("뒤로")
+            }
             ToolbarItem(placement: .principal) { monthSwitcher }
         }
         .sensoryFeedback(.selection, trigger: viewModel.month)
@@ -175,6 +183,17 @@ struct ChargeListView: View {
         }
     }
 
+    /// 좌우 스와이프로 월을 넘긴다. 수직 스크롤과 헷갈리지 않게 가로 성분이 확실할 때만 반응.
+    private var monthSwipeGesture: some Gesture {
+        DragGesture(minimumDistance: 30)
+            .onEnded { value in
+                let dx = value.translation.width
+                let dy = value.translation.height
+                guard abs(dx) > 70, abs(dx) > abs(dy) * 1.5 else { return }
+                Task { await viewModel.shiftMonth(dx > 0 ? -1 : 1) }
+            }
+    }
+
     private var monthSwitcher: some View {
         // 화살표는 아이콘만 13pt여도 히트 영역은 44pt를 확보한다 (HIG 최소 터치 타깃).
         HStack(spacing: 0) {
@@ -227,9 +246,16 @@ struct ChargeRow: View {
                     Text(LedgerFormat.time(item.startDate))
                     Text("·")
                     Text(ChargeFormat.duration(item.durationMin))
+                    // 단가는 사용 전력이 있어야 낼 수 있다 — 없으면 자리도 만들지 않는다.
+                    if let unit = item.costPerKwh {
+                        Text("·")
+                        Text(ChargeFormat.unitPrice(unit))
+                            .monospacedDigit()
+                    }
                 }
                 .font(.caption2)
                 .foregroundStyle(Color.slate400)
+                .lineLimit(1)
             }
             Spacer(minLength: 8)
             VStack(alignment: .trailing, spacing: 2) {

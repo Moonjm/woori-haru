@@ -27,10 +27,12 @@ struct ChargeListViewModelTests {
         )
     }
 
-    private nonisolated static func item(
+    // 다른(액터 밖) 테스트에서도 쓰므로 `nonisolated`다.
+    nonisolated static func item(
         id: Int,
         startedAt: String,
-        cost: Decimal? = 14100
+        cost: Decimal? = 14100,
+        energyUsedKwh: Decimal? = Decimal(string: "51.8")
     ) -> ChargeItem {
         ChargeItem(
             id: id,
@@ -39,6 +41,7 @@ struct ChargeListViewModelTests {
             durationMin: 257,
             locationName: "집",
             energyAddedKwh: Decimal(string: "48.2"),
+            energyUsedKwh: energyUsedKwh,
             startBatteryLevel: 18,
             endBatteryLevel: 90,
             cost: cost
@@ -232,14 +235,35 @@ struct ChargeDetailTests {
         #expect(ChargeDetailTests.detail(energyUsedKwh: 0).efficiency == nil)
     }
 
-    @Test func 효율과_단가를_계산한다() {
+    /// 단가의 분모는 차에 들어간 양이 아니라 벽에서 뽑아쓴 양이다 — 요금을 그쪽으로 매기기 때문이다.
+    /// 14100 ÷ 51.8 = 272.2…이지 14100 ÷ 48.2 = 292.5…가 아니다.
+    @Test func 단가는_사용_전력으로_나눈다() {
         let detail = ChargeDetailTests.detail()
-        #expect(ChargeFormat.percent(detail.efficiency) == "93%")
-        #expect(ChargeFormat.unitPrice(detail.costPerKwh) == "₩293/kWh")
+        #expect(ChargeFormat.unitPrice(detail.costPerKwh) == "₩272/kWh")
+    }
+
+    @Test func 효율을_계산한다() {
+        #expect(ChargeFormat.percent(ChargeDetailTests.detail().efficiency) == "93%")
     }
 
     @Test func 금액이_없으면_단가도_없다() {
         #expect(ChargeDetailTests.detail(cost: nil).costPerKwh == nil)
+    }
+
+    /// 사용 전력이 없는 구버전 데이터에서 충전량으로 갈음하지 않는다 —
+    /// 기준이 다른 값을 같은 자리에 섞으면 두 건을 비교할 수 없다.
+    @Test func 사용_전력이_없으면_단가도_없다() {
+        #expect(ChargeDetailTests.detail(energyUsedKwh: nil).costPerKwh == nil)
+        #expect(ChargeDetailTests.detail(energyUsedKwh: 0).costPerKwh == nil)
+    }
+
+    /// 목록과 상세가 같은 기준으로 같은 값을 내야 한다.
+    @Test func 목록_단가도_같은_기준이다() {
+        let item = ChargeListViewModelTests.item(id: 3312, startedAt: "2026-08-11T22:14:00")
+        #expect(item.costPerKwh == ChargeDetailTests.detail().costPerKwh)
+        #expect(ChargeListViewModelTests.item(
+            id: 1, startedAt: "2026-08-11T22:14:00", energyUsedKwh: nil
+        ).costPerKwh == nil)
     }
 
     @Test func 주행가능거리_증가분을_낸다() {

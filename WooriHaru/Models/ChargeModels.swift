@@ -27,12 +27,17 @@ struct ChargeItem: Codable, Identifiable, Hashable {
     /// 등록한 지오펜스 이름이 있으면 그것, 없으면 주소. 둘 다 없으면 nil.
     let locationName: String?
     let energyAddedKwh: Decimal?
+    /// 벽에서 뽑아쓴 양 — 단가의 분모다. 구버전 데이터·구버전 서버에서 nil일 수 있다.
+    let energyUsedKwh: Decimal?
     let startBatteryLevel: Int?
     let endBatteryLevel: Int?
     let cost: Decimal?
 
     var startDate: Date { LedgerFormat.parseDateTime(startedAt) ?? .distantPast }
     var endDate: Date? { LedgerFormat.parseDateTime(endedAt) }
+
+    /// kWh당 단가. 분모가 없거나 0이면 nil이다. 자세한 기준은 `ChargeDetail.costPerKwh` 참고.
+    var costPerKwh: Decimal? { ChargeMath.costPerKwh(cost: cost, energyUsedKwh: energyUsedKwh) }
 }
 
 /// 상세. 목록은 `locationName` 하나로 합치지만 상세는 지오펜스 이름과 주소를 따로 낸다 —
@@ -70,16 +75,29 @@ struct ChargeDetail: Codable, Identifiable, Equatable {
         return energyAddedKwh / energyUsedKwh
     }
 
-    /// kWh당 단가. 금액이나 충전량이 없으면 nil이다.
-    var costPerKwh: Decimal? {
-        guard let cost, let energyAddedKwh, energyAddedKwh > 0 else { return nil }
-        return cost / energyAddedKwh
-    }
+    var costPerKwh: Decimal? { ChargeMath.costPerKwh(cost: cost, energyUsedKwh: energyUsedKwh) }
 
     /// 주행가능거리 증가분.
     var ratedRangeGainKm: Decimal? {
         guard let startRatedRangeKm, let endRatedRangeKm else { return nil }
         return endRatedRangeKm - startRatedRangeKm
+    }
+}
+
+// MARK: - 계산
+
+/// 목록과 상세가 같은 값을 같은 뜻으로 내야 하는 계산. **나눗셈은 서버가 아니라 여기서 한다** —
+/// 분모가 0이거나 nil일 때의 처리를 서버가 정해 버리면 화면이 그것을 따라야 한다.
+enum ChargeMath {
+    /// kWh당 단가. **분모는 벽에서 뽑아쓴 양(`energyUsedKwh`)이다** — 요금은 차에 들어간 양이
+    /// 아니라 충전기에서 나간 양으로 매겨진다. 들어간 양으로 나누면 충전 손실만큼 단가가
+    /// 실제보다 싸 보인다.
+    ///
+    /// 구버전 데이터·구버전 서버에는 사용 전력이 없다. 그때는 **충전량으로 갈음하지 않고 nil이다** —
+    /// 기준이 다른 값을 같은 자리에 섞으면 두 건을 비교할 수 없다.
+    static func costPerKwh(cost: Decimal?, energyUsedKwh: Decimal?) -> Decimal? {
+        guard let cost, let energyUsedKwh, energyUsedKwh > 0 else { return nil }
+        return cost / energyUsedKwh
     }
 }
 
