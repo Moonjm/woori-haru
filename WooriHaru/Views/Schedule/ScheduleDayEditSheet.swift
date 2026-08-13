@@ -9,7 +9,6 @@ struct ScheduleDayEditSheet: View {
     let onSaved: ([DispatchShiftDay]) -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @State private var saveTask: Task<Void, Never>?
 
     var body: some View {
         NavigationStack {
@@ -68,7 +67,6 @@ struct ScheduleDayEditSheet: View {
                 }
             }
         }
-        .onDisappear { saveTask?.cancel() }
     }
 
     /// 근무/휴무는 **아직 고르지 않음**을 포함한 세 상태다. 미등록인 역할은 아무것도
@@ -101,9 +99,15 @@ struct ScheduleDayEditSheet: View {
 
     /// **실패하면 시트를 닫지 않는다.** 닫고 나서 알리면 어떤 값이 안 들어갔는지 다시 열어
     /// 확인해야 한다. 고치던 값이 그대로 남아 있는 자리에서 알리는 편이 짧다.
+    ///
+    /// **이 작업을 뷰가 붙들지 않는다.** 시트를 쓸어 닫는 순간 취소하면 그 취소가
+    /// `URLSession`까지 내려가 **이미 보낸 PUT이 중간에 끊긴다** — 저장이 됐는지 안 됐는지
+    /// 아무도 모르는 상태가 남는다. 요청은 끝까지 가게 두고, 성공하면 달력에 반영한다.
+    /// 시트가 이미 닫혀 있으면 `dismiss()`는 아무 일도 하지 않는다.
+    ///
+    /// 두 번 눌리는 것은 `canSave`가 막는다(저장 중에는 false다).
     private func save() {
-        saveTask?.cancel()
-        saveTask = Task {
+        Task {
             guard let days = await vm.save() else { return }
             onSaved(days)
             dismiss()

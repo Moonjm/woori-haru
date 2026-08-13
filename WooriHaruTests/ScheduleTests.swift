@@ -459,6 +459,46 @@ struct ScheduleViewModelTests {
         #expect(vm.isBothOff(on: "2026-08-15"))
     }
 
+    /// 달을 막 옮겨 조회가 오는 중일 때 칸을 열어 더 빨리 저장을 마칠 수 있다. 뒤늦게
+    /// 도착한 응답이 방금 고친 값을 저장 전으로 되돌리면 저장이 취소된 것처럼 보인다.
+    @Test func 진행_중인_조회가_방금_고친_날을_덮지_않는다() async {
+        let mock = MockAPIClient()
+        mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
+        let service = FakeScheduleService(days: [
+            DispatchShiftDay(date: "2026-08-15", role: .father, working: true, slot: 1, slotCode: nil, note: nil)
+        ])
+        let vm = makeViewModel(mock: mock, service: service)
+        service.duringFetch = { [vm] in
+            service.duringFetch = nil
+            // 조회가 오는 중에 저장이 끝났다.
+            await vm.apply([
+                DispatchShiftDay(date: "2026-08-15", role: .father, working: false, slot: nil, slotCode: nil, note: nil)
+            ], on: "2026-08-15")
+        }
+
+        await vm.load()
+
+        // 저장한 「휴무」가 살아 있어야 한다. 조회 응답의 「1번 근무」로 돌아가면 안 된다.
+        #expect(vm.badges(on: "2026-08-15").isEmpty)
+        #expect(vm.shiftDays(on: "2026-08-15").first?.working == false)
+    }
+
+    /// 버려지는 응답의 길에서 스피너 끄는 것을 빠뜨리면 헤더에서 계속 돈다.
+    @Test func 버려진_응답도_스피너를_끈다() async {
+        let mock = MockAPIClient()
+        mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
+        let service = FakeScheduleService(days: [])
+        let vm = makeViewModel(mock: mock, service: service)
+        service.duringFetch = { [vm] in
+            service.duringFetch = nil
+            await vm.apply([], on: "2026-08-15")
+        }
+
+        await vm.load()
+
+        #expect(vm.isLoading == false)
+    }
+
     @Test func 둘_다_휴무였다가_한쪽이_일하면_배경이_사라진다() async {
         let mock = MockAPIClient()
         mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))

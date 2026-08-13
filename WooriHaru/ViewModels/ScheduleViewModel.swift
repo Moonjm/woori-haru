@@ -35,8 +35,13 @@ final class ScheduleViewModel {
 
     private(set) var yearMonth: String
     private(set) var cells: [MonthData.DayCell] = []
-    private(set) var isLoading = false
     private(set) var errorMessage: String?
+
+    /// 진행 중인 근무 조회의 수. **불리언 대신 세는 이유**는 늦게 온 응답이 버려지는 길이
+    /// 여럿이라, 어느 한 길에서 끄는 것을 빠뜨리면 스피너가 굳기 때문이다.
+    private var inFlight = 0
+
+    var isLoading: Bool { inFlight > 0 }
 
     private var startOfMonth: Date
     private var badgesByDate: [String: [Badge]] = [:]
@@ -126,7 +131,12 @@ final class ScheduleViewModel {
     ///
     /// **「둘 다 휴무」도 같이 다시 센다.** 밴드만 갈면, 두 사람이 함께 쉬게 된 날의 초록
     /// 배경이 달을 옮겼다 돌아올 때까지 따라오지 않는다.
+    ///
+    /// **진행 중인 조회를 무효로 만든다.** 달을 막 옮겨 조회가 아직 오는 중일 때 사용자가
+    /// 칸을 열어 더 빨리 저장을 마치면, 뒤늦게 도착한 응답이 방금 고친 값을 저장 전으로
+    /// 되돌린다 — 저장이 취소된 것처럼 보인다. 세대를 올려 그 응답을 버린다.
     func apply(_ days: [DispatchShiftDay], on dateString: String) {
+        generation += 1
         daysByDate[dateString] = days
 
         let badges = Self.group(days)[dateString] ?? []
@@ -149,12 +159,28 @@ final class ScheduleViewModel {
 
     func load() async {
         let token = generation
-        isLoading = true
+        await loadShifts(token: token)
+        guard token == generation else { return }
+
+        // **공휴일은 근무를 그린 뒤에 채운다.** 부가 정보를 먼저 기다리면, 공휴일 쪽이
+        // 느리기만 해도 근무 조회가 시작조차 못 해 화면이 빈 채로 남는다. 실패는 캐시하지
+        // 않으므로 달을 옮길 때마다 그 지연이 되풀이된다.
+        //
+        // 스피너는 여기서 이미 꺼져 있다 — 공휴일을 기다리는 동안 도는 스피너는 근무가
+        // 아직 안 온 것처럼 보인다.
+        await loadHolidaysIfNeeded(year: calendar.component(.year, from: startOfMonth))
+    }
+
+    /// **`defer`로 세는 것을 되돌린다.** 늦게 온 응답이 버려지는 길에서 스피너를 끄는 것을
+    /// 빠뜨리면, 다음 조회가 일어날 때까지 헤더에서 계속 돈다.
+    private func loadShifts(token: Int) async {
+        inFlight += 1
+        defer { inFlight -= 1 }
         errorMessage = nil
 
         do {
             let days = try await service.findShifts(yearMonth: yearMonth)
-            // 조회 중에 달이 바뀌었다. 이 결과는 지금 보이는 달의 것이 아니다.
+            // 조회 중에 달이 바뀌었거나 하루를 고쳤다. 이 결과는 지금 화면의 것이 아니다.
             guard token == generation else { return }
             badgesByDate = Self.group(days)
             bothOffDates = Self.datesBothOff(days)
@@ -166,13 +192,6 @@ final class ScheduleViewModel {
             // 서버 메시지가 이미 사용자용 한국어다. 봉투 JSON째 보여주지 않는다.
             errorMessage = error.serverMessage ?? error.localizedDescription
         }
-        guard token == generation else { return }
-        isLoading = false
-
-        // **공휴일은 근무를 그린 뒤에 채운다.** 부가 정보를 먼저 기다리면, 공휴일 쪽이
-        // 느리기만 해도 근무 조회가 시작조차 못 해 화면이 빈 채로 남는다. 실패는 캐시하지
-        // 않으므로 달을 옮길 때마다 그 지연이 되풀이된다.
-        await loadHolidaysIfNeeded(year: calendar.component(.year, from: startOfMonth))
     }
 
     func move(by months: Int) async {

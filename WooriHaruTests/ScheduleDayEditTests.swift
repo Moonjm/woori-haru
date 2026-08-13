@@ -75,15 +75,38 @@ struct ScheduleDayEditViewModelTests {
         #expect(service.editCalls.first?.request.mother == DispatchRoleEdit(working: true, slot: nil, slotCode: "B"))
     }
 
-    @Test func 이미_저장된_역할은_그대로_다시_실린다() async {
+    /// **저장된 값이 폼에 채워진 것과 사용자가 건드린 것은 다르다.** 손대지 않은 역할을
+    /// 함께 보내면, 시트를 열 때 읽은 값으로 그 사이 다른 곳에서 바뀐 값을 덮어쓴다.
+    @Test func 손대지_않은_역할은_요청에_실리지_않는다() async {
         let service = FakeScheduleService(days: [])
         let vm = makeViewModel(days: [day(.father, working: true, slot: 2)], service: service)
 
         vm.motherWorking = .off
         _ = await vm.save()
 
-        #expect(service.editCalls.first?.request.father == DispatchRoleEdit(working: true, slot: 2, slotCode: nil))
+        #expect(service.editCalls.first?.request.father == nil)
         #expect(service.editCalls.first?.request.mother == DispatchRoleEdit(working: false, slot: nil, slotCode: nil))
+    }
+
+    @Test func 기존_레코드가_있어도_안_건드리면_저장이_잠긴다() {
+        let vm = makeViewModel(days: [
+            day(.father, working: true, slot: 2),
+            day(.mother, working: true, slotCode: "A")
+        ])
+
+        #expect(vm.canSave == false)
+    }
+
+    /// 값을 같은 것으로 다시 골라도 「건드렸다」로 센다. 사용자가 그 역할을 확인하고
+    /// 확정한 것이라, 보내지 않으면 아무 일도 안 일어나 고장으로 보인다.
+    @Test func 같은_값을_다시_골라도_실린다() async {
+        let service = FakeScheduleService(days: [])
+        let vm = makeViewModel(days: [day(.father, working: true, slot: 2)], service: service)
+
+        vm.fatherWorking = .working
+        _ = await vm.save()
+
+        #expect(service.editCalls.first?.request.father == DispatchRoleEdit(working: true, slot: 2, slotCode: nil))
     }
 
     @Test func 휴무를_고르면_순번이_비워진다() async {
@@ -103,7 +126,7 @@ struct ScheduleDayEditViewModelTests {
         #expect(vm.motherSlotCodeOptions == ["A", "B", "C"])
     }
 
-    /// 사진 인식이 넣어 둔 값이 선택지에 없으면, 휴무만 고치려던 저장이 순번을 조용히 지운다.
+    /// 사진 인식이 넣어 둔 값이 선택지에 없으면, 그 역할을 고칠 때 순번이 조용히 지워진다.
     @Test func 선택지에_없는_저장값도_선택지에_들어간다() async {
         let service = FakeScheduleService(days: [])
         let vm = makeViewModel(days: [day(.father, working: true, slot: 3)], service: service)
@@ -111,7 +134,8 @@ struct ScheduleDayEditViewModelTests {
         #expect(vm.fatherSlotOptions == [1, 2, 3])
         #expect(vm.fatherSlot == 3)
 
-        vm.motherWorking = .off
+        // 아빠의 근무 여부만 다시 확정한다 — 순번은 손대지 않았으니 3이 그대로 실려야 한다.
+        vm.fatherWorking = .working
         _ = await vm.save()
 
         #expect(service.editCalls.first?.request.father?.slot == 3)

@@ -42,15 +42,35 @@ final class ScheduleDayEditViewModel: Identifiable {
     private let originalDays: [DispatchShiftDay]
 
     var fatherWorking: Working? {
-        didSet { if fatherWorking == .off { fatherSlot = nil } }
+        didSet {
+            fatherEdited = true
+            if fatherWorking == .off { fatherSlot = nil }
+        }
     }
 
     var motherWorking: Working? {
-        didSet { if motherWorking == .off { motherSlotCode = nil } }
+        didSet {
+            motherEdited = true
+            if motherWorking == .off { motherSlotCode = nil }
+        }
     }
 
-    var fatherSlot: Int?
-    var motherSlotCode: String?
+    var fatherSlot: Int? {
+        didSet { fatherEdited = true }
+    }
+
+    var motherSlotCode: String? {
+        didSet { motherEdited = true }
+    }
+
+    /// 사용자가 그 역할을 실제로 건드렸는가. **폼에 값이 들어 있는 것과 다르다** —
+    /// 이미 저장된 날은 열자마자 값이 채워지므로, 값의 유무로 판단하면 아무것도 안 고치고
+    /// 저장해도 두 역할이 다 실려 나간다. 그러면 **시트를 열 때 읽은 낡은 값으로 그 사이
+    /// 다른 곳에서 바뀐 값을 덮어쓴다.**
+    ///
+    /// `didSet`은 초기화 중에는 불리지 않으므로 시작 상태는 늘 「안 건드림」이다.
+    private(set) var fatherEdited = false
+    private(set) var motherEdited = false
 
     private(set) var fatherSlotOptions: [Int]
     private(set) var motherSlotCodeOptions: [String]
@@ -87,7 +107,7 @@ final class ScheduleDayEditViewModel: Identifiable {
 
     /// 건드린 역할이 하나라도 있어야 보낼 것이 있다.
     var canSave: Bool {
-        !isSaving && (fatherWorking != nil || motherWorking != nil)
+        !isSaving && (fatherEdited || motherEdited)
     }
 
     /// 성공하면 **그 날짜의 최종 상태**를, 실패하면 nil을 준다.
@@ -102,8 +122,10 @@ final class ScheduleDayEditViewModel: Identifiable {
         errorMessage = nil
         defer { isSaving = false }
 
-        let father = fatherWorking.map { edit(working: $0, slot: fatherSlot, slotCode: nil) }
-        let mother = motherWorking.map { edit(working: $0, slot: nil, slotCode: motherSlotCode) }
+        // **건드린 역할만 싣는다.** 손대지 않은 역할을 함께 보내면 시트를 열 때 읽은 값을
+        // 그대로 다시 저장하게 되고, 그 사이 다른 곳에서 바뀐 값이 낡은 값에 덮인다.
+        let father = fatherEdited ? fatherWorking.map { edit(working: $0, slot: fatherSlot, slotCode: nil) } : nil
+        let mother = motherEdited ? motherWorking.map { edit(working: $0, slot: nil, slotCode: motherSlotCode) } : nil
 
         do {
             try await service.editDay(
