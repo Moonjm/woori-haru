@@ -20,6 +20,7 @@ enum AppDestination: Hashable {
     case diet
     case schedule
     case dispatchUpload
+    case charges
 }
 
 struct ContentView: View {
@@ -56,6 +57,7 @@ struct ContentView: View {
                     case .swimRecords: SwimRecordListView()
                     case .diet: DietHomeView()
                     case .schedule: ScheduleView(navPath: $path, savedYearMonth: $savedDispatchYearMonth)
+                    case .charges: ChargeListView()
                     case .dispatchUpload:
                         DispatchUploadView(onSaved: { yearMonth in
                             savedDispatchYearMonth = yearMonth

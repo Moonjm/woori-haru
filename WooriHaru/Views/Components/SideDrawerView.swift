@@ -116,6 +116,7 @@ struct SideDrawerView: View {
                     isOpen = false
                     navPath.append(AppDestination.schedule)
                 }
+                drawerItem(icon: "bolt.car", label: "충전 내역") { isOpen = false; navPath.append(AppDestination.charges) }
             }
 
             Spacer()
