@@ -40,7 +40,20 @@ struct SideDrawerView: View {
 
     private var drawerContent: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .center, spacing: 12) {
+            HStack(alignment: .center, spacing: 4) {
+                Button {
+                    isOpen = false
+                    navPath.append(AppDestination.profile)
+                } label: {
+                    Image(systemName: "person.crop.circle")
+                        .font(.title)
+                        .foregroundStyle(Color.slate700)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("내 정보")
+
                 VStack(alignment: .leading, spacing: 4) {
                     Text(authVM.user?.name ?? "사용자")
                         .font(.headline)
@@ -48,7 +61,8 @@ struct SideDrawerView: View {
                         .font(.caption)
                         .foregroundStyle(Color.slate500)
                 }
-                Spacer()
+                .lineLimit(1)
+                Spacer(minLength: 0)
                 Button {
                     showLogoutConfirm = true
                 } label: {
@@ -60,8 +74,24 @@ struct SideDrawerView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("로그아웃")
+
+                if authVM.user?.authority == .admin {
+                    Button {
+                        isOpen = false
+                        navPath.append(AppDestination.admin)
+                    } label: {
+                        Image(systemName: "gearshape")
+                            .font(.body)
+                            .foregroundStyle(Color.slate700)
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("관리")
+                }
             }
-            .padding(.horizontal, 20)
+            .padding(.leading, 12)
+            .padding(.trailing, 8)
             .padding(.vertical, 16)
             .alert("로그아웃", isPresented: $showLogoutConfirm) {
                 Button("로그아웃", role: .destructive) {
@@ -85,12 +115,6 @@ struct SideDrawerView: View {
                 drawerItem(icon: "calendar", label: "스케줄표") {
                     isOpen = false
                     navPath.append(AppDestination.schedule)
-                }
-                drawerItem(icon: "person.circle", label: "내 정보") { isOpen = false; navPath.append(AppDestination.profile) }
-
-                if authVM.user?.authority == .admin {
-                    Divider().padding(.vertical, 4)
-                    drawerItem(icon: "gearshape", label: "관리") { isOpen = false; navPath.append(AppDestination.admin) }
                 }
             }
 
