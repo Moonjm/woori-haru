@@ -23,6 +23,7 @@ struct ScheduleView: View {
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 0), count: 7)
 
+
     var body: some View {
         VStack(spacing: 0) {
             header
@@ -69,7 +70,12 @@ struct ScheduleView: View {
         // 빈 자리에서 시작한 스와이프도 받는다. 칸 사이 여백에서만 안 먹으면 손짓이
         // 될 때와 안 될 때가 갈려 고장 난 것처럼 느껴진다.
         .contentShape(Rectangle())
-        .gesture(monthSwipe)
+        // **칸 탭보다 먼저 본다.** 기본 `.gesture`는 자식(칸의 탭)에게 우선권을 내주므로,
+        // 달을 넘기려고 민 손짓이 손을 떼는 순간 탭으로 읽혀 엉뚱한 날의 편집 시트가 열린다.
+        //
+        // 30pt를 넘겨야 이 제스처가 성립하므로 **제자리 탭은 여기 걸리지 않고** 그대로
+        // 칸으로 내려간다. 두 손짓이 거리로 갈린다.
+        .highPriorityGesture(monthSwipe)
         // 좌우 스와이프를 달 이동에 쓰므로 화면 가장자리에서 시작하는 뒤로가기를 끈다.
         // 두 동작이 겹치면 이전 달로 가려던 손짓이 화면을 닫아 버린다.
         .background(SwipeBackDisabler().frame(width: 0, height: 0))
@@ -284,7 +290,7 @@ struct ScheduleView: View {
     }
 }
 
-/// 이 화면이 떠 있는 동안 가장자리 스와이프 뒤로가기를 끈다.
+/// 이 화면이 떠 있는 동안 스와이프 뒤로가기를 끈다.
 ///
 /// SwiftUI에는 이 제스처를 끄는 수단이 없어 `UINavigationController`를 직접 만진다.
 /// **떠날 때 반드시 되돌린다** — 되돌리지 않으면 이 화면을 한 번 들른 뒤로 앱 전체에서
@@ -295,14 +301,49 @@ private struct SwipeBackDisabler: UIViewControllerRepresentable {
     func updateUIViewController(_ uiViewController: UIViewController, context: Context) {}
 
     final class Controller: UIViewController {
+        /// 끄기 전 상태를 기억한다. **되돌릴 때 원래 값으로 돌린다** — 통째로 `true`로
+        /// 돌리면 원래부터 꺼져 있던 인식기까지 켜 버린다.
+        private var restore: [(recognizer: UIGestureRecognizer, wasEnabled: Bool)] = []
+
         override func viewWillAppear(_ animated: Bool) {
             super.viewWillAppear(animated)
-            navigationController?.interactivePopGestureRecognizer?.isEnabled = false
+            disableBackGestures()
+        }
+
+        /// **`interactivePopGestureRecognizer` 하나만 끄면 모자란다.** iOS는 `nav.view`에
+        /// 팬 인식기를 둘 단다 — 가장자리용과 화면 전체용이고, 그 프로퍼티는 앞의 것만
+        /// 가리킨다. 뒤의 것이 남으면 달력 한가운데에서 민 손짓이 화면을 닫는다.
+        ///
+        /// 그래서 **`nav.view`에 붙은 팬 인식기를 전부** 끈다. 이 뷰의 인식기는 뒤로가기
+        /// 전환용뿐이라 같이 꺼도 잃는 것이 없다.
+        ///
+        /// **여러 번 불려도 처음 상태만 기억한다** — 두 번째 호출에서 「원래 꺼져 있었다」로
+        /// 잘못 적으면 떠날 때 되살리지 못한다.
+        private func disableBackGestures() {
+            guard let nav = navigationController else { return }
+
+            var targets: [UIGestureRecognizer] = nav.view.gestureRecognizers?.filter { $0 is UIPanGestureRecognizer } ?? []
+            // 팬이 아닌 형태로 바뀌더라도 이것만은 반드시 끈다.
+            if let edge = nav.interactivePopGestureRecognizer, !targets.contains(where: { $0 === edge }) {
+                targets.append(edge)
+            }
+
+            if restore.isEmpty {
+                restore = targets.map { ($0, $0.isEnabled) }
+            }
+            targets.forEach { $0.isEnabled = false }
         }
 
         override func viewWillDisappear(_ animated: Bool) {
             super.viewWillDisappear(animated)
-            navigationController?.interactivePopGestureRecognizer?.isEnabled = true
+            restore.forEach { $0.recognizer.isEnabled = $0.wasEnabled }
+            restore = []
+        }
+
+        /// **`viewWillDisappear` 없이 사라지는 경우의 그물이다.** 되돌리지 못하면 이 화면을
+        /// 한 번 들른 뒤로 앱 전체에서 뒤로가기 스와이프가 죽는다.
+        deinit {
+            restore.forEach { $0.recognizer.isEnabled = $0.wasEnabled }
         }
     }
 }
