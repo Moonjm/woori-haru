@@ -11,6 +11,7 @@
 		02C05E2522888FC9FA1914FE /* ScheduleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F178E8439FA7AF1E8234A2B /* ScheduleView.swift */; };
 		0FE415DE0482F63A481ADDE6 /* ChargeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26AE34FD1C4248D055A63A49 /* ChargeService.swift */; };
 		1634F29B8B1A65276DEFCC09 /* DispatchUploadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6BB6AAFBAB44DCD1635C839 /* DispatchUploadView.swift */; };
+		1B362266C00662B998F7BD46 /* ChargeCostQueueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E35541B5F9426977FDBBE648 /* ChargeCostQueueView.swift */; };
 		22B1CD41D5FC96447160F8DE /* VehicleSummaryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC8A90FDD89774BFAF064AA2 /* VehicleSummaryViewModel.swift */; };
 		2C5AD835581BB34B0C4D2A1D /* VehicleStatusTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B389E9541F66717EB0D7392 /* VehicleStatusTab.swift */; };
 		453AA4BE6F7BD87A2E9F53F2 /* DispatchModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = D49A101711DCAF5B5FAFD364 /* DispatchModels.swift */; };
@@ -343,6 +344,7 @@
 		E20005 /* StatsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsViewModel.swift; sourceTree = "<group>"; };
 		E20006 /* SearchViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchViewModel.swift; sourceTree = "<group>"; };
 		E20007 /* CategoriesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoriesViewModel.swift; sourceTree = "<group>"; };
+		E35541B5F9426977FDBBE648 /* ChargeCostQueueView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ChargeCostQueueView.swift; path = Vehicle/ChargeCostQueueView.swift; sourceTree = "<group>"; };
 		ECC4B98A560D4DF30F7501E2 /* MonthGridBuilder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MonthGridBuilder.swift; sourceTree = "<group>"; };
 		F20001 /* Date+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Date+Extensions.swift"; sourceTree = "<group>"; };
 		F20002 /* Color+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Extensions.swift"; sourceTree = "<group>"; };
@@ -519,6 +521,7 @@
 				D2F12F9042F52F62E68D3B63 /* VehicleSummaryTab.swift */,
 				1061EE82F134CAE49735C9D5 /* VehicleTrendChart.swift */,
 				0B389E9541F66717EB0D7392 /* VehicleStatusTab.swift */,
+				E35541B5F9426977FDBBE648 /* ChargeCostQueueView.swift */,
 			);
 			name = Vehicle;
 			sourceTree = "<group>";
@@ -1225,6 +1228,7 @@
 				71052B6E8FC03636B1952BCA /* VehicleTrendChart.swift in Sources */,
 				E79FC13D69A9C1D841B88449 /* ChargeRow.swift in Sources */,
 				2C5AD835581BB34B0C4D2A1D /* VehicleStatusTab.swift in Sources */,
+				1B362266C00662B998F7BD46 /* ChargeCostQueueView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
