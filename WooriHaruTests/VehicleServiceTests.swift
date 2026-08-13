@@ -1,0 +1,71 @@
+import Foundation
+import Testing
+@testable import WooriHaru
+
+struct VehicleServiceTests {
+    static func period(_ yearMonth: String) -> VehiclePeriod {
+        VehiclePeriod(
+            yearMonth: yearMonth, distanceKm: 842, drivingMin: 1043, driveCount: 61,
+            energyAddedKwh: 186, energyUsedKwh: 201, cost: 52300, chargeCount: 5
+        )
+    }
+
+    @Test func 요약은_연월을_붙여_부른다() async throws {
+        let mock = MockAPIClient()
+        mock.stubGet("/tesla/summary", result: DataResponse<VehicleSummaryResponse>(
+            data: VehicleSummaryResponse(
+                month: Self.period("2026-08"), previous: Self.period("2026-07"),
+                trend: [Self.period("2026-08")], charges: []
+            )
+        ))
+        let service = VehicleService(api: mock)
+
+        let summary = try await service.fetchSummary(yearMonth: "2026-08")
+
+        #expect(summary.month.yearMonth == "2026-08")
+        #expect(mock.getCalls.map(\.path) == ["/tesla/summary"])
+        #expect(mock.getCalls.first?.query == ["yearMonth": "2026-08"])
+    }
+
+    @Test func 상태는_파라미터_없이_부른다() async throws {
+        let mock = MockAPIClient()
+        mock.stubGet("/tesla/status", result: DataResponse<VehicleStatus>(
+            data: VehicleStatus(
+                asOf: "2026-08-13T14:02:00", state: "asleep", stateSince: nil,
+                batteryLevel: 72, usableBatteryLevel: 70, ratedRangeKm: 312, estRangeKm: nil,
+                odometerKm: 41203, insideTempC: nil, outsideTempC: nil, climateOn: false,
+                locationName: "집", tpmsBar: nil
+            )
+        ))
+        let service = VehicleService(api: mock)
+
+        let status = try await service.fetchStatus()
+
+        #expect(status.batteryLevel == 72)
+        #expect(mock.getCalls.first?.query == [:])
+    }
+
+    @Test func 미등록은_limit을_붙여_부른다() async throws {
+        let mock = MockAPIClient()
+        mock.stubGet("/tesla/charges/missing-cost", result: DataResponse<MissingCostResponse>(
+            data: MissingCostResponse(totalCount: 37, items: [])
+        ))
+        let service = VehicleService(api: mock)
+
+        let response = try await service.fetchMissingCost(limit: 50)
+
+        #expect(response.totalCount == 37)
+        #expect(mock.getCalls.first?.query == ["limit": "50"])
+    }
+
+    /// 서버가 200에 빈 본문을 주면 화면이 빈 달로 착각하지 않게 에러로 끊는다.
+    @Test func 본문이_비면_에러다() async {
+        let mock = MockAPIClient()
+        mock.stubGet("/tesla/summary", result: DataResponse<VehicleSummaryResponse>(data: nil))
+        let service = VehicleService(api: mock)
+
+        await #expect(throws: (any Error).self) {
+            _ = try await service.fetchSummary(yearMonth: "2026-08")
+        }
+    }
+}

@@ -121,6 +121,7 @@
 		F10001 /* Date+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20001 /* Date+Extensions.swift */; };
 		F10002 /* Color+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20002 /* Color+Extensions.swift */; };
 		F10003 /* Double+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20003 /* Double+Extensions.swift */; };
+		F9751C4B6B5D1C95A3710733 /* VehicleService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20B6114D2ABD214EB18A5C1 /* VehicleService.swift */; };
 		FA164F9609CE37556A81E26A /* DispatchUploadViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B580B47689143646299A23EE /* DispatchUploadViewModel.swift */; };
 		G10001 /* WeekdayHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = G20001 /* WeekdayHeaderView.swift */; };
 		G10002 /* DayCellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = G20002 /* DayCellView.swift */; };
@@ -268,6 +269,7 @@
 		D20005 /* PairService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairService.swift; sourceTree = "<group>"; };
 		D20006 /* PairEventService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairEventService.swift; sourceTree = "<group>"; };
 		D20007 /* HolidayService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HolidayService.swift; sourceTree = "<group>"; };
+		D20B6114D2ABD214EB18A5C1 /* VehicleService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VehicleService.swift; sourceTree = "<group>"; };
 		D49A101711DCAF5B5FAFD364 /* DispatchModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DispatchModels.swift; sourceTree = "<group>"; };
 		D5946F8BE2411A7B092525B6 /* ScheduleDayEditSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ScheduleDayEditSheet.swift; path = Schedule/ScheduleDayEditSheet.swift; sourceTree = "<group>"; };
 		DT20001 /* UIImage+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIImage+Extensions.swift"; sourceTree = "<group>"; };
@@ -635,6 +637,7 @@
 				DT20010 /* DietService.swift */,
 				FD3CE59E8DF1F82DF405E788 /* DispatchService.swift */,
 				26AE34FD1C4248D055A63A49 /* ChargeService.swift */,
+				D20B6114D2ABD214EB18A5C1 /* VehicleService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -1185,6 +1188,7 @@
 				DA642965750A818A8E0D847B /* ChargeListView.swift in Sources */,
 				E258883E63844B231847FCF0 /* ChargeDetailView.swift in Sources */,
 				EAD60DE46F1B149DA45D02A0 /* VehicleModels.swift in Sources */,
+				F9751C4B6B5D1C95A3710733 /* VehicleService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
