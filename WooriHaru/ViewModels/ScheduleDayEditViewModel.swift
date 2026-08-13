@@ -26,6 +26,12 @@ final class ScheduleDayEditViewModel: Identifiable {
     /// 기기 달력이 비그레고리력이면 달력 칸과 시트 제목이 서로 다른 날을 가리킨다.
     let dayLabel: String
 
+    /// 그날의 공휴일 이름. 없으면 비어 있다.
+    ///
+    /// **달력이 이미 받아 둔 값을 넘겨받는다.** 시트가 스스로 조회하면 열 때마다 왕복이
+    /// 하나 늘고, 느리게 오면 제목이 뒤늦게 바뀐다.
+    let holidayNames: [String]
+
     /// `sheet(item:)`이 쓴다. 날짜가 곧 이 시트의 정체다.
     nonisolated var id: String { date }
 
@@ -56,10 +62,12 @@ final class ScheduleDayEditViewModel: Identifiable {
         date: String,
         dayLabel: String,
         days: [DispatchShiftDay],
+        holidayNames: [String] = [],
         service: DispatchServing = DispatchService()
     ) {
         self.date = date
         self.dayLabel = dayLabel
+        self.holidayNames = holidayNames
         self.service = service
         self.originalDays = days
 

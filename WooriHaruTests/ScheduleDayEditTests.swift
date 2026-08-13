@@ -16,9 +16,28 @@ struct ScheduleDayEditViewModelTests {
 
     private func makeViewModel(
         days: [DispatchShiftDay],
+        holidayNames: [String] = [],
         service: FakeScheduleService = FakeScheduleService(days: [])
     ) -> ScheduleDayEditViewModel {
-        ScheduleDayEditViewModel(date: "2026-08-15", dayLabel: "8월 15일 (토)", days: days, service: service)
+        ScheduleDayEditViewModel(
+            date: "2026-08-15",
+            dayLabel: "8월 15일 (토)",
+            days: days,
+            holidayNames: holidayNames,
+            service: service
+        )
+    }
+
+    @Test func 공휴일_이름을_들고_있는다() {
+        let vm = makeViewModel(days: [], holidayNames: ["광복절"])
+
+        #expect(vm.holidayNames == ["광복절"])
+    }
+
+    @Test func 공휴일이_아니면_비어_있다() {
+        let vm = makeViewModel(days: [])
+
+        #expect(vm.holidayNames.isEmpty)
     }
 
     @Test func 미등록인_역할은_선택_없이_시작한다() {

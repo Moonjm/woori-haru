@@ -14,6 +14,19 @@ struct ScheduleDayEditSheet: View {
     var body: some View {
         NavigationStack {
             Form {
+                // **맨 위에 둔다.** 공휴일이면 그날 근무가 평소와 다를 수 있어, 고치기 전에
+                // 먼저 눈에 들어와야 한다.
+                if !vm.holidayNames.isEmpty {
+                    Section {
+                        HStack(spacing: 6) {
+                            Image(systemName: "flag.fill").font(.caption)
+                            Text(vm.holidayNames.joined(separator: ", "))
+                        }
+                        .font(.subheadline)
+                        .foregroundStyle(Color.red500)
+                    }
+                }
+
                 roleSection(title: "엄마", color: .pink500, working: $vm.motherWorking) {
                     Picker("순번", selection: $vm.motherSlotCode) {
                         Text("없음").tag(String?.none)

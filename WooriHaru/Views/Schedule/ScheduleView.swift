@@ -12,9 +12,11 @@ struct ScheduleView: View {
     @State private var vm = ScheduleViewModel()
     @State private var showPicker = false
     @State private var loadTask: Task<Void, Never>?
-    /// 저장 직후 한 번 보여줄 안내. 사용자가 달을 옮기면 더는 그 저장을 가리키는 말이
-    /// 아니므로 지운다.
+    /// 저장 직후 잠깐 뜨는 안내. 스스로 사라진다.
     @State private var savedMessage: String?
+    /// 안내를 지울 타이머. **새 저장이 오면 앞의 것을 취소한다** — 남겨 두면 먼저 걸린
+    /// 타이머가 방금 띄운 안내를 이른 시각에 지운다.
+    @State private var savedMessageTask: Task<Void, Never>?
     /// 편집 시트에 넘길 뷰모델. **날짜가 아니라 뷰모델을 담는다** — 시트가 뜨는 순간의
     /// 근무 값으로 폼을 채워야 하므로, 만들 때 한 번 읽고 그 뒤로는 시트가 홀로 들고 있는다.
     @State private var editing: ScheduleDayEditViewModel?
@@ -25,22 +27,6 @@ struct ScheduleView: View {
         VStack(spacing: 0) {
             header
             WeekdayHeaderView()
-
-            if let message = savedMessage {
-                HStack(spacing: 8) {
-                    Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
-                    Text(message).font(.footnote).foregroundStyle(.green)
-                    Spacer()
-                    Button {
-                        savedMessage = nil
-                    } label: {
-                        Image(systemName: "xmark").font(.footnote).foregroundStyle(.secondary)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-            }
 
             if let message = vm.errorMessage {
                 HStack(spacing: 8) {
@@ -73,6 +59,13 @@ struct ScheduleView: View {
 
             Spacer()
         }
+        // **달력 위에 띄우고 자리를 차지하지 않는다.** 줄로 끼워 넣으면 안내가 들고 날
+        // 때마다 그리드가 위아래로 밀린다 — 방금 고친 칸을 보려는 순간에 그렇게 된다.
+        .overlay(alignment: .bottom) {
+            if let message = savedMessage {
+                savedToast(message)
+            }
+        }
         // 빈 자리에서 시작한 스와이프도 받는다. 칸 사이 여백에서만 안 먹으면 손짓이
         // 될 때와 안 될 때가 갈려 고장 난 것처럼 느껴진다.
         .contentShape(Rectangle())
@@ -89,7 +82,7 @@ struct ScheduleView: View {
         }
         .sheet(isPresented: $showPicker) {
             MonthPickerSheet(initialYear: vm.pickerYear, initialMonth: vm.pickerMonth) { year, month in
-                savedMessage = nil
+                dismissSaved()
                 loadTask?.cancel()
                 loadTask = Task { await vm.jump(year: year, month: month) }
             }
@@ -98,7 +91,7 @@ struct ScheduleView: View {
         .sheet(item: $editing) { editVM in
             ScheduleDayEditSheet(vm: editVM) { days in
                 vm.apply(days, on: editVM.date)
-                savedMessage = "\(editVM.dayLabel) 근무를 저장했습니다."
+                showSaved("\(editVM.dayLabel) 근무를 저장했습니다.")
             }
         }
         // 첫 등장에서 조회하고, 사진 등록에서 돌아올 때도 다시 조회한다 — `.task`는 뷰가
@@ -113,7 +106,7 @@ struct ScheduleView: View {
                 savedYearMonth = nil
                 await vm.show(yearMonth: target)
                 if vm.yearMonth == target {
-                    savedMessage = "\(vm.monthLabel) 근무를 저장했습니다."
+                    showSaved("\(vm.monthLabel) 근무를 저장했습니다.")
                 }
             } else {
                 await vm.load()
@@ -138,7 +131,10 @@ struct ScheduleView: View {
         .onChange(of: scenePhase) {
             if scenePhase == .active { vm.refreshToday() }
         }
-        .onDisappear { loadTask?.cancel() }
+        .onDisappear {
+            loadTask?.cancel()
+            savedMessageTask?.cancel()
+        }
     }
 
     private var header: some View {
@@ -172,6 +168,22 @@ struct ScheduleView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
+    }
+
+    /// 저장했다는 것만 알리고 비켜 준다. 닫기 버튼을 두지 않는다 — 스스로 사라지는 것을
+    /// 굳이 손으로 닫게 하면 버튼 하나가 늘 자리를 차지한다.
+    private func savedToast(_ message: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "checkmark.circle.fill")
+            Text(message)
+        }
+        .font(.footnote)
+        .foregroundStyle(.white)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(Capsule().fill(Color.slate900.opacity(0.9)))
+        .padding(.bottom, 24)
+        .transition(.move(edge: .bottom).combined(with: .opacity))
     }
 
     /// 색이 무엇을 뜻하는지 알려 준다. 이 화면은 근무를 글자 없이 색과 자리로만 그리므로,
@@ -213,14 +225,33 @@ struct ScheduleView: View {
             }
     }
 
+    /// 잠깐 띄우고 스스로 지운다.
+    private func showSaved(_ message: String) {
+        savedMessageTask?.cancel()
+        withAnimation(.easeOut(duration: 0.2)) { savedMessage = message }
+        savedMessageTask = Task {
+            try? await Task.sleep(for: .seconds(2))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeIn(duration: 0.3)) { savedMessage = nil }
+        }
+    }
+
+    /// 달을 옮기면 더는 그 저장을 가리키는 말이 아니다. **타이머도 함께 끈다** —
+    /// 남겨 두면 다음 저장의 안내를 그 타이머가 이른 시각에 지운다.
+    private func dismissSaved() {
+        savedMessageTask?.cancel()
+        savedMessageTask = nil
+        withAnimation(.easeIn(duration: 0.2)) { savedMessage = nil }
+    }
+
     private func move(_ months: Int) {
-        savedMessage = nil
+        dismissSaved()
         loadTask?.cancel()
         loadTask = Task { await vm.move(by: months) }
     }
 
     private func goToday() {
-        savedMessage = nil
+        dismissSaved()
         loadTask?.cancel()
         loadTask = Task { await vm.goToToday() }
     }
@@ -241,7 +272,8 @@ struct ScheduleView: View {
         editing = ScheduleDayEditViewModel(
             date: dateString,
             dayLabel: dayLabel(for: cell),
-            days: vm.shiftDays(on: dateString)
+            days: vm.shiftDays(on: dateString),
+            holidayNames: vm.holidayNames(on: dateString)
         )
     }
 
