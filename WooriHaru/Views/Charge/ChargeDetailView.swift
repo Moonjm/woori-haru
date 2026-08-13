@@ -24,6 +24,9 @@ struct ChargeDetailView: View {
     /// 금액은 방금 저장한 값 > 상세 값 > 목록 값 순으로 고른다.
     private var cost: Decimal? { savedCost ?? detail?.cost ?? item.cost }
 
+    /// 단가의 분모. 목록에도 실려 오므로 상세를 받기 전부터 낼 수 있다.
+    private var energyUsedKwh: Decimal? { detail?.energyUsedKwh ?? item.energyUsedKwh }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -79,7 +82,9 @@ struct ChargeDetailView: View {
                     .foregroundStyle(cost == nil ? Color.orange700 : Color.slate900)
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
-                if let detail, let unit = detail.costPerKwh {
+                // 단가는 **화면에 보이는 그 금액**으로 낸다 — 저장은 됐는데 상세를 다시 못 받은
+                // 사이에 `detail.costPerKwh`를 쓰면 새 금액 아래에 옛 금액으로 나눈 단가가 붙는다.
+                if let unit = ChargeMath.costPerKwh(cost: cost, energyUsedKwh: energyUsedKwh) {
                     Text(ChargeFormat.unitPrice(unit))
                         .font(.caption)
                         .monospacedDigit()

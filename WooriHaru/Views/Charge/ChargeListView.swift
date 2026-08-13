@@ -102,15 +102,19 @@ struct ChargeListView: View {
                 .contentTransition(.numericText())
                 .animation(.snappy, value: viewModel.summary)
 
-            HStack(spacing: 6) {
-                summaryChip("\(viewModel.summary.count)회")
-                summaryChip(ChargeFormat.energy(viewModel.summary.totalEnergyAddedKwh))
-                // 금액이 빈 건은 이 화면에 오는 이유 그 자체라 합계 옆에 붙여 둔다.
-                if viewModel.missingCostCount > 0 {
-                    summaryChip("금액 없음 \(viewModel.missingCostCount)건", emphasized: true)
+            // 응답을 받기 전에는 칩을 아예 그리지 않는다 — 「0회」는 못 받았다는 뜻이 아니라
+            // 충전이 없었다는 뜻이라, 실패 안내와 나란히 놓이면 서로 어긋난다.
+            if viewModel.isMonthLoaded {
+                HStack(spacing: 6) {
+                    summaryChip("\(viewModel.summary.count)회")
+                    summaryChip(ChargeFormat.energy(viewModel.summary.totalEnergyAddedKwh))
+                    // 금액이 빈 건은 이 화면에 오는 이유 그 자체라 합계 옆에 붙여 둔다.
+                    if viewModel.missingCostCount > 0 {
+                        summaryChip("금액 없음 \(viewModel.missingCostCount)건", emphasized: true)
+                    }
                 }
+                .padding(.top, 12)
             }
-            .padding(.top, 12)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(18)
