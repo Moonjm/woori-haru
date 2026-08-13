@@ -9,6 +9,15 @@ struct VehicleStatusTab: View {
             VStack(spacing: 12) {
                 asOfLine.padding(.top, 8)
 
+                // 보여줄 값이 남아 있는 새로고침 실패는 한 줄로만 알린다 — 「기록 없음」과 「못 받음」이
+                // 한 화면으로 뭉개지지 않게 한다. 값이 아예 없을 때는 아래 errorState가 맡는다.
+                if let error = viewModel.errorMessage, viewModel.status != nil {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundStyle(Color.red500)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
                 if viewModel.isLoading && viewModel.status == nil {
                     ProgressView().padding(.top, 60)
                 } else if let error = viewModel.errorMessage, viewModel.status == nil {
