@@ -12,32 +12,22 @@ struct ScheduleView: View {
     @State private var vm = ScheduleViewModel()
     @State private var showPicker = false
     @State private var loadTask: Task<Void, Never>?
-    /// 저장 직후 한 번 보여줄 안내. 사용자가 달을 옮기면 더는 그 저장을 가리키는 말이
-    /// 아니므로 지운다.
+    /// 저장 직후 잠깐 뜨는 안내. 스스로 사라진다.
     @State private var savedMessage: String?
+    /// 안내를 지울 타이머. **새 저장이 오면 앞의 것을 취소한다** — 남겨 두면 먼저 걸린
+    /// 타이머가 방금 띄운 안내를 이른 시각에 지운다.
+    @State private var savedMessageTask: Task<Void, Never>?
+    /// 편집 시트에 넘길 뷰모델. **날짜가 아니라 뷰모델을 담는다** — 시트가 뜨는 순간의
+    /// 근무 값으로 폼을 채워야 하므로, 만들 때 한 번 읽고 그 뒤로는 시트가 홀로 들고 있는다.
+    @State private var editing: ScheduleDayEditViewModel?
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 0), count: 7)
+
 
     var body: some View {
         VStack(spacing: 0) {
             header
             WeekdayHeaderView()
-
-            if let message = savedMessage {
-                HStack(spacing: 8) {
-                    Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
-                    Text(message).font(.footnote).foregroundStyle(.green)
-                    Spacer()
-                    Button {
-                        savedMessage = nil
-                    } label: {
-                        Image(systemName: "xmark").font(.footnote).foregroundStyle(.secondary)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-            }
 
             if let message = vm.errorMessage {
                 HStack(spacing: 8) {
@@ -59,7 +49,8 @@ struct ScheduleView: View {
                         isToday: vm.isToday(cell.date),
                         holidayNames: cell.isCurrentMonth ? vm.holidayNames(on: cell.date.dateString) : [],
                         badges: cell.isCurrentMonth ? vm.badges(on: cell.date.dateString) : [],
-                        isBothOff: cell.isCurrentMonth && vm.isBothOff(on: cell.date.dateString)
+                        isBothOff: cell.isCurrentMonth && vm.isBothOff(on: cell.date.dateString),
+                        onTap: { openEditor(for: cell) }
                     )
                 }
             }
@@ -69,10 +60,22 @@ struct ScheduleView: View {
 
             Spacer()
         }
+        // **달력 위에 띄우고 자리를 차지하지 않는다.** 줄로 끼워 넣으면 안내가 들고 날
+        // 때마다 그리드가 위아래로 밀린다 — 방금 고친 칸을 보려는 순간에 그렇게 된다.
+        .overlay(alignment: .bottom) {
+            if let message = savedMessage {
+                savedToast(message)
+            }
+        }
         // 빈 자리에서 시작한 스와이프도 받는다. 칸 사이 여백에서만 안 먹으면 손짓이
         // 될 때와 안 될 때가 갈려 고장 난 것처럼 느껴진다.
         .contentShape(Rectangle())
-        .gesture(monthSwipe)
+        // **칸 탭보다 먼저 본다.** 기본 `.gesture`는 자식(칸의 탭)에게 우선권을 내주므로,
+        // 달을 넘기려고 민 손짓이 손을 떼는 순간 탭으로 읽혀 엉뚱한 날의 편집 시트가 열린다.
+        //
+        // 30pt를 넘겨야 이 제스처가 성립하므로 **제자리 탭은 여기 걸리지 않고** 그대로
+        // 칸으로 내려간다. 두 손짓이 거리로 갈린다.
+        .highPriorityGesture(monthSwipe)
         // 좌우 스와이프를 달 이동에 쓰므로 화면 가장자리에서 시작하는 뒤로가기를 끈다.
         // 두 동작이 겹치면 이전 달로 가려던 손짓이 화면을 닫아 버린다.
         .background(SwipeBackDisabler().frame(width: 0, height: 0))
@@ -85,11 +88,17 @@ struct ScheduleView: View {
         }
         .sheet(isPresented: $showPicker) {
             MonthPickerSheet(initialYear: vm.pickerYear, initialMonth: vm.pickerMonth) { year, month in
-                savedMessage = nil
+                dismissSaved()
                 loadTask?.cancel()
                 loadTask = Task { await vm.jump(year: year, month: month) }
             }
             .presentationDetents([.height(320)])
+        }
+        .sheet(item: $editing) { editVM in
+            ScheduleDayEditSheet(vm: editVM) { days in
+                vm.apply(days, on: editVM.date)
+                showSaved("\(editVM.dayLabel) 근무를 저장했습니다.")
+            }
         }
         // 첫 등장에서 조회하고, 사진 등록에서 돌아올 때도 다시 조회한다 — `.task`는 뷰가
         // 사라질 때 취소되고 다시 나타날 때 스스로 재실행된다(같은 저장소의
@@ -103,7 +112,7 @@ struct ScheduleView: View {
                 savedYearMonth = nil
                 await vm.show(yearMonth: target)
                 if vm.yearMonth == target {
-                    savedMessage = "\(vm.monthLabel) 근무를 저장했습니다."
+                    showSaved("\(vm.monthLabel) 근무를 저장했습니다.")
                 }
             } else {
                 await vm.load()
@@ -128,7 +137,13 @@ struct ScheduleView: View {
         .onChange(of: scenePhase) {
             if scenePhase == .active { vm.refreshToday() }
         }
-        .onDisappear { loadTask?.cancel() }
+        .onDisappear {
+            loadTask?.cancel()
+            // **안내도 함께 지운다.** 타이머만 끄면 지울 사람이 없어져, 2초를 못 채우고
+            // 화면을 벗어난 안내가 돌아왔을 때 영영 붙어 있는다. 떠난 뒤의 안내는 어차피
+            // 가리킬 저장이 없다.
+            dismissSaved()
+        }
     }
 
     private var header: some View {
@@ -162,6 +177,22 @@ struct ScheduleView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
+    }
+
+    /// 저장했다는 것만 알리고 비켜 준다. 닫기 버튼을 두지 않는다 — 스스로 사라지는 것을
+    /// 굳이 손으로 닫게 하면 버튼 하나가 늘 자리를 차지한다.
+    private func savedToast(_ message: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "checkmark.circle.fill")
+            Text(message)
+        }
+        .font(.footnote)
+        .foregroundStyle(.white)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(Capsule().fill(Color.slate900.opacity(0.9)))
+        .padding(.bottom, 24)
+        .transition(.move(edge: .bottom).combined(with: .opacity))
     }
 
     /// 색이 무엇을 뜻하는지 알려 준다. 이 화면은 근무를 글자 없이 색과 자리로만 그리므로,
@@ -203,14 +234,33 @@ struct ScheduleView: View {
             }
     }
 
+    /// 잠깐 띄우고 스스로 지운다.
+    private func showSaved(_ message: String) {
+        savedMessageTask?.cancel()
+        withAnimation(.easeOut(duration: 0.2)) { savedMessage = message }
+        savedMessageTask = Task {
+            try? await Task.sleep(for: .seconds(2))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeIn(duration: 0.3)) { savedMessage = nil }
+        }
+    }
+
+    /// 달을 옮기면 더는 그 저장을 가리키는 말이 아니다. **타이머도 함께 끈다** —
+    /// 남겨 두면 다음 저장의 안내를 그 타이머가 이른 시각에 지운다.
+    private func dismissSaved() {
+        savedMessageTask?.cancel()
+        savedMessageTask = nil
+        withAnimation(.easeIn(duration: 0.2)) { savedMessage = nil }
+    }
+
     private func move(_ months: Int) {
-        savedMessage = nil
+        dismissSaved()
         loadTask?.cancel()
         loadTask = Task { await vm.move(by: months) }
     }
 
     private func goToday() {
-        savedMessage = nil
+        dismissSaved()
         loadTask?.cancel()
         loadTask = Task { await vm.goToToday() }
     }
@@ -219,9 +269,31 @@ struct ScheduleView: View {
         loadTask?.cancel()
         loadTask = Task { await vm.load() }
     }
+
+    /// **이번 달 칸에서만 연다.** 그리드 앞뒤 패딩(지난달·다음달 날짜)을 고치면 저장한
+    /// 결과가 지금 보이는 화면 어디에도 나타나지 않는다.
+    ///
+    /// 제목의 요일까지 여기서 만든다. 시트가 스스로 계산하면 기기 달력이 비그레고리력일 때
+    /// 달력 칸과 시트가 서로 다른 날을 가리킨다.
+    private func openEditor(for cell: MonthData.DayCell) {
+        guard cell.isCurrentMonth else { return }
+        let dateString = cell.date.dateString
+        editing = ScheduleDayEditViewModel(
+            date: dateString,
+            dayLabel: dayLabel(for: cell),
+            days: vm.shiftDays(on: dateString),
+            holidayNames: vm.holidayNames(on: dateString)
+        )
+    }
+
+    private func dayLabel(for cell: MonthData.DayCell) -> String {
+        let weekdays = ["일", "월", "화", "수", "목", "금", "토"]
+        let index = Calendar.dispatchGregorian.component(.weekday, from: cell.date) - 1
+        return "\(cell.month)월 \(cell.day)일 (\(weekdays[index]))"
+    }
 }
 
-/// 이 화면이 떠 있는 동안 가장자리 스와이프 뒤로가기를 끈다.
+/// 이 화면이 떠 있는 동안 스와이프 뒤로가기를 끈다.
 ///
 /// SwiftUI에는 이 제스처를 끄는 수단이 없어 `UINavigationController`를 직접 만진다.
 /// **떠날 때 반드시 되돌린다** — 되돌리지 않으면 이 화면을 한 번 들른 뒤로 앱 전체에서
@@ -232,14 +304,49 @@ private struct SwipeBackDisabler: UIViewControllerRepresentable {
     func updateUIViewController(_ uiViewController: UIViewController, context: Context) {}
 
     final class Controller: UIViewController {
+        /// 끄기 전 상태를 기억한다. **되돌릴 때 원래 값으로 돌린다** — 통째로 `true`로
+        /// 돌리면 원래부터 꺼져 있던 인식기까지 켜 버린다.
+        private var restore: [(recognizer: UIGestureRecognizer, wasEnabled: Bool)] = []
+
         override func viewWillAppear(_ animated: Bool) {
             super.viewWillAppear(animated)
-            navigationController?.interactivePopGestureRecognizer?.isEnabled = false
+            disableBackGestures()
+        }
+
+        /// **`interactivePopGestureRecognizer` 하나만 끄면 모자란다.** iOS는 `nav.view`에
+        /// 팬 인식기를 둘 단다 — 가장자리용과 화면 전체용이고, 그 프로퍼티는 앞의 것만
+        /// 가리킨다. 뒤의 것이 남으면 달력 한가운데에서 민 손짓이 화면을 닫는다.
+        ///
+        /// 그래서 **`nav.view`에 붙은 팬 인식기를 전부** 끈다. 이 뷰의 인식기는 뒤로가기
+        /// 전환용뿐이라 같이 꺼도 잃는 것이 없다.
+        ///
+        /// **여러 번 불려도 처음 상태만 기억한다** — 두 번째 호출에서 「원래 꺼져 있었다」로
+        /// 잘못 적으면 떠날 때 되살리지 못한다.
+        private func disableBackGestures() {
+            guard let nav = navigationController else { return }
+
+            var targets: [UIGestureRecognizer] = nav.view.gestureRecognizers?.filter { $0 is UIPanGestureRecognizer } ?? []
+            // 팬이 아닌 형태로 바뀌더라도 이것만은 반드시 끈다.
+            if let edge = nav.interactivePopGestureRecognizer, !targets.contains(where: { $0 === edge }) {
+                targets.append(edge)
+            }
+
+            if restore.isEmpty {
+                restore = targets.map { ($0, $0.isEnabled) }
+            }
+            targets.forEach { $0.isEnabled = false }
         }
 
         override func viewWillDisappear(_ animated: Bool) {
             super.viewWillDisappear(animated)
-            navigationController?.interactivePopGestureRecognizer?.isEnabled = true
+            restore.forEach { $0.recognizer.isEnabled = $0.wasEnabled }
+            restore = []
+        }
+
+        /// **`viewWillDisappear` 없이 사라지는 경우의 그물이다.** 되돌리지 못하면 이 화면을
+        /// 한 번 들른 뒤로 앱 전체에서 뒤로가기 스와이프가 죽는다.
+        deinit {
+            restore.forEach { $0.recognizer.isEnabled = $0.wasEnabled }
         }
     }
 }

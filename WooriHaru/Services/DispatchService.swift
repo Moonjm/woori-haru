@@ -14,6 +14,13 @@ protocol DispatchServing: Sendable {
 
     /// 검수 확정분을 저장한다. **보낸 날짜만 갱신된다.**
     func saveShifts(_ request: DispatchShiftSaveRequest) async throws
+
+    /// 날짜 하나의 근무를 고친다. **보낸 역할만 바뀐다** — nil인 역할은 서버가 건드리지 않는다.
+    ///
+    /// **응답이 없다(204).** 호출자는 자기가 보낸 값을 이미 알고 있고, 안 보낸 역할은 서버도
+    /// 건드리지 않아 화면에 그려진 그대로다. 두 역할이 한 트랜잭션이라 204를 받으면 보낸
+    /// 것이 전부 들어갔다.
+    func editDay(date: String, request: DispatchDayEditRequest) async throws
 }
 
 struct DispatchService: DispatchServing {
@@ -47,5 +54,9 @@ struct DispatchService: DispatchServing {
 
     func saveShifts(_ request: DispatchShiftSaveRequest) async throws {
         try await api.postVoid("/dispatch/shifts", body: request)
+    }
+
+    func editDay(date: String, request: DispatchDayEditRequest) async throws {
+        try await api.putVoid("/dispatch/shifts/\(date)", body: request)
     }
 }

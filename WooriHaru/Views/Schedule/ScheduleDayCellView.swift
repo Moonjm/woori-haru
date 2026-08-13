@@ -22,6 +22,9 @@ struct ScheduleDayCellView: View {
     let badges: [ScheduleViewModel.Badge]
     /// 아빠와 엄마가 둘 다 쉬는 날. **미등록은 여기 들어오지 않는다**(뷰모델이 가린다).
     let isBothOff: Bool
+    /// 이 칸을 눌렀다. **이번 달 칸에서만 부른다** — 화면에 보이는 달이 아닌 날짜를 고치면
+    /// 저장한 뒤 그 결과가 어디에도 보이지 않는다.
+    let onTap: () -> Void
 
     static let cellHeight: CGFloat = 76
 
@@ -54,15 +57,22 @@ struct ScheduleDayCellView: View {
         // **둘 다 쉬는 날은 칸을 옅게 칠한다.** 밴드 자리를 뺏지 않아 정렬이 그대로고,
         // 한 달을 훑을 때 덩어리로 보인다. 그런 날은 밴드가 없어 색이 섞이지도 않는다.
         .background(isBothOff ? Color.green100 : .clear)
+        // 빈 자리도 눌리게 한다. 숫자나 밴드 위에서만 먹으면 될 때와 안 될 때가 갈려
+        // 고장 난 것처럼 느껴진다.
+        .contentShape(Rectangle())
+        .onTapGesture { if isCurrentMonth { onTap() } }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityDescription)
+        .accessibilityAddTraits(isCurrentMonth ? .isButton : [])
+        .accessibilityHint(isCurrentMonth ? "근무 수정 열기" : "")
     }
 
-    /// 아빠는 파랑, 엄마는 분홍. 순번이 있으면 숫자를, 없으면 색만 칠한다.
+    /// 아빠는 파랑, 엄마는 분홍. **순번이 있으면 쓰고 없으면 색만 칠한다.**
+    /// 아빠는 정수 `slot`, 엄마는 문자 `slotCode`를 쓴다.
     @ViewBuilder
     private func badgeRow(for role: DispatchRole) -> some View {
         if let badge = badges.first(where: { $0.role == role }) {
-            Text(badge.slot.map(String.init) ?? " ")
+            Text(Self.label(for: badge))
                 .font(.system(size: 10))
                 .fontWeight(.bold)
                 .lineLimit(1)
@@ -72,6 +82,14 @@ struct ScheduleDayCellView: View {
                 .cornerRadius(2)
         } else {
             Color.clear.frame(height: Self.badgeRowHeight)
+        }
+    }
+
+    /// 빈 밴드도 높이를 지켜야 하므로 공백 한 칸을 준다.
+    private static func label(for badge: ScheduleViewModel.Badge) -> String {
+        switch badge.role {
+        case .father: return badge.slot.map(String.init) ?? " "
+        case .mother: return badge.slotCode ?? " "
         }
     }
 
@@ -90,7 +108,8 @@ struct ScheduleDayCellView: View {
         for role in [DispatchRole.mother, .father] {
             guard let badge = badges.first(where: { $0.role == role }) else { continue }
             let who = role == .father ? "아빠" : "엄마"
-            parts.append(badge.slot.map { "\(who) \($0)번 근무" } ?? "\(who) 근무")
+            let slotText = role == .father ? badge.slot.map(String.init) : badge.slotCode
+            parts.append(slotText.map { "\(who) \($0)번 근무" } ?? "\(who) 근무")
         }
         return parts.joined(separator: ", ")
     }

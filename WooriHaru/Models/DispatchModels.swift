@@ -13,7 +13,13 @@ struct DispatchShiftDay: Codable, Equatable {
     let role: DispatchRole
     /// 그날 일하는가. **판정은 이 값만 본다** — `slot`이 nil이어도 근무일 수 있다.
     let working: Bool
+    /// 아빠 배차 순번. 엄마는 늘 nil이다.
     let slot: Int?
+    /// 엄마 근무조(`A`·`B`·`C`). 아빠는 늘 nil이고, 패턴에서 만들어진 엄마 기본값도 nil이다.
+    ///
+    /// **옵셔널로 두어 이 키가 없는 응답도 받는다.** 서버가 내려주기 전에 앱이 먼저
+    /// 배포될 수 있고, 그때 디코딩이 통째로 실패하면 달력이 빈다.
+    let slotCode: String?
     /// 칸의 원문. 달력에는 쓰지 않는다 — 무인증 응답에 실려 나가는 자유 입력이다.
     let note: String?
 }
@@ -71,6 +77,32 @@ struct DispatchShiftSaveRequest: Encodable {
     /// 지금은 항상 `FATHER`다. 사진에서 읽는 대상이 아빠뿐이다.
     let role: String
     let days: [DispatchShiftSaveDay]
+}
+
+/// 하루 편집에서 역할 하나를 어떻게 바꿀지.
+///
+/// **아빠는 `slot`, 엄마는 `slotCode`다.** 한 필드에 정수와 문자를 겹쳐 담지 않는다 —
+/// `A`를 `1`로 접으면 같은 숫자의 뜻이 역할마다 갈리고, 엄마 순번이 늘어나는 순간 무너진다.
+/// 역할에 맞지 않는 필드를 보내면 서버가 400을 낸다.
+///
+/// **휴무면 순번을 싣지 않는다.** 서버도 `working: false`면 순번을 nil로 눕히지만,
+/// 보내는 쪽에서 맞춰야 「보낸 값 = 저장된 값」이 깨지지 않는다.
+struct DispatchRoleEdit: Encodable, Equatable {
+    let working: Bool
+    let slot: Int?
+    let slotCode: String?
+}
+
+/// 날짜 하나의 편집 요청. **손대지 않은 역할은 nil로 두어 아예 보내지 않는다.**
+///
+/// 아빠 배차표를 아직 안 올린 달에 엄마만 고칠 때 아빠까지 값을 실어 보내면, 사람이 고른
+/// 적 없는 「휴무」가 그 달 아빠의 첫 레코드로 생긴다. 「저장된 적 없음」과 「휴무」는
+/// 조회에서 이미 갈리는 상태다.
+///
+/// `JSONEncoder`는 nil 프로퍼티의 키를 아예 빼므로 따로 처리할 것이 없다.
+struct DispatchDayEditRequest: Encodable, Equatable {
+    let father: DispatchRoleEdit?
+    let mother: DispatchRoleEdit?
 }
 
 extension Calendar {

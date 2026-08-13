@@ -39,7 +39,7 @@ struct ScheduleViewModelTests {
         let mock = MockAPIClient()
         mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
         let service = FakeScheduleService(days: [
-            DispatchShiftDay(date: "2026-08-15", role: .father, working: true, slot: 1, note: nil)
+            DispatchShiftDay(date: "2026-08-15", role: .father, working: true, slot: 1, slotCode: nil, note: nil)
         ])
         let vm = makeViewModel(mock: mock, service: service)
 
@@ -48,14 +48,14 @@ struct ScheduleViewModelTests {
         #expect(vm.yearMonth == "2026-08")
         #expect(vm.monthLabel == "2026년 8월")
         #expect(service.requestedYearMonths == ["2026-08"])
-        #expect(vm.badges(on: "2026-08-15") == [ScheduleViewModel.Badge(role: .father, slot: 1)])
+        #expect(vm.badges(on: "2026-08-15") == [ScheduleViewModel.Badge(role: .father, slot: 1, slotCode: nil)])
     }
 
     @Test func 휴무는_밴드를_만들지_않는다() async {
         let mock = MockAPIClient()
         mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
         let service = FakeScheduleService(days: [
-            DispatchShiftDay(date: "2026-08-15", role: .father, working: false, slot: nil, note: "휴")
+            DispatchShiftDay(date: "2026-08-15", role: .father, working: false, slot: nil, slotCode: nil, note: "휴")
         ])
         let vm = makeViewModel(mock: mock, service: service)
 
@@ -70,22 +70,22 @@ struct ScheduleViewModelTests {
         let mock = MockAPIClient()
         mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
         let service = FakeScheduleService(days: [
-            DispatchShiftDay(date: "2026-08-15", role: .mother, working: true, slot: nil, note: nil)
+            DispatchShiftDay(date: "2026-08-15", role: .mother, working: true, slot: nil, slotCode: nil, note: nil)
         ])
         let vm = makeViewModel(mock: mock, service: service)
 
         await vm.load()
 
         // 엄마는 순번을 넣지 않는다. 색만 칠한다.
-        #expect(vm.badges(on: "2026-08-15") == [ScheduleViewModel.Badge(role: .mother, slot: nil)])
+        #expect(vm.badges(on: "2026-08-15") == [ScheduleViewModel.Badge(role: .mother, slot: nil, slotCode: nil)])
     }
 
     @Test func 아빠와_엄마가_같은_날에_함께_온다() async {
         let mock = MockAPIClient()
         mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
         let service = FakeScheduleService(days: [
-            DispatchShiftDay(date: "2026-08-15", role: .mother, working: true, slot: nil, note: nil),
-            DispatchShiftDay(date: "2026-08-15", role: .father, working: true, slot: 2, note: nil)
+            DispatchShiftDay(date: "2026-08-15", role: .mother, working: true, slot: nil, slotCode: nil, note: nil),
+            DispatchShiftDay(date: "2026-08-15", role: .father, working: true, slot: 2, slotCode: nil, note: nil)
         ])
         let vm = makeViewModel(mock: mock, service: service)
 
@@ -94,8 +94,8 @@ struct ScheduleViewModelTests {
         // 순서를 역할로 고정한다 — 응답 순서대로 그리면 날마다 위아래가 바뀐다.
         // 화면과 같은 순서다: 엄마가 위, 아빠가 아래.
         #expect(vm.badges(on: "2026-08-15") == [
-            ScheduleViewModel.Badge(role: .mother, slot: nil),
-            ScheduleViewModel.Badge(role: .father, slot: 2)
+            ScheduleViewModel.Badge(role: .mother, slot: nil, slotCode: nil),
+            ScheduleViewModel.Badge(role: .father, slot: 2, slotCode: nil)
         ])
     }
 
@@ -103,8 +103,8 @@ struct ScheduleViewModelTests {
         let mock = MockAPIClient()
         mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
         let service = FakeScheduleService(days: [
-            DispatchShiftDay(date: "2026-08-15", role: .father, working: false, slot: nil, note: nil),
-            DispatchShiftDay(date: "2026-08-15", role: .mother, working: false, slot: nil, note: nil)
+            DispatchShiftDay(date: "2026-08-15", role: .father, working: false, slot: nil, slotCode: nil, note: nil),
+            DispatchShiftDay(date: "2026-08-15", role: .mother, working: false, slot: nil, slotCode: nil, note: nil)
         ])
         let vm = makeViewModel(mock: mock, service: service)
 
@@ -117,8 +117,8 @@ struct ScheduleViewModelTests {
         let mock = MockAPIClient()
         mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
         let service = FakeScheduleService(days: [
-            DispatchShiftDay(date: "2026-08-15", role: .father, working: true, slot: 1, note: nil),
-            DispatchShiftDay(date: "2026-08-15", role: .mother, working: false, slot: nil, note: nil)
+            DispatchShiftDay(date: "2026-08-15", role: .father, working: true, slot: 1, slotCode: nil, note: nil),
+            DispatchShiftDay(date: "2026-08-15", role: .mother, working: false, slot: nil, slotCode: nil, note: nil)
         ])
         let vm = makeViewModel(mock: mock, service: service)
 
@@ -132,7 +132,7 @@ struct ScheduleViewModelTests {
         mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
         // 엄마는 패턴이라 늘 값이 있고, 아빠는 등록한 날만 온다.
         let service = FakeScheduleService(days: [
-            DispatchShiftDay(date: "2026-08-15", role: .mother, working: false, slot: nil, note: nil)
+            DispatchShiftDay(date: "2026-08-15", role: .mother, working: false, slot: nil, slotCode: nil, note: nil)
         ])
         let vm = makeViewModel(mock: mock, service: service)
 
@@ -147,8 +147,8 @@ struct ScheduleViewModelTests {
         let mock = MockAPIClient()
         mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
         let service = FakeScheduleService(days: [
-            DispatchShiftDay(date: "2026-08-15", role: .father, working: false, slot: nil, note: nil),
-            DispatchShiftDay(date: "2026-08-15", role: .mother, working: false, slot: nil, note: nil)
+            DispatchShiftDay(date: "2026-08-15", role: .father, working: false, slot: nil, slotCode: nil, note: nil),
+            DispatchShiftDay(date: "2026-08-15", role: .mother, working: false, slot: nil, slotCode: nil, note: nil)
         ])
         let vm = makeViewModel(mock: mock, service: service)
         await vm.load()
@@ -292,7 +292,7 @@ struct ScheduleViewModelTests {
         let mock = MockAPIClient()
         mock.setError(APIError.serverError(statusCode: 500, message: "nope"), for: "GET /holidays")
         let service = FakeScheduleService(days: [
-            DispatchShiftDay(date: "2026-08-15", role: .father, working: true, slot: 1, note: nil)
+            DispatchShiftDay(date: "2026-08-15", role: .father, working: true, slot: 1, slotCode: nil, note: nil)
         ])
         let vm = makeViewModel(mock: mock, service: service)
 
@@ -323,7 +323,7 @@ struct ScheduleViewModelTests {
         let mock = MockAPIClient()
         mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
         let service = FakeScheduleService(days: [
-            DispatchShiftDay(date: "2026-09-05", role: .father, working: true, slot: 2, note: nil)
+            DispatchShiftDay(date: "2026-09-05", role: .father, working: true, slot: 2, slotCode: nil, note: nil)
         ])
         let vm = makeViewModel(mock: mock, service: service)
         await vm.load()
@@ -333,7 +333,7 @@ struct ScheduleViewModelTests {
         #expect(vm.yearMonth == "2026-09")
         #expect(vm.monthLabel == "2026년 9월")
         #expect(service.requestedYearMonths == ["2026-08", "2026-09"])
-        #expect(vm.badges(on: "2026-09-05") == [ScheduleViewModel.Badge(role: .father, slot: 2)])
+        #expect(vm.badges(on: "2026-09-05") == [ScheduleViewModel.Badge(role: .father, slot: 2, slotCode: nil)])
     }
 
     @Test func 형식이_틀린_연월은_보고_있던_달을_유지한다() async {
@@ -356,7 +356,7 @@ struct ScheduleViewModelTests {
         let mock = MockAPIClient()
         mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
         let service = FakeScheduleService(days: [
-            DispatchShiftDay(date: "2026-08-15", role: .father, working: true, slot: 1, note: nil)
+            DispatchShiftDay(date: "2026-08-15", role: .father, working: true, slot: 1, slotCode: nil, note: nil)
         ])
         let vm = makeViewModel(mock: mock, service: service)
         service.duringFetch = { [vm] in
@@ -371,6 +371,223 @@ struct ScheduleViewModelTests {
         #expect(vm.yearMonth == "2026-09")
         #expect(vm.badges(on: "2026-08-15").isEmpty)
     }
+
+    // MARK: - 하루 편집 반영
+
+    @Test func 엄마_순번코드가_밴드에_실린다() async {
+        let mock = MockAPIClient()
+        mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
+        let service = FakeScheduleService(days: [
+            DispatchShiftDay(date: "2026-08-15", role: .mother, working: true, slot: nil, slotCode: "A", note: nil)
+        ])
+        let vm = makeViewModel(mock: mock, service: service)
+
+        await vm.load()
+
+        #expect(vm.badges(on: "2026-08-15") == [ScheduleViewModel.Badge(role: .mother, slot: nil, slotCode: "A")])
+    }
+
+    /// 편집 시트는 휴무와 미등록을 갈라야 한다. 밴드는 근무일만 담으므로 원본이 따로 필요하다.
+    @Test func 그날의_원본을_휴무까지_돌려준다() async {
+        let mock = MockAPIClient()
+        mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
+        let service = FakeScheduleService(days: [
+            DispatchShiftDay(date: "2026-08-15", role: .father, working: false, slot: nil, slotCode: nil, note: "휴")
+        ])
+        let vm = makeViewModel(mock: mock, service: service)
+
+        await vm.load()
+
+        #expect(vm.shiftDays(on: "2026-08-15").count == 1)
+        #expect(vm.shiftDays(on: "2026-08-15").first?.working == false)
+        #expect(vm.shiftDays(on: "2026-08-16").isEmpty)
+    }
+
+    @Test func 저장_결과가_그_날짜의_밴드를_바꾼다() async {
+        let mock = MockAPIClient()
+        mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
+        let service = FakeScheduleService(days: [
+            DispatchShiftDay(date: "2026-08-15", role: .father, working: true, slot: 1, slotCode: nil, note: nil)
+        ])
+        let vm = makeViewModel(mock: mock, service: service)
+        await vm.load()
+
+        vm.apply([
+            DispatchShiftDay(date: "2026-08-15", role: .father, working: true, slot: 2, slotCode: nil, note: nil),
+            DispatchShiftDay(date: "2026-08-15", role: .mother, working: true, slot: nil, slotCode: "C", note: nil)
+        ], on: "2026-08-15")
+
+        #expect(vm.badges(on: "2026-08-15") == [
+            ScheduleViewModel.Badge(role: .mother, slot: nil, slotCode: "C"),
+            ScheduleViewModel.Badge(role: .father, slot: 2, slotCode: nil)
+        ])
+    }
+
+    @Test func 저장_결과가_다른_날짜를_건드리지_않는다() async {
+        let mock = MockAPIClient()
+        mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
+        let service = FakeScheduleService(days: [
+            DispatchShiftDay(date: "2026-08-20", role: .father, working: true, slot: 1, slotCode: nil, note: nil)
+        ])
+        let vm = makeViewModel(mock: mock, service: service)
+        await vm.load()
+
+        vm.apply([
+            DispatchShiftDay(date: "2026-08-15", role: .father, working: false, slot: nil, slotCode: nil, note: nil)
+        ], on: "2026-08-15")
+
+        #expect(vm.badges(on: "2026-08-20") == [ScheduleViewModel.Badge(role: .father, slot: 1, slotCode: nil)])
+        #expect(vm.badges(on: "2026-08-15").isEmpty)
+    }
+
+    @Test func 저장으로_둘_다_휴무가_되면_배경이_따라온다() async {
+        let mock = MockAPIClient()
+        mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
+        let service = FakeScheduleService(days: [
+            DispatchShiftDay(date: "2026-08-15", role: .father, working: true, slot: 1, slotCode: nil, note: nil),
+            DispatchShiftDay(date: "2026-08-15", role: .mother, working: false, slot: nil, slotCode: nil, note: nil)
+        ])
+        let vm = makeViewModel(mock: mock, service: service)
+        await vm.load()
+        #expect(vm.isBothOff(on: "2026-08-15") == false)
+
+        vm.apply([
+            DispatchShiftDay(date: "2026-08-15", role: .father, working: false, slot: nil, slotCode: nil, note: nil),
+            DispatchShiftDay(date: "2026-08-15", role: .mother, working: false, slot: nil, slotCode: nil, note: nil)
+        ], on: "2026-08-15")
+
+        #expect(vm.isBothOff(on: "2026-08-15"))
+    }
+
+    /// 달을 막 옮겨 조회가 오는 중일 때 칸을 열어 더 빨리 저장을 마칠 수 있다. 뒤늦게
+    /// 도착한 응답이 방금 고친 값을 저장 전으로 되돌리면 저장이 취소된 것처럼 보인다.
+    @Test func 진행_중인_조회가_방금_고친_날을_덮지_않는다() async {
+        let mock = MockAPIClient()
+        mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
+        let service = FakeScheduleService(days: [
+            DispatchShiftDay(date: "2026-08-15", role: .father, working: true, slot: 1, slotCode: nil, note: nil)
+        ])
+        let vm = makeViewModel(mock: mock, service: service)
+        service.duringFetch = { [vm] in
+            service.duringFetch = nil
+            // 조회가 오는 중에 저장이 끝났다.
+            await vm.apply([
+                DispatchShiftDay(date: "2026-08-15", role: .father, working: false, slot: nil, slotCode: nil, note: nil)
+            ], on: "2026-08-15")
+        }
+
+        await vm.load()
+
+        // 저장한 「휴무」가 살아 있어야 한다. 조회 응답의 「1번 근무」로 돌아가면 안 된다.
+        #expect(vm.badges(on: "2026-08-15").isEmpty)
+        #expect(vm.shiftDays(on: "2026-08-15").first?.working == false)
+    }
+
+    /// 조회가 오기 전에 칸을 열면 시트는 원본을 모른다. 그 상태로 한 역할만 저장했을 때
+    /// 나중에 온 조회의 **다른 역할이 사라지면 안 된다** — 엄마 근무는 서버가 늘 내려주므로
+    /// 그 자리가 비면 눈에 띈다.
+    @Test func 조회_전에_저장해도_나중에_온_다른_역할이_살아남는다() async {
+        let mock = MockAPIClient()
+        mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
+        let service = FakeScheduleService(days: [
+            DispatchShiftDay(date: "2026-08-15", role: .father, working: true, slot: 1, slotCode: nil, note: nil),
+            DispatchShiftDay(date: "2026-08-15", role: .mother, working: true, slot: nil, slotCode: nil, note: nil)
+        ])
+        let vm = makeViewModel(mock: mock, service: service)
+        service.duringFetch = { [vm] in
+            service.duringFetch = nil
+            // 조회가 오기 전이라 시트가 아빠 원본을 모른다. 엄마만 저장한다.
+            await vm.apply([
+                DispatchShiftDay(date: "2026-08-15", role: .mother, working: false, slot: nil, slotCode: nil, note: nil)
+            ], on: "2026-08-15")
+        }
+
+        await vm.load()
+
+        // 저장한 엄마는 휴무로 남고, 손대지 않은 아빠는 조회 값이 살아 있어야 한다.
+        #expect(vm.badges(on: "2026-08-15") == [ScheduleViewModel.Badge(role: .father, slot: 1, slotCode: nil)])
+        #expect(vm.shiftDays(on: "2026-08-15").count == 2)
+    }
+
+    /// **저장한 값이 영원히 이기면 안 된다.** 저장이 끝난 뒤에 시작된 조회는 그 저장을
+    /// 이미 담고 있는 최신 값이다. 다른 기기에서 그날을 바꾸고 이 화면을 다시 열었을 때
+    /// 새 값이 보여야 한다.
+    @Test func 저장_뒤_새로_조회하면_서버_값이_이긴다() async {
+        let mock = MockAPIClient()
+        mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
+        let service = FakeScheduleService(days: [
+            DispatchShiftDay(date: "2026-08-15", role: .father, working: true, slot: 1, slotCode: nil, note: nil)
+        ])
+        let vm = makeViewModel(mock: mock, service: service)
+        await vm.load()
+
+        vm.apply([
+            DispatchShiftDay(date: "2026-08-15", role: .father, working: false, slot: nil, slotCode: nil, note: nil)
+        ], on: "2026-08-15")
+        #expect(vm.badges(on: "2026-08-15").isEmpty)
+
+        // 다른 곳에서 그날이 바뀌었다. 다시 조회하면 그 값이 나와야 한다.
+        service.days = [
+            DispatchShiftDay(date: "2026-08-15", role: .father, working: true, slot: 2, slotCode: nil, note: nil)
+        ]
+        await vm.load()
+
+        #expect(vm.badges(on: "2026-08-15") == [ScheduleViewModel.Badge(role: .father, slot: 2, slotCode: nil)])
+    }
+
+    /// 저장 중에 시트를 닫고 달을 옮기면 결과가 뒤늦게 도착한다. 그것을 새 달에 얹으면
+    /// 있지도 않은 날짜의 근무가 섞인다.
+    @Test func 다른_달의_저장_결과는_버린다() async {
+        let mock = MockAPIClient()
+        mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
+        let service = FakeScheduleService(days: [])
+        let vm = makeViewModel(mock: mock, service: service)
+        await vm.load()
+        await vm.move(by: 1)
+
+        vm.apply([
+            DispatchShiftDay(date: "2026-08-15", role: .father, working: true, slot: 1, slotCode: nil, note: nil)
+        ], on: "2026-08-15")
+
+        #expect(vm.yearMonth == "2026-09")
+        #expect(vm.badges(on: "2026-08-15").isEmpty)
+        #expect(vm.shiftDays(on: "2026-08-15").isEmpty)
+    }
+
+    /// 버려지는 응답의 길에서 스피너 끄는 것을 빠뜨리면 헤더에서 계속 돈다.
+    @Test func 버려진_응답도_스피너를_끈다() async {
+        let mock = MockAPIClient()
+        mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
+        let service = FakeScheduleService(days: [])
+        let vm = makeViewModel(mock: mock, service: service)
+        service.duringFetch = { [vm] in
+            service.duringFetch = nil
+            await vm.apply([], on: "2026-08-15")
+        }
+
+        await vm.load()
+
+        #expect(vm.isLoading == false)
+    }
+
+    @Test func 둘_다_휴무였다가_한쪽이_일하면_배경이_사라진다() async {
+        let mock = MockAPIClient()
+        mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
+        let service = FakeScheduleService(days: [
+            DispatchShiftDay(date: "2026-08-15", role: .father, working: false, slot: nil, slotCode: nil, note: nil),
+            DispatchShiftDay(date: "2026-08-15", role: .mother, working: false, slot: nil, slotCode: nil, note: nil)
+        ])
+        let vm = makeViewModel(mock: mock, service: service)
+        await vm.load()
+        #expect(vm.isBothOff(on: "2026-08-15"))
+
+        vm.apply([
+            DispatchShiftDay(date: "2026-08-15", role: .father, working: true, slot: 1, slotCode: nil, note: nil),
+            DispatchShiftDay(date: "2026-08-15", role: .mother, working: false, slot: nil, slotCode: nil, note: nil)
+        ], on: "2026-08-15")
+
+        #expect(vm.isBothOff(on: "2026-08-15") == false)
+    }
 }
 
 /// 조회만 하는 대역. 요청한 연월을 기록한다.
@@ -380,6 +597,10 @@ final class FakeScheduleService: DispatchServing, @unchecked Sendable {
     /// 조회가 진행 중인 순간에 끼어들 자리.
     var duringFetch: (@Sendable () async -> Void)?
     private(set) var requestedYearMonths: [String] = []
+
+    /// 하루 편집이 받은 인자. 편집 뷰모델 테스트가 본다.
+    var editError: Error?
+    private(set) var editCalls: [(date: String, request: DispatchDayEditRequest)] = []
 
     init(days: [DispatchShiftDay]) {
         self.days = days
@@ -400,5 +621,10 @@ final class FakeScheduleService: DispatchServing, @unchecked Sendable {
 
     func saveShifts(_ request: DispatchShiftSaveRequest) async throws {
         fatalError("이 화면은 저장하지 않는다")
+    }
+
+    func editDay(date: String, request: DispatchDayEditRequest) async throws {
+        editCalls.append((date, request))
+        if let editError { throw editError }
     }
 }

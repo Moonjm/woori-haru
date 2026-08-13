@@ -9,9 +9,11 @@ import os
 @Observable
 final class ScheduleViewModel {
     /// 칸 하나에 그릴 근무 표시. 순번이 없으면 색만 칠한다.
+    /// **아빠는 `slot`, 엄마는 `slotCode`다.** 역할마다 쓰는 필드가 다르다.
     struct Badge: Equatable {
         let role: DispatchRole
         let slot: Int?
+        let slotCode: String?
     }
 
     private let service: DispatchServing
@@ -33,11 +35,47 @@ final class ScheduleViewModel {
 
     private(set) var yearMonth: String
     private(set) var cells: [MonthData.DayCell] = []
-    private(set) var isLoading = false
     private(set) var errorMessage: String?
+
+    /// 진행 중인 근무 조회의 수. **불리언 대신 세는 이유**는 늦게 온 응답이 버려지는 길이
+    /// 여럿이라, 어느 한 길에서 끄는 것을 빠뜨리면 스피너가 굳기 때문이다.
+    private var inFlight = 0
+
+    var isLoading: Bool { inFlight > 0 }
 
     private var startOfMonth: Date
     private var badgesByDate: [String: [Badge]] = [:]
+
+    /// 서버에서 받은 그대로. **손댄 값과 섞지 않는다** — 섞으면 조회가 다시 올 때
+    /// 무엇이 서버 값이고 무엇이 내가 덮은 값인지 갈라낼 수 없다.
+    private var fetchedByDate: [String: [DispatchShiftDay]] = [:]
+
+    /// 방금 저장한 역할들. **조회 결과 위에 덮되, 저장보다 나중에 시작된 조회에는 진다.**
+    ///
+    /// 저장이 조회보다 빨리 끝날 수 있다. 그때 뒤늦게 온 조회가 저장 전 값을 그리면
+    /// 저장이 취소된 것처럼 보인다. 그렇다고 조회를 통째로 버리면 **그 달의 나머지가
+    /// 통째로 빈다** — 아직 조회가 안 왔을 때 한 역할만 저장하면 다른 역할이 사라진다.
+    /// 그래서 조회는 받아들이고 저장한 역할만 그 위에 얹는다.
+    ///
+    /// 다만 **영원히 덮으면 안 된다.** 저장이 끝난 뒤에 시작된 조회는 그 저장을 이미
+    /// 담고 있는 최신 값이다. 그것마저 덮으면 다른 기기에서 그날을 바꾼 뒤 이 화면을
+    /// 다시 열어도 새 값이 보이지 않는다. `loadSeq`로 그 둘을 가른다.
+    private var localEdits: [String: LocalEdit] = [:]
+
+    private struct LocalEdit {
+        /// 저장이 끝난 시점에 **가장 최근으로 시작된** 조회의 번호. 이 번호보다 뒤에 시작된
+        /// 조회가 성공하면 이 편집은 낡은 것이므로 버린다.
+        let loadSeq: Int
+        var roles: [DispatchRole: DispatchShiftDay]
+    }
+
+    /// 근무 조회를 시작할 때마다 올린다. 저장과 조회의 선후를 가리는 데만 쓴다.
+    private var loadSequence = 0
+
+    /// 조회와 저장을 합친 결과. **편집 시트가 휴무와 미등록을 갈라야 해서 필요하다** —
+    /// `badgesByDate`는 근무일만 담으므로 「휴무로 저장됨」과 「저장된 적 없음」이 둘 다
+    /// 빈 값으로 보인다.
+    private var daysByDate: [String: [DispatchShiftDay]] = [:]
 
     /// 아빠와 엄마가 **둘 다 확정 휴무**인 날. 부모님이 함께 시간을 낼 수 있는 날이라
     /// 이 달력을 여는 실제 이유에 가깝다.
@@ -107,21 +145,99 @@ final class ScheduleViewModel {
         bothOffDates.contains(dateString)
     }
 
+    /// 편집 시트에 넘길 그날의 원본. 휴무도 들어 있고, 미등록이면 비어 있다.
+    func shiftDays(on dateString: String) -> [DispatchShiftDay] {
+        daysByDate[dateString] ?? []
+    }
+
+    /// 하루 편집의 저장 결과를 화면에 반영한다. 달 전체를 다시 조회하지 않는다 — 칸 하나를
+    /// 고치자고 한 달치를 다시 받는 왕복이고, 그 사이 화면이 잠깐 비었다 채워진다. 서버가
+    /// 204를 주는 근거도 같다: 두 역할이 한 트랜잭션이라 성공했으면 보낸 것이 전부 들어갔고,
+    /// 안 보낸 역할은 안 바뀐다.
+    ///
+    /// **저장한 역할만 받는다.** 시트가 손대지 않은 역할까지 넘기면, 시트를 열 때 읽은
+    /// 낡은 값이 그 뒤에 도착한 조회 값을 덮는다.
+    ///
+    /// **지금 보고 있는 달의 날짜가 아니면 버린다.** 저장 중에 시트를 닫고 다른 달로
+    /// 옮기면 이 결과가 뒤늦게 도착하는데, 그것을 새 달에 얹으면 있지도 않은 날짜의
+    /// 근무가 그 달 상태에 섞인다. 서버에는 이미 들어갔으므로 그 달을 다시 열면 보인다.
+    func apply(_ savedDays: [DispatchShiftDay], on dateString: String) {
+        guard dateString.hasPrefix(yearMonth) else { return }
+
+        var roles = localEdits[dateString]?.roles ?? [:]
+        for day in savedDays {
+            roles[day.role] = day
+        }
+        // **시점을 지금으로 올린다.** 앞선 저장의 시점을 물려받으면, 그 사이에 시작된
+        // 조회가 방금 저장한 값을 지운다.
+        localEdits[dateString] = LocalEdit(loadSeq: loadSequence, roles: roles)
+        rebuild()
+    }
+
+    /// 조회 값 위에 저장한 역할을 얹어 화면 상태를 다시 만든다.
+    ///
+    /// **역할 단위로 덮는다.** 날짜 통째로 갈아 끼우면, 아직 조회가 안 온 사이에 한 역할만
+    /// 저장했을 때 나머지 역할이 통째로 사라진다 — 엄마 근무는 서버가 패턴으로 늘 내려주므로
+    /// 그 자리가 비면 눈에 띈다.
+    ///
+    /// **「둘 다 휴무」도 여기서 다시 센다.** 밴드만 갈면, 두 사람이 함께 쉬게 된 날의
+    /// 초록 배경이 달을 옮겼다 돌아올 때까지 따라오지 않는다.
+    private func rebuild() {
+        var merged = fetchedByDate
+        for (date, edit) in localEdits {
+            var byRole = Dictionary(
+                (fetchedByDate[date] ?? []).map { ($0.role, $0) },
+                uniquingKeysWith: { _, latest in latest }
+            )
+            for (role, day) in edit.roles {
+                byRole[role] = day
+            }
+            merged[date] = Array(byRole.values)
+        }
+
+        daysByDate = merged
+        let all = merged.values.flatMap { $0 }
+        badgesByDate = Self.group(all)
+        bothOffDates = Self.datesBothOff(all)
+    }
+
     func holidayNames(on dateString: String) -> [String] {
         holidaysByYear[calendar.component(.year, from: startOfMonth)]?[dateString] ?? []
     }
 
     func load() async {
         let token = generation
-        isLoading = true
+        await loadShifts(token: token)
+        guard token == generation else { return }
+
+        // **공휴일은 근무를 그린 뒤에 채운다.** 부가 정보를 먼저 기다리면, 공휴일 쪽이
+        // 느리기만 해도 근무 조회가 시작조차 못 해 화면이 빈 채로 남는다. 실패는 캐시하지
+        // 않으므로 달을 옮길 때마다 그 지연이 되풀이된다.
+        //
+        // 스피너는 여기서 이미 꺼져 있다 — 공휴일을 기다리는 동안 도는 스피너는 근무가
+        // 아직 안 온 것처럼 보인다.
+        await loadHolidaysIfNeeded(year: calendar.component(.year, from: startOfMonth))
+    }
+
+    /// **`defer`로 세는 것을 되돌린다.** 늦게 온 응답이 버려지는 길에서 스피너를 끄는 것을
+    /// 빠뜨리면, 다음 조회가 일어날 때까지 헤더에서 계속 돈다.
+    private func loadShifts(token: Int) async {
+        inFlight += 1
+        defer { inFlight -= 1 }
         errorMessage = nil
+
+        loadSequence += 1
+        let seq = loadSequence
 
         do {
             let days = try await service.findShifts(yearMonth: yearMonth)
             // 조회 중에 달이 바뀌었다. 이 결과는 지금 보이는 달의 것이 아니다.
             guard token == generation else { return }
-            badgesByDate = Self.group(days)
-            bothOffDates = Self.datesBothOff(days)
+            fetchedByDate = Dictionary(grouping: days, by: \.date)
+            // **이 조회보다 앞선 저장은 버린다.** 이 응답은 그 저장을 이미 담고 있는
+            // 최신 값이다. 계속 덮으면 다른 기기에서 바꾼 값이 영영 안 보인다.
+            localEdits = localEdits.filter { $0.value.loadSeq >= seq }
+            rebuild()
         } catch is CancellationError {
             return
         } catch {
@@ -129,13 +245,6 @@ final class ScheduleViewModel {
             // 서버 메시지가 이미 사용자용 한국어다. 봉투 JSON째 보여주지 않는다.
             errorMessage = error.serverMessage ?? error.localizedDescription
         }
-        guard token == generation else { return }
-        isLoading = false
-
-        // **공휴일은 근무를 그린 뒤에 채운다.** 부가 정보를 먼저 기다리면, 공휴일 쪽이
-        // 느리기만 해도 근무 조회가 시작조차 못 해 화면이 빈 채로 남는다. 실패는 캐시하지
-        // 않으므로 달을 옮길 때마다 그 지연이 되풀이된다.
-        await loadHolidaysIfNeeded(year: calendar.component(.year, from: startOfMonth))
     }
 
     func move(by months: Int) async {
@@ -177,6 +286,9 @@ final class ScheduleViewModel {
         // 이전 달 값을 지운다. 남겨 두면 조회가 끝나기 전까지 이전 달 근무가 새 달에 보인다.
         badgesByDate = [:]
         bothOffDates = []
+        daysByDate = [:]
+        fetchedByDate = [:]
+        localEdits = [:]
         await load()
     }
 
@@ -199,7 +311,7 @@ final class ScheduleViewModel {
     private static func group(_ days: [DispatchShiftDay]) -> [String: [Badge]] {
         var result: [String: [Badge]] = [:]
         for day in days where day.working {
-            result[day.date, default: []].append(Badge(role: day.role, slot: day.slot))
+            result[day.date, default: []].append(Badge(role: day.role, slot: day.slot, slotCode: day.slotCode))
         }
         return result.mapValues { badges in
             badges.sorted { roleRank($0.role) < roleRank($1.role) }
