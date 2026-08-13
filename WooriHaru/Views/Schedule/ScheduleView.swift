@@ -139,7 +139,10 @@ struct ScheduleView: View {
         }
         .onDisappear {
             loadTask?.cancel()
-            savedMessageTask?.cancel()
+            // **안내도 함께 지운다.** 타이머만 끄면 지울 사람이 없어져, 2초를 못 채우고
+            // 화면을 벗어난 안내가 돌아왔을 때 영영 붙어 있는다. 떠난 뒤의 안내는 어차피
+            // 가리킬 저장이 없다.
+            dismissSaved()
         }
     }
 

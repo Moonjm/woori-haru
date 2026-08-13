@@ -509,6 +509,32 @@ struct ScheduleViewModelTests {
         #expect(vm.shiftDays(on: "2026-08-15").count == 2)
     }
 
+    /// **저장한 값이 영원히 이기면 안 된다.** 저장이 끝난 뒤에 시작된 조회는 그 저장을
+    /// 이미 담고 있는 최신 값이다. 다른 기기에서 그날을 바꾸고 이 화면을 다시 열었을 때
+    /// 새 값이 보여야 한다.
+    @Test func 저장_뒤_새로_조회하면_서버_값이_이긴다() async {
+        let mock = MockAPIClient()
+        mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
+        let service = FakeScheduleService(days: [
+            DispatchShiftDay(date: "2026-08-15", role: .father, working: true, slot: 1, slotCode: nil, note: nil)
+        ])
+        let vm = makeViewModel(mock: mock, service: service)
+        await vm.load()
+
+        vm.apply([
+            DispatchShiftDay(date: "2026-08-15", role: .father, working: false, slot: nil, slotCode: nil, note: nil)
+        ], on: "2026-08-15")
+        #expect(vm.badges(on: "2026-08-15").isEmpty)
+
+        // 다른 곳에서 그날이 바뀌었다. 다시 조회하면 그 값이 나와야 한다.
+        service.days = [
+            DispatchShiftDay(date: "2026-08-15", role: .father, working: true, slot: 2, slotCode: nil, note: nil)
+        ]
+        await vm.load()
+
+        #expect(vm.badges(on: "2026-08-15") == [ScheduleViewModel.Badge(role: .father, slot: 2, slotCode: nil)])
+    }
+
     /// 저장 중에 시트를 닫고 달을 옮기면 결과가 뒤늦게 도착한다. 그것을 새 달에 얹으면
     /// 있지도 않은 날짜의 근무가 섞인다.
     @Test func 다른_달의_저장_결과는_버린다() async {

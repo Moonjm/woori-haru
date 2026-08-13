@@ -50,15 +50,27 @@ final class ScheduleViewModel {
     /// 무엇이 서버 값이고 무엇이 내가 덮은 값인지 갈라낼 수 없다.
     private var fetchedByDate: [String: [DispatchShiftDay]] = [:]
 
-    /// 이 달에서 방금 저장한 역할들. **조회 결과 위에 다시 덮는다.**
+    /// 방금 저장한 역할들. **조회 결과 위에 덮되, 저장보다 나중에 시작된 조회에는 진다.**
     ///
     /// 저장이 조회보다 빨리 끝날 수 있다. 그때 뒤늦게 온 조회가 저장 전 값을 그리면
     /// 저장이 취소된 것처럼 보인다. 그렇다고 조회를 통째로 버리면 **그 달의 나머지가
     /// 통째로 빈다** — 아직 조회가 안 왔을 때 한 역할만 저장하면 다른 역할이 사라진다.
     /// 그래서 조회는 받아들이고 저장한 역할만 그 위에 얹는다.
     ///
-    /// 달을 옮기면 비운다. 다른 달의 저장을 여기 남겨 둘 이유가 없다.
-    private var localEdits: [String: [DispatchRole: DispatchShiftDay]] = [:]
+    /// 다만 **영원히 덮으면 안 된다.** 저장이 끝난 뒤에 시작된 조회는 그 저장을 이미
+    /// 담고 있는 최신 값이다. 그것마저 덮으면 다른 기기에서 그날을 바꾼 뒤 이 화면을
+    /// 다시 열어도 새 값이 보이지 않는다. `loadSeq`로 그 둘을 가른다.
+    private var localEdits: [String: LocalEdit] = [:]
+
+    private struct LocalEdit {
+        /// 저장이 끝난 시점에 **가장 최근으로 시작된** 조회의 번호. 이 번호보다 뒤에 시작된
+        /// 조회가 성공하면 이 편집은 낡은 것이므로 버린다.
+        let loadSeq: Int
+        var roles: [DispatchRole: DispatchShiftDay]
+    }
+
+    /// 근무 조회를 시작할 때마다 올린다. 저장과 조회의 선후를 가리는 데만 쓴다.
+    private var loadSequence = 0
 
     /// 조회와 저장을 합친 결과. **편집 시트가 휴무와 미등록을 갈라야 해서 필요하다** —
     /// `badgesByDate`는 근무일만 담으므로 「휴무로 저장됨」과 「저장된 적 없음」이 둘 다
@@ -152,11 +164,13 @@ final class ScheduleViewModel {
     func apply(_ savedDays: [DispatchShiftDay], on dateString: String) {
         guard dateString.hasPrefix(yearMonth) else { return }
 
-        var edits = localEdits[dateString] ?? [:]
+        var roles = localEdits[dateString]?.roles ?? [:]
         for day in savedDays {
-            edits[day.role] = day
+            roles[day.role] = day
         }
-        localEdits[dateString] = edits
+        // **시점을 지금으로 올린다.** 앞선 저장의 시점을 물려받으면, 그 사이에 시작된
+        // 조회가 방금 저장한 값을 지운다.
+        localEdits[dateString] = LocalEdit(loadSeq: loadSequence, roles: roles)
         rebuild()
     }
 
@@ -170,12 +184,12 @@ final class ScheduleViewModel {
     /// 초록 배경이 달을 옮겼다 돌아올 때까지 따라오지 않는다.
     private func rebuild() {
         var merged = fetchedByDate
-        for (date, edits) in localEdits {
+        for (date, edit) in localEdits {
             var byRole = Dictionary(
                 (fetchedByDate[date] ?? []).map { ($0.role, $0) },
                 uniquingKeysWith: { _, latest in latest }
             )
-            for (role, day) in edits {
+            for (role, day) in edit.roles {
                 byRole[role] = day
             }
             merged[date] = Array(byRole.values)
@@ -212,11 +226,17 @@ final class ScheduleViewModel {
         defer { inFlight -= 1 }
         errorMessage = nil
 
+        loadSequence += 1
+        let seq = loadSequence
+
         do {
             let days = try await service.findShifts(yearMonth: yearMonth)
             // 조회 중에 달이 바뀌었다. 이 결과는 지금 보이는 달의 것이 아니다.
             guard token == generation else { return }
             fetchedByDate = Dictionary(grouping: days, by: \.date)
+            // **이 조회보다 앞선 저장은 버린다.** 이 응답은 그 저장을 이미 담고 있는
+            // 최신 값이다. 계속 덮으면 다른 기기에서 바꾼 값이 영영 안 보인다.
+            localEdits = localEdits.filter { $0.value.loadSeq >= seq }
             rebuild()
         } catch is CancellationError {
             return
