@@ -483,6 +483,51 @@ struct ScheduleViewModelTests {
         #expect(vm.shiftDays(on: "2026-08-15").first?.working == false)
     }
 
+    /// 조회가 오기 전에 칸을 열면 시트는 원본을 모른다. 그 상태로 한 역할만 저장했을 때
+    /// 나중에 온 조회의 **다른 역할이 사라지면 안 된다** — 엄마 근무는 서버가 늘 내려주므로
+    /// 그 자리가 비면 눈에 띈다.
+    @Test func 조회_전에_저장해도_나중에_온_다른_역할이_살아남는다() async {
+        let mock = MockAPIClient()
+        mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
+        let service = FakeScheduleService(days: [
+            DispatchShiftDay(date: "2026-08-15", role: .father, working: true, slot: 1, slotCode: nil, note: nil),
+            DispatchShiftDay(date: "2026-08-15", role: .mother, working: true, slot: nil, slotCode: nil, note: nil)
+        ])
+        let vm = makeViewModel(mock: mock, service: service)
+        service.duringFetch = { [vm] in
+            service.duringFetch = nil
+            // 조회가 오기 전이라 시트가 아빠 원본을 모른다. 엄마만 저장한다.
+            await vm.apply([
+                DispatchShiftDay(date: "2026-08-15", role: .mother, working: false, slot: nil, slotCode: nil, note: nil)
+            ], on: "2026-08-15")
+        }
+
+        await vm.load()
+
+        // 저장한 엄마는 휴무로 남고, 손대지 않은 아빠는 조회 값이 살아 있어야 한다.
+        #expect(vm.badges(on: "2026-08-15") == [ScheduleViewModel.Badge(role: .father, slot: 1, slotCode: nil)])
+        #expect(vm.shiftDays(on: "2026-08-15").count == 2)
+    }
+
+    /// 저장 중에 시트를 닫고 달을 옮기면 결과가 뒤늦게 도착한다. 그것을 새 달에 얹으면
+    /// 있지도 않은 날짜의 근무가 섞인다.
+    @Test func 다른_달의_저장_결과는_버린다() async {
+        let mock = MockAPIClient()
+        mock.stubGet("/holidays", result: DataResponse<[String: [String]]>(data: [:]))
+        let service = FakeScheduleService(days: [])
+        let vm = makeViewModel(mock: mock, service: service)
+        await vm.load()
+        await vm.move(by: 1)
+
+        vm.apply([
+            DispatchShiftDay(date: "2026-08-15", role: .father, working: true, slot: 1, slotCode: nil, note: nil)
+        ], on: "2026-08-15")
+
+        #expect(vm.yearMonth == "2026-09")
+        #expect(vm.badges(on: "2026-08-15").isEmpty)
+        #expect(vm.shiftDays(on: "2026-08-15").isEmpty)
+    }
+
     /// 버려지는 응답의 길에서 스피너 끄는 것을 빠뜨리면 헤더에서 계속 돈다.
     @Test func 버려진_응답도_스피너를_끈다() async {
         let mock = MockAPIClient()

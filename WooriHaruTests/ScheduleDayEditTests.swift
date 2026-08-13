@@ -154,16 +154,16 @@ struct ScheduleDayEditViewModelTests {
         #expect(vm.errorMessage == nil)
     }
 
-    /// 화면에서 건드리지 않은 역할도 결과에 원본값 그대로 담긴다.
-    @Test func 결과에_기존_역할이_원본값으로_담긴다() async {
+    /// **건드리지 않은 역할은 결과에도 없다.** 그 값까지 「방금 저장한 값」인 척 달력에
+    /// 얹으면, 시트를 열 때 읽은 낡은 값이 그 뒤에 도착한 조회 결과를 덮는다.
+    @Test func 건드리지_않은_역할은_결과에_없다() async {
         let service = FakeScheduleService(days: [])
         let vm = makeViewModel(days: [day(.father, working: true, slot: 2, note: "*97")], service: service)
 
         vm.motherWorking = .off
         let result = await vm.save()
 
-        #expect(result?.contains(day(.father, working: true, slot: 2, note: "*97")) == true)
-        #expect(result?.contains(day(.mother, working: false)) == true)
+        #expect(result == [day(.mother, working: false)])
     }
 
     /// `note`는 이 경로에서 읽지도 쓰지도 않는다. 화면 값에서도 지워지면 안 된다.

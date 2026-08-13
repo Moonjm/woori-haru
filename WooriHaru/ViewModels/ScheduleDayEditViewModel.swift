@@ -155,14 +155,15 @@ final class ScheduleDayEditViewModel: Identifiable {
         return DispatchRoleEdit(working: true, slot: slot, slotCode: slotCode)
     }
 
-    /// 저장 뒤 그 역할의 상태. 보낸 적이 없으면 원본을 그대로 쓰고, 원본도 없으면
-    /// **레코드가 없는 것이다** — 없는 것을 휴무로 만들어 두면 달력이 거짓말을 한다.
+    /// 저장한 역할의 최종 상태. **보내지 않은 역할은 nil이다** — 그 역할까지 돌려주면
+    /// 시트를 열 때 읽은 값이 「방금 저장한 값」인 척 달력에 얹혀, 그 뒤에 도착한 조회
+    /// 결과를 낡은 값으로 덮는다. 시트가 열릴 때 조회가 아직 안 왔다면 그 값은 빈 값이다.
     ///
     /// `note`는 원본에서 가져온다. 이 경로는 `note`를 보내지 않고 서버도 건드리지 않으므로,
     /// 화면 값에서만 지우면 다음 조회에 되살아나 잠깐 사라졌다 돌아오는 것처럼 보인다.
     private func saved(role: DispatchRole, edit: DispatchRoleEdit?) -> DispatchShiftDay? {
+        guard let edit else { return nil }
         let original = originalDays.first { $0.role == role }
-        guard let edit else { return original }
         return DispatchShiftDay(
             date: date,
             role: role,

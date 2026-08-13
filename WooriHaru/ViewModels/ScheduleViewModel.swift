@@ -46,8 +46,23 @@ final class ScheduleViewModel {
     private var startOfMonth: Date
     private var badgesByDate: [String: [Badge]] = [:]
 
-    /// 날짜별 원본. **편집 시트가 휴무와 미등록을 갈라야 해서 필요하다** — `badgesByDate`는
-    /// 근무일만 담으므로 「휴무로 저장됨」과 「저장된 적 없음」이 둘 다 빈 값으로 보인다.
+    /// 서버에서 받은 그대로. **손댄 값과 섞지 않는다** — 섞으면 조회가 다시 올 때
+    /// 무엇이 서버 값이고 무엇이 내가 덮은 값인지 갈라낼 수 없다.
+    private var fetchedByDate: [String: [DispatchShiftDay]] = [:]
+
+    /// 이 달에서 방금 저장한 역할들. **조회 결과 위에 다시 덮는다.**
+    ///
+    /// 저장이 조회보다 빨리 끝날 수 있다. 그때 뒤늦게 온 조회가 저장 전 값을 그리면
+    /// 저장이 취소된 것처럼 보인다. 그렇다고 조회를 통째로 버리면 **그 달의 나머지가
+    /// 통째로 빈다** — 아직 조회가 안 왔을 때 한 역할만 저장하면 다른 역할이 사라진다.
+    /// 그래서 조회는 받아들이고 저장한 역할만 그 위에 얹는다.
+    ///
+    /// 달을 옮기면 비운다. 다른 달의 저장을 여기 남겨 둘 이유가 없다.
+    private var localEdits: [String: [DispatchRole: DispatchShiftDay]] = [:]
+
+    /// 조회와 저장을 합친 결과. **편집 시트가 휴무와 미등록을 갈라야 해서 필요하다** —
+    /// `badgesByDate`는 근무일만 담으므로 「휴무로 저장됨」과 「저장된 적 없음」이 둘 다
+    /// 빈 값으로 보인다.
     private var daysByDate: [String: [DispatchShiftDay]] = [:]
 
     /// 아빠와 엄마가 **둘 다 확정 휴무**인 날. 부모님이 함께 시간을 낼 수 있는 날이라
@@ -123,34 +138,53 @@ final class ScheduleViewModel {
         daysByDate[dateString] ?? []
     }
 
-    /// 하루 편집의 저장 결과를 화면에 반영한다. **그 날짜만 갈아 끼운다.**
+    /// 하루 편집의 저장 결과를 화면에 반영한다. 달 전체를 다시 조회하지 않는다 — 칸 하나를
+    /// 고치자고 한 달치를 다시 받는 왕복이고, 그 사이 화면이 잠깐 비었다 채워진다. 서버가
+    /// 204를 주는 근거도 같다: 두 역할이 한 트랜잭션이라 성공했으면 보낸 것이 전부 들어갔고,
+    /// 안 보낸 역할은 안 바뀐다.
     ///
-    /// 달 전체를 다시 조회하지 않는다 — 칸 하나를 고치자고 한 달치를 다시 받는 왕복이고,
-    /// 그 사이 화면이 잠깐 비었다 채워진다. 서버가 204를 주는 근거도 같다: 두 역할이 한
-    /// 트랜잭션이라 성공했으면 보낸 것이 전부 들어갔고, 안 보낸 역할은 안 바뀐다.
+    /// **저장한 역할만 받는다.** 시트가 손대지 않은 역할까지 넘기면, 시트를 열 때 읽은
+    /// 낡은 값이 그 뒤에 도착한 조회 값을 덮는다.
     ///
-    /// **「둘 다 휴무」도 같이 다시 센다.** 밴드만 갈면, 두 사람이 함께 쉬게 된 날의 초록
-    /// 배경이 달을 옮겼다 돌아올 때까지 따라오지 않는다.
-    ///
-    /// **진행 중인 조회를 무효로 만든다.** 달을 막 옮겨 조회가 아직 오는 중일 때 사용자가
-    /// 칸을 열어 더 빨리 저장을 마치면, 뒤늦게 도착한 응답이 방금 고친 값을 저장 전으로
-    /// 되돌린다 — 저장이 취소된 것처럼 보인다. 세대를 올려 그 응답을 버린다.
-    func apply(_ days: [DispatchShiftDay], on dateString: String) {
-        generation += 1
-        daysByDate[dateString] = days
+    /// **지금 보고 있는 달의 날짜가 아니면 버린다.** 저장 중에 시트를 닫고 다른 달로
+    /// 옮기면 이 결과가 뒤늦게 도착하는데, 그것을 새 달에 얹으면 있지도 않은 날짜의
+    /// 근무가 그 달 상태에 섞인다. 서버에는 이미 들어갔으므로 그 달을 다시 열면 보인다.
+    func apply(_ savedDays: [DispatchShiftDay], on dateString: String) {
+        guard dateString.hasPrefix(yearMonth) else { return }
 
-        let badges = Self.group(days)[dateString] ?? []
-        if badges.isEmpty {
-            badgesByDate.removeValue(forKey: dateString)
-        } else {
-            badgesByDate[dateString] = badges
+        var edits = localEdits[dateString] ?? [:]
+        for day in savedDays {
+            edits[day.role] = day
+        }
+        localEdits[dateString] = edits
+        rebuild()
+    }
+
+    /// 조회 값 위에 저장한 역할을 얹어 화면 상태를 다시 만든다.
+    ///
+    /// **역할 단위로 덮는다.** 날짜 통째로 갈아 끼우면, 아직 조회가 안 온 사이에 한 역할만
+    /// 저장했을 때 나머지 역할이 통째로 사라진다 — 엄마 근무는 서버가 패턴으로 늘 내려주므로
+    /// 그 자리가 비면 눈에 띈다.
+    ///
+    /// **「둘 다 휴무」도 여기서 다시 센다.** 밴드만 갈면, 두 사람이 함께 쉬게 된 날의
+    /// 초록 배경이 달을 옮겼다 돌아올 때까지 따라오지 않는다.
+    private func rebuild() {
+        var merged = fetchedByDate
+        for (date, edits) in localEdits {
+            var byRole = Dictionary(
+                (fetchedByDate[date] ?? []).map { ($0.role, $0) },
+                uniquingKeysWith: { _, latest in latest }
+            )
+            for (role, day) in edits {
+                byRole[role] = day
+            }
+            merged[date] = Array(byRole.values)
         }
 
-        if Self.datesBothOff(days).contains(dateString) {
-            bothOffDates.insert(dateString)
-        } else {
-            bothOffDates.remove(dateString)
-        }
+        daysByDate = merged
+        let all = merged.values.flatMap { $0 }
+        badgesByDate = Self.group(all)
+        bothOffDates = Self.datesBothOff(all)
     }
 
     func holidayNames(on dateString: String) -> [String] {
@@ -180,11 +214,10 @@ final class ScheduleViewModel {
 
         do {
             let days = try await service.findShifts(yearMonth: yearMonth)
-            // 조회 중에 달이 바뀌었거나 하루를 고쳤다. 이 결과는 지금 화면의 것이 아니다.
+            // 조회 중에 달이 바뀌었다. 이 결과는 지금 보이는 달의 것이 아니다.
             guard token == generation else { return }
-            badgesByDate = Self.group(days)
-            bothOffDates = Self.datesBothOff(days)
-            daysByDate = Dictionary(grouping: days, by: \.date)
+            fetchedByDate = Dictionary(grouping: days, by: \.date)
+            rebuild()
         } catch is CancellationError {
             return
         } catch {
@@ -234,6 +267,8 @@ final class ScheduleViewModel {
         badgesByDate = [:]
         bothOffDates = []
         daysByDate = [:]
+        fetchedByDate = [:]
+        localEdits = [:]
         await load()
     }
 
