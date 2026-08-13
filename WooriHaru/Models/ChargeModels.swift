@@ -127,14 +127,52 @@ enum ChargeFormat {
         return formatter.string(from: value as NSDecimalNumber) ?? "\(value)"
     }
 
+    /// 금액이 가질 수 있는 소수 자릿수 — 서버 `@Digits(fraction = 2)`이자 컬럼의 `numeric(10,2)`다.
+    static let costFractionDigits = 2
+
     /// 입력 칸에 채워 넣을 값 — 자리구분 없이, 소수부가 0이면 떼어 낸다.
     /// 서버가 `numeric(10,2)`로 내려 준 "14100.00"을 그대로 두면 숫자 키패드로는 고칠 수 없다.
+    ///
+    /// **로케일을 고정한다.** 기기 로케일을 따르면 소수 구분자가 쉼표인 지역에서 "14100,5"가
+    /// 채워지는데, `parseCost`는 그 쉼표를 자리구분으로 보고 지워 141005로 읽는다 —
+    /// 열어서 저장만 눌러도 금액이 10배가 된다.
     static func plainNumber(_ value: Decimal) -> String {
         let formatter = NumberFormatter()
+        formatter.locale = posix
         formatter.numberStyle = .decimal
         formatter.usesGroupingSeparator = false
-        formatter.maximumFractionDigits = 2
+        formatter.maximumFractionDigits = costFractionDigits
         return formatter.string(from: value as NSDecimalNumber) ?? "\(value)"
+    }
+
+    /// 입력 칸의 글자를 금액으로 읽는다. `plainNumber`와 **같은 로케일로** 읽어야 한다.
+    ///
+    /// 다음은 전부 nil이다 — 저장 버튼을 살려 두면 서버가 400으로 돌려줄 뿐이다.
+    /// - 비었거나 숫자가 아님
+    /// - 음수
+    /// - 상한(99,999,999.99, 서버 `@Digits(integer = 8)`) 초과
+    /// - 소수 셋째 자리 이상 (서버 `@Digits(fraction = 2)`)
+    static func parseCost(_ text: String) -> Decimal? {
+        let trimmed = text
+            .replacingOccurrences(of: ",", with: "") // 사용자가 넣은 자리구분
+            .trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty,
+              let value = Decimal(string: trimmed, locale: posix),
+              value >= 0,
+              value <= maxCost,
+              hasAllowedScale(value)
+        else { return nil }
+        return value
+    }
+
+    private static let posix = Locale(identifier: "en_US_POSIX")
+
+    /// 소수 자릿수가 두 자리 이하인지 — 반올림한 값이 원래 값과 같은지로 본다.
+    private static func hasAllowedScale(_ value: Decimal) -> Bool {
+        var original = value
+        var rounded = Decimal()
+        NSDecimalRound(&rounded, &original, costFractionDigits, .plain)
+        return rounded == value
     }
 
     /// 48.2 → "48.2kWh"

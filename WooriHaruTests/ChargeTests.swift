@@ -309,4 +309,32 @@ struct ChargeFormatTests {
         #expect(ChargeFormat.plainNumber(Decimal(string: "14100.00")!) == "14100")
         #expect(ChargeFormat.plainNumber(Decimal(string: "14100.50")!) == "14100.5")
     }
+
+    /// 채워 넣은 값을 그대로 다시 읽어야 한다. 서식이 기기 로케일을 따르면 소수 구분자가
+    /// 쉼표인 지역에서 "14100,5"가 채워지고, 그 쉼표를 자리구분으로 지워 141005가 된다 —
+    /// 열어서 저장만 눌러도 금액이 10배가 되는 경로다.
+    @Test func 채워_넣은_값을_그대로_다시_읽는다() {
+        for raw in ["14100.00", "14100.50", "4587.36", "0"] {
+            let value = Decimal(string: raw)!
+            #expect(ChargeFormat.parseCost(ChargeFormat.plainNumber(value)) == value)
+        }
+    }
+
+    @Test func 자리구분_쉼표와_공백은_받아_준다() {
+        #expect(ChargeFormat.parseCost(" 14,100 ") == 14100)
+    }
+
+    /// 서버가 400으로 돌려줄 값은 저장 버튼을 살려 두지 않는다.
+    @Test func 서버가_거절할_값은_읽지_않는다() {
+        #expect(ChargeFormat.parseCost("") == nil)
+        #expect(ChargeFormat.parseCost("   ") == nil)
+        #expect(ChargeFormat.parseCost("만원") == nil)
+        #expect(ChargeFormat.parseCost("-100") == nil)
+        // 소수 셋째 자리 — 서버 `@Digits(fraction = 2)`
+        #expect(ChargeFormat.parseCost("1.234") == nil)
+        #expect(ChargeFormat.parseCost("14100.99") == Decimal(string: "14100.99"))
+        // 상한 99,999,999.99 — 서버 `@Digits(integer = 8)`
+        #expect(ChargeFormat.parseCost("100000000") == nil)
+        #expect(ChargeFormat.parseCost("99999999") == 99_999_999)
+    }
 }

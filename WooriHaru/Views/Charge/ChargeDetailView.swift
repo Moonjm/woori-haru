@@ -247,13 +247,8 @@ struct ChargeCostEditSheet: View {
         _text = State(initialValue: initialCost.map(ChargeFormat.plainNumber) ?? "")
     }
 
-    /// 입력을 금액으로 읽는다. 숫자가 아니거나 상한(서버 `@Digits(integer = 8)`)을 넘으면 nil이다.
-    private var parsedCost: Decimal? {
-        let trimmed = text.replacingOccurrences(of: ",", with: "").trimmingCharacters(in: .whitespaces)
-        guard !trimmed.isEmpty, let value = Decimal(string: trimmed), value >= 0 else { return nil }
-        guard value <= ChargeFormat.maxCost else { return nil }
-        return value
-    }
+    /// 서버가 받아 주는 값만 통과한다 — 규칙은 `ChargeFormat.parseCost` 참고.
+    private var parsedCost: Decimal? { ChargeFormat.parseCost(text) }
 
     var body: some View {
         NavigationStack {
