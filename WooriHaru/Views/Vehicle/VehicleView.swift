@@ -40,11 +40,15 @@ struct VehicleView: View {
             .presentationDetents([.height(320)])
             .presentationDragIndicator(.visible)
         }
-        .fullScreenCover(isPresented: $showingQueue) {
-            ChargeCostQueueView {
+        // 갱신은 화면이 닫힌 **뒤에** 여기서 한다 — 등록 화면이 요청 두 번을 기다리다
+        // 멎어 보이지 않게 하려는 것이다.
+        .fullScreenCover(isPresented: $showingQueue, onDismiss: {
+            Task {
                 await summaryViewModel.reload()
                 await summaryViewModel.refreshMissingCount()
             }
+        }) {
+            ChargeCostQueueView()
         }
         .task { await summaryViewModel.load() }
     }

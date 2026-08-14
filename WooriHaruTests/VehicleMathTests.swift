@@ -55,6 +55,26 @@ struct VehicleMathTests {
         #expect(VehicleFormat.relative(minutes: 2880) == "2일 전")
     }
 
+    /// 서버가 주는 `asOf`는 KST 벽시계 값이다. **기기 시간대로 읽으면 안 된다** —
+    /// 이 값만은 「지금」과 빼서 경과 시간을 내므로, 한국 밖에서는 시차만큼 어긋나
+    /// 늘 「방금 기준」이 되거나 멀쩡한 값이 오래된 것으로 표시된다.
+    @Test func 기준_시각은_기기_시간대와_무관하게_KST로_읽는다() {
+        let status = VehicleStatus(
+            asOf: "2026-08-13T14:02:00", state: nil, stateSince: nil,
+            batteryLevel: nil, usableBatteryLevel: nil, ratedRangeKm: nil, estRangeKm: nil,
+            odometerKm: nil, insideTempC: nil, outsideTempC: nil, climateOn: nil,
+            locationName: nil, tpmsBar: nil
+        )
+        // 2026-08-13 14:02 KST = 05:02 UTC
+        var utc = Calendar(identifier: .gregorian)
+        utc.timeZone = TimeZone(identifier: "UTC")!
+        let expected = utc.date(from: DateComponents(year: 2026, month: 8, day: 13, hour: 5, minute: 2))!
+
+        #expect(status.asOfDate == expected)
+        #expect(VehicleFormat.parseKST("2026-08-13T14:02:00.500") == expected.addingTimeInterval(0.5))
+        #expect(VehicleFormat.parseKST("14:02") == nil)
+    }
+
     /// 모르는 상태 문자열은 원문 그대로 낸다 — 상류가 값을 늘렸다는 사실이 숨으면 안 된다.
     @Test func 모르는_상태는_원문을_낸다() {
         #expect(VehicleFormat.stateLabel("asleep") == "잠자는 중")

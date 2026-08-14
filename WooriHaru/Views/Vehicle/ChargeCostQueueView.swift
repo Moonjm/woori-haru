@@ -3,9 +3,6 @@ import SwiftUI
 /// 금액이 빈 충전을 연달아 채우는 화면. 채워 넣는 일 하나만 한다 —
 /// 합계도 월 이동도 상세도 없다.
 struct ChargeCostQueueView: View {
-    /// 닫을 때 요약 탭이 배지와 목록을 다시 받게 한다.
-    let onClose: () async -> Void
-
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel = ChargeCostQueueViewModel()
     @State private var text = ""
@@ -34,7 +31,10 @@ struct ChargeCostQueueView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
+                    // 저장이 도는 중에는 닫지 않는다 — 먼저 닫으면 부모의 새로고침(GET)이
+                    // 저장(PUT)보다 먼저 끝나 방금 넣은 금액이 목록·배지에서 빠진 채로 남는다.
                     Button("닫기") { close() }
+                        .disabled(viewModel.isSaving)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     if viewModel.totalCount > 0 {
@@ -137,6 +137,7 @@ struct ChargeCostQueueView: View {
         } actions: {
             Button("닫기") { close() }
                 .buttonStyle(.borderedProminent)
+                .disabled(viewModel.isSaving)
         }
     }
 
@@ -166,10 +167,9 @@ struct ChargeCostQueueView: View {
         focused = viewModel.current != nil
     }
 
+    /// **바로 닫는다.** 부모 새로고침을 여기서 기다리면 느린 연결에서 닫기를 눌러도
+    /// 요청 두 번이 끝날 때까지 화면이 멎어 보인다 — 갱신은 부모가 `onDismiss`에서 맡는다.
     private func close() {
-        Task {
-            await onClose()
-            dismiss()
-        }
+        dismiss()
     }
 }

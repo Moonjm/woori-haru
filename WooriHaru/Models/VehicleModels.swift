@@ -61,7 +61,10 @@ struct VehicleStatus: Codable, Equatable {
         let rr: Decimal?
     }
 
-    var asOfDate: Date? { asOf.flatMap(LedgerFormat.parseDateTime) }
+    /// **KST로 읽는다.** 서버는 KST 벽시계 값을 주는데, 이 값만은 「지금」과 빼서 경과 시간을 내므로
+    /// 기기 시간대로 읽으면 시차만큼 어긋난다 — 한국 밖에서는 늘 「방금 기준」이 되거나
+    /// 멀쩡한 값이 오래된 것으로 표시된다. 화면에 글자로만 그리는 다른 시각들과 다른 점이다.
+    var asOfDate: Date? { asOf.flatMap(VehicleFormat.parseKST) }
 }
 
 /// 금액이 빈 충전 — 기간과 무관하게 최신순.
@@ -121,6 +124,25 @@ enum VehicleMath {
 
 /// 차량 화면 전용 표기. 없는 값은 `ChargeFormat.placeholder`("—")로 통일한다.
 enum VehicleFormat {
+    /// 서버 시각 문자열을 **KST로** 읽는다. 경과 시간을 재는 값에만 쓴다 —
+    /// 글자로만 그리는 시각은 기기 시간대로 읽고 그대로 되돌려 쓰는 `LedgerFormat` 쪽이 맞다.
+    private static let kstFormatters: [DateFormatter] = ["yyyy-MM-dd'T'HH:mm:ss.SSS",
+                                                         "yyyy-MM-dd'T'HH:mm:ss",
+                                                         "yyyy-MM-dd'T'HH:mm"].map { pattern in
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(identifier: "Asia/Seoul") ?? .current
+        formatter.dateFormat = pattern
+        return formatter
+    }
+
+    static func parseKST(_ raw: String) -> Date? {
+        for formatter in kstFormatters {
+            if let date = formatter.date(from: raw) { return date }
+        }
+        return nil
+    }
+
     private static func number(_ value: Decimal, fraction: Int, grouping: Bool = true) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
