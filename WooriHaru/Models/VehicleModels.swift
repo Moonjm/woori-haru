@@ -172,13 +172,9 @@ enum VehicleFormat {
         return "\(LedgerFormat.amount(value, currency: "KRW"))/km"
     }
 
-    /// 2.9 → "2.9bar"
-    static func pressureBar(_ bar: Decimal?) -> String {
-        guard let bar else { return ChargeFormat.placeholder }
-        return "\(number(bar, fraction: 1))bar"
-    }
+    /// 2.9 → "42psi". **화면에는 psi만 낸다** — 서버가 주는 bar는 TeslaMate의 저장 단위일 뿐,
+    /// 타이어에 넣을 때 쓰는 단위도 차 문틀의 권장값도 psi다.
 
-    /// 2.9 → "42psi"
     static func pressurePsi(_ bar: Decimal?) -> String {
         guard let psi = VehicleMath.psi(fromBar: bar) else { return ChargeFormat.placeholder }
         return "\(number(psi, fraction: 0))psi"

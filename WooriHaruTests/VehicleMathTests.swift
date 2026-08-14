@@ -31,7 +31,7 @@ struct VehicleMathTests {
 
     @Test func bar를_psi로_바꾼다() {
         #expect(VehicleFormat.pressurePsi(Decimal(string: "2.9")) == "42psi")
-        #expect(VehicleFormat.pressureBar(nil) == "—")
+        #expect(VehicleFormat.pressurePsi(Decimal(string: "2.5")) == "36psi")
         #expect(VehicleFormat.pressurePsi(nil) == "—")
     }
 

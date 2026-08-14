@@ -104,20 +104,18 @@ struct VehicleStatusTab: View {
         }
     }
 
+    /// **psi만 낸다.** 서버는 TeslaMate 저장 단위인 bar로 주지만, 타이어에 넣을 때 쓰는 단위도
+    /// 차 문틀의 권장값도 psi다 — 두 단위를 함께 두면 읽을 때 매번 어느 쪽인지 골라야 한다.
     private func wheel(_ label: String, _ bar: Decimal?) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(label)
                 .font(.caption2)
                 .foregroundStyle(Color.slate400)
-            Text(VehicleFormat.pressureBar(bar))
-                .font(.subheadline)
-                .fontWeight(.bold)
+            Text(VehicleFormat.pressurePsi(bar))
+                .font(.title3)
+                .fontWeight(.heavy)
                 .monospacedDigit()
                 .foregroundStyle(Color.slate900)
-            Text(VehicleFormat.pressurePsi(bar))
-                .font(.caption2)
-                .monospacedDigit()
-                .foregroundStyle(Color.slate400)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(10)
