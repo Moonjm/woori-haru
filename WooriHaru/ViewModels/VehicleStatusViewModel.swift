@@ -23,12 +23,19 @@ final class VehicleStatusViewModel {
     /// 위치 기록 자체가 있는지 — 없는 것과 못 받은 것은 다르다.
     var hasRecord: Bool { status?.asOfDate != nil }
 
-    var minutesAgo: Int? {
+    /// **화면은 이쪽을 쓴다.** 계산 속성은 `now()`를 부르는데 그 호출은 관찰 대상이 아니라,
+    /// 탭을 열어 둔 채 시간이 흘러도 뷰가 다시 그려지지 않는다 — 29분에 연 값이 30분을 넘겨도
+    /// 「29분 전」에 멈춘다. 시각을 밖에서 받아 1분마다 다시 계산하게 한다.
+    func minutesAgo(at date: Date) -> Int? {
         guard let asOf = status?.asOfDate else { return nil }
-        return VehicleMath.minutesAgo(from: asOf, now: now())
+        return VehicleMath.minutesAgo(from: asOf, now: date)
     }
 
-    var isStale: Bool { (minutesAgo ?? 0) > Self.staleMinutes }
+    func isStale(at date: Date) -> Bool { (minutesAgo(at: date) ?? 0) > Self.staleMinutes }
+
+    var minutesAgo: Int? { minutesAgo(at: now()) }
+
+    var isStale: Bool { isStale(at: now()) }
 
     private var generation = 0
 

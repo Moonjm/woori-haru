@@ -147,7 +147,7 @@ struct VehicleSummaryTab: View {
                         .fontWeight(.bold)
                         .foregroundStyle(delta >= 0 ? Color.red500 : Color.green600)
                 }
-                Text("그 달 충전량을 그 달 주행으로 나눈 값이라 월 경계에서 조금 흔들려요.")
+                Text("그 달 주행을 그 달 충전량으로 나눈 값이라 월 경계에서 조금 흔들려요.")
                     .font(.caption2)
                     .foregroundStyle(Color.slate400)
             }

@@ -42,19 +42,24 @@ struct VehicleStatusTab: View {
         .refreshable { await viewModel.reload() }
     }
 
+    /// **1분마다 다시 그린다.** 경과 시간은 화면을 열어 둔 채로도 흐르는데, 뷰모델의 값만 읽으면
+    /// 29분에 연 값이 30분을 넘겨도 「29분 전」에 멈춘 채 강조도 켜지지 않는다.
     private var asOfLine: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "clock")
-            Text(viewModel.minutesAgo.map { "\(VehicleFormat.relative(minutes: $0)) 기준" } ?? "기준 시각 없음")
-                .fontWeight(.bold)
-            if let state = viewModel.status?.state {
-                Text("· \(VehicleFormat.stateLabel(state))")
+        TimelineView(.periodic(from: .now, by: 60)) { context in
+            let minutes = viewModel.minutesAgo(at: context.date)
+            HStack(spacing: 6) {
+                Image(systemName: "clock")
+                Text(minutes.map { "\(VehicleFormat.relative(minutes: $0)) 기준" } ?? "기준 시각 없음")
+                    .fontWeight(.bold)
+                if let state = viewModel.status?.state {
+                    Text("· \(VehicleFormat.stateLabel(state))")
+                }
+                Spacer()
             }
-            Spacer()
+            .font(.caption)
+            // 오래된 값도 값이다. 가리지 않고 시각만 눈에 띄게 한다.
+            .foregroundStyle(viewModel.isStale(at: context.date) ? Color.orange700 : Color.slate500)
         }
-        .font(.caption)
-        // 오래된 값도 값이다. 가리지 않고 시각만 눈에 띄게 한다.
-        .foregroundStyle(viewModel.isStale ? Color.orange700 : Color.slate500)
     }
 
     private func batteryCard(_ status: VehicleStatus) -> some View {

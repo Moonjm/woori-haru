@@ -39,6 +39,21 @@ struct VehicleStatusViewModelTests {
         #expect(viewModel.hasRecord)
     }
 
+    /// 화면은 시각을 밖에서 넣어 1분마다 다시 계산한다 — 열어 둔 채 30분을 넘기면
+    /// 강조가 켜져야 한다(뷰모델의 `now()`만 보면 열 때 값에 멈춘다).
+    @Test func 시각을_넣으면_그_시점으로_다시_센다() async {
+        let mock = MockAPIClient()
+        mock.stubGet("/tesla/status", result: DataResponse<VehicleStatus>(data: Self.status(asOf: "2026-08-13T13:35:00")))
+        let viewModel = makeViewModel(mock: mock, now: Self.kst(14, 2))
+        await viewModel.load()
+
+        #expect(viewModel.minutesAgo(at: Self.kst(14, 2)) == 27)
+        #expect(!viewModel.isStale(at: Self.kst(14, 2)))
+        // 화면을 열어 둔 채 시간이 흘렀다.
+        #expect(viewModel.minutesAgo(at: Self.kst(14, 10)) == 35)
+        #expect(viewModel.isStale(at: Self.kst(14, 10)))
+    }
+
     @Test func 방금_받은_값은_오래되지_않았다() async {
         let mock = MockAPIClient()
         mock.stubGet("/tesla/status", result: DataResponse<VehicleStatus>(data: Self.status(asOf: "2026-08-13T13:50:00")))
