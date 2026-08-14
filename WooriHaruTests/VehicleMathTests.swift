@@ -8,17 +8,21 @@ struct VehicleMathTests {
         #expect(VehicleMath.costPerKm(cost: 52300, distanceKm: nil) == nil)
         #expect(VehicleMath.costPerKm(cost: 52300, distanceKm: 0) == nil)
         #expect(VehicleMath.costPerKm(cost: nil, distanceKm: 842) == nil)
-        #expect(VehicleMath.consumptionKwhPer100km(energyAddedKwh: 186, distanceKm: 0) == nil)
+        // 전비는 충전량으로 나눈다 — 충전이 없으면 낼 수 없다.
+        #expect(VehicleMath.kmPerKwh(energyAddedKwh: 0, distanceKm: 842) == nil)
+        #expect(VehicleMath.kmPerKwh(energyAddedKwh: nil, distanceKm: 842) == nil)
+        #expect(VehicleMath.kmPerKwh(energyAddedKwh: 186, distanceKm: nil) == nil)
     }
 
+    /// 전비 단위는 km/kWh다 — 국내 제원표와 같아야 자기 차 숫자와 견줄 수 있다.
     @Test func km당_비용과_전비를_계산한다() {
         let costPerKm = VehicleMath.costPerKm(cost: 52300, distanceKm: Decimal(string: "842.3"))
         #expect(VehicleFormat.costPerKm(costPerKm) == "₩62/km")
 
-        let consumption = VehicleMath.consumptionKwhPer100km(
+        let efficiency = VehicleMath.kmPerKwh(
             energyAddedKwh: Decimal(string: "186.4"), distanceKm: Decimal(string: "842.3")
         )
-        #expect(VehicleFormat.consumption(consumption) == "22.1kWh/100km")
+        #expect(VehicleFormat.efficiency(efficiency) == "4.5km/kWh")
     }
 
     /// 지난달이 비면 증감을 내지 않는다 — 0에서 늘었다고 말할 수 없다.

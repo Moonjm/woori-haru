@@ -139,7 +139,7 @@ struct VehicleSummaryTab: View {
                 HStack {
                     metric("km당 비용", VehicleFormat.costPerKm(loaded ? month?.costPerKm : nil))
                     Divider().frame(height: 28)
-                    metric("전비", VehicleFormat.consumption(loaded ? month?.consumption : nil))
+                    metric("전비", VehicleFormat.efficiency(loaded ? month?.efficiency : nil))
                 }
                 if let delta {
                     Text(delta >= 0 ? "지난달보다 ▲ \(delta)%" : "지난달보다 ▼ \(-delta)%")

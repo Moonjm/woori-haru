@@ -30,9 +30,9 @@ struct VehiclePeriod: Codable, Identifiable, Equatable {
 
     /// km당 비용 — 추이 차트와 지표 줄이 같은 값을 쓴다.
     var costPerKm: Decimal? { VehicleMath.costPerKm(cost: cost, distanceKm: distanceKm) }
-    /// 전비(kWh/100km)
-    var consumption: Decimal? {
-        VehicleMath.consumptionKwhPer100km(energyAddedKwh: energyAddedKwh, distanceKm: distanceKm)
+    /// 전비(km/kWh) — 1kWh로 몇 km를 갔나. 국내 제원표가 쓰는 단위다.
+    var efficiency: Decimal? {
+        VehicleMath.kmPerKwh(energyAddedKwh: energyAddedKwh, distanceKm: distanceKm)
     }
 }
 
@@ -84,10 +84,12 @@ enum VehicleMath {
         return cost / distanceKm
     }
 
-    /// 전비의 분자는 **차에 들어간 양**(`energyAddedKwh`)이다. 벽에서 뽑아쓴 양은 지갑 쪽 수치다.
-    static func consumptionKwhPer100km(energyAddedKwh: Decimal?, distanceKm: Decimal?) -> Decimal? {
-        guard let energyAddedKwh, let distanceKm, distanceKm > 0 else { return nil }
-        return energyAddedKwh / distanceKm * 100
+    /// 전비 — 1kWh로 간 거리(km/kWh). **분모가 충전량이다**(차에 들어간 양, 벽에서 뽑아쓴 양은
+    /// 지갑 쪽 수치다). kWh/100km 대신 이 단위를 쓰는 이유는 국내 제원표와 같아 읽는 사람이
+    /// 자기 차 숫자와 바로 견줄 수 있어서다.
+    static func kmPerKwh(energyAddedKwh: Decimal?, distanceKm: Decimal?) -> Decimal? {
+        guard let energyAddedKwh, energyAddedKwh > 0, let distanceKm else { return nil }
+        return distanceKm / energyAddedKwh
     }
 
     /// 증감 %. 지난달이 없거나 0이면 nil이다 — 0에서 늘었다고 말할 수 없다.
@@ -160,10 +162,10 @@ enum VehicleFormat {
     /// 41203.8 → "41,204km"
     static func odometer(_ km: Decimal?) -> String { distance(km) }
 
-    /// 22.13… → "22.1kWh/100km"
-    static func consumption(_ value: Decimal?) -> String {
+    /// 4.518… → "4.5km/kWh"
+    static func efficiency(_ value: Decimal?) -> String {
         guard let value else { return ChargeFormat.placeholder }
-        return "\(number(value, fraction: 1))kWh/100km"
+        return "\(number(value, fraction: 1))km/kWh"
     }
 
     /// 62.09… → "₩62/km"
