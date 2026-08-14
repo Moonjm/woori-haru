@@ -110,15 +110,19 @@ struct ChargeCostQueueView: View {
         .onAppear { focused = true }
     }
 
-    /// 한 번에 최대 50건만 받아 오므로, 다 돌아도 서버에는 더 남아 있을 수 있다 —
-    /// `totalCount`(서버가 센 전체)와 `savedCount`를 견줘 「다 채웠다」를 함부로 말하지 않는다.
+    /// 문구는 **남은 건수로 고른다.** 저장했는지로 고르면, 한 건도 저장하지 않고 전부 건너뛴 사람에게
+    /// 「채울 게 없어요」라고 말하게 된다 — 건너뛰기는 서버에 아무것도 보내지 않으므로 그 건들은
+    /// 그대로 남아 있고 다음에 열면 다시 나온다. 한 번에 최대 50건만 받아 오는 것도 같은 이유로
+    /// 「다 채웠다」를 함부로 말할 수 없게 만든다.
     private var finishedState: some View {
-        let remaining = viewModel.totalCount - viewModel.savedCount
+        let remaining = max(0, viewModel.totalCount - viewModel.savedCount)
         let title: String
         let description: String
-        if viewModel.savedCount > 0 && remaining > 0 {
-            title = "여기까지 채웠어요"
-            description = "\(remaining)건 남았어요 (다시 열면 이어서 채워요)"
+        if remaining > 0 {
+            title = viewModel.savedCount > 0 ? "여기까지 채웠어요" : "아직 그대로예요"
+            description = viewModel.savedCount > 0
+                ? "\(viewModel.savedCount)건을 등록했고 \(remaining)건 남았어요 (다시 열면 이어서 채워요)"
+                : "\(remaining)건이 아직 비어 있어요 (건너뛴 건은 다시 나와요)"
         } else if viewModel.savedCount > 0 {
             title = "다 채웠어요"
             description = "\(viewModel.savedCount)건을 등록했어요"
@@ -127,7 +131,7 @@ struct ChargeCostQueueView: View {
             description = "금액이 빈 충전이 없어요"
         }
         return ContentUnavailableView {
-            Label(title, systemImage: "checkmark.circle")
+            Label(title, systemImage: remaining > 0 ? "tray" : "checkmark.circle")
         } description: {
             Text(description)
         } actions: {
