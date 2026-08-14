@@ -53,9 +53,17 @@ struct VehicleSummaryTab: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 110) // 하단 탭바에 가리지 않게
         }
-        .refreshable { await viewModel.reload() }
+        .refreshable {
+            await viewModel.reload()
+            // 당겨서 새로고침해도 배지가 맞아야 한다 — 목록만 새로고침하면 미등록 수가 벌어진다.
+            await viewModel.refreshMissingCount()
+        }
         .sheet(item: $selectedItem) { item in
-            ChargeDetailView(item: item) { await viewModel.reload() }
+            ChargeDetailView(item: item) {
+                await viewModel.reload()
+                // 상세 시트에서 금액을 채우는 것도 등록 경로다 — 배지를 같이 맞춘다.
+                await viewModel.refreshMissingCount()
+            }
         }
         .onChange(of: viewModel.month) { selectedTrendKey = nil }
     }
@@ -205,7 +213,7 @@ struct VehicleSummaryTab: View {
 
     private var emptyState: some View {
         ContentUnavailableView {
-            Label("이 달 기록이 없어요", systemImage: "car")
+            Label("이 달 충전 기록이 없어요", systemImage: "car")
         } description: {
             Text("다른 달을 보려면 위 연월을 눌러 주세요")
         }

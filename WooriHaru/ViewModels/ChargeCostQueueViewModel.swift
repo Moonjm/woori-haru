@@ -44,16 +44,16 @@ final class ChargeCostQueueViewModel {
 
     func load() async {
         isLoading = true
-        defer {
-            isLoading = false
-            hasLoaded = true
-        }
+        defer { isLoading = false }
         do {
             let response = try await vehicleService.fetchMissingCost(limit: 50)
             items = response.items
             totalCount = response.totalCount
             index = 0
             errorMessage = nil
+            // 성공했을 때만 세운다 — 취소·실패까지 세우면 화면이 「채울 게 없어요」로
+            // 잘못 그려진다(실패는 재시도가 있는 상태다).
+            hasLoaded = true
         } catch is CancellationError {
             return
         } catch {

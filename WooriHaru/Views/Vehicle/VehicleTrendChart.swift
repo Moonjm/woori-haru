@@ -30,7 +30,9 @@ struct VehicleTrendChart: View {
                         Text(VehicleFormat.distance(selected.distanceKm))
                             .font(.caption2)
                             .foregroundStyle(Color.slate500)
-                        Text(ChargeFormat.cost(selected.cost))
+                        // ChargeFormat.cost는 건별 금액용이라 nil을 「미입력」으로 읽는다 —
+                        // 여기는 그 달의 합계 자리라 기록 없는 달과 구분해야 한다.
+                        Text(ChargeFormat.summaryTotal(selected.cost, count: selected.chargeCount ?? 0, loaded: true))
                             .font(.caption2)
                             .foregroundStyle(Color.slate500)
                         Spacer(minLength: 0)

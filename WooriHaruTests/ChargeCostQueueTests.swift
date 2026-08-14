@@ -115,6 +115,18 @@ struct ChargeCostQueueViewModelTests {
         #expect(viewModel.errorMessage?.contains("끝나지 않았거나") == true)
     }
 
+    /// 로드가 실패하면 「채울 게 없어요」가 아니라 재시도할 수 있는 상태여야 한다.
+    @Test func 로드가_실패하면_끝난_것이_아니다() async {
+        let mock = MockAPIClient()
+        mock.setError(MockAPIClient.MockAPIError.forced, for: "GET /tesla/charges/missing-cost")
+        let viewModel = makeViewModel(mock: mock)
+
+        await viewModel.load()
+
+        #expect(!viewModel.isFinished)
+        #expect(viewModel.errorMessage != nil)
+    }
+
     @Test func 마지막_건을_저장하면_끝난다() async {
         let mock = MockAPIClient()
         Self.stub(mock, items: [Self.item(id: 1)])

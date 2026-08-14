@@ -20,6 +20,9 @@ struct ChargeCostQueueView: View {
                     form(item)
                 } else if viewModel.isFinished {
                     finishedState
+                } else if let error = viewModel.errorMessage, !viewModel.isLoading {
+                    // 못 받은 것을 「채울 게 없어요」로 그리지 않는다 — 재시도가 있는 상태다.
+                    errorState(error)
                 } else {
                     // 아직 못 받았다. 빈 큐를 「다 채웠다」로 보여주지 않는다 — 뷰모델의 hasLoaded가 그 구분이다.
                     ProgressView()
@@ -107,13 +110,39 @@ struct ChargeCostQueueView: View {
         .onAppear { focused = true }
     }
 
+    /// 한 번에 최대 50건만 받아 오므로, 다 돌아도 서버에는 더 남아 있을 수 있다 —
+    /// `totalCount`(서버가 센 전체)와 `savedCount`를 견줘 「다 채웠다」를 함부로 말하지 않는다.
     private var finishedState: some View {
-        ContentUnavailableView {
-            Label(viewModel.savedCount > 0 ? "다 채웠어요" : "채울 게 없어요", systemImage: "checkmark.circle")
+        let remaining = viewModel.totalCount - viewModel.savedCount
+        let title: String
+        let description: String
+        if viewModel.savedCount > 0 && remaining > 0 {
+            title = "여기까지 채웠어요"
+            description = "\(remaining)건 남았어요 (다시 열면 이어서 채워요)"
+        } else if viewModel.savedCount > 0 {
+            title = "다 채웠어요"
+            description = "\(viewModel.savedCount)건을 등록했어요"
+        } else {
+            title = "채울 게 없어요"
+            description = "금액이 빈 충전이 없어요"
+        }
+        return ContentUnavailableView {
+            Label(title, systemImage: "checkmark.circle")
         } description: {
-            Text(viewModel.savedCount > 0 ? "\(viewModel.savedCount)건을 등록했어요" : "금액이 빈 충전이 없어요")
+            Text(description)
         } actions: {
             Button("닫기") { close() }
+                .buttonStyle(.borderedProminent)
+        }
+    }
+
+    private func errorState(_ message: String) -> some View {
+        ContentUnavailableView {
+            Label("불러오지 못했어요", systemImage: "exclamationmark.triangle")
+        } description: {
+            Text(message)
+        } actions: {
+            Button("다시 시도") { Task { await viewModel.load() } }
                 .buttonStyle(.borderedProminent)
         }
     }
