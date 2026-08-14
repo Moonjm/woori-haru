@@ -2,32 +2,8 @@ import Foundation
 import Testing
 @testable import WooriHaru
 
-/// 충전 내역 — 월 조회와 금액 수정. 고치는 것은 금액 한 값뿐이다.
-@MainActor
-struct ChargeListViewModelTests {
-    // 기본 인자에서 부르므로 `nonisolated`여야 한다 — 기본 인자는 액터 밖에서 평가된다.
-    private nonisolated static var seoulCalendar: Calendar {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(identifier: "Asia/Seoul") ?? .current
-        return calendar
-    }
-
-    private nonisolated static func date(_ year: Int, _ month: Int, _ day: Int) -> Date {
-        seoulCalendar.date(from: DateComponents(year: year, month: month, day: day))!
-    }
-
-    private func makeViewModel(
-        mock: MockAPIClient,
-        now: Date = ChargeListViewModelTests.date(2026, 8, 13)
-    ) -> ChargeListViewModel {
-        ChargeListViewModel(
-            service: ChargeService(api: mock),
-            now: { now },
-            calendar: Self.seoulCalendar
-        )
-    }
-
-    // 다른(액터 밖) 테스트에서도 쓰므로 `nonisolated`다.
+/// `ChargeItem` 픽스처 — 여러 테스트 타입이 함께 쓴다.
+enum ChargeFixtures {
     nonisolated static func item(
         id: Int,
         startedAt: String,
@@ -46,130 +22,6 @@ struct ChargeListViewModelTests {
             endBatteryLevel: 90,
             cost: cost
         )
-    }
-
-    private nonisolated static func stubList(
-        _ mock: MockAPIClient,
-        summary: ChargeSummary = ChargeSummary(count: 1, totalEnergyAddedKwh: Decimal(string: "48.2"), totalCost: 14100),
-        items: [ChargeItem] = [item(id: 3312, startedAt: "2026-08-11T22:14:00")]
-    ) {
-        mock.stubGet(
-            "/tesla/charges",
-            result: DataResponse<ChargeListResponse>(data: ChargeListResponse(summary: summary, items: items))
-        )
-    }
-
-    @Test func 진입하면_이번_달을_조회한다() async {
-        let mock = MockAPIClient()
-        Self.stubList(mock)
-        let viewModel = makeViewModel(mock: mock)
-
-        await viewModel.load()
-
-        #expect(mock.getCalls.map(\.path) == ["/tesla/charges"])
-        #expect(mock.getCalls.first?.query == ["yearMonth": "2026-08"])
-        #expect(viewModel.items.count == 1)
-    }
-
-    /// 합계는 서버 SQL 집계다 — 목록을 순회해 다시 더하면 페이지네이션이 붙는 순간 조용히 틀린다.
-    @Test func 합계는_서버_값을_그대로_싣는다() async {
-        let mock = MockAPIClient()
-        Self.stubList(
-            mock,
-            summary: ChargeSummary(count: 12, totalEnergyAddedKwh: Decimal(string: "412.5"), totalCost: 98400),
-            items: [Self.item(id: 1, startedAt: "2026-08-11T22:14:00", cost: 100)]
-        )
-        let viewModel = makeViewModel(mock: mock)
-
-        await viewModel.load()
-
-        #expect(viewModel.summary.count == 12)
-        #expect(viewModel.summary.totalCost == 98400)
-        #expect(viewModel.summary.totalEnergyAddedKwh == Decimal(string: "412.5"))
-    }
-
-    @Test func 이전_달로_이동하면_그_달을_조회한다() async {
-        let mock = MockAPIClient()
-        Self.stubList(mock)
-        let viewModel = makeViewModel(mock: mock)
-        await viewModel.load()
-
-        await viewModel.shiftMonth(-1)
-
-        #expect(viewModel.month == LedgerYearMonth(year: 2026, month: 7))
-        #expect(mock.getCalls.last?.query == ["yearMonth": "2026-07"])
-    }
-
-    /// 미래 달 충전 기록은 있을 수 없다 — 요청 자체를 보내지 않는다.
-    @Test func 이번_달_다음으로는_이동하지_않는다() async {
-        let mock = MockAPIClient()
-        Self.stubList(mock)
-        let viewModel = makeViewModel(mock: mock)
-        await viewModel.load()
-
-        await viewModel.shiftMonth(1)
-
-        #expect(viewModel.month == LedgerYearMonth(year: 2026, month: 8))
-        #expect(mock.getCalls.count == 1)
-        #expect(viewModel.isAtCurrentMonth)
-    }
-
-    /// 피커로 미래 달을 골라도 오늘이 속한 달로 되돌린다.
-    @Test func 피커가_미래_달을_주면_이번_달로_되돌린다() async {
-        let mock = MockAPIClient()
-        Self.stubList(mock)
-        let viewModel = makeViewModel(mock: mock)
-
-        await viewModel.selectMonth(year: 2027, month: 3)
-
-        #expect(viewModel.month == LedgerYearMonth(year: 2026, month: 8))
-        #expect(mock.getCalls.last?.query == ["yearMonth": "2026-08"])
-    }
-
-    /// 연결 실패를 빈 목록으로 눙치면 「충전한 적 없음」과 구분되지 않는다.
-    @Test func 실패하면_에러를_드러낸다() async {
-        let mock = MockAPIClient()
-        mock.setError(MockAPIClient.MockAPIError.forced, for: "GET /tesla/charges")
-        let viewModel = makeViewModel(mock: mock)
-
-        await viewModel.load()
-
-        #expect(viewModel.errorMessage != nil)
-        #expect(viewModel.items.isEmpty)
-        #expect(viewModel.summary == .empty)
-        // 화면이 「기록 없음」·「0원」으로 그리지 않도록 못 받았다는 사실이 남아야 한다.
-        #expect(!viewModel.isMonthLoaded)
-    }
-
-    @Test func 응답을_받아야_로드된_달이다() async {
-        let mock = MockAPIClient()
-        Self.stubList(mock)
-        let viewModel = makeViewModel(mock: mock)
-        #expect(!viewModel.isMonthLoaded)
-
-        await viewModel.load()
-        #expect(viewModel.isMonthLoaded)
-
-        // 달을 옮기면 그 달의 응답을 받기 전까지는 다시 「모르는 상태」다.
-        mock.setError(MockAPIClient.MockAPIError.forced, for: "GET /tesla/charges")
-        await viewModel.shiftMonth(-1)
-        #expect(!viewModel.isMonthLoaded)
-    }
-
-    @Test func 금액이_빈_건수를_센다() async {
-        let mock = MockAPIClient()
-        Self.stubList(mock, items: [
-            Self.item(id: 1, startedAt: "2026-08-11T22:14:00", cost: nil),
-            Self.item(id: 2, startedAt: "2026-08-10T22:14:00", cost: 14100),
-            Self.item(id: 3, startedAt: "2026-08-10T09:00:00", cost: nil),
-        ])
-        let viewModel = makeViewModel(mock: mock)
-
-        await viewModel.load()
-
-        #expect(viewModel.missingCostCount == 2)
-        // 같은 날 두 건은 한 섹션으로 묶이고, 최신 날짜가 먼저다.
-        #expect(viewModel.sections.map(\.items.count) == [1, 2])
     }
 }
 
@@ -259,9 +111,9 @@ struct ChargeDetailTests {
 
     /// 목록과 상세가 같은 기준으로 같은 값을 내야 한다.
     @Test func 목록_단가도_같은_기준이다() {
-        let item = ChargeListViewModelTests.item(id: 3312, startedAt: "2026-08-11T22:14:00")
+        let item = ChargeFixtures.item(id: 3312, startedAt: "2026-08-11T22:14:00")
         #expect(item.costPerKwh == ChargeDetailTests.detail().costPerKwh)
-        #expect(ChargeListViewModelTests.item(
+        #expect(ChargeFixtures.item(
             id: 1, startedAt: "2026-08-11T22:14:00", energyUsedKwh: nil
         ).costPerKwh == nil)
     }
