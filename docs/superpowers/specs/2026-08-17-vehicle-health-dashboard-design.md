@@ -151,20 +151,25 @@ capacityKwh = chargeEnergyAddedKwh ÷ (endBatteryLevel − startBatteryLevel) ×
 
 ## 서버 API
 
+집계 쪽 설계는 백엔드 저장소에 있다 — `toy-back/docs/superpowers/specs/2026-08-17-tesla-battery-health-design.md`. 앱이 알아야 할 것만 옮겨 적는다.
+
 ```
 GET /tesla/battery-health
 
 {
   "samples": [
-    { "yearMonth": "2026-08", "fullRangeKm": 525.3, "capacityKwh": 71.6, "sampleCount": 3 },
-    { "yearMonth": "2026-07", "fullRangeKm": 527.1, "capacityKwh": null,  "sampleCount": 1 }
+    { "yearMonth": "2026-07", "fullRangeKm": 527.1, "capacityKwh": null, "sampleCount": 1, "capacitySampleCount": 0 },
+    { "yearMonth": "2026-08", "fullRangeKm": 525.3, "capacityKwh": 71.6, "sampleCount": 3, "capacitySampleCount": 1 }
   ]
 }
 ```
 
-- 표본 규칙(80% 이상 / 40%p 이상)은 서버 쿼리에서 거른다. 앱이 전 건을 받아 거르지 않는다.
-- 표본이 없는 달은 **배열에서 빠진다.** 자리를 지키지 않는다 — 열화 추이는 월 경계가 의미를 갖는 값이 아니라, 없는 달은 없는 대로 두면 된다.
-- 신차 기준선(568km / 78.5kWh)은 응답에 넣지 않는다. **앱 상수**다. 서버가 차종을 알 이유가 없다.
+- **오래된 것부터** 온다. 파라미터는 없고 전 기간이 온다 — 몇 개월을 그릴지는 앱이 정한다(위 화면 절: 최근 24개월).
+- 표본 규칙(종료 80% 이상 / ΔSoC 40%p 이상)과 월별 중앙값은 서버가 끝낸다. 앱이 전 건을 받아 거르지 않는다.
+- 표본이 없는 달은 **배열에서 빠진다.** `/tesla/summary`의 `trend`가 빈 달의 자리를 채우는 것과 다르다 — 선을 이을지 끊을지는 앱이 정한다.
+- `capacityKwh`는 자주 null이다(ΔSoC 40%p 이상 충전이 몇 달에 한 번이다). 0으로 읽지 않는다.
+- 신차 기준선(568km / 78.5kWh)은 응답에 없다. **앱 상수**다. 서버가 차종을 알 이유가 없다.
+- 이 호출은 `/tesla/status`와 독립이다. 하나가 실패해도 다른 카드는 그린다.
 
 ## 엣지 케이스
 
