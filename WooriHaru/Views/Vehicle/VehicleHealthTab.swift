@@ -78,10 +78,32 @@ struct VehicleHealthTab: View {
 
     // MARK: - 배터리 건강
 
-    /// **네 갈래다** — 못 받음 / 아직 안 받음 / 표본 없음 / 값 있음.
+    /// **네 갈래다** — 값 있음(+새로고침 실패 시 배너 한 줄) / 못 받았고 값도 없음 / 아직 안 받음 / 표본 없음.
     /// 「기록 없음」과 「못 받음」을 한 화면으로 뭉개지 않는 지금 관례를 따른다.
+    /// **있던 값을 새로고침 실패로 지우지 않는다** — 값이 있으면 카드를 그대로 두고, 오류는
+    /// `statusSection`과 같은 자리에 같은 모양으로 한 줄만 얹는다.
     @ViewBuilder private var healthSection: some View {
-        if let error = healthViewModel.errorMessage {
+        if let error = healthViewModel.errorMessage, healthViewModel.hasSamples {
+            Text(error)
+                .font(.caption)
+                .foregroundStyle(Color.red500)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+
+        if healthViewModel.hasSamples {
+            BatteryHealthCard(
+                remainingPercent: healthViewModel.remainingPercent,
+                degradationPercent: healthViewModel.degradationPercent,
+                fullRangeKm: healthViewModel.latest?.fullRangeKm,
+                capacityKwh: healthViewModel.latestCapacityKwh,
+                rangeLostKm: healthViewModel.rangeLostKm
+            )
+            DegradationTrendChart(
+                segments: healthViewModel.trendSegments,
+                selectedKey: selectedTrendKey,
+                onSelect: { selectedTrendKey = $0 }
+            )
+        } else if let error = healthViewModel.errorMessage {
             BatteryHealthPlaceholderCard(
                 icon: "exclamationmark.triangle",
                 title: "배터리 건강을 불러오지 못했어요",
@@ -99,19 +121,6 @@ struct VehicleHealthTab: View {
                 icon: "bolt.badge.clock",
                 title: "아직 잴 만한 충전이 없어요",
                 message: "80% 이상 충전하면 값이 쌓여요"
-            )
-        } else {
-            BatteryHealthCard(
-                remainingPercent: healthViewModel.remainingPercent,
-                degradationPercent: healthViewModel.degradationPercent,
-                fullRangeKm: healthViewModel.latest?.fullRangeKm,
-                capacityKwh: healthViewModel.latestCapacityKwh,
-                rangeLostKm: healthViewModel.rangeLostKm
-            )
-            DegradationTrendChart(
-                segments: healthViewModel.trendSegments,
-                selectedKey: selectedTrendKey,
-                onSelect: { selectedTrendKey = $0 }
             )
         }
     }

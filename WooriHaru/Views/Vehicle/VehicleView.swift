@@ -19,7 +19,7 @@ struct VehicleView: View {
             tabBar
         }
         .glassScreenBackground()
-        // 좌우 스와이프 = 월 이동. 상태 탭에는 월이 없으므로 마스크로 끈다
+        // 좌우 스와이프 = 월 이동. 건강 탭에는 월이 없으므로 마스크로 끈다
         // (`nil`을 넘길 수 없는 API라 including으로 제어한다).
         .simultaneousGesture(monthSwipeGesture, including: tab == .summary ? .all : .subviews)
         .navigationBarBackButtonHidden(true) // 월 이동 스와이프와 겹치는 엣지 뒤로가기 차단
