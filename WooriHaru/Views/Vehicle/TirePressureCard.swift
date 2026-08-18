@@ -60,8 +60,9 @@ struct TirePressureCard: View {
     }
 
     private func wheel(_ wheel: Wheel) -> some View {
-        VStack(spacing: 1) {
-            Text(VehicleFormat.pressurePsi(wheel.bar))
+        let psiText = VehicleFormat.pressurePsi(wheel.bar)
+        return VStack(spacing: 1) {
+            Text(psiText)
                 .font(.subheadline)
                 .fontWeight(.heavy)
                 .monospacedDigit()
@@ -73,7 +74,7 @@ struct TirePressureCard: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(wheel.status.background, in: RoundedRectangle(cornerRadius: 12))
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(wheel.name) \(VehicleFormat.pressurePsi(wheel.bar)) \(wheel.status.spokenSuffix)")
+        .accessibilityLabel("\(wheel.name) \(psiText) \(wheel.status.spokenSuffix)")
     }
 
     /// 네 바퀴가 모두 정상이면 한 줄로 끝내고, 아니면 벗어난 바퀴 이름을 적는다.

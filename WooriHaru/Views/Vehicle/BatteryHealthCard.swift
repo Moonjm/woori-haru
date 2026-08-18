@@ -33,14 +33,7 @@ struct BatteryHealthCard: View {
             }
             Spacer(minLength: 0)
         }
-        .padding(18)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            LinearGradient(colors: [Color.navy800, Color.navy900],
-                           startPoint: .topLeading, endPoint: .bottomTrailing),
-            in: RoundedRectangle(cornerRadius: 20)
-        )
-        .shadow(color: Color.navy900.opacity(0.35), radius: 14, y: 8)
+        .batteryPanelBackground()
         .accessibilityElement(children: .combine)
         .accessibilityLabel("배터리 건강 잔존 \(VehicleFormat.percent(remainingPercent)), 열화 \(VehicleFormat.percent(degradationPercent))")
     }
@@ -121,15 +114,24 @@ struct BatteryHealthPlaceholderCard: View {
             Image(systemName: icon)
                 .font(.system(size: 26))
                 .foregroundStyle(.white.opacity(0.5))
+                // 장식 아이콘이다 — VoiceOver가 "bolt badge clock" 같은 원문 심벌 이름을
+                // 따로 읽지 않도록 숨긴다. 의미는 아래 결합된 문구가 담는다.
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.subheadline)
-                    .fontWeight(.bold)
-                    .foregroundStyle(.white)
-                Text(message)
-                    .font(.caption)
-                    .foregroundStyle(.white.opacity(0.6))
-                    .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.subheadline)
+                        .fontWeight(.bold)
+                        .foregroundStyle(.white)
+                    Text(message)
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.6))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                // 제목·설명만 한 정거장으로 묶는다. 재시도 버튼은 밖에 남겨 둔다 —
+                // 여기까지 묶으면 버튼이 눌러도 반응 없는 문구 조각으로 삼켜진다.
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("\(title). \(message)")
                 if let retry {
                     Button("다시 시도", action: retry)
                         .font(.caption)
@@ -144,14 +146,32 @@ struct BatteryHealthPlaceholderCard: View {
             }
             Spacer(minLength: 0)
         }
-        .padding(18)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            LinearGradient(colors: [Color.navy800, Color.navy900],
-                           startPoint: .topLeading, endPoint: .bottomTrailing),
-            in: RoundedRectangle(cornerRadius: 20)
-        )
-        .shadow(color: Color.navy900.opacity(0.35), radius: 14, y: 8)
+        .batteryPanelBackground()
+    }
+}
+
+// MARK: - 공용 패널 배경
+
+private extension View {
+    /// 진한 패널 배경(그라디언트 + 모서리 + 그림자). `BatteryHealthCard`와
+    /// `BatteryHealthPlaceholderCard`가 같은 자리에 번갈아 서는 같은 패널이라,
+    /// 스타일이 갈라지면 화면 상태가 바뀔 때 색이 미묘하게 달라져 보인다.
+    func batteryPanelBackground() -> some View {
+        modifier(BatteryPanelBackground())
+    }
+}
+
+private struct BatteryPanelBackground: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .padding(18)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                LinearGradient(colors: [Color.navy800, Color.navy900],
+                               startPoint: .topLeading, endPoint: .bottomTrailing),
+                in: RoundedRectangle(cornerRadius: 20)
+            )
+            .shadow(color: Color.navy900.opacity(0.35), radius: 14, y: 8)
     }
 }
 
