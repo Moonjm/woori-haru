@@ -179,10 +179,15 @@ enum VehicleFormat {
 
     /// 2.9 → "42psi". **화면에는 psi만 낸다** — 서버가 주는 bar는 TeslaMate의 저장 단위일 뿐,
     /// 타이어에 넣을 때 쓰는 단위도 차 문틀의 권장값도 psi다.
-
+    ///
+    /// **`VehicleMath.rounded`(반올림)로 정수를 만든 뒤에 넘긴다.** `number()`가 쓰는
+    /// `NumberFormatter`는 기본 반올림 규칙이 은행가 반올림(`.halfEven`)이라 `.5` 경계에서
+    /// `VehicleMath.rounded`(`.plain`, 무조건 올림)와 다른 값을 낼 수 있다 — 표기가 "46psi"인데
+    /// `tireStatus(bar:)`는 47로 반올림해 `.high`로 판정하는 식의 불일치가 생긴다. 판정과
+    /// 표기가 같은 반올림을 쓰도록 미리 정수로 만들어 넘긴다. 임의로 단순화하지 말 것.
     static func pressurePsi(_ bar: Decimal?) -> String {
         guard let psi = VehicleMath.psi(fromBar: bar) else { return ChargeFormat.placeholder }
-        return "\(number(psi, fraction: 0))psi"
+        return "\(number(VehicleMath.rounded(psi), fraction: 0))psi"
     }
 
     static func relative(minutes: Int) -> String {

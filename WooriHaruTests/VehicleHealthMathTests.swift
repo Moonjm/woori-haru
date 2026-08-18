@@ -34,8 +34,15 @@ struct VehicleHealthMathTests {
 
     /// 잔존율과 열화를 각자 반올림하면 화면에서 둘을 더해 101%가 되는 달이 나온다.
     /// 열화는 **반올림한 잔존율**에서 뺀다.
+    ///
+    /// `525.4`·`485.64`는 568 기준선에서 각각 정확히 92.5%·85.5%가 되는 값이다 — `.5` 경계다.
+    /// `VehicleFormat.percent`가 `NumberFormatter`의 기본 반올림(은행가 반올림, `.halfEven`)을
+    /// 그대로 쓰면 92.5%가 "92%"로, `degradationPercent`는 `VehicleMath.rounded`(`.plain`)로
+    /// 93을 만들어 "7%"를 내면서 92+7=99가 된다. `percent`도 같은 반올림을 쓰도록 고쳤는지
+    /// 이 경계값들이 가른다.
     @Test func 잔존율과_열화를_더하면_늘_100이다() {
-        for value in [Decimal(string: "525.3")!, 520, Decimal(string: "512.5")!, 559] {
+        for value in [Decimal(string: "525.3")!, 520, Decimal(string: "512.5")!, 559,
+                      Decimal(string: "525.4")!, Decimal(string: "485.64")!] {
             let remaining = VehicleMath.remainingPercent(current: value, baseline: VehicleBaseline.newRangeKm)!
             let degradation = VehicleMath.degradationPercent(remainingPercent: remaining)!
             let sum = Int(VehicleFormat.percent(remaining).dropLast())! +
@@ -58,6 +65,29 @@ struct VehicleHealthMathTests {
         #expect(VehicleMath.tireStatus(bar: Decimal(string: "3.17")) == .normal)   // 46psi 경계
         #expect(VehicleMath.tireStatus(bar: Decimal(string: "2.5")) == .low)       // 36psi
         #expect(VehicleMath.tireStatus(bar: Decimal(string: "3.3")) == .high)      // 48psi
+    }
+
+    /// **표기와 판정은 같은 이야기를 해야 한다.** `pressurePsi`(표기)와 `tireStatus`(판정)가
+    /// 서로 다른 반올림을 쓰면 "화면은 46psi인데 판정은 경고"가 생긴다. 3.2061bar는 원값이
+    /// 46.5psi 바로 위(46.50063…)라 46/47psi 반올림 경계 근방이다 — 어느 쪽으로 반올림되든
+    /// 표기된 정수와 판정이 같은 경계 규칙(`TirePressureSpec.normalRangePsi`)을 따르는지를
+    /// 관계로 검증한다. 어느 쪽 결과가 나올지 미리 정해 못 박지 않는다.
+    @Test func 공기압_표기와_판정은_경계에서_같은_이야기를_한다() {
+        let bar = Decimal(string: "3.2061")!
+        let displayed = VehicleFormat.pressurePsi(bar)
+        guard let displayedPsi = Int(displayed.dropLast(3)) else {
+            Issue.record("psi 표기를 정수로 읽지 못했다: \(displayed)")
+            return
+        }
+        let expected: TireStatus
+        if Decimal(displayedPsi) < TirePressureSpec.normalRangePsi.lowerBound {
+            expected = .low
+        } else if Decimal(displayedPsi) > TirePressureSpec.normalRangePsi.upperBound {
+            expected = .high
+        } else {
+            expected = .normal
+        }
+        #expect(VehicleMath.tireStatus(bar: bar) == expected)
     }
 
     /// **값이 없는 것과 벗어난 것은 다르다.** 없는 바퀴를 경고로 칠하면 안 된다.

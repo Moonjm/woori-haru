@@ -122,16 +122,25 @@ extension VehicleMath {
 
 extension VehicleFormat {
     /// 92.36… → "92%". 잔존율과 열화가 같은 자리수로 나와야 둘을 더해 100이 된다.
+    ///
+    /// **`VehicleMath.rounded`(`.plain`)로 정수를 만든 뒤에 넘긴다.** `number()`가 쓰는
+    /// `NumberFormatter`는 기본이 은행가 반올림(`.halfEven`)이라 `.5` 경계에서 다른 값을
+    /// 낼 수 있다 — 잔존율이 정확히 92.5%인 달에 `degradationPercent`는 `.plain`으로 반올림한
+    /// 93에서 뺀 7%를 내는데, 이 함수가 92.5를 halfEven으로 그대로 찍으면 92%가 되어
+    /// 92+7=99가 된다. 두 갈래가 같은 반올림을 쓰도록 미리 정수로 만들어 넘긴다.
     static func percent(_ value: Decimal?) -> String {
         guard let value else { return ChargeFormat.placeholder }
-        return "\(number(value, fraction: 0))%"
+        return "\(number(VehicleMath.rounded(value), fraction: 0))%"
     }
 
     /// 이미 psi로 낸 값을 그대로 적는다. `pressurePsi(_:)`는 bar를 받으므로,
     /// 평균처럼 psi로 이미 계산한 값을 bar로 되돌렸다 다시 바꾸지 않게 이 자리를 둔다.
+    ///
+    /// `percent(_:)`와 같은 이유로 `VehicleMath.rounded`(`.plain`)로 먼저 정수를 만든다 —
+    /// `tireStatus(bar:)`도 같은 반올림으로 판정하므로, 표기와 판정이 `.5` 경계에서 갈리지 않는다.
     static func psiText(_ psi: Decimal?) -> String {
         guard let psi else { return ChargeFormat.placeholder }
-        return "\(number(psi, fraction: 0))psi"
+        return "\(number(VehicleMath.rounded(psi), fraction: 0))psi"
     }
 
     /// 525.3 → "525 / 568 km". **값이 없어도 기준선은 남긴다** —
