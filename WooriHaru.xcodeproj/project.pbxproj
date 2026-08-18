@@ -19,6 +19,7 @@
 		453AA4BE6F7BD87A2E9F53F2 /* DispatchModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = D49A101711DCAF5B5FAFD364 /* DispatchModels.swift */; };
 		5C5516406BA9FF99BA05D27C /* ChargeModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BE34C241CBA8854FC3246DE /* ChargeModels.swift */; };
 		5F2C227D2377263FA664B89B /* VehicleStatusViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B34192AF4757E913DF4D0FA4 /* VehicleStatusViewModel.swift */; };
+		64FC2509D0DC00E50F76B330 /* TirePressureCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C9DA97EA2D7E94602135D9 /* TirePressureCard.swift */; };
 		66815BE79E2D79EC1E9415DC /* DegradationTrendChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8E190C9E72954D3FC527E56 /* DegradationTrendChart.swift */; };
 		6E5B03307FE94212F65DE0EB /* VehicleSummaryTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2F12F9042F52F62E68D3B63 /* VehicleSummaryTab.swift */; };
 		71052B6E8FC03636B1952BCA /* VehicleTrendChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1061EE82F134CAE49735C9D5 /* VehicleTrendChart.swift */; };
@@ -258,6 +259,7 @@
 		8825C75B2F5B1A4C00E46B14 /* UserService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserService.swift; sourceTree = "<group>"; };
 		88C2E2B22F557CCD001249F8 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		88DD96EC2F61B3A900E60283 /* StudyRecordView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyRecordView.swift; sourceTree = "<group>"; };
+		A1C9DA97EA2D7E94602135D9 /* TirePressureCard.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TirePressureCard.swift; path = Vehicle/TirePressureCard.swift; sourceTree = "<group>"; };
 		A20001 /* WooriHaruApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WooriHaruApp.swift; sourceTree = "<group>"; };
 		A20002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A20003 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -530,6 +532,7 @@
 				823FB1E6072082F5CCEE8AC8 /* VehicleView.swift */,
 				55393AF69906229CC877CA9B /* BatteryHealthCard.swift */,
 				A8E190C9E72954D3FC527E56 /* DegradationTrendChart.swift */,
+				A1C9DA97EA2D7E94602135D9 /* TirePressureCard.swift */,
 			);
 			name = Vehicle;
 			sourceTree = "<group>";
@@ -1241,6 +1244,7 @@
 				D5F2677FF07AC04CED770A52 /* VehicleHealthViewModel.swift in Sources */,
 				135C407B4A2788482CAC5AB4 /* BatteryHealthCard.swift in Sources */,
 				66815BE79E2D79EC1E9415DC /* DegradationTrendChart.swift in Sources */,
+				64FC2509D0DC00E50F76B330 /* TirePressureCard.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
