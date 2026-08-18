@@ -1,13 +1,15 @@
 import SwiftUI
 
-/// 「차량」 미니앱 — 요약·상태 두 탭. 가계부와 같은 하단 글래스 탭바 구조다.
+/// 「차량」 미니앱 — 건강·요약 두 탭. 가계부와 같은 하단 글래스 탭바 구조다.
+/// **여는 순간 건강 화면이 먼저 뜬다** — 첫 화면이 답을 하나 해야 한다.
 struct VehicleView: View {
-    private enum Tab { case summary, status }
+    private enum Tab { case health, summary }
 
     @Environment(\.dismiss) private var dismiss
-    @State private var tab: Tab = .summary
+    @State private var tab: Tab = .health
     @State private var summaryViewModel = VehicleSummaryViewModel()
     @State private var statusViewModel = VehicleStatusViewModel()
+    @State private var healthViewModel = VehicleHealthViewModel()
     @State private var showingMonthPicker = false
     @State private var showingQueue = false
 
@@ -46,6 +48,7 @@ struct VehicleView: View {
             Task {
                 await summaryViewModel.reload()
                 await summaryViewModel.refreshMissingCount()
+                await healthViewModel.refreshMissingCount()
             }
         }) {
             ChargeCostQueueView()
@@ -55,18 +58,25 @@ struct VehicleView: View {
 
     @ViewBuilder private var content: some View {
         switch tab {
+        case .health:
+            VehicleHealthTab(healthViewModel: healthViewModel,
+                             statusViewModel: statusViewModel) { showingQueue = true }
+                // 상태는 탭에 들어올 때마다 새로 받는다. 배터리 건강은 전 기간 집계라
+                // 뷰모델이 한 번만 받고, 배지 수만 매번 맞춘다.
+                .task {
+                    async let status: Void = statusViewModel.load()
+                    async let health: Void = healthViewModel.load()
+                    _ = await (status, health)
+                }
         case .summary:
             VehicleSummaryTab(viewModel: summaryViewModel) { showingQueue = true }
-        case .status:
-            VehicleStatusTab(viewModel: statusViewModel)
-                .task { await statusViewModel.load() }
         }
     }
 
     @ViewBuilder private var principalTitle: some View {
         switch tab {
+        case .health: Text("차량 건강").font(.subheadline).fontWeight(.bold)
         case .summary: monthSwitcher
-        case .status: Text("차량 상태").font(.subheadline).fontWeight(.bold)
         }
     }
 
@@ -117,8 +127,8 @@ struct VehicleView: View {
 
     private var tabBar: some View {
         HStack(spacing: 4) {
+            tabButton(.health, icon: "bolt.batteryblock.fill", label: "건강")
             tabButton(.summary, icon: "chart.bar.fill", label: "요약")
-            tabButton(.status, icon: "car.fill", label: "상태")
         }
         .padding(6)
         .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 24))
