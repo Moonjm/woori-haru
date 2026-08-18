@@ -12,6 +12,12 @@ extension Color {
     static let slate700 = Color(red: 0.204, green: 0.255, blue: 0.325)
     static let slate900 = Color(red: 0.059, green: 0.094, blue: 0.169)
 
+    // MARK: - Navy (배터리 건강 패널 전용)
+    /// 요약 탭 히어로(초록→파랑)와 **다른 색을 쓴다** — 같은 색을 두 화면 첫 카드에 두면
+    /// 지금 어느 화면인지 헷갈린다.
+    static let navy800 = Color(red: 0.118, green: 0.161, blue: 0.286)
+    static let navy900 = Color(red: 0.055, green: 0.075, blue: 0.161)
+
     // MARK: - Blue
     static let blue50 = Color(red: 0.937, green: 0.961, blue: 1.0)
     static let blue300 = Color(red: 0.573, green: 0.706, blue: 0.988)

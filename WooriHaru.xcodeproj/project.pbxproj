@@ -10,6 +10,7 @@
 		01E5347F6D87126F3B0EEDF0 /* DispatchReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EE2658BE836DAFED195B3A5 /* DispatchReviewView.swift */; };
 		02C05E2522888FC9FA1914FE /* ScheduleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F178E8439FA7AF1E8234A2B /* ScheduleView.swift */; };
 		0FE415DE0482F63A481ADDE6 /* ChargeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26AE34FD1C4248D055A63A49 /* ChargeService.swift */; };
+		135C407B4A2788482CAC5AB4 /* BatteryHealthCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55393AF69906229CC877CA9B /* BatteryHealthCard.swift */; };
 		1634F29B8B1A65276DEFCC09 /* DispatchUploadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6BB6AAFBAB44DCD1635C839 /* DispatchUploadView.swift */; };
 		1B362266C00662B998F7BD46 /* ChargeCostQueueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E35541B5F9426977FDBBE648 /* ChargeCostQueueView.swift */; };
 		22B1CD41D5FC96447160F8DE /* VehicleSummaryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC8A90FDD89774BFAF064AA2 /* VehicleSummaryViewModel.swift */; };
@@ -239,6 +240,7 @@
 		2A1655D9FB504D22636292C1 /* DispatchReviewViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DispatchReviewViewModel.swift; sourceTree = "<group>"; };
 		2CC3CC54FB4A7E913816594F /* ChargeRow.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ChargeRow.swift; path = Charge/ChargeRow.swift; sourceTree = "<group>"; };
 		3BE34C241CBA8854FC3246DE /* ChargeModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ChargeModels.swift; sourceTree = "<group>"; };
+		55393AF69906229CC877CA9B /* BatteryHealthCard.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = BatteryHealthCard.swift; path = Vehicle/BatteryHealthCard.swift; sourceTree = "<group>"; };
 		690A0D0A21A54E8BE01CDC21 /* VehicleModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VehicleModels.swift; sourceTree = "<group>"; };
 		7EE2658BE836DAFED195B3A5 /* DispatchReviewView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DispatchReviewView.swift; path = Dispatch/DispatchReviewView.swift; sourceTree = "<group>"; };
 		7F178E8439FA7AF1E8234A2B /* ScheduleView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ScheduleView.swift; path = Schedule/ScheduleView.swift; sourceTree = "<group>"; };
@@ -524,6 +526,7 @@
 				0B389E9541F66717EB0D7392 /* VehicleStatusTab.swift */,
 				E35541B5F9426977FDBBE648 /* ChargeCostQueueView.swift */,
 				823FB1E6072082F5CCEE8AC8 /* VehicleView.swift */,
+				55393AF69906229CC877CA9B /* BatteryHealthCard.swift */,
 			);
 			name = Vehicle;
 			sourceTree = "<group>";
@@ -1233,6 +1236,7 @@
 				897E42FFEAD38504BCF1B861 /* VehicleView.swift in Sources */,
 				2E857A7404304B09C194DE32 /* VehicleHealthModels.swift in Sources */,
 				D5F2677FF07AC04CED770A52 /* VehicleHealthViewModel.swift in Sources */,
+				135C407B4A2788482CAC5AB4 /* BatteryHealthCard.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
