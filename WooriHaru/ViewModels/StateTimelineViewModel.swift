@@ -54,9 +54,17 @@ final class StateTimelineViewModel {
             // 상주하고, 눌러 봐야 또 404다. 주행 통계가 새 필드가 없을 때 카드째 감추는 것과
             // 같은 처리를 경로에도 한다 — **서버가 나오면 이 갈래는 저절로 안 타게 된다.**
             //
-            // `timeline`도 `errorMessage`도 건드리지 않는다. 성공한 뒤에 온 404가 멀쩡한 값을
-            // 지우면 안 되고, 오류가 없는 채로 두어야 화면이 이 절을 통째로 접는다.
-            if case let APIError.serverError(status, _) = error, status == 404 { return }
+            // `timeline`은 건드리지 않는다 — 성공한 뒤에 온 404가 멀쩡한 값을 지우면 안 된다.
+            //
+            // **`errorMessage`는 지운다.** 그냥 리턴하면 앞선 비404 실패(오프라인 등)가 세워 둔
+            // 오류가 살아남는데, 서버가 나오기 전에는 이후 모든 응답이 404라 그것을 지우는
+            // 유일한 경로(성공)에 영영 닿지 못한다 — 오류 카드가 첫 화면에 못 박히고, 조용히
+            // 넘기려던 이 갈래가 제 목적을 잃는다. 404는 「이 경로가 없다」는 확정된 사실이라
+            // 보고할 오류가 없다.
+            if case let APIError.serverError(status, _) = error, status == 404 {
+                errorMessage = nil
+                return
+            }
             errorMessage = "상태 타임라인을 불러오지 못했습니다."
         }
     }

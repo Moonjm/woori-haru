@@ -102,6 +102,25 @@ struct StateTimelineViewModelTests {
         #expect(viewModel.hasSegments == false)
     }
 
+    /// **한 번 붙은 오류가 안 떨어지던 것을 막는다.** 오프라인에서 앱을 한 번 열면 비404
+    /// 실패가 오류를 세우는데, 서버가 나오기 전에는 이후 모든 응답이 404라 오류를 지우는
+    /// 유일한 경로(성공)에 닿지 못한다 — 오류 카드가 배포 때까지 첫 화면에 못 박힌다.
+    @Test func 비404_실패_뒤에_온_404는_낡은_오류를_지운다() async {
+        let mock = MockAPIClient()
+        mock.setError(MockAPIClient.MockAPIError.forced, for: "GET /tesla/state-timeline")
+        let viewModel = makeViewModel(mock)
+        await viewModel.load()
+        #expect(viewModel.errorMessage != nil)
+
+        mock.setError(APIError.serverError(statusCode: 404, message: nil),
+                      for: "GET /tesla/state-timeline")
+        await viewModel.reload()
+
+        #expect(viewModel.errorMessage == nil)
+        #expect(viewModel.timeline == nil)
+        #expect(viewModel.hasSegments == false)
+    }
+
     /// 서버가 나온 뒤 잠깐 경로가 사라지는 배포 창이 있어도 **있던 띠를 지우지 않는다** —
     /// 404를 조용히 넘기는 갈래가 「값을 비운다」는 뜻이 되면 안 된다.
     @Test func 성공한_뒤에_온_404가_있던_값을_지우지_않는다() async {
