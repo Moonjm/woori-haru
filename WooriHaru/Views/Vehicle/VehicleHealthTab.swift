@@ -156,6 +156,9 @@ struct VehicleHealthTab: View {
 
     // MARK: - 현재 상태
 
+    /// **다섯 갈래다** — 값 있음(+새로고침 실패 시 배너 한 줄) / 응답은 왔는데 기록 없음 /
+    /// 불러오는 중 / 못 받음 / 취소된 첫 로드. 마지막 둘이 갈라져 있어야 「다시 시도」가
+    /// 눌린 티가 난다.
     @ViewBuilder private var statusSection: some View {
         // 보여줄 값이 남아 있는 새로고침 실패는 한 줄로만 알린다.
         if let error = statusViewModel.errorMessage, statusViewModel.status != nil {
@@ -166,25 +169,34 @@ struct VehicleHealthTab: View {
         }
 
         if let status = statusViewModel.status, statusViewModel.hasRecord {
+            // 값이 먼저다 — 새로고침이 실패해도 보이던 카드를 오류 화면으로 바꾸지 않는다.
+            //
             // **1분마다 다시 그린다.** 「3시간 12분째」는 화면을 열어 둔 채로도 흘러간다 —
             // 기준 시각 줄이 같은 이유로 `TimelineView`를 쓴다.
             TimelineView(.periodic(from: .now, by: 60)) { context in
                 BatteryNowCard(status: status,
                                minutesInState: minutesInState(status, at: context.date))
             }
-        } else if let error = statusViewModel.errorMessage, statusViewModel.status == nil {
+        } else if statusViewModel.status != nil {
+            // 응답은 왔는데 위치 기록이 없다 — 못 받은 것과 다르다.
+            BatteryNowPlaceholderCard(icon: "car",
+                                      title: "아직 기록이 없어요",
+                                      message: "차가 한 번 깨어나면 값이 쌓여요")
+        } else if statusViewModel.isLoading {
+            // **로딩이 오류보다 먼저다.** 재시도를 눌렀는데 오류 패널이 그대로 서 있으면
+            // 누른 것이 먹혔는지 알 길이 없다 — `errorMessage`는 다음 성공까지 남는다.
+            // 주행 탭이 같은 이유로 같은 순서를 쓴다.
+            BatteryNowPlaceholderCard(icon: "car",
+                                      title: "불러오는 중",
+                                      message: "차량 상태를 받고 있어요")
+        } else if let error = statusViewModel.errorMessage {
             BatteryNowPlaceholderCard(icon: "exclamationmark.triangle",
                                       title: "차량 상태를 불러오지 못했어요",
                                       message: error,
                                       retry: { Task { await statusViewModel.reload() } })
-        } else if statusViewModel.status != nil {
-            // 기록이 아직 없는 것과 못 받은 것은 다르다.
-            BatteryNowPlaceholderCard(icon: "car",
-                                      title: "아직 기록이 없어요",
-                                      message: "차가 한 번 깨어나면 값이 쌓여요")
         } else {
-            // **마지막 갈래가 「불러오는 중」이다.** 취소된 첫 로드는 오류도 값도 없이
-            // 끝나는데(CancellationError는 조용히 리턴한다), 그때 주인공 자리가 비면 안 된다.
+            // 취소된 첫 로드는 값도 오류도 없이 끝난다(CancellationError는 조용히 리턴한다).
+            // 주인공 자리를 비우지 않는다.
             BatteryNowPlaceholderCard(icon: "car",
                                       title: "불러오는 중",
                                       message: "차량 상태를 받고 있어요")
@@ -209,8 +221,20 @@ struct VehicleHealthTab: View {
 
     // MARK: - 최근 7일
 
-    /// **넷으로 갈린다** — 아직 안 받음 / 못 받음 / 기록 없음 / 값 있음.
-    /// `from`을 못 읽으면 행을 셀 수 없으므로 응답이 있어도 「못 받음」으로 다룬다.
+    /// **다섯으로 갈린다** — 값 있음(+새로고침 실패 시 배너 한 줄) / 기록 없음 /
+    /// 불러오는 중 / 못 받음 / 아직 안 받음(아무것도 안 그린다).
+    ///
+    /// `statusSection`과 같은 순서를 쓴다 — **로딩이 오류보다 먼저다.** 「다시 시도」를
+    /// 눌러도 `errorMessage`는 다음 성공까지 남으므로, 로딩 갈래가 없으면 오류 카드가
+    /// 그대로 서 있어 누른 것이 먹혔는지 알 수 없다.
+    ///
+    /// 로딩 갈래는 **오류를 한 번 띄운 뒤의 재시도에만** 선다. 첫 로드에는 이 절이 아무것도
+    /// 그리지 않는 편이 맞다 — 그때는 위 진한 패널이 이미 「불러오는 중」을 말하고 있어
+    /// 스피너가 둘이면 화면이 시끄럽다. 이 절은 **할 말이 생기기 전까지 자리를 차지하지 않고,**
+    /// 한 번 문제를 말한 뒤에는 그 자리에서 진행 상황까지 말한다.
+    ///
+    /// `from`을 못 읽으면 행을 셀 수 없어 첫 갈래에 못 든다. 그때는 아래 갈래로 흘러가
+    /// **오류가 없는 한 아무것도 그리지 않는다** — 「못 받음」으로 승격시키지 않는다.
     @ViewBuilder private var timelineSection: some View {
         if let timeline = timelineViewModel.timeline,
            let from = VehicleFormat.parseKST(timeline.from) {
@@ -232,6 +256,16 @@ struct VehicleHealthTab: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
+        } else if timelineViewModel.isLoading, timelineViewModel.errorMessage != nil {
+            // **로딩이 오류보다 먼저다.** `errorMessage`는 다음 성공까지 남으므로, 이 갈래가
+            // 없으면 「다시 시도」를 눌러도 오류 카드가 그대로 서 있어 눌린 티가 안 난다.
+            // 오류 카드와 같은 자리·같은 어휘로 선다.
+            GlassCard {
+                Text("불러오는 중")
+                    .font(.caption)
+                    .foregroundStyle(Color.slate500)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
         } else if let error = timelineViewModel.errorMessage {
             GlassCard {
                 HStack(spacing: 8) {
@@ -245,8 +279,8 @@ struct VehicleHealthTab: View {
                 }
             }
         }
-        // 아직 안 받았고 오류도 없으면 아무것도 그리지 않는다 — 위 진한 패널이 이미
-        // 「불러오는 중」을 말하고 있어 스피너가 둘이면 화면이 시끄럽다.
+        // 값도 오류도 없으면(첫 로드 중이거나, 취소돼 끝났거나, 서버에 아직 이 경로가
+        // 없으면) 아무것도 그리지 않는다 — 위 진한 패널이 이미 「불러오는 중」을 말한다.
     }
 
     /// 온도 둘을 타일로 올린다. 1단계에서는 **위치를 여기 말고 보여줄 데가 없어서** 아래 줄로
