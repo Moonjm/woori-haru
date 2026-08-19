@@ -27,6 +27,7 @@ struct ChargeCostQueueView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .glassScreenBackground()
+            .vehicleDarkTheme()
             .navigationTitle("금액 등록")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -41,7 +42,7 @@ struct ChargeCostQueueView: View {
                         Text("\(min(viewModel.index + 1, viewModel.items.count)) / \(viewModel.items.count)")
                             .font(.caption)
                             .monospacedDigit()
-                            .foregroundStyle(Color.slate500)
+                            .foregroundStyle(VehicleTheme.textSecondary)
                     }
                 }
             }
@@ -64,31 +65,32 @@ struct ChargeCostQueueView: View {
                       ChargeFormat.batteryRange(item.startBatteryLevel, item.endBatteryLevel)]
                         .joined(separator: " · "))
                     .font(.caption)
-                    .foregroundStyle(Color.slate500)
+                    .foregroundStyle(VehicleTheme.textSecondary)
             }
 
             HStack(spacing: 8) {
                 Text("₩")
                     .font(.system(size: 28, weight: .bold))
-                    .foregroundStyle(Color.slate500)
+                    .foregroundStyle(VehicleTheme.textSecondary)
                 TextField("금액", text: $text)
                     .keyboardType(.numberPad)
                     .font(.system(size: 28, weight: .bold))
                     .monospacedDigit()
+                    .foregroundStyle(VehicleTheme.textPrimary)
                     .focused($focused)
             }
             .padding(14)
-            .background(Color.slate100, in: RoundedRectangle(cornerRadius: 14))
+            .background(VehicleTheme.tileFill, in: RoundedRectangle(cornerRadius: 14))
 
             if let suggested = viewModel.suggestedCost {
                 Text("직전 단가 기준 약 \(LedgerFormat.amount(suggested, currency: "KRW"))")
                     .font(.caption)
-                    .foregroundStyle(Color.slate500)
+                    .foregroundStyle(VehicleTheme.textSecondary)
             }
             if let error = viewModel.errorMessage {
                 Text(error)
                     .font(.caption)
-                    .foregroundStyle(Color.red500)
+                    .foregroundStyle(VehicleTheme.danger)
             }
 
             Spacer(minLength: 0)

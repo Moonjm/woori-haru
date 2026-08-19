@@ -28,6 +28,7 @@ struct VehicleView: View {
             tabBar
         }
         .glassScreenBackground()
+        .vehicleDarkTheme()
         // 좌우 스와이프 = 월 이동. 상태·주행 탭에는 월이 없으므로 마스크로 끈다
         // (`nil`을 넘길 수 없는 API라 including으로 제어한다).
         .simultaneousGesture(monthSwipeGesture, including: tab == .summary ? .all : .subviews)
@@ -97,8 +98,12 @@ struct VehicleView: View {
 
     @ViewBuilder private var principalTitle: some View {
         switch tab {
-        case .status: Text("차량 상태").font(.subheadline).fontWeight(.bold)
-        case .drive: Text("주행").font(.subheadline).fontWeight(.bold)
+        case .status:
+            Text("차량 상태").font(.subheadline).fontWeight(.bold)
+                .foregroundStyle(VehicleTheme.textPrimary)
+        case .drive:
+            Text("주행").font(.subheadline).fontWeight(.bold)
+                .foregroundStyle(VehicleTheme.textPrimary)
         case .summary: monthSwitcher
         }
     }
@@ -134,7 +139,7 @@ struct VehicleView: View {
             .disabled(summaryViewModel.isAtCurrentMonth)
             .opacity(summaryViewModel.isAtCurrentMonth ? 0.3 : 1)
         }
-        .foregroundStyle(Color.slate700)
+        .foregroundStyle(VehicleTheme.textPrimary)
     }
 
     /// 수직 스크롤과 헷갈리지 않게 가로 성분이 확실할 때만 반응한다.
@@ -155,7 +160,9 @@ struct VehicleView: View {
             tabButton(.summary, icon: "chart.bar.fill", label: "요약")
         }
         .padding(6)
-        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 24))
+        // 다크에서는 유리를 쓰지 않는다 — 테두리가 형태를 만든다.
+        .background(VehicleTheme.cardFill, in: RoundedRectangle(cornerRadius: 24))
+        .overlay(RoundedRectangle(cornerRadius: 24).strokeBorder(VehicleTheme.cardStroke, lineWidth: 1))
         // 버튼 사이 여백 탭이 아래 목록으로 새지 않게 바 전체를 히트 영역으로 만든다.
         .contentShape(RoundedRectangle(cornerRadius: 24))
         .onTapGesture {}
@@ -174,13 +181,17 @@ struct VehicleView: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 8)
-            .foregroundStyle(selected ? .white : Color.slate500)
+            .foregroundStyle(selected ? VehicleTheme.accentBright : VehicleTheme.textTertiary)
             .background {
                 if selected {
+                    // **파란 그라디언트와 그림자를 버린다.** 이 화면에서 빛나는 것은
+                    // 잔량 링 하나뿐이어야 하고, 탭바가 두 번째로 빛나면 그 규칙이 깨진다.
                     RoundedRectangle(cornerRadius: 18)
-                        .fill(LinearGradient(colors: [Color.blue500, Color.blue700],
-                                             startPoint: .topLeading, endPoint: .bottomTrailing))
-                        .shadow(color: Color.blue600.opacity(0.4), radius: 8, y: 3)
+                        .fill(VehicleTheme.accent.opacity(0.20))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 18)
+                                .strokeBorder(VehicleTheme.accent.opacity(0.45), lineWidth: 1)
+                        )
                 }
             }
             .contentShape(.rect)
