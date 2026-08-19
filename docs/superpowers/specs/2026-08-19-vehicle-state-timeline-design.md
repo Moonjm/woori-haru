@@ -136,7 +136,7 @@ TeslaMate의 Grafana 대시보드는 차량 상태를 시간축 띠로 그린다
 └─────────────────────────────────────┘
 ```
 
-- 7행, 행 높이 14pt, 행 간격 3pt. 왼쪽 날짜 라벨 폭 32pt
+- 7행, 행 높이 14pt, 행 간격 3pt. 왼쪽 날짜 라벨 폭 34pt — 「8/13」이 그만큼을 쓴다
 - **위가 가장 오래된 날, 아래가 오늘.** 아래로 읽어 내려가면 지금에 닿는다
 - **오늘 행은 지금 이후가 빈칸이다** — 아직 오지 않은 시간을 색으로 칠하지 않는다
 - 겹치는 순서: **상태를 깔고 → 주행 → 충전**을 덧칠한다. 주행과 충전이 동시에 열리는 일은 없다
@@ -161,7 +161,7 @@ TeslaMate의 Grafana 대시보드는 차량 상태를 시간축 띠로 그린다
 - 기존 `tile(_:_:)` 패턴(값 위·라벨 아래, `slate100` 배경, 12pt 라운드)을 그대로 쓴다
 - **라벨이 「최고 속도」가 아니라 「역대 최고」다.** 이 값만 `months` 창을 따르지 않으므로 옆 두 칸과 범위가 다름을 글자로 드러낸다
 - 거리는 `VehicleFormat.odometer`와 같은 규칙(천단위 구분, 정수)으로 찍는다
-- 속도는 새 포매터 `VehicleFormat.speed(_:)` → `"138 km/h"`, nil이면 `ChargeFormat.placeholder`
+- 속도는 새 포매터 `VehicleFormat.speed(_:)` → `"138km/h"`, nil이면 `ChargeFormat.placeholder`. **숫자와 단위를 띄우지 않는다** — `VehicleFormat.distance`가 `"842km"`로 찍는 저장소 관례를 따른다
 
 ---
 
@@ -315,6 +315,7 @@ Swift Testing(`import Testing`). 뷰는 테스트하지 않고 계산과 뷰모�
 
 ## 남은 것
 
-- **`VehicleStatusViewModel.isLoading`이 죽은 상태다.** 그 값을 읽던 자리를 `statusSection`의 마지막 `else`가 흡수했다. 지우거나 다시 쓰거나 정해야 한다.
+- ~~**`VehicleStatusViewModel.isLoading`이 죽은 상태다.**~~ 해소했다 — `statusSection`이 「불러오는 중」 갈래를 되살려 이 값을 다시 읽는다. **로딩이 오류보다 먼저다**(주행 탭과 같은 순서): 「다시 시도」를 눌러도 `errorMessage`는 다음 성공까지 남으므로, 로딩 갈래가 없으면 누른 티가 안 난다. `StateTimelineViewModel.isLoading`도 같은 이유로 `timelineSection`이 읽는다.
 - `status != nil && !hasRecord && errorMessage != nil`이면 빨간 배너와 「아직 기록이 없어요」 패널이 같이 뜬다. 이 조건은 4단계 이전부터 있었다.
 - 서버(`/tesla/state-timeline`, `drive-insights`의 새 필드 셋)는 아직 구현되지 않았다. 앱은 없어도 무너지지 않게 만들었다.
+- **`/tesla/state-timeline`의 404는 「아직 없는 엔드포인트」로 보고 조용히 넘긴다.** 실패로 세우면 미니앱을 여는 첫 화면에 「불러오지 못했습니다 [다시 시도]」가 상주한다 — 주행 통계가 새 필드가 없을 때 카드째 감추는 것과 같은 처리다. **서버가 나오면 저절로 멈춘다.**
