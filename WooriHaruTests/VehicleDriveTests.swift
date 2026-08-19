@@ -43,8 +43,8 @@ struct VehicleDriveViewModelTests {
             ],
             places: places,
             maxSpeedKmh: 138,
-            monthDistanceKm: Decimal(string: "1331.3"),
-            yearDistanceKm: Decimal(string: "13440.4")
+            totalDistanceKm: Decimal(string: "107257.8"),
+            recordedMonths: 60
         )
     }
 
@@ -53,8 +53,8 @@ struct VehicleDriveViewModelTests {
             months: months, efficiencyKwhPerKm: Decimal(string: "0.1367"),
             temperatureBuckets: [], driveTimes: [], distanceBuckets: [], places: [],
             maxSpeedKmh: 138,
-            monthDistanceKm: Decimal(string: "1331.3"),
-            yearDistanceKm: Decimal(string: "13440.4")
+            totalDistanceKm: Decimal(string: "107257.8"),
+            recordedMonths: 60
         )
     }
 
@@ -180,8 +180,8 @@ struct VehicleDriveViewModelTests {
             ],
             places: [],
             maxSpeedKmh: 138,
-            monthDistanceKm: Decimal(string: "1331.3"),
-            yearDistanceKm: Decimal(string: "13440.4")
+            totalDistanceKm: Decimal(string: "107257.8"),
+            recordedMonths: 60
         )
         stub(mock, response)
         let viewModel = makeViewModel(mock)
@@ -208,7 +208,7 @@ struct VehicleDriveViewModelTests {
         let response = DriveInsightsResponse(
             months: 12, efficiencyKwhPerKm: Decimal(string: "0.1367"),
             temperatureBuckets: [], driveTimes: [], distanceBuckets: [], places: [],
-            maxSpeedKmh: nil, monthDistanceKm: nil, yearDistanceKm: nil
+            maxSpeedKmh: nil, totalDistanceKm: nil, recordedMonths: nil
         )
         stub(mock, response)
         let viewModel = makeViewModel(mock)
@@ -224,7 +224,7 @@ struct VehicleDriveViewModelTests {
         let response = DriveInsightsResponse(
             months: 12, efficiencyKwhPerKm: Decimal(string: "0.1367"),
             temperatureBuckets: [], driveTimes: [], distanceBuckets: [], places: [],
-            maxSpeedKmh: 138, monthDistanceKm: nil, yearDistanceKm: nil
+            maxSpeedKmh: 138, totalDistanceKm: nil, recordedMonths: nil
         )
         stub(mock, response)
         let viewModel = makeViewModel(mock)
@@ -234,14 +234,14 @@ struct VehicleDriveViewModelTests {
         #expect(viewModel.showsStats)
     }
 
-    /// **0은 값이다.** 「이번 달 0km」는 값이 없는 것이 아니라 안 탔다는 사실이라
+    /// **0은 값이다.** 「총거리 0km」는 값이 없는 것이 아니라 안 탔다는 사실이라
     /// 카드를 감추면 안 된다.
-    @Test func 이번_달_올해가_0이어도_카드를_낸다() async {
+    @Test func 총거리가_0이어도_카드를_낸다() async {
         let mock = MockAPIClient()
         let response = DriveInsightsResponse(
             months: 12, efficiencyKwhPerKm: Decimal(string: "0.1367"),
             temperatureBuckets: [], driveTimes: [], distanceBuckets: [], places: [],
-            maxSpeedKmh: nil, monthDistanceKm: 0, yearDistanceKm: 0
+            maxSpeedKmh: nil, totalDistanceKm: 0, recordedMonths: 0
         )
         stub(mock, response)
         let viewModel = makeViewModel(mock)
@@ -288,8 +288,8 @@ struct VehicleDriveViewModelTests {
             ],
             distanceBuckets: [], places: [],
             maxSpeedKmh: 138,
-            monthDistanceKm: Decimal(string: "1331.3"),
-            yearDistanceKm: Decimal(string: "13440.4")
+            totalDistanceKm: Decimal(string: "107257.8"),
+            recordedMonths: 60
         )
         stub(mock, response)
         let viewModel = makeViewModel(mock)

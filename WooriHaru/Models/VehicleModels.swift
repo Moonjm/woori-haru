@@ -92,6 +92,24 @@ enum VehicleMath {
         return distanceKm / energyAddedKwh
     }
 
+    /// 월 평균 주행거리 = 총거리 / 기록이 있는 달 수.
+    ///
+    /// **분모가 0이거나 없으면 nil이다.** 서버는 주행이 하나도 없을 때 `recordedMonths: 0`을
+    /// 그대로 낸다 — 그 자리를 서버가 정해 버리면 화면이 따라야 하므로, 막는 것은 여기다.
+    ///
+    /// 총거리가 0인 것은 막지 않는다 — 「안 탔다」는 사실이고 평균 0km가 옳다.
+    static func avgMonthlyDistanceKm(totalKm: Decimal?, months: Int?) -> Decimal? {
+        guard let totalKm, let months, months > 0 else { return nil }
+        return totalKm / Decimal(months)
+    }
+
+    /// 연 평균 = 월 평균 × 12. **월 평균을 거쳐 낸다** — 두 값이 갈리면
+    /// 화면의 두 칸이 서로 어긋난 이야기를 한다.
+    static func avgYearlyDistanceKm(totalKm: Decimal?, months: Int?) -> Decimal? {
+        guard let monthly = avgMonthlyDistanceKm(totalKm: totalKm, months: months) else { return nil }
+        return monthly * 12
+    }
+
     /// 증감 %. 지난달이 없거나 0이면 nil이다 — 0에서 늘었다고 말할 수 없다.
     static func deltaPercent(current: Decimal?, previous: Decimal?) -> Int? {
         guard let current, let previous, previous > 0 else { return nil }

@@ -6,16 +6,15 @@ import Testing
 struct StateTimelineViewModelTests {
 
     private nonisolated static func timeline(states: [StateSegment]) -> StateTimelineResponse {
-        StateTimelineResponse(days: 7,
-                              from: "2026-08-13T00:00:00",
-                              to: "2026-08-19T12:00:00",
+        StateTimelineResponse(from: "2026-08-18T13:00:00",
+                              to: "2026-08-19T13:00:00",
                               states: states, drives: [], charges: [])
     }
 
     private nonisolated static var sample: StateTimelineResponse {
         timeline(states: [StateSegment(state: "online",
-                                       from: "2026-08-13T06:00:00",
-                                       to: "2026-08-13T08:00:00")])
+                                       from: "2026-08-18T18:00:00",
+                                       to: "2026-08-18T20:00:00")])
     }
 
     private func makeViewModel(_ mock: MockAPIClient) -> StateTimelineViewModel {
@@ -43,11 +42,11 @@ struct StateTimelineViewModelTests {
         await viewModel.load()
         await viewModel.load()
 
-        // 누적(ChargeTotalsViewModel)과 반대다 — 「최근 7일」은 창이 계속 움직인다.
+        // 누적(ChargeTotalsViewModel)과 반대다 — 「최근 24시간」은 범위가 계속 움직인다.
         #expect(mock.getCalls.filter { $0.path == "/tesla/state-timeline" }.count == 2)
     }
 
-    @Test func days를_질의로_보낸다() async {
+    @Test func hours를_질의로_보낸다() async {
         let mock = MockAPIClient()
         mock.stubGet("/tesla/state-timeline", result: DataResponse(data: Self.sample))
         let viewModel = makeViewModel(mock)
@@ -55,7 +54,8 @@ struct StateTimelineViewModelTests {
         await viewModel.load()
 
         let call = mock.getCalls.first { $0.path == "/tesla/state-timeline" }
-        #expect(call?.query["days"] == String(StateTimelineViewModel.days))
+        #expect(call?.query["hours"] == String(StateTimelineViewModel.hours))
+        #expect(call?.query["days"] == nil)
     }
 
     @Test func 새로고침에_실패해도_있던_값을_지우지_않는다() async {
@@ -145,8 +145,8 @@ struct StateTimelineViewModelTests {
     @Test func 늦게_도착한_옛_응답이_새_값을_덮어쓰지_않는다() async {
         let stale = Self.sample
         let fresh = Self.timeline(states: [
-            StateSegment(state: "offline", from: "2026-08-14T00:00:00", to: "2026-08-14T06:00:00"),
-            StateSegment(state: "online", from: "2026-08-14T06:00:00", to: "2026-08-14T09:00:00")
+            StateSegment(state: "offline", from: "2026-08-18T14:00:00", to: "2026-08-18T20:00:00"),
+            StateSegment(state: "online", from: "2026-08-18T20:00:00", to: "2026-08-18T23:00:00")
         ])
         let mock = MockAPIClient()
         let gate = AsyncGate()

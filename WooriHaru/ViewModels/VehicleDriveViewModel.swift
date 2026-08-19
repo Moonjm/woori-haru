@@ -41,12 +41,24 @@ final class VehicleDriveViewModel {
     var showsPlaces: Bool { !(insights?.places.isEmpty ?? true) }
 
     /// 셋 다 없으면 서버가 아직 이 필드를 내지 않는 것이다. 하나라도 있으면 그린다 —
-    /// 「이번 달 0km」는 값이 없는 것이 아니라 **안 탔다는 사실**이다.
+    /// 「총거리 0km」는 값이 없는 것이 아니라 **안 탔다는 사실**이다.
     var showsStats: Bool {
         guard let insights else { return false }
         return insights.maxSpeedKmh != nil
-            || insights.monthDistanceKm != nil
-            || insights.yearDistanceKm != nil
+            || insights.totalDistanceKm != nil
+            || insights.recordedMonths != nil
+    }
+
+    /// **뷰가 아니라 여기서 나눈다.** 뷰에서 다시 계산하면 테스트하는 값과 화면에 나오는 값이
+    /// 서로 다른 코드가 된다 — 3단계에서 같은 함정을 두 번 밟았다.
+    var avgMonthlyKm: Decimal? {
+        VehicleMath.avgMonthlyDistanceKm(totalKm: insights?.totalDistanceKm,
+                                         months: insights?.recordedMonths)
+    }
+
+    var avgYearlyKm: Decimal? {
+        VehicleMath.avgYearlyDistanceKm(totalKm: insights?.totalDistanceKm,
+                                        months: insights?.recordedMonths)
     }
 
     struct TemperatureRow: Identifiable {
