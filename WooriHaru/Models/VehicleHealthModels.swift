@@ -151,3 +151,35 @@ extension VehicleFormat {
         return "\(left) / \(number(baseline, fraction: fraction)) \(unit)"
     }
 }
+
+// MARK: - 색 구간
+
+/// 잔존율 색 구간. **`VehicleMath.rounded`로 반올림한 값으로 판정한다** — 옆에 찍는 숫자
+/// (`VehicleFormat.percent`)도 같은 규칙으로 반올림하므로, 원값으로 판정하면 `[89.5, 90)`이
+/// "90%"로 보이면서 색만 노랑이 되는 표기/판정 불일치가 생긴다. 타이어 판정과 같은 규칙이다.
+///
+/// **뷰가 아니라 모델에 둔다** — 링이 사라져도 이 판정은 살아남아야 하고, 테스트가 붙어야 한다.
+enum HealthBand {
+    case good, fair, low
+
+    static func of(_ remainingPercent: Decimal?) -> HealthBand? {
+        guard let remainingPercent else { return nil }
+        let rounded = VehicleMath.rounded(remainingPercent)
+        if rounded >= 90 { return .good }
+        if rounded >= 80 { return .fair }
+        return .low
+    }
+}
+
+/// 현재 잔량 색 구간. **`batteryLevel`이 `Int`라 반올림 불일치가 생길 길이 없다.**
+/// 그래도 판정을 모델에 두는 이유는 위와 같다.
+enum BatteryBand {
+    case high, mid, low
+
+    static func of(_ level: Int?) -> BatteryBand? {
+        guard let level else { return nil }
+        if level >= 50 { return .high }
+        if level >= 20 { return .mid }
+        return .low
+    }
+}

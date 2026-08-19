@@ -41,14 +41,20 @@ struct VehicleDriveViewModelTests {
                 DistanceBucket(fromKm: 50, toKm: 100, driveCount: 36, distanceKm: 2500),
                 DistanceBucket(fromKm: 100, toKm: nil, driveCount: 3, distanceKm: 412),
             ],
-            places: places
+            places: places,
+            maxSpeedKmh: 138,
+            monthDistanceKm: Decimal(string: "1331.3"),
+            yearDistanceKm: Decimal(string: "13440.4")
         )
     }
 
     private nonisolated static func empty(months: Int = 3) -> DriveInsightsResponse {
         DriveInsightsResponse(
             months: months, efficiencyKwhPerKm: Decimal(string: "0.1367"),
-            temperatureBuckets: [], driveTimes: [], distanceBuckets: [], places: []
+            temperatureBuckets: [], driveTimes: [], distanceBuckets: [], places: [],
+            maxSpeedKmh: 138,
+            monthDistanceKm: Decimal(string: "1331.3"),
+            yearDistanceKm: Decimal(string: "13440.4")
         )
     }
 
@@ -172,7 +178,10 @@ struct VehicleDriveViewModelTests {
             distanceBuckets: [
                 DistanceBucket(fromKm: 0, toKm: 5, driveCount: 8, distanceKm: Decimal(string: "32.5")!),
             ],
-            places: []
+            places: [],
+            maxSpeedKmh: 138,
+            monthDistanceKm: Decimal(string: "1331.3"),
+            yearDistanceKm: Decimal(string: "13440.4")
         )
         stub(mock, response)
         let viewModel = makeViewModel(mock)
@@ -191,6 +200,63 @@ struct VehicleDriveViewModelTests {
         await viewModel.load()
 
         #expect(viewModel.showsPlaces)
+    }
+
+    /// 셋 다 없으면 서버가 아직 이 필드를 내지 않는 것이다 — 카드째 감춘다.
+    @Test func 통계_셋이_다_없으면_카드를_감춘다() async {
+        let mock = MockAPIClient()
+        let response = DriveInsightsResponse(
+            months: 12, efficiencyKwhPerKm: Decimal(string: "0.1367"),
+            temperatureBuckets: [], driveTimes: [], distanceBuckets: [], places: [],
+            maxSpeedKmh: nil, monthDistanceKm: nil, yearDistanceKm: nil
+        )
+        stub(mock, response)
+        let viewModel = makeViewModel(mock)
+
+        await viewModel.load()
+
+        #expect(!viewModel.showsStats)
+    }
+
+    /// 하나라도 있으면 그린다 — 나머지 둘이 없다고 카드째 감추지 않는다.
+    @Test func 통계가_하나라도_있으면_카드를_낸다() async {
+        let mock = MockAPIClient()
+        let response = DriveInsightsResponse(
+            months: 12, efficiencyKwhPerKm: Decimal(string: "0.1367"),
+            temperatureBuckets: [], driveTimes: [], distanceBuckets: [], places: [],
+            maxSpeedKmh: 138, monthDistanceKm: nil, yearDistanceKm: nil
+        )
+        stub(mock, response)
+        let viewModel = makeViewModel(mock)
+
+        await viewModel.load()
+
+        #expect(viewModel.showsStats)
+    }
+
+    /// **0은 값이다.** 「이번 달 0km」는 값이 없는 것이 아니라 안 탔다는 사실이라
+    /// 카드를 감추면 안 된다.
+    @Test func 이번_달_올해가_0이어도_카드를_낸다() async {
+        let mock = MockAPIClient()
+        let response = DriveInsightsResponse(
+            months: 12, efficiencyKwhPerKm: Decimal(string: "0.1367"),
+            temperatureBuckets: [], driveTimes: [], distanceBuckets: [], places: [],
+            maxSpeedKmh: nil, monthDistanceKm: 0, yearDistanceKm: 0
+        )
+        stub(mock, response)
+        let viewModel = makeViewModel(mock)
+
+        await viewModel.load()
+
+        #expect(viewModel.showsStats)
+    }
+
+    /// 아직 응답을 못 받은 상태(`insights == nil`)에서는 카드가 없다 — 로딩·에러 화면이
+    /// 그 상태를 이미 말하고 있어 통계 카드까지 겹쳐 나올 자리가 없다.
+    @Test func 응답을_아직_못_받으면_카드를_감춘다() {
+        let viewModel = makeViewModel(MockAPIClient())
+
+        #expect(!viewModel.showsStats)
     }
 
     /// 히트맵은 성기게 온다 — 없는 칸은 0이다. `weekday` 0이 일요일이다.
@@ -220,7 +286,10 @@ struct VehicleDriveViewModelTests {
                 DriveTime(weekday: 1, hour: 8, count: 20),
                 DriveTime(weekday: 1, hour: 8, count: 15),
             ],
-            distanceBuckets: [], places: []
+            distanceBuckets: [], places: [],
+            maxSpeedKmh: 138,
+            monthDistanceKm: Decimal(string: "1331.3"),
+            yearDistanceKm: Decimal(string: "13440.4")
         )
         stub(mock, response)
         let viewModel = makeViewModel(mock)

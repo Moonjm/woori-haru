@@ -414,3 +414,14 @@ GET /tesla/charges/{id}/curve
 - 인덱스가 **있다** — `positions_drive_id_date_timestamp_minmax_multi_ops_index`(BRIN).
 - 실측 **11.7ms**(최근 주행)·**20ms**(오래된 주행)다. 「주행 하나 열 때마다 3,000만 행을 훑는다」는 일어나지 않는다 — `drive_id`가 append 순서와 강하게 상관돼 BRIN이 페이지 범위를 건너뛴다.
 - **접지 않는다.** 다만 새 선행 조건이 생겼다 — 주행 하나에 평균 **4,281 샘플**, 최대 **14,386 샘플**, **km당 478개**다. 20km 주행에 좌표 4,281개를 그대로 받아 그릴 수는 없으므로, **다운샘플링 방식(간격·개수·알고리즘)을 정하는 것이 4단계 설계의 첫 항목이다.**
+
+---
+
+# 이어지는 단계
+
+3단계까지가 이 문서의 범위다. **4단계는 위 「보류」가 예고한 `positions` 작업이 아니라 다른 방향으로 갔다** — 건강 탭의 주인공을 열화에서 현재 상태로 넘기고, 상태 타임라인과 주행 통계를 더한다.
+
+- 앱: `docs/superpowers/specs/2026-08-19-vehicle-state-timeline-design.md`
+- 서버: `../toy-back/docs/superpowers/specs/2026-08-19-tesla-state-timeline-drive-stats-design.md`
+
+**`positions` 항목은 여전히 보류다.** 다운샘플링 방식을 정하는 일도 그대로 남아 있다 — 다만 3단계에서 충전 곡선에 쓴 **구간 최댓값 보존** 방식(`ChargeCurveMath.downsample`)이 그때 없던 선례로 생겼다.
