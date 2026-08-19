@@ -20,6 +20,15 @@ struct VehicleDriveTab: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
+                // **기간 칩과 무관하다.** 세 값 중 어느 것도 `months` 창을 따르지 않는다 —
+                // 역대 최고는 전 기간이고, 이번 달·올해는 고정 기간이다. 「이 기간에 주행이
+                // 없다」는 이유로 감추면 3개월 창이 빈 사람에게 올해 주행거리가 사라진다.
+                if viewModel.showsStats {
+                    DriveStatsCard(maxSpeedKmh: viewModel.insights?.maxSpeedKmh,
+                                   monthDistanceKm: viewModel.insights?.monthDistanceKm,
+                                   yearDistanceKm: viewModel.insights?.yearDistanceKm)
+                }
+
                 content
             }
             .padding(.horizontal, 16)
@@ -83,13 +92,6 @@ struct VehicleDriveTab: View {
     }
 
     @ViewBuilder private var cards: some View {
-        // **서버가 이 셋을 아직 내지 않으면 카드째 감춘다.** 세 칸이 전부 「—」인 카드는
-        // 자리만 차지한다 — 전비 카드를 `showsEfficiency`로 감추는 것과 같은 규칙이다.
-        if showsStats {
-            DriveStatsCard(maxSpeedKmh: viewModel.insights?.maxSpeedKmh,
-                           monthDistanceKm: viewModel.insights?.monthDistanceKm,
-                           yearDistanceKm: viewModel.insights?.yearDistanceKm)
-        }
         // `cars.efficiency`가 없으면 전비를 낼 수 없다. 카드째 감춘다 —
         // 다섯 줄이 전부 「—」인 카드는 자리만 차지한다.
         if viewModel.showsEfficiency {
@@ -107,15 +109,6 @@ struct VehicleDriveTab: View {
         if viewModel.showsPlaces {
             placesCard
         }
-    }
-
-    /// 셋 다 없으면 서버가 아직 이 필드를 내지 않는 것이다. 하나라도 있으면 그린다 —
-    /// 「이번 달 0km」는 값이 없는 것이 아니라 **안 탔다는 사실**이다.
-    private var showsStats: Bool {
-        guard let insights = viewModel.insights else { return false }
-        return insights.maxSpeedKmh != nil
-            || insights.monthDistanceKm != nil
-            || insights.yearDistanceKm != nil
     }
 
     private var placesCard: some View {

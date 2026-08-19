@@ -202,6 +202,63 @@ struct VehicleDriveViewModelTests {
         #expect(viewModel.showsPlaces)
     }
 
+    /// 셋 다 없으면 서버가 아직 이 필드를 내지 않는 것이다 — 카드째 감춘다.
+    @Test func 통계_셋이_다_없으면_카드를_감춘다() async {
+        let mock = MockAPIClient()
+        let response = DriveInsightsResponse(
+            months: 12, efficiencyKwhPerKm: Decimal(string: "0.1367"),
+            temperatureBuckets: [], driveTimes: [], distanceBuckets: [], places: [],
+            maxSpeedKmh: nil, monthDistanceKm: nil, yearDistanceKm: nil
+        )
+        stub(mock, response)
+        let viewModel = makeViewModel(mock)
+
+        await viewModel.load()
+
+        #expect(!viewModel.showsStats)
+    }
+
+    /// 하나라도 있으면 그린다 — 나머지 둘이 없다고 카드째 감추지 않는다.
+    @Test func 통계가_하나라도_있으면_카드를_낸다() async {
+        let mock = MockAPIClient()
+        let response = DriveInsightsResponse(
+            months: 12, efficiencyKwhPerKm: Decimal(string: "0.1367"),
+            temperatureBuckets: [], driveTimes: [], distanceBuckets: [], places: [],
+            maxSpeedKmh: 138, monthDistanceKm: nil, yearDistanceKm: nil
+        )
+        stub(mock, response)
+        let viewModel = makeViewModel(mock)
+
+        await viewModel.load()
+
+        #expect(viewModel.showsStats)
+    }
+
+    /// **0은 값이다.** 「이번 달 0km」는 값이 없는 것이 아니라 안 탔다는 사실이라
+    /// 카드를 감추면 안 된다.
+    @Test func 이번_달_올해가_0이어도_카드를_낸다() async {
+        let mock = MockAPIClient()
+        let response = DriveInsightsResponse(
+            months: 12, efficiencyKwhPerKm: Decimal(string: "0.1367"),
+            temperatureBuckets: [], driveTimes: [], distanceBuckets: [], places: [],
+            maxSpeedKmh: nil, monthDistanceKm: 0, yearDistanceKm: 0
+        )
+        stub(mock, response)
+        let viewModel = makeViewModel(mock)
+
+        await viewModel.load()
+
+        #expect(viewModel.showsStats)
+    }
+
+    /// 아직 응답을 못 받은 상태(`insights == nil`)에서는 카드가 없다 — 로딩·에러 화면이
+    /// 그 상태를 이미 말하고 있어 통계 카드까지 겹쳐 나올 자리가 없다.
+    @Test func 응답을_아직_못_받으면_카드를_감춘다() {
+        let viewModel = makeViewModel(MockAPIClient())
+
+        #expect(!viewModel.showsStats)
+    }
+
     /// 히트맵은 성기게 온다 — 없는 칸은 0이다. `weekday` 0이 일요일이다.
     @Test func 히트맵의_없는_칸은_0이다() async {
         let mock = MockAPIClient()

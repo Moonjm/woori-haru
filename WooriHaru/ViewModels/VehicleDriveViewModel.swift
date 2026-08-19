@@ -40,6 +40,15 @@ final class VehicleDriveViewModel {
     /// 「가끔 비는 경우」로 다루면 안 되고, 등록하기 전까지 이 카드는 늘 감춰진다.
     var showsPlaces: Bool { !(insights?.places.isEmpty ?? true) }
 
+    /// 셋 다 없으면 서버가 아직 이 필드를 내지 않는 것이다. 하나라도 있으면 그린다 —
+    /// 「이번 달 0km」는 값이 없는 것이 아니라 **안 탔다는 사실**이다.
+    var showsStats: Bool {
+        guard let insights else { return false }
+        return insights.maxSpeedKmh != nil
+            || insights.monthDistanceKm != nil
+            || insights.yearDistanceKm != nil
+    }
+
     struct TemperatureRow: Identifiable {
         let bucket: TemperatureBucket
         /// 서버는 합만 낸다. 이 나눗셈이 앱 몫이다.
