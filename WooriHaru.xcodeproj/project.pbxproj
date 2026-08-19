@@ -54,6 +54,7 @@
 		AA100004 /* PauseTypeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200004 /* PauseTypeStore.swift */; };
 		AA100005 /* Logger+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200005 /* Logger+Extensions.swift */; };
 		AA100006 /* SessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200006 /* SessionManager.swift */; };
+		ACC163F6EC88007072F01938 /* ChargeTotalsModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ABE2410B818951F5517EC74 /* ChargeTotalsModels.swift */; };
 		B10001 /* DDayBadgeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20001 /* DDayBadgeService.swift */; };
 		B266A4283E345D5B46CD51CA /* DispatchReviewViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A1655D9FB504D22636292C1 /* DispatchReviewViewModel.swift */; };
 		C10001 /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20001 /* User.swift */; };
@@ -250,6 +251,7 @@
 		3BE34C241CBA8854FC3246DE /* ChargeModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ChargeModels.swift; sourceTree = "<group>"; };
 		43CBFE3ABE85FBB0C5FB8DBF /* DriveBucketCards.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DriveBucketCards.swift; path = Vehicle/DriveBucketCards.swift; sourceTree = "<group>"; };
 		55393AF69906229CC877CA9B /* BatteryHealthCard.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = BatteryHealthCard.swift; path = Vehicle/BatteryHealthCard.swift; sourceTree = "<group>"; };
+		5ABE2410B818951F5517EC74 /* ChargeTotalsModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ChargeTotalsModels.swift; sourceTree = "<group>"; };
 		690A0D0A21A54E8BE01CDC21 /* VehicleModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VehicleModels.swift; sourceTree = "<group>"; };
 		77EA0C38FD701A857D17DCF5 /* VehicleDriveTab.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = VehicleDriveTab.swift; path = Vehicle/VehicleDriveTab.swift; sourceTree = "<group>"; };
 		7EE2658BE836DAFED195B3A5 /* DispatchReviewView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DispatchReviewView.swift; path = Dispatch/DispatchReviewView.swift; sourceTree = "<group>"; };
@@ -665,6 +667,7 @@
 				690A0D0A21A54E8BE01CDC21 /* VehicleModels.swift */,
 				08E59B5B0855655231B8D1EE /* VehicleHealthModels.swift */,
 				D80FDE88B927023C50D1C62C /* DriveInsightsModels.swift */,
+				5ABE2410B818951F5517EC74 /* ChargeTotalsModels.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -1265,6 +1268,7 @@
 				4BBAF07594578B59BCED2771 /* DriveBucketCards.swift in Sources */,
 				526879331CA284F16F93357E /* DriveTimeHeatmap.swift in Sources */,
 				D29BC72FA25A011F29E78D93 /* VehicleDriveTab.swift in Sources */,
+				ACC163F6EC88007072F01938 /* ChargeTotalsModels.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
