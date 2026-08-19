@@ -18,6 +18,7 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
     private var multipartResults: [Int] = []
     private var multipartJSONResults: [String: Any] = [:]
     private var errors: [String: Error] = [:]
+    private var gates: [String: AsyncGate] = [:]
     private var putVoidError: Error?
 
     private var recordedGetCalls: [(path: String, query: [String: String])] = []
@@ -77,6 +78,15 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
     func setError(_ error: Error?, for key: String) {
         lock.lock(); defer { lock.unlock() }
         errors[key] = error
+    }
+
+    /// `"GET /tesla/state-timeline"`처럼 `메서드 경로` 키로 **그 호출을 붙잡아 둘 게이트**를 건다.
+    /// 기본은 아무 호출에도 걸려 있지 않아 있으나 마나다 — `generation` 토큰처럼 「옛 응답이
+    /// 뒤늦게 도착한다」를 실제로 재현해야 하는 테스트만 opt-in으로 건다. `sleep`으로 지연을
+    /// 흉내 내면 경합이 아니라 그 재현 여부가 불안정해지므로, `AsyncGate`로 결정적으로 멈췄다 푼다.
+    func setGate(_ gate: AsyncGate?, for key: String) {
+        lock.lock(); defer { lock.unlock() }
+        gates[key] = gate
     }
 
     /// putVoid가 던질 에러 설정 (롤백 테스트용)
@@ -140,7 +150,12 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
         recordedGetCalls.append((path, query))
         let error = errors["GET \(path)"]
         let result = getResults[path]
+        let gate = gates["GET \(path)"]
         lock.unlock()
+        // **돌려줄 값을 멈추기 전에 읽어 둔다.** 게이트에 걸린 사이 테스트가 다음 응답으로
+        // 바꿔치기하므로, 풀린 뒤에 다시 읽으면 붙잡아 둔 옛 호출까지 새 값을 들고 나온다 —
+        // 그러면 「늦게 도착한 옛 응답」이 재현되지 않는다.
+        if let gate { await gate.hold() }
         if let error { throw error }
         guard let value = result as? T else { throw MockAPIError.unstubbed("GET \(path)") }
         return value

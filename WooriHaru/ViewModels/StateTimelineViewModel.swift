@@ -48,6 +48,15 @@ final class StateTimelineViewModel {
             return
         } catch {
             guard current == generation else { return }
+            // **404는 「못 받았다」가 아니라 「아직 없다」다.** `/tesla/state-timeline`은 다른
+            // 저장소가 나중에 내는 경로라, 그때까지는 탭에 들어올 때마다 404가 온다. 그것을
+            // 실패로 세우면 미니앱을 열자마자 뜨는 첫 화면에 「불러오지 못했습니다 [다시 시도]」가
+            // 상주하고, 눌러 봐야 또 404다. 주행 통계가 새 필드가 없을 때 카드째 감추는 것과
+            // 같은 처리를 경로에도 한다 — **서버가 나오면 이 갈래는 저절로 안 타게 된다.**
+            //
+            // `timeline`도 `errorMessage`도 건드리지 않는다. 성공한 뒤에 온 404가 멀쩡한 값을
+            // 지우면 안 되고, 오류가 없는 채로 두어야 화면이 이 절을 통째로 접는다.
+            if case let APIError.serverError(status, _) = error, status == 404 { return }
             errorMessage = "상태 타임라인을 불러오지 못했습니다."
         }
     }
