@@ -70,7 +70,7 @@ struct StateTimelineChart: View {
         GeometryReader { proxy in
             let width = proxy.size.width
             ZStack(alignment: .leading) {
-                ForEach(Array(ticks.enumerated()), id: \.offset) { _, tick in
+                ForEach(Array(ticks(width: width).enumerated()), id: \.offset) { _, tick in
                     Text(tick.label)
                         .frame(width: tickLabelWidth)
                         .offset(x: width * tick.fraction - tickLabelWidth / 2)
@@ -112,17 +112,24 @@ struct StateTimelineChart: View {
 
     /// 범위 안에 드는 4시간 정각들. 범위가 자정에 맞춰져 있지 않으므로 첫 눈금을
     /// **`from` 다음의 4시간 정각**에서 시작한다.
-    private var ticks: [(fraction: Double, label: String)] {
-        guard span > 0 else { return [] }
+    ///
+    /// **자를지 말지를 비율이 아니라 실제 폭으로 정한다.** 눈금 칸은 `[W·f − 15, W·f + 15]`이고
+    /// 오른쪽 끝 「지금」은 `[W − 30, W]`라, 겹치기 시작하는 비율이 폭에 따라 달라진다
+    /// (320pt에서는 0.86부터다). 고정 비율로 자르면 좁은 기기에서 글자가 포개진다.
+    private func ticks(width: CGFloat) -> [(fraction: Double, label: String)] {
+        guard span > 0, width > 0 else { return [] }
         var result: [(Double, String)] = []
         var cursor = Self.firstTick(after: from)
         while cursor < to {
-            result.append((cursor.timeIntervalSince(from) / span,
-                           Self.hourFormatter.string(from: cursor)))
+            let fraction = cursor.timeIntervalSince(from) / span
+            let leading = width * fraction - tickLabelWidth / 2
+            // 왼쪽으로 삐져나오지 않고, 「지금」 칸과도 겹치지 않을 때만 그린다.
+            if leading >= 0, leading + tickLabelWidth <= width - tickLabelWidth {
+                result.append((fraction, Self.hourFormatter.string(from: cursor)))
+            }
             cursor = cursor.addingTimeInterval(4 * 3600)
         }
-        // 오른쪽 끝의 「지금」과 겹치는 마지막 눈금은 뺀다 — 글자가 포개진다.
-        return result.filter { $0.0 < 0.93 }
+        return result
     }
 
     private static func firstTick(after date: Date) -> Date {
@@ -144,7 +151,9 @@ struct StateTimelineChart: View {
 
         for (kind, label) in Self.spokenStates {
             let ratio = bars.filter { $0.kind == kind }.reduce(0.0) { $0 + ($1.end - $1.start) }
-            let hoursSpent = ratio * Double(hours)
+            // **그려진 범위에서 낸다.** `hours`로 곱하면 서버의 `hours`와 `to − from`이 어긋날 때
+            // 띠는 범위대로 그려지는데 소리만 다른 길이를 말한다.
+            let hoursSpent = ratio * (span / 3600)
             // 0.05시간(3분) 미만은 말하지 않는다 — 「0.0시간」은 있으나 마나다.
             if hoursSpent >= 0.05 { parts.append("\(label) \(String(format: "%.1f", hoursSpent))시간") }
         }

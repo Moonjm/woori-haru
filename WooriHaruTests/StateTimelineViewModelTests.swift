@@ -43,7 +43,7 @@ struct StateTimelineViewModelTests {
         await viewModel.load()
         await viewModel.load()
 
-        // 누적(ChargeTotalsViewModel)과 반대다 — 「최근 7일」은 창이 계속 움직인다.
+        // 누적(ChargeTotalsViewModel)과 반대다 — 「최근 24시간」은 범위가 계속 움직인다.
         #expect(mock.getCalls.filter { $0.path == "/tesla/state-timeline" }.count == 2)
     }
 

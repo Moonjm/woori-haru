@@ -95,4 +95,18 @@ struct StateTimelineTests {
                                            drives: [], charges: [])
         #expect(StateTimelineMath.bars(broken).isEmpty)
     }
+
+    @Test func 범위_밖에_통째로_있는_구간은_막대를_만들지_않는다() {
+        let bars = StateTimelineMath.bars(response(states: [
+            StateSegment(state: "online", from: "2026-08-18T08:00:00", to: "2026-08-18T11:00:00")
+        ]))
+        #expect(bars.isEmpty)
+    }
+
+    @Test func 뒤집힌_구간은_막대를_만들지_않는다() {
+        let bars = StateTimelineMath.bars(response(states: [
+            StateSegment(state: "online", from: "2026-08-18T18:00:00", to: "2026-08-18T16:00:00")
+        ]))
+        #expect(bars.isEmpty)
+    }
 }
