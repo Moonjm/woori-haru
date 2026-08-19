@@ -11,6 +11,7 @@ struct VehicleView: View {
     @State private var summaryViewModel = VehicleSummaryViewModel()
     @State private var statusViewModel = VehicleStatusViewModel()
     @State private var healthViewModel = VehicleHealthViewModel()
+    @State private var totalsViewModel = ChargeTotalsViewModel()
     @State private var driveViewModel = VehicleDriveViewModel()
     @State private var showingMonthPicker = false
     @State private var showingQueue = false
@@ -51,6 +52,10 @@ struct VehicleView: View {
                 await summaryViewModel.reload()
                 await summaryViewModel.refreshMissingCount()
                 await healthViewModel.refreshMissingCount()
+                // 금액을 채우면 누적 충전비·단가·「N건 기준」이 다 움직인다 — 채워진 에너지가
+                // 「금액 없음」 분모에서 빠져나오기 때문이다. 배지만 갱신하면 0건이 된 배지와
+                // 낡은 누적 카드가 건강 탭 같은 화면에 나란히 남는다.
+                await totalsViewModel.reload()
             }
         }) {
             ChargeCostQueueView()
@@ -62,19 +67,22 @@ struct VehicleView: View {
         switch tab {
         case .health:
             VehicleHealthTab(healthViewModel: healthViewModel,
-                             statusViewModel: statusViewModel) { showingQueue = true }
-                // 상태는 탭에 들어올 때마다 새로 받는다. 배터리 건강은 전 기간 집계라
-                // 뷰모델이 한 번만 받고, 배지 수만 매번 맞춘다.
+                             statusViewModel: statusViewModel,
+                             totalsViewModel: totalsViewModel) { showingQueue = true }
+                // 상태는 탭에 들어올 때마다 새로 받는다. 배터리 건강·충전 누적은 전 기간
+                // 집계라 뷰모델이 한 번만 받고, 배지 수만 매번 맞춘다.
                 .task {
                     async let status: Void = statusViewModel.load()
                     async let health: Void = healthViewModel.load()
-                    _ = await (status, health)
+                    async let totals: Void = totalsViewModel.load()
+                    _ = await (status, health, totals)
                 }
         case .drive:
             VehicleDriveTab(viewModel: driveViewModel)
                 .task { await driveViewModel.load() }
         case .summary:
-            VehicleSummaryTab(viewModel: summaryViewModel) { showingQueue = true }
+            VehicleSummaryTab(viewModel: summaryViewModel,
+                              onCostSaved: { await totalsViewModel.reload() }) { showingQueue = true }
         }
     }
 

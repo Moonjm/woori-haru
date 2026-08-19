@@ -224,9 +224,10 @@ enum ChargeFormat {
         return "\(number(ratio * 100, fraction: 0))%"
     }
 
-    /// 292.5 → "₩293/kWh"
+    /// 292.5 → "₩293/kWh". 반올림은 `VehicleMath.rounded`를 거친다 — 누적 카드와 같은 규칙이라
+    /// 정확히 .5에서 두 화면이 갈리지 않는다.
     static func unitPrice(_ value: Decimal?) -> String {
         guard let value else { return placeholder }
-        return "\(LedgerFormat.amount(value, currency: "KRW"))/kWh"
+        return "\(LedgerFormat.amount(VehicleMath.rounded(value), currency: "KRW"))/kWh"
     }
 }

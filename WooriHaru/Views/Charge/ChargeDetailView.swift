@@ -18,6 +18,8 @@ struct ChargeDetailView: View {
     /// 저장에 성공한 금액. 이어지는 상세 조회가 실패해도 화면이 옛 금액으로 되돌아가지 않게 한다.
     /// 상세를 다시 받으면 서버 값이 사실이므로 비운다.
     @State private var savedCost: Decimal?
+    @State private var curve: [ChargeCurveSample]?
+    @State private var curveFailed = false
 
     private let service = ChargeService()
 
@@ -35,6 +37,9 @@ struct ChargeDetailView: View {
                     sessionCard
                     if let detail {
                         chargerCard(detail)
+                        if let curve {
+                            ChargeCurveChart(samples: curve)
+                        }
                         placeCard(detail)
                     } else if isLoading {
                         ProgressView().padding(.top, 8)
@@ -72,6 +77,12 @@ struct ChargeDetailView: View {
                 .presentationDetents([.height(280)])
             }
             .task { await reloadDetail() }
+            // 상세의 id에 매인다 — 시트가 닫히면 뷰와 함께 취소된다.
+            // 상세가 아직 없으면(id가 nil) 아무 것도 하지 않으니 상세보다 먼저 돌지 않는다.
+            .task(id: detail?.id) {
+                guard let detail else { return }
+                await loadCurveIfFast(detail)
+            }
         }
     }
 
@@ -212,12 +223,29 @@ struct ChargeDetailView: View {
             detail = loaded
             savedCost = nil // 서버 값이 사실이다
             errorMessage = nil
+            // 곡선은 `.task(id: detail?.id)`가 따로 돈다 — 상세가 이미 그려진 뒤에 시작되고,
+            // 뷰가 사라지면 함께 취소된다.
         } catch is CancellationError {
             return
         } catch {
             guard generation == detailGeneration else { return }
             // 목록에서 아는 값은 그대로 두고 못 받은 사실만 알린다.
             errorMessage = "상세를 불러오지 못했습니다."
+        }
+    }
+
+    /// **급속에만 곡선을 그린다.** 완속은 실측으로 7시간 내내 6kW 한 줄이라 볼 것이 없는데
+    /// 샘플만 급속의 3.4배다(1,980개까지 온다). `fastCharger`가 nil이면 급속 여부를 모르는
+    /// 것이므로 그리지 않는다 — 「완속」이라고 단정하지도 않는 기존 표기와 같은 규칙이다.
+    private func loadCurveIfFast(_ detail: ChargeDetail) async {
+        guard detail.fastCharger == true, curve == nil, !curveFailed else { return }
+        do {
+            curve = try await service.fetchCurve(id: detail.id).samples
+        } catch is CancellationError {
+            return
+        } catch {
+            // 곡선 하나 때문에 상세를 죽이지 않는다. 조용히 접는다.
+            curveFailed = true
         }
     }
 }
