@@ -58,6 +58,38 @@ struct VehicleServiceTests {
         #expect(mock.getCalls.first?.query == ["limit": "50"])
     }
 
+    /// 파라미터가 없다. 전 기간이 오고, 몇 개월을 그릴지는 앱이 정한다.
+    @Test func 배터리_건강은_파라미터_없이_부른다() async throws {
+        let mock = MockAPIClient()
+        mock.stubGet("/tesla/battery-health", result: DataResponse<BatteryHealthResponse>(
+            data: BatteryHealthResponse(samples: [
+                BatteryHealthSample(yearMonth: "2026-07", fullRangeKm: Decimal(string: "527.1")!,
+                                    capacityKwh: nil, sampleCount: 1, capacitySampleCount: 0),
+                BatteryHealthSample(yearMonth: "2026-08", fullRangeKm: Decimal(string: "525.3")!,
+                                    capacityKwh: Decimal(string: "71.6")!,
+                                    sampleCount: 3, capacitySampleCount: 1),
+            ])
+        ))
+        let service = VehicleService(api: mock)
+
+        let health = try await service.fetchBatteryHealth()
+
+        #expect(health.samples.count == 2)
+        #expect(mock.getCalls.map(\.path) == ["/tesla/battery-health"])
+        #expect(mock.getCalls.first?.query == [:])
+    }
+
+    /// 표본이 하나도 없는 것은 에러가 아니다 — 「아직 잴 만한 충전이 없다」다.
+    @Test func 표본이_없어도_에러가_아니다() async throws {
+        let mock = MockAPIClient()
+        mock.stubGet("/tesla/battery-health", result: DataResponse<BatteryHealthResponse>(
+            data: BatteryHealthResponse(samples: [])
+        ))
+        let service = VehicleService(api: mock)
+
+        #expect(try await service.fetchBatteryHealth().samples.isEmpty)
+    }
+
     /// 서버가 200에 빈 본문을 주면 화면이 빈 달로 착각하지 않게 에러로 끊는다.
     @Test func 본문이_비면_에러다() async {
         let mock = MockAPIClient()

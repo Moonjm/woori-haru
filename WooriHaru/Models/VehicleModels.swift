@@ -114,7 +114,9 @@ enum VehicleMath {
         max(0, Int(now.timeIntervalSince(date) / 60))
     }
 
-    private static func rounded(_ value: Decimal) -> Decimal {
+    /// **`VehicleHealthModels.swift`의 확장도 쓴다** — 그래서 private가 아니다.
+    /// 반올림 규칙을 두 벌 두면 잔존율과 열화가 화면에서 101%가 되는 달이 나온다.
+    static func rounded(_ value: Decimal) -> Decimal {
         var original = value
         var result = Decimal()
         NSDecimalRound(&result, &original, 0, .plain)
@@ -145,7 +147,8 @@ enum VehicleFormat {
         return nil
     }
 
-    private static func number(_ value: Decimal, fraction: Int, grouping: Bool = true) -> String {
+    /// **`VehicleHealthModels.swift`의 확장도 쓴다** — 그래서 private가 아니다.
+    static func number(_ value: Decimal, fraction: Int, grouping: Bool = true) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
         formatter.usesGroupingSeparator = grouping
@@ -176,10 +179,12 @@ enum VehicleFormat {
 
     /// 2.9 → "42psi". **화면에는 psi만 낸다** — 서버가 주는 bar는 TeslaMate의 저장 단위일 뿐,
     /// 타이어에 넣을 때 쓰는 단위도 차 문틀의 권장값도 psi다.
-
+    ///
+    /// bar→psi 변환만 하고 나머지는 `VehicleHealthModels.psiText(_:)`에 그대로 맡긴다 —
+    /// 반올림-후-표기 규칙을 두 곳에 따로 두면 한쪽만 고쳤을 때 표기와 판정이 갈린다
+    /// (`tireStatus(bar:)`가 겪었던 그 불일치). 임의로 되돌려 두 벌로 쪼개지 말 것.
     static func pressurePsi(_ bar: Decimal?) -> String {
-        guard let psi = VehicleMath.psi(fromBar: bar) else { return ChargeFormat.placeholder }
-        return "\(number(psi, fraction: 0))psi"
+        psiText(VehicleMath.psi(fromBar: bar))
     }
 
     static func relative(minutes: Int) -> String {
