@@ -149,4 +149,24 @@ struct VehicleHealthMathTests {
         #expect(decoded.samples[0].capacityKwh == nil)
         #expect(decoded.samples[1].capacityKwh == Decimal(string: "71.6"))
     }
+
+    // MARK: - 색 구간
+
+    @Test func 잔존율_색은_반올림한_값으로_판정한다() {
+        // [89.5, 90)은 "90%"로 찍힌다 — 색도 90% 구간이어야 표기와 판정이 갈리지 않는다.
+        #expect(HealthBand.of(Decimal(string: "89.5")) == .good)
+        #expect(HealthBand.of(Decimal(string: "89.4")) == .fair)
+        #expect(HealthBand.of(Decimal(string: "79.5")) == .fair)
+        #expect(HealthBand.of(Decimal(string: "79.4")) == .low)
+        #expect(HealthBand.of(90) == .good)
+        #expect(HealthBand.of(nil) == nil)
+    }
+
+    @Test func 잔량_색은_정수_경계로_갈린다() {
+        #expect(BatteryBand.of(50) == .high)
+        #expect(BatteryBand.of(49) == .mid)
+        #expect(BatteryBand.of(20) == .mid)
+        #expect(BatteryBand.of(19) == .low)
+        #expect(BatteryBand.of(nil) == nil)
+    }
 }

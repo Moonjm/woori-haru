@@ -16,6 +16,7 @@
 		22B1CD41D5FC96447160F8DE /* VehicleSummaryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC8A90FDD89774BFAF064AA2 /* VehicleSummaryViewModel.swift */; };
 		2C5AD835581BB34B0C4D2A1D /* VehicleHealthTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B389E9541F66717EB0D7392 /* VehicleHealthTab.swift */; };
 		2E857A7404304B09C194DE32 /* VehicleHealthModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08E59B5B0855655231B8D1EE /* VehicleHealthModels.swift */; };
+		3ABE1D81C2171ADDA771C858 /* BatteryNowCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1290DDC78D6B77BC67BF5EFC /* BatteryNowCard.swift */; };
 		453AA4BE6F7BD87A2E9F53F2 /* DispatchModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = D49A101711DCAF5B5FAFD364 /* DispatchModels.swift */; };
 		4BBAF07594578B59BCED2771 /* DriveBucketCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43CBFE3ABE85FBB0C5FB8DBF /* DriveBucketCards.swift */; };
 		526879331CA284F16F93357E /* DriveTimeHeatmap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33C282968375906893CFAD99 /* DriveTimeHeatmap.swift */; };
@@ -246,6 +247,7 @@
 		09020C369FEE3FA5F7F7D34F /* StateTimelineViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StateTimelineViewModel.swift; sourceTree = "<group>"; };
 		0B389E9541F66717EB0D7392 /* VehicleHealthTab.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = VehicleHealthTab.swift; path = Vehicle/VehicleHealthTab.swift; sourceTree = "<group>"; };
 		1061EE82F134CAE49735C9D5 /* VehicleTrendChart.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = VehicleTrendChart.swift; path = Vehicle/VehicleTrendChart.swift; sourceTree = "<group>"; };
+		1290DDC78D6B77BC67BF5EFC /* BatteryNowCard.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = BatteryNowCard.swift; path = Vehicle/BatteryNowCard.swift; sourceTree = "<group>"; };
 		16A698C7EEF686C57695DBA8 /* ChargeDetailView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ChargeDetailView.swift; path = Charge/ChargeDetailView.swift; sourceTree = "<group>"; };
 		26AE34FD1C4248D055A63A49 /* ChargeService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ChargeService.swift; sourceTree = "<group>"; };
 		2752001B1F1C6B23D62A759B /* ChargeCostQueueViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ChargeCostQueueViewModel.swift; sourceTree = "<group>"; };
@@ -560,6 +562,7 @@
 				33C282968375906893CFAD99 /* DriveTimeHeatmap.swift */,
 				77EA0C38FD701A857D17DCF5 /* VehicleDriveTab.swift */,
 				D4A2F8E3D8868F29934E27D0 /* ChargeTotalsCard.swift */,
+				1290DDC78D6B77BC67BF5EFC /* BatteryNowCard.swift */,
 			);
 			name = Vehicle;
 			sourceTree = "<group>";
@@ -1289,6 +1292,7 @@
 				D4675DAC74C1146DB7179E37 /* ChargeCurveChart.swift in Sources */,
 				7A2EBE0EE90236D293C9D669 /* StateTimelineModels.swift in Sources */,
 				EB0B5D92B892DFD790210BC3 /* StateTimelineViewModel.swift in Sources */,
+				3ABE1D81C2171ADDA771C858 /* BatteryNowCard.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
