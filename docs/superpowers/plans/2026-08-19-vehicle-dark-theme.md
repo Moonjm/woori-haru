@@ -885,7 +885,7 @@ git commit -m "feat: 상태 탭 강조를 진한 패널에서 민트 링으로 �
 
 - [ ] **Step 8: 남은 밝은 토큰이 없는지 확인한다**
 
-Run: `grep -n 'Color\.slate\|Color\.blue\|Color\.green\|Color\.orange\|Color\.red\|Color\.navy' WooriHaru/Views/Vehicle/StateTimelineChart.swift WooriHaru/Views/Vehicle/VehicleDriveTab.swift WooriHaru/Views/Vehicle/DriveStatsCard.swift WooriHaru/Views/Vehicle/DriveBucketCards.swift WooriHaru/Views/Vehicle/DriveTimeHeatmap.swift WooriHaru/Views/Vehicle/DegradationTrendChart.swift`
+Run: `grep -nE '(^|[^A-Za-z0-9_])(Color)?\.(slate|blue|green|orange|red|navy)[0-9]+' WooriHaru/Views/Vehicle/StateTimelineChart.swift WooriHaru/Views/Vehicle/VehicleDriveTab.swift WooriHaru/Views/Vehicle/DriveStatsCard.swift WooriHaru/Views/Vehicle/DriveBucketCards.swift WooriHaru/Views/Vehicle/DriveTimeHeatmap.swift WooriHaru/Views/Vehicle/DegradationTrendChart.swift`
 
 Expected: 출력 없음.
 
@@ -1039,7 +1039,7 @@ git commit -m "feat: 타임라인과 주행 탭을 다크 팔레트로 옮긴다
 
 - [ ] **Step 10: 범위 전체에 밝은 토큰이 하나도 안 남았는지 확인한다**
 
-Run: `grep -rn 'Color\.slate\|Color\.blue\|Color\.green\|Color\.orange\|Color\.red\|Color\.navy' WooriHaru/Views/Vehicle/ WooriHaru/Views/Charge/`
+Run: `grep -rnE '(^|[^A-Za-z0-9_])(Color)?\.(slate|blue|green|orange|red|navy)[0-9]+' --include='*.swift' WooriHaru/Views/Vehicle/ WooriHaru/Views/Charge/`
 
 Expected: **출력 없음.** 하나라도 남으면 그 자리는 검은 바탕에 검은 글씨이거나 어두운 카드에 밝은 회색 타일이다.
 
