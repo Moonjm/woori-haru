@@ -1,6 +1,6 @@
 import Foundation
 
-/// 차량 API — 월 요약(그 달 충전 목록 포함)·현재 상태·배터리 건강·금액 미등록 목록.
+/// 차량 API — 월 요약(그 달 충전 목록 포함)·현재 상태·배터리 건강·주행 인사이트·금액 미등록 목록.
 /// 충전 상세와 금액 수정은 `ChargeService`가 그대로 맡는다.
 struct VehicleService: Sendable {
     private let api: any APIClientProtocol
@@ -34,6 +34,17 @@ struct VehicleService: Sendable {
             throw APIError.serverError(statusCode: 200, message: "배터리 건강 응답이 비어 있습니다")
         }
         return health
+    }
+
+    /// 네 카드가 **한 응답**에 온다 — 나누면 같은 화면이 네 번 부르고 그중 셋은
+    /// 나머지 하나를 기다린다. `months`는 응답에 되돌아 실려 온다.
+    func fetchDriveInsights(months: Int) async throws -> DriveInsightsResponse {
+        let response: DataResponse<DriveInsightsResponse> =
+            try await api.get("/tesla/drive-insights", query: ["months": String(months)])
+        guard let insights = response.data else {
+            throw APIError.serverError(statusCode: 200, message: "주행 인사이트 응답이 비어 있습니다")
+        }
+        return insights
     }
 
     /// 기간이 없다. 채워 넣으려는 사람에게 필요한 것은 「빈 건 전부」다.

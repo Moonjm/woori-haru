@@ -90,6 +90,41 @@ struct VehicleServiceTests {
         #expect(try await service.fetchBatteryHealth().samples.isEmpty)
     }
 
+    /// 기간은 쿼리로 간다. 서버가 받는 범위는 1~60이고 화면은 3·12만 쓴다.
+    @Test func 주행_인사이트는_개월수를_붙여_부른다() async throws {
+        let mock = MockAPIClient()
+        mock.stubGet("/tesla/drive-insights", result: DataResponse<DriveInsightsResponse>(
+            data: DriveInsightsResponse(
+                months: 12, efficiencyKwhPerKm: Decimal(string: "0.1367"),
+                temperatureBuckets: [], driveTimes: [], distanceBuckets: [], places: []
+            )
+        ))
+        let service = VehicleService(api: mock)
+
+        let insights = try await service.fetchDriveInsights(months: 12)
+
+        #expect(insights.months == 12)
+        #expect(mock.getCalls.map(\.path) == ["/tesla/drive-insights"])
+        #expect(mock.getCalls.first?.query == ["months": "12"])
+    }
+
+    /// 그 기간에 주행이 없는 것은 에러가 아니다 — 「이 기간에 주행 기록이 없어요」다.
+    @Test func 주행이_없어도_에러가_아니다() async throws {
+        let mock = MockAPIClient()
+        mock.stubGet("/tesla/drive-insights", result: DataResponse<DriveInsightsResponse>(
+            data: DriveInsightsResponse(
+                months: 3, efficiencyKwhPerKm: nil,
+                temperatureBuckets: [], driveTimes: [], distanceBuckets: [], places: []
+            )
+        ))
+        let service = VehicleService(api: mock)
+
+        let insights = try await service.fetchDriveInsights(months: 3)
+
+        #expect(insights.distanceBuckets.isEmpty)
+        #expect(insights.efficiencyKwhPerKm == nil)
+    }
+
     /// 서버가 200에 빈 본문을 주면 화면이 빈 달로 착각하지 않게 에러로 끊는다.
     @Test func 본문이_비면_에러다() async {
         let mock = MockAPIClient()

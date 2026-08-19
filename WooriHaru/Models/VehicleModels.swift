@@ -148,11 +148,14 @@ enum VehicleFormat {
     }
 
     /// **`VehicleHealthModels.swift`의 확장도 쓴다** — 그래서 private가 아니다.
-    static func number(_ value: Decimal, fraction: Int, grouping: Bool = true) -> String {
+    /// `minFraction`은 기본 0이라 기존 호출부(`distance`·`odometer`·`againstBaseline` 등)는
+    /// 그대로다 — 소수점 끝자리 0을 지금처럼 잘라낸다. `efficiency`만 1을 넘겨 예외를 둔다.
+    static func number(_ value: Decimal, fraction: Int, minFraction: Int = 0, grouping: Bool = true) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
         formatter.usesGroupingSeparator = grouping
         formatter.maximumFractionDigits = fraction
+        formatter.minimumFractionDigits = minFraction
         return formatter.string(from: value as NSDecimalNumber) ?? "\(value)"
     }
 
@@ -165,10 +168,12 @@ enum VehicleFormat {
     /// 41203.8 → "41,204km"
     static func odometer(_ km: Decimal?) -> String { distance(km) }
 
-    /// 4.518… → "4.5km/kWh"
+    /// 4.518… → "4.5km/kWh", 6.0349… → "6.0km/kWh".
+    /// **소수 한 자리를 늘 낸다** — 전비는 여러 값을 나란히 견주는 자리에 쓰이는데
+    /// 「6」과 「6.7」이 한 열에 섞이면 자릿수가 흔들려 읽기 어렵다. 측정값이라 `5.0`이 `5`보다 옳기도 하다.
     static func efficiency(_ value: Decimal?) -> String {
         guard let value else { return ChargeFormat.placeholder }
-        return "\(number(value, fraction: 1))km/kWh"
+        return "\(number(value, fraction: 1, minFraction: 1))km/kWh"
     }
 
     /// 62.09… → "₩62/km"
