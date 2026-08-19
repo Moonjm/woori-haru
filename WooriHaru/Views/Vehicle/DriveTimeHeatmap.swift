@@ -10,6 +10,9 @@ import SwiftUI
 struct DriveTimeHeatmap: View {
     let count: (Int, Int) -> Int
     let maxCount: Int
+    /// **거리 카드와 같은 수다** — 온도 카드는 주행가능거리 소모가 0 이하인 주행을
+    /// 걸러 내 939로 다르게 나오므로, 여기는 거리·시간대가 서는 959를 그대로 쓴다.
+    let driveCount: Int
 
     /// 눈금을 다는 시각. 24개를 다 적으면 읽을 수 없다.
     private static let markedHours = [0, 6, 12, 18]
@@ -17,10 +20,20 @@ struct DriveTimeHeatmap: View {
     var body: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: 8) {
-                Text("언제 타나")
-                    .font(.caption)
-                    .fontWeight(.bold)
-                    .foregroundStyle(Color.slate500)
+                // `DriveBucketCards.swift`의 `header(_:_:)`와 같은 모양(제목 왼쪽, 모수
+                // 오른쪽)을 그대로 맞춘다. 그 헬퍼는 그 파일에 `private`이라 여기서
+                // 재사용할 수 없어 모양만 따라 그린다.
+                HStack(alignment: .firstTextBaseline) {
+                    Text("언제 타나")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundStyle(Color.slate500)
+                    Spacer(minLength: 8)
+                    Text("\(driveCount)회 기준")
+                        .font(.caption2)
+                        .monospacedDigit()
+                        .foregroundStyle(Color.slate400)
+                }
 
                 ForEach(0..<7, id: \.self) { weekday in
                     row(weekday)
@@ -113,9 +126,9 @@ struct DriveTimeHeatmap: View {
         return map
     }()
     return VStack(spacing: 12) {
-        DriveTimeHeatmap(count: { sample[$0 * 24 + $1] ?? 0 }, maxCount: 40)
+        DriveTimeHeatmap(count: { sample[$0 * 24 + $1] ?? 0 }, maxCount: 40, driveCount: 959)
         // 표본이 없을 때
-        DriveTimeHeatmap(count: { _, _ in 0 }, maxCount: 0)
+        DriveTimeHeatmap(count: { _, _ in 0 }, maxCount: 0, driveCount: 0)
     }
     .padding(16)
     .background(Color.slate50)

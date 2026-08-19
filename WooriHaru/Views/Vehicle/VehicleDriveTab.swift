@@ -89,8 +89,10 @@ struct VehicleDriveTab: View {
             TemperatureEfficiencyCard(rows: viewModel.temperatureRows,
                                       driveCount: viewModel.temperatureDriveCount)
         }
+        // 거리 카드와 같은 모수(959)를 쓴다 — 전비 카드의 939와는 다르다.
         DriveTimeHeatmap(count: { viewModel.heatCount(weekday: $0, hour: $1) },
-                         maxCount: viewModel.maxHeatCount)
+                         maxCount: viewModel.maxHeatCount,
+                         driveCount: viewModel.distanceDriveCount)
         DistanceDistributionCard(buckets: viewModel.insights?.distanceBuckets ?? [],
                                  driveCount: viewModel.distanceDriveCount)
         // **지오펜스가 없는 것이 이 차량의 기본 상태다**(`geofences` 0행). 등록하기
@@ -107,7 +109,10 @@ struct VehicleDriveTab: View {
                     .font(.caption)
                     .fontWeight(.bold)
                     .foregroundStyle(Color.slate500)
-                ForEach(viewModel.insights?.places ?? []) { place in
+                // 서버가 지오펜스 id로 묶어 같은 이름이 둘 올 수 있는데 응답에는 id가
+                // 없다 — 위치로 아이디를 삼는다. 서버 랭킹 그대로인 읽기 전용 목록이라
+                // (건수 내림차순 상위 10개) 선택·애니메이션 상태가 없어 위치가 안전하다.
+                ForEach(Array((viewModel.insights?.places ?? []).enumerated()), id: \.offset) { _, place in
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
                         // **이름만 낸다** — 주소는 서버가 싣지 않는다.
                         Text(place.name)
