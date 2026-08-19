@@ -54,14 +54,15 @@ struct ChargeCurveChart: View {
 
     private static let height: CGFloat = 130
 
-    private var points: [(minutes: Double, powerKw: Int)] {
-        ChargeCurveMath.elapsedMinutes(ChargeCurveMath.downsample(samples))
-    }
+    /// (경과 분, kW) 쌍 하나. 다운샘플·경과분 계산은 아래서 딱 한 번만 돈다 —
+    /// `body`·`header`·`peak`·`plot`·`duration`·`axis`가 나눠 쓴다.
+    private typealias Point = (minutes: Double, powerKw: Int)
 
     var body: some View {
+        let points: [Point] = ChargeCurveMath.elapsedMinutes(ChargeCurveMath.downsample(samples))
         GlassCard {
             VStack(alignment: .leading, spacing: 10) {
-                header
+                header(points)
                 if points.count < 2 {
                     // 점 하나로는 곡선이 아니다.
                     Text("이 충전엔 그릴 만한 곡선이 없어요")
@@ -70,18 +71,18 @@ struct ChargeCurveChart: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.vertical, 20)
                 } else {
-                    GeometryReader { proxy in plot(in: proxy.size) }
+                    GeometryReader { proxy in plot(points, in: proxy.size) }
                         .frame(height: Self.height)
-                    axis
+                    axis(points)
                 }
             }
         }
     }
 
-    private var peak: Int { points.map(\.powerKw).max() ?? 0 }
-    private var duration: Double { points.last?.minutes ?? 0 }
+    private func peak(_ points: [Point]) -> Int { points.map(\.powerKw).max() ?? 0 }
+    private func duration(_ points: [Point]) -> Double { points.last?.minutes ?? 0 }
 
-    private var header: some View {
+    private func header(_ points: [Point]) -> some View {
         HStack(alignment: .firstTextBaseline) {
             Text("충전 곡선")
                 .font(.caption)
@@ -89,7 +90,7 @@ struct ChargeCurveChart: View {
                 .foregroundStyle(Color.slate500)
             Spacer(minLength: 8)
             if points.count >= 2 {
-                Text("최고 \(peak)kW")
+                Text("최고 \(peak(points))kW")
                     .font(.caption)
                     .fontWeight(.bold)
                     .monospacedDigit()
@@ -98,15 +99,16 @@ struct ChargeCurveChart: View {
         }
     }
 
-    private func plot(in size: CGSize) -> some View {
-        let maxKw = max(1, peak)
-        let span = max(1, duration)
-        func at(_ p: (minutes: Double, powerKw: Int)) -> CGPoint {
+    private func plot(_ points: [Point], in size: CGSize) -> some View {
+        let maxKw = max(1, peak(points))
+        let span = max(1, duration(points))
+        func at(_ p: Point) -> CGPoint {
             CGPoint(x: size.width * CGFloat(p.minutes / span),
                     y: size.height * (1 - CGFloat(Double(p.powerKw) / Double(maxKw))))
         }
         return ZStack(alignment: .topLeading) {
-            // 채운 면 — 곡선 아래가 곧 들어간 에너지다.
+            // 채운 면 — 전력이 어떤 모양으로 들어갔는지 보여준다. 버킷마다 최고점을 남기므로
+            // 넓이는 실제로 들어간 에너지보다 높게 보인다.
             Path { path in
                 path.move(to: CGPoint(x: 0, y: size.height))
                 for p in points { path.addLine(to: at(p)) }
@@ -124,11 +126,11 @@ struct ChargeCurveChart: View {
         }
     }
 
-    private var axis: some View {
+    private func axis(_ points: [Point]) -> some View {
         HStack {
             Text("0분")
             Spacer()
-            Text("\(Int(duration.rounded()))분")
+            Text("\(Int(duration(points).rounded()))분")
         }
         .font(.caption2)
         .monospacedDigit()

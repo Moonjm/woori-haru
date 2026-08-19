@@ -27,6 +27,9 @@ struct ChargeRow: View {
             }
             .frame(height: 4)
             .accessibilityLabel("배터리 \(start)%에서 \(end)%로")
+            .padding(.top, 6)
+            .padding(.bottom, 12)
+            .padding(.horizontal, 16)
         }
     }
 
@@ -77,8 +80,6 @@ struct ChargeRow: View {
             .padding(.vertical, 12)
 
             batteryGauge
-                .padding(.top, 6)
-                .padding(.horizontal, 16)
         }
         // 게이지까지가 한 행이라 보이는 만큼이 눌려야 한다 — Spacer의 빈 공간이 위임되지 않기 때문에 외곽 컨테이너에 정형이 필요하다.
         .contentShape(.rect)

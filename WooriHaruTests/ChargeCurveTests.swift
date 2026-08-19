@@ -13,9 +13,10 @@ struct ChargeCurveTests {
     }
 
     /// 폰 차트 폭이 ~340pt라 1,980개는 어차피 못 그린다. **줄이되 봉우리를 잃지 않는다.**
+    /// 알고리즘은 이 입력에서 정확히 150개를 낸다 — 덜 나오는 회귀를 느슨한 `<=`로는 못 잡는다.
     @Test func 상한보다_많으면_줄인다() {
         let many = (0..<510).map { Self.sample($0, 100) }
-        #expect(ChargeCurveMath.downsample(many, to: 150).count <= 150)
+        #expect(ChargeCurveMath.downsample(many, to: 150).count == 150)
     }
 
     /// **상한 이하면 손대지 않는다.** 줄일 이유가 없는데 줄이면 없던 왜곡이 생긴다.
