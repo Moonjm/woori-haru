@@ -48,6 +48,55 @@ struct ChargeServiceTests {
         #expect(detail.id == 3312)
         #expect(mock.getCalls.map(\.path) == ["/tesla/charges/3312"])
     }
+
+    /// 파라미터가 없다. 전 기간이다.
+    @Test func 누적은_파라미터_없이_부른다() async throws {
+        let mock = MockAPIClient()
+        mock.stubGet("/tesla/charges/totals", result: DataResponse<ChargeTotalsResponse>(
+            data: ChargeTotalsResponse(
+                chargeCount: 474, energyAddedKwh: nil, energyUsedKwh: nil, cost: nil,
+                costMissingCount: 35, costMissingEnergyUsedKwh: nil, firstChargedAt: "2021-09-03",
+                fast: ChargeTotalsBreakdown(chargeCount: 42, energyAddedKwh: nil, energyUsedKwh: nil,
+                                            cost: nil, costMissingCount: 24,
+                                            costMissingEnergyUsedKwh: nil),
+                slow: ChargeTotalsBreakdown(chargeCount: 432, energyAddedKwh: nil, energyUsedKwh: nil,
+                                            cost: nil, costMissingCount: 11,
+                                            costMissingEnergyUsedKwh: nil)
+            )
+        ))
+        let service = ChargeService(api: mock)
+
+        let totals = try await service.fetchTotals()
+
+        #expect(totals.chargeCount == 474)
+        #expect(mock.getCalls.map(\.path) == ["/tesla/charges/totals"])
+        #expect(mock.getCalls.first?.query == [:])
+    }
+
+    @Test func 곡선은_id를_경로에_넣어_부른다() async throws {
+        let mock = MockAPIClient()
+        mock.stubGet("/tesla/charges/402/curve", result: DataResponse<ChargeCurveResponse>(
+            data: ChargeCurveResponse(samples: [
+                ChargeCurveSample(at: "2025-09-10T13:02:11", powerKw: 166, batteryLevel: 11),
+            ])
+        ))
+        let service = ChargeService(api: mock)
+
+        let curve = try await service.fetchCurve(id: 402)
+
+        #expect(curve.samples.count == 1)
+        #expect(mock.getCalls.map(\.path) == ["/tesla/charges/402/curve"])
+    }
+
+    /// **샘플이 없는 세션은 빈 배열이다** — 없는 id·진행 중(404)과 다르게 그려야 한다.
+    @Test func 샘플이_없어도_에러가_아니다() async throws {
+        let mock = MockAPIClient()
+        mock.stubGet("/tesla/charges/9/curve",
+                     result: DataResponse<ChargeCurveResponse>(data: ChargeCurveResponse(samples: [])))
+        let service = ChargeService(api: mock)
+
+        #expect(try await service.fetchCurve(id: 9).samples.isEmpty)
+    }
 }
 
 struct ChargeDetailTests {

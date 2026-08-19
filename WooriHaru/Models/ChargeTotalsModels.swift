@@ -65,3 +65,26 @@ extension VehicleFormat {
         return "\(LedgerFormat.amount(VehicleMath.rounded(value), currency: "KRW"))/kWh"
     }
 }
+
+// MARK: - 곡선
+
+/// 한 세션의 kW 곡선. **서버가 줄이지 않고 그대로 낸다** — 실측으로 급속 최대 510개,
+/// 완속 최대 1,980개다. 어느 점을 버릴지는 앱이 정한다.
+struct ChargeCurveResponse: Codable, Equatable {
+    /// 시각순. **샘플이 없는 세션은 빈 배열이다**(null이 아니다).
+    /// 없는 id·진행 중인 세션은 404라 여기까지 오지 않는다 — 둘을 다르게 그려야 한다.
+    let samples: [ChargeCurveSample]
+}
+
+struct ChargeCurveSample: Codable, Equatable, Identifiable {
+    /// KST 벽시계. **경과 분은 서버가 내지 않는다** — 첫 샘플에서 빼는 것이 앱 몫이다.
+    let at: String
+    /// **null일 수 있고 0kW와 구분된다** — 0은 「그때 안 들어갔다」, null은 「모른다」다.
+    let powerKw: Int?
+    let batteryLevel: Int?
+
+    var id: String { at }
+    /// **`LedgerFormat.parseDateTime`을 쓴다** — 서버 시각끼리 빼는 값이라 기기 시간대로 읽어도
+    /// 차이가 같다. `VehicleFormat.parseKST`는 「지금」과 빼서 경과 시간을 내는 자리 전용이다.
+    var date: Date? { LedgerFormat.parseDateTime(at) }
+}
