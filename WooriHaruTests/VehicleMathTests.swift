@@ -111,4 +111,36 @@ struct VehicleMathTests {
         #expect(VehicleFormat.speed(0) == "0km/h")
         #expect(VehicleFormat.speed(nil) == ChargeFormat.placeholder)
     }
+
+    /// 실측(2026-08-19) 그대로다 — 총 107,257.8km를 기록이 있는 60개월로 나눈다.
+    @Test func 월_평균은_기록이_있는_달_수로_나눈다() {
+        let monthly = VehicleMath.avgMonthlyDistanceKm(totalKm: Decimal(string: "107257.8"), months: 60)
+        #expect(VehicleFormat.distance(monthly) == "1,788km")
+    }
+
+    @Test func 연_평균은_월_평균의_열두_배다() {
+        let total = Decimal(string: "107257.8")
+        let monthly = VehicleMath.avgMonthlyDistanceKm(totalKm: total, months: 60)
+        let yearly = VehicleMath.avgYearlyDistanceKm(totalKm: total, months: 60)
+        #expect(yearly == monthly.map { $0 * 12 })
+        #expect(VehicleFormat.distance(yearly) == "21,452km")
+    }
+
+    /// **서버는 주행이 없으면 `recordedMonths: 0`을 그대로 낸다**(1로 보정하지 않는다).
+    /// 0으로 나누면 화면이 무너지므로 앱이 나누기 전에 막는다.
+    @Test func 분모가_0이면_평균이_없다() {
+        #expect(VehicleMath.avgMonthlyDistanceKm(totalKm: Decimal(string: "107257.8"), months: 0) == nil)
+        #expect(VehicleMath.avgYearlyDistanceKm(totalKm: Decimal(string: "107257.8"), months: 0) == nil)
+    }
+
+    @Test func 값이_없으면_평균도_없다() {
+        #expect(VehicleMath.avgMonthlyDistanceKm(totalKm: nil, months: 60) == nil)
+        #expect(VehicleMath.avgMonthlyDistanceKm(totalKm: Decimal(string: "100"), months: nil) == nil)
+        #expect(VehicleMath.avgYearlyDistanceKm(totalKm: nil, months: nil) == nil)
+    }
+
+    @Test func 총거리가_0이면_평균도_0이다() {
+        // 0은 「기록이 없다」가 아니라 「안 탔다」다 — nil로 뭉개지 않는다.
+        #expect(VehicleMath.avgMonthlyDistanceKm(totalKm: 0, months: 12) == 0)
+    }
 }

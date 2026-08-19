@@ -25,8 +25,8 @@ struct VehicleDriveTab: View {
                 // 없다」는 이유로 감추면 3개월 창이 빈 사람에게 올해 주행거리가 사라진다.
                 if viewModel.showsStats {
                     DriveStatsCard(maxSpeedKmh: viewModel.insights?.maxSpeedKmh,
-                                   monthDistanceKm: viewModel.insights?.monthDistanceKm,
-                                   yearDistanceKm: viewModel.insights?.yearDistanceKm)
+                                   avgMonthlyKm: viewModel.avgMonthlyKm,
+                                   avgYearlyKm: viewModel.avgYearlyKm)
                 }
 
                 content
