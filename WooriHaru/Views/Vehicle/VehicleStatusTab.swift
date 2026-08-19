@@ -1,11 +1,11 @@
 import SwiftUI
 
-/// 건강 탭 — 미니앱을 열면 **여기가 먼저 뜬다.**
+/// 상태 탭 — 미니앱을 열면 **여기가 먼저 뜬다.**
 ///
 /// 뷰모델을 넷 받는다. 배터리 건강(`/tesla/battery-health`)·현재 상태(`/tesla/status`)·
 /// 충전 누적·상태 타임라인(`/tesla/state-timeline`)은 서로 다른 호출이고,
 /// **하나가 실패해도 다른 카드는 그린다.**
-struct VehicleHealthTab: View {
+struct VehicleStatusTab: View {
     @Bindable var healthViewModel: VehicleHealthViewModel
     @Bindable var statusViewModel: VehicleStatusViewModel
     @Bindable var totalsViewModel: ChargeTotalsViewModel
