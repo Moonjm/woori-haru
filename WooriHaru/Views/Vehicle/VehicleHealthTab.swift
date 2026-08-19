@@ -7,6 +7,7 @@ import SwiftUI
 struct VehicleHealthTab: View {
     @Bindable var healthViewModel: VehicleHealthViewModel
     @Bindable var statusViewModel: VehicleStatusViewModel
+    @Bindable var totalsViewModel: ChargeTotalsViewModel
     /// 금액 미등록 큐를 여는 진입점. **입력 경로를 바꾸는 것이 아니라 하나 더 다는 것이다.**
     let onOpenQueue: () -> Void
 
@@ -23,6 +24,20 @@ struct VehicleHealthTab: View {
                     missingCostBadge
                 }
 
+                // 값이 하나도 없는 채로 실패하면 네 「—」만 남아 "아직 로딩 중"과 갈리지 않는다 —
+                // 한 줄로 알린다. 값이 있는 새로고침 실패는 조용히 있던 값을 그대로 보여준다.
+                if totalsViewModel.totals == nil, let error = totalsViewModel.errorMessage {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundStyle(Color.red500)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
+                ChargeTotalsCard(totals: totalsViewModel.totals,
+                                 odometerKm: statusViewModel.status?.odometerKm,
+                                 fastWonPerKwh: totalsViewModel.fastWonPerKwh,
+                                 slowWonPerKwh: totalsViewModel.slowWonPerKwh)
+
                 healthSection
 
                 statusSection
@@ -31,14 +46,16 @@ struct VehicleHealthTab: View {
             .padding(.bottom, 110)
         }
         .refreshable {
-            // 셋 다 병렬로 부른다 — `healthViewModel.reload()`와 `.refreshMissingCount()`는
+            // 넷 다 병렬로 부른다 — `healthViewModel.reload()`와 `.refreshMissingCount()`는
             // 같은 뷰모델 인스턴스를 건드리지만 쓰는 값이 겹치지 않는다(`samples`/`isLoaded`/
-            // `errorMessage` vs `missingCostCount`). `statusViewModel.reload()`는 아예 다른
-            // 뷰모델이라 애초에 무관하다. 초기 로드(`VehicleView`)가 쓰는 것과 같은 패턴이다.
+            // `errorMessage` vs `missingCostCount`). `statusViewModel.reload()`와
+            // `totalsViewModel.reload()`는 아예 다른 뷰모델이라 애초에 무관하다.
+            // 초기 로드(`VehicleView`)가 쓰는 것과 같은 패턴이다.
             async let health: Void = healthViewModel.reload()
             async let missingCount: Void = healthViewModel.refreshMissingCount()
             async let status: Void = statusViewModel.reload()
-            _ = await (health, missingCount, status)
+            async let totals: Void = totalsViewModel.reload()
+            _ = await (health, missingCount, status, totals)
         }
     }
 
