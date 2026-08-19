@@ -27,8 +27,10 @@ struct VehicleHealthTab: View {
                 }
 
                 // 「지금 어떤가」를 전부 위로 올린다 — 순서가 한 가지 뜻을 갖게 한다.
+                // 「지금 → 최근」이 한 방향으로 읽혀야 하므로 타이어·실내는 타임라인 뒤로 뺀다.
                 statusSection
                 timelineSection
+                statusDetailSection
 
                 // 값이 하나도 없는 채로 실패하면 네 「—」만 남아 "아직 로딩 중"과 갈리지 않는다 —
                 // 한 줄로 알린다. 값이 있는 새로고침 실패는 조용히 있던 값을 그대로 보여준다.
@@ -163,29 +165,38 @@ struct VehicleHealthTab: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
 
-        if statusViewModel.isLoading && statusViewModel.status == nil {
-            BatteryNowPlaceholderCard(icon: "car",
-                                      title: "불러오는 중",
-                                      message: "차량 상태를 받고 있어요")
-        } else if let error = statusViewModel.errorMessage, statusViewModel.status == nil {
-            BatteryNowPlaceholderCard(icon: "exclamationmark.triangle",
-                                      title: "차량 상태를 불러오지 못했어요",
-                                      message: error,
-                                      retry: { Task { await statusViewModel.reload() } })
-        } else if let status = statusViewModel.status, statusViewModel.hasRecord {
+        if let status = statusViewModel.status, statusViewModel.hasRecord {
             // **1분마다 다시 그린다.** 「3시간 12분째」는 화면을 열어 둔 채로도 흘러간다 —
             // 기준 시각 줄이 같은 이유로 `TimelineView`를 쓴다.
             TimelineView(.periodic(from: .now, by: 60)) { context in
                 BatteryNowCard(status: status,
                                minutesInState: minutesInState(status, at: context.date))
             }
-            TirePressureCard(tpms: status.tpmsBar)
-            cabinCard(status)
+        } else if let error = statusViewModel.errorMessage, statusViewModel.status == nil {
+            BatteryNowPlaceholderCard(icon: "exclamationmark.triangle",
+                                      title: "차량 상태를 불러오지 못했어요",
+                                      message: error,
+                                      retry: { Task { await statusViewModel.reload() } })
         } else if statusViewModel.status != nil {
             // 기록이 아직 없는 것과 못 받은 것은 다르다.
             BatteryNowPlaceholderCard(icon: "car",
                                       title: "아직 기록이 없어요",
                                       message: "차가 한 번 깨어나면 값이 쌓여요")
+        } else {
+            // **마지막 갈래가 「불러오는 중」이다.** 취소된 첫 로드는 오류도 값도 없이
+            // 끝나는데(CancellationError는 조용히 리턴한다), 그때 주인공 자리가 비면 안 된다.
+            BatteryNowPlaceholderCard(icon: "car",
+                                      title: "불러오는 중",
+                                      message: "차량 상태를 받고 있어요")
+        }
+    }
+
+    /// 타이어·실내는 **값이 있을 때만** 선다 — 주인공 패널이 플레이스홀더로 서 있는데
+    /// 그 아래에 빈 카드 둘이 남으면 「못 받았다」는 말이 흐려진다.
+    @ViewBuilder private var statusDetailSection: some View {
+        if let status = statusViewModel.status, statusViewModel.hasRecord {
+            TirePressureCard(tpms: status.tpmsBar)
+            cabinCard(status)
         }
     }
 
@@ -198,18 +209,19 @@ struct VehicleHealthTab: View {
 
     // MARK: - 최근 7일
 
-    /// **넷으로 갈린다** — 아직 안 받음 / 못 받음(값 없음) / 기록 없음 / 값 있음.
-    /// 값이 있는 새로고침 실패는 띠를 그대로 두고 한 줄만 알린다.
+    /// **넷으로 갈린다** — 아직 안 받음 / 못 받음 / 기록 없음 / 값 있음.
+    /// `from`을 못 읽으면 행을 셀 수 없으므로 응답이 있어도 「못 받음」으로 다룬다.
     @ViewBuilder private var timelineSection: some View {
-        if let error = timelineViewModel.errorMessage, timelineViewModel.timeline != nil {
-            Text(error)
-                .font(.caption)
-                .foregroundStyle(Color.red500)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-
         if let timeline = timelineViewModel.timeline,
            let from = VehicleFormat.parseKST(timeline.from) {
+            if let error = timelineViewModel.errorMessage {
+                // 값이 있는 새로고침 실패는 띠를 그대로 두고 한 줄만 알린다.
+                Text(error)
+                    .font(.caption)
+                    .foregroundStyle(Color.red500)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
             if timelineViewModel.hasSegments {
                 StateTimelineChart(bars: timelineViewModel.bars, days: timeline.days, from: from)
             } else {
@@ -233,12 +245,13 @@ struct VehicleHealthTab: View {
                 }
             }
         }
-        // 아직 안 받았고 오류도 없으면 아무것도 그리지 않는다 — 위 배터리 패널이 이미
+        // 아직 안 받았고 오류도 없으면 아무것도 그리지 않는다 — 위 진한 패널이 이미
         // 「불러오는 중」을 말하고 있어 스피너가 둘이면 화면이 시끄럽다.
     }
 
-    /// 온도 둘을 타일로 올린다. **에어컨·위치는 지우지 않고 아래 두 줄로 남긴다** —
-    /// 설계 스케치가 노린 것은 온도를 크게 보이게 하는 것이지 나머지를 없애는 것이 아니다.
+    /// 온도 둘을 타일로 올린다. 1단계에서는 **위치를 여기 말고 보여줄 데가 없어서** 아래 줄로
+    /// 남겼지만, 4단계에서 위치는 `BatteryNowCard`로 올라갔다 — 같은 값을 한 화면에 두 번 두지
+    /// 않는다. 에어컨만 온도 타일 아래 남는다.
     private func cabinCard(_ status: VehicleStatus) -> some View {
         GlassCard {
             VStack(spacing: 12) {
@@ -246,11 +259,7 @@ struct VehicleHealthTab: View {
                     tile(ChargeFormat.temperature(status.insideTempC), "실내 온도")
                     tile(ChargeFormat.temperature(status.outsideTempC), "외기 온도")
                 }
-                VStack(spacing: 0) {
-                    row("에어컨", status.climateOn.map { $0 ? "켜짐" : "꺼짐" } ?? ChargeFormat.placeholder)
-                    Divider().padding(.vertical, 8)
-                    row("위치", status.locationName ?? ChargeFormat.placeholder)
-                }
+                row("에어컨", status.climateOn.map { $0 ? "켜짐" : "꺼짐" } ?? ChargeFormat.placeholder)
             }
         }
     }
