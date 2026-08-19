@@ -10,7 +10,6 @@ import SwiftUI
 /// 「-12시간」 같은 상대 표기로는 읽을 수 없다.
 struct StateTimelineChart: View {
     private let bars: [TimelineBar]
-    private let hours: Int
     private let from: Date
     private let to: Date
 
@@ -19,10 +18,9 @@ struct StateTimelineChart: View {
     private let barHeight: CGFloat = 24
     private let tickLabelWidth: CGFloat = 30
 
-    init(bars: [TimelineBar], hours: Int, from: Date, to: Date) {
+    init(bars: [TimelineBar], from: Date, to: Date) {
         // 입력이 이미 레이어 순으로 정렬돼 있어 그리는 순서가 곧 덧칠 순서다. 다시 정렬하지 않는다.
         self.bars = bars
-        self.hours = hours
         self.from = from
         self.to = to
     }
@@ -34,6 +32,8 @@ struct StateTimelineChart: View {
                     .font(.caption)
                     .fontWeight(.bold)
                     .foregroundStyle(Color.slate500)
+                    // 띠의 접근성 이름이 같은 말을 이미 하고 있다 — 제목은 눈을 위한 장식이다.
+                    .accessibilityHidden(true)
 
                 strip
                 axis
@@ -66,14 +66,25 @@ struct StateTimelineChart: View {
     }
 
     /// 4시간 간격의 정각과, 오른쪽 끝의 「지금」.
+    ///
+    /// **정각을 고르는 산술은 `StateTimelineMath.ticks`가 한다.** 여기 남은 것은 폭을 알아야
+    /// 정할 수 있는 일 하나 — 어느 눈금을 버릴지다.
+    ///
+    /// **자를지 말지를 비율이 아니라 실제 폭으로 정한다.** 눈금 칸은 `[W·f − 15, W·f + 15]`이고
+    /// 오른쪽 끝 「지금」은 `[W − 30, W]`라, 겹치기 시작하는 비율이 폭에 따라 달라진다
+    /// (320pt에서는 0.86부터다). 고정 비율로 자르면 좁은 기기에서 글자가 포개진다.
     private var axis: some View {
         GeometryReader { proxy in
             let width = proxy.size.width
             ZStack(alignment: .leading) {
-                ForEach(Array(ticks(width: width).enumerated()), id: \.offset) { _, tick in
-                    Text(tick.label)
-                        .frame(width: tickLabelWidth)
-                        .offset(x: width * tick.fraction - tickLabelWidth / 2)
+                ForEach(Array(StateTimelineMath.ticks(from: from, to: to).enumerated()), id: \.offset) { _, tick in
+                    // 왼쪽으로 삐져나오거나 「지금」과 겹치는 눈금은 그리지 않는다.
+                    let leading = width * tick.fraction - tickLabelWidth / 2
+                    if leading >= 0, leading + tickLabelWidth <= width - tickLabelWidth {
+                        Text(Self.hourFormatter.string(from: tick.date))
+                            .frame(width: tickLabelWidth)
+                            .offset(x: leading)
+                    }
                 }
                 Text("지금")
                     .fontWeight(.bold)
@@ -110,36 +121,9 @@ struct StateTimelineChart: View {
 
     private var span: TimeInterval { to.timeIntervalSince(from) }
 
-    /// 범위 안에 드는 4시간 정각들. 범위가 자정에 맞춰져 있지 않으므로 첫 눈금을
-    /// **`from` 다음의 4시간 정각**에서 시작한다.
-    ///
-    /// **자를지 말지를 비율이 아니라 실제 폭으로 정한다.** 눈금 칸은 `[W·f − 15, W·f + 15]`이고
-    /// 오른쪽 끝 「지금」은 `[W − 30, W]`라, 겹치기 시작하는 비율이 폭에 따라 달라진다
-    /// (320pt에서는 0.86부터다). 고정 비율로 자르면 좁은 기기에서 글자가 포개진다.
-    private func ticks(width: CGFloat) -> [(fraction: Double, label: String)] {
-        guard span > 0, width > 0 else { return [] }
-        var result: [(Double, String)] = []
-        var cursor = Self.firstTick(after: from)
-        while cursor < to {
-            let fraction = cursor.timeIntervalSince(from) / span
-            let leading = width * fraction - tickLabelWidth / 2
-            // 왼쪽으로 삐져나오지 않고, 「지금」 칸과도 겹치지 않을 때만 그린다.
-            if leading >= 0, leading + tickLabelWidth <= width - tickLabelWidth {
-                result.append((fraction, Self.hourFormatter.string(from: cursor)))
-            }
-            cursor = cursor.addingTimeInterval(4 * 3600)
-        }
-        return result
-    }
-
-    private static func firstTick(after date: Date) -> Date {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = kst
-        let parts = calendar.dateComponents([.year, .month, .day, .hour], from: date)
-        guard let hourStart = calendar.date(from: parts), let hour = parts.hour else { return date }
-        // 지금 시(hour)의 정각에서 다음 4의 배수까지 나아간다. 1~4시간이 더해진다.
-        return hourStart.addingTimeInterval(Double(4 - (hour % 4)) * 3600)
-    }
+    /// **띠 길이를 `to − from`에서 낸다.** 서버가 범위 길이를 따로 싣지 않으므로,
+    /// 그린 범위와 말하는 길이가 갈릴 자리가 아예 없다.
+    private var hours: Int { StateTimelineMath.hours(from: from, to: to) }
 
     /// 띠 전체를 한 문장으로.
     ///
@@ -151,7 +135,7 @@ struct StateTimelineChart: View {
 
         for (kind, label) in Self.spokenStates {
             let ratio = bars.filter { $0.kind == kind }.reduce(0.0) { $0 + ($1.end - $1.start) }
-            // **그려진 범위에서 낸다.** `hours`로 곱하면 서버의 `hours`와 `to − from`이 어긋날 때
+            // **그려진 범위에서 낸다.** 반올림한 `hours`로 곱하면 분 단위로 어긋난 범위에서
             // 띠는 범위대로 그려지는데 소리만 다른 길이를 말한다.
             let hoursSpent = ratio * (span / 3600)
             // 0.05시간(3분) 미만은 말하지 않는다 — 「0.0시간」은 있으나 마나다.
@@ -206,7 +190,7 @@ struct StateTimelineChart: View {
 
 #Preview("타임라인") {
     let response = StateTimelineResponse(
-        hours: 24, from: "2026-08-18T13:00:00", to: "2026-08-19T13:00:00",
+        from: "2026-08-18T13:00:00", to: "2026-08-19T13:00:00",
         states: [
             StateSegment(state: "offline", from: "2026-08-18T13:00:00", to: "2026-08-18T18:30:00"),
             StateSegment(state: "online", from: "2026-08-18T18:30:00", to: "2026-08-18T19:40:00"),
@@ -221,7 +205,6 @@ struct StateTimelineChart: View {
         charges: [TimeSegment(from: "2026-08-18T22:10:00", to: "2026-08-19T02:40:00")])
 
     return StateTimelineChart(bars: StateTimelineMath.bars(response),
-                              hours: response.hours,
                               from: VehicleFormat.parseKST(response.from) ?? .now,
                               to: VehicleFormat.parseKST(response.to) ?? .now)
         .padding(16)

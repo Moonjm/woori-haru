@@ -11,8 +11,8 @@ final class StateTimelineViewModel {
     /// 몇 시간을 그릴지는 화면이 정한다. 서버는 1~168을 받는다.
     static let hours = 24
 
-    /// **`bars`를 저장 속성으로 둔다.** 계산 속성으로 두면 스크롤 한 프레임마다 구간 168개를
-    /// 다시 쪼갠다 — 2단계 히트맵이 같은 이유로 `heatMap`을 저장 속성으로 만들었다.
+    /// **`bars`를 저장 속성으로 둔다.** 계산 속성으로 두면 스크롤 한 프레임마다 구간 스물몇 개를
+    /// 다시 자른다 — 2단계 히트맵이 같은 이유로 `heatMap`을 저장 속성으로 만들었다.
     private(set) var timeline: StateTimelineResponse? {
         didSet { bars = timeline.map(StateTimelineMath.bars) ?? [] }
     }

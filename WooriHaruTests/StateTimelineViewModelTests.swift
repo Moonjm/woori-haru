@@ -6,8 +6,7 @@ import Testing
 struct StateTimelineViewModelTests {
 
     private nonisolated static func timeline(states: [StateSegment]) -> StateTimelineResponse {
-        StateTimelineResponse(hours: 24,
-                              from: "2026-08-18T13:00:00",
+        StateTimelineResponse(from: "2026-08-18T13:00:00",
                               to: "2026-08-19T13:00:00",
                               states: states, drives: [], charges: [])
     }

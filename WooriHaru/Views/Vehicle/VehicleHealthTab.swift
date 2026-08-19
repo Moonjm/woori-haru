@@ -249,11 +249,10 @@ struct VehicleHealthTab: View {
 
             if timelineViewModel.hasSegments {
                 StateTimelineChart(bars: timelineViewModel.bars,
-                                   hours: timeline.hours,
                                    from: from, to: to)
             } else {
                 GlassCard {
-                    Text("최근 \(timeline.hours)시간 기록이 없어요")
+                    Text("최근 \(StateTimelineMath.hours(from: from, to: to))시간 기록이 없어요")
                         .font(.caption)
                         .foregroundStyle(Color.slate500)
                         .frame(maxWidth: .infinity, alignment: .leading)

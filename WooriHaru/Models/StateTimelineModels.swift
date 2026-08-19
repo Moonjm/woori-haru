@@ -2,14 +2,17 @@ import Foundation
 
 // MARK: - 응답
 
-/// 최근 몇 시간의 차량 상태 — **세 배열이 겹친 채로 온다.**
+/// 최근 얼마간의 차량 상태 — **세 배열이 겹친 채로 온다.**
 ///
 /// 서버가 하나의 띠로 합치지 않는 이유는 TeslaMate `states`에 `driving`·`charging`이 없어서다
 /// (`CREATE TYPE states_status AS ENUM ('online', 'offline', 'asleep')`). 합치려면 구간 산술이
 /// 필요한데, 세 겹을 그대로 받아 화면이 덧칠하면 그 로직이 사라진다.
+///
+/// **서버가 싣는 범위 길이(`hours`)를 받지 않는다.** 화면이 필요한 것은 「이 띠가 몇 시간인가」이고
+/// 그건 `to − from`에 이미 있다. 필드로 받으면 둘이 어긋날 때 그린 것과 말하는 것이 갈리고,
+/// 그 값을 아직 안 내는 서버에서는 디코딩이 통째로 실패해 첫 화면에 오류 카드가 상주한다.
 struct StateTimelineResponse: Codable, Equatable {
-    let hours: Int
-    /// KST 벽시계. **자정에 맞춰지지 않는다** — `to`가 요청 시각이고 `from`은 그보다 `hours`시간 앞이다.
+    /// KST 벽시계. **자정에 맞춰지지 않는다** — `to`가 요청 시각이고 `from`은 그보다 앞이다.
     let from: String
     let to: String
     let states: [StateSegment]
@@ -67,6 +70,12 @@ struct TimelineBar: Equatable {
     let kind: TimelineKind
 }
 
+/// 눈금 하나. `fraction`은 범위 안의 위치(0.0 = from, 1.0 = to)다.
+struct TimelineTick: Equatable {
+    let fraction: Double
+    let date: Date
+}
+
 // MARK: - 계산
 
 /// 화면이 하는 유일한 계산이다.
@@ -120,4 +129,40 @@ enum StateTimelineMath {
                            end: end.timeIntervalSince(windowStart) / span,
                            kind: kind)
     }
+
+    /// 범위 길이를 시간으로. 화면의 「최근 N시간」이 이것으로 만들어진다.
+    /// **`to − from`에서 낸다** — 그려진 범위와 말하는 길이가 갈릴 자리를 두지 않는다.
+    static func hours(from: Date, to: Date) -> Int {
+        max(0, Int((to.timeIntervalSince(from) / 3600).rounded()))
+    }
+
+    /// 범위 안에 드는 **4시간 정각**들. 범위가 자정에 맞춰져 있지 않으므로 `from` 다음의
+    /// 4시간 정각에서 시작한다.
+    ///
+    /// **폭과 무관한 부분만 낸다** — 화면 밖으로 나가거나 「지금」과 겹치는 눈금을 버리는 일은
+    /// 폭을 아는 뷰가 한다. 그래야 이 산술에 테스트가 닿는다.
+    static func ticks(from: Date, to: Date) -> [TimelineTick] {
+        let span = to.timeIntervalSince(from)
+        guard span > 0 else { return [] }
+        var result: [TimelineTick] = []
+        var cursor = firstTick(after: from)
+        while cursor < to {
+            result.append(TimelineTick(fraction: cursor.timeIntervalSince(from) / span, date: cursor))
+            cursor = cursor.addingTimeInterval(4 * 3600)
+        }
+        return result
+    }
+
+    /// `date` 다음의 4시간 정각. **KST로 읽는다** — `from`·`to`가 KST 벽시계라
+    /// 기기 시간대로 끊으면 정각이 시차만큼 어긋난다.
+    private static func firstTick(after date: Date) -> Date {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = kst
+        let parts = calendar.dateComponents([.year, .month, .day, .hour], from: date)
+        guard let hourStart = calendar.date(from: parts), let hour = parts.hour else { return date }
+        // 지금 시(hour)의 정각에서 다음 4의 배수까지 나아간다. 1~4시간이 더해진다.
+        return hourStart.addingTimeInterval(Double(4 - (hour % 4)) * 3600)
+    }
+
+    private static let kst = TimeZone(identifier: "Asia/Seoul") ?? .current
 }
