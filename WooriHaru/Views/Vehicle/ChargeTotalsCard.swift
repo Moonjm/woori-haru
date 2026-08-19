@@ -36,8 +36,7 @@ struct ChargeTotalsCard: View {
                     tile(ChargeFormat.energy(totals?.energyAddedKwh), "충전")
                 }
                 HStack(spacing: 10) {
-                    tile(totals?.cost.map { LedgerFormat.amount($0, currency: "KRW") }
-                         ?? ChargeFormat.placeholder, "충전비")
+                    tile(VehicleFormat.won(totals?.cost), "충전비")
                     unitPriceTile
                 }
             }
@@ -82,14 +81,13 @@ struct ChargeTotalsCard: View {
             Text(label)
                 .font(.system(size: 10))
                 .foregroundStyle(Color.slate500)
-            Text(value.map { LedgerFormat.amount(VehicleMath.rounded($0), currency: "KRW") }
-                 ?? ChargeFormat.placeholder)
+            Text(VehicleFormat.won(value))
                 .font(.caption)
                 .fontWeight(.bold)
                 .monospacedDigit()
                 .foregroundStyle(Color.slate900)
             if let count {
-                Text("\(count)건")
+                Text("\(count)건 기준")
                     .font(.system(size: 9))
                     .monospacedDigit()
                     .foregroundStyle(Color.slate400)

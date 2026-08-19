@@ -12,13 +12,15 @@ struct ChargeTotalsTests {
             energyUsedKwh: Decimal(string: "18197.2")!,
             costMissingEnergyUsedKwh: Decimal(string: "977.0")!
         )
-        #expect(VehicleFormat.wonPerKwh(priced) == "₩212/kWh")
+        // `won`으로 잰다 — 카드가 실제로 부르는 함수다. `wonPerKwh`는 접미사를 더할 뿐 이
+        // 함수를 거친다.
+        #expect(VehicleFormat.won(priced) == "₩212")
 
         // 빼지 않으면 이 값이 된다 — 회귀를 잡으려고 함께 못박는다.
         let naive = VehicleMath.wonPerKwh(
             cost: 3644562, energyUsedKwh: Decimal(string: "18197.2")!, costMissingEnergyUsedKwh: 0
         )
-        #expect(VehicleFormat.wonPerKwh(naive) == "₩200/kWh")
+        #expect(VehicleFormat.won(naive) == "₩200")
         #expect(priced! > naive!)
     }
 
@@ -30,8 +32,8 @@ struct ChargeTotalsTests {
         let slow = VehicleMath.wonPerKwh(cost: 3493723,
                                          energyUsedKwh: Decimal(string: "16877.1")!,
                                          costMissingEnergyUsedKwh: Decimal(string: "143.1")!)
-        #expect(VehicleFormat.wonPerKwh(fast) == "₩289/kWh")
-        #expect(VehicleFormat.wonPerKwh(slow) == "₩209/kWh")
+        #expect(VehicleFormat.won(fast) == "₩289")
+        #expect(VehicleFormat.won(slow) == "₩209")
         #expect(fast! > slow!)
     }
 

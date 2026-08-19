@@ -59,10 +59,17 @@ extension VehicleMath {
 // MARK: - 표기
 
 extension VehicleFormat {
+    /// 211.6… → "₩212". 접미사가 없다 — 화면이 값과 「kWh당」 라벨을 따로 그리는 자리에 쓴다.
+    /// 반올림은 여기서만 한다. `wonPerKwh`도 이 함수를 거친다.
+    static func won(_ value: Decimal?) -> String {
+        guard let value else { return ChargeFormat.placeholder }
+        return LedgerFormat.amount(VehicleMath.rounded(value), currency: "KRW")
+    }
+
     /// 211.6… → "₩212/kWh". `costPerKm`과 같은 모양이다.
     static func wonPerKwh(_ value: Decimal?) -> String {
-        guard let value else { return ChargeFormat.placeholder }
-        return "\(LedgerFormat.amount(VehicleMath.rounded(value), currency: "KRW"))/kWh"
+        guard value != nil else { return ChargeFormat.placeholder }
+        return "\(won(value))/kWh"
     }
 }
 

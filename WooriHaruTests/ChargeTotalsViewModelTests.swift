@@ -38,8 +38,9 @@ struct ChargeTotalsViewModelTests {
 
         await viewModel.load()
 
-        #expect(VehicleFormat.wonPerKwh(viewModel.fastWonPerKwh) == "₩289/kWh")
-        #expect(VehicleFormat.wonPerKwh(viewModel.slowWonPerKwh) == "₩209/kWh")
+        // `won`으로 잰다 — 카드가 실제로 부르는 함수다.
+        #expect(VehicleFormat.won(viewModel.fastWonPerKwh) == "₩289")
+        #expect(VehicleFormat.won(viewModel.slowWonPerKwh) == "₩209")
         #expect(viewModel.hasTotals)
     }
 

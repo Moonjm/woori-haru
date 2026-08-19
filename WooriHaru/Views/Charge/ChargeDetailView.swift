@@ -37,7 +37,7 @@ struct ChargeDetailView: View {
                     sessionCard
                     if let detail {
                         chargerCard(detail)
-                        if let curve, !curve.isEmpty {
+                        if let curve {
                             ChargeCurveChart(samples: curve)
                         }
                         placeCard(detail)
@@ -77,6 +77,12 @@ struct ChargeDetailView: View {
                 .presentationDetents([.height(280)])
             }
             .task { await reloadDetail() }
+            // 상세의 id에 매인다 — 시트가 닫히면 뷰와 함께 취소된다.
+            // 상세가 아직 없으면(id가 nil) 아무 것도 하지 않으니 상세보다 먼저 돌지 않는다.
+            .task(id: detail?.id) {
+                guard let detail else { return }
+                await loadCurveIfFast(detail)
+            }
         }
     }
 
@@ -217,8 +223,8 @@ struct ChargeDetailView: View {
             detail = loaded
             savedCost = nil // 서버 값이 사실이다
             errorMessage = nil
-            // 상세를 기다리지 않고 따로 돈다 — 곡선이 느려도 나머지 상세는 이미 그려졌다.
-            Task { await loadCurveIfFast(loaded) }
+            // 곡선은 `.task(id: detail?.id)`가 따로 돈다 — 상세가 이미 그려진 뒤에 시작되고,
+            // 뷰가 사라지면 함께 취소된다.
         } catch is CancellationError {
             return
         } catch {

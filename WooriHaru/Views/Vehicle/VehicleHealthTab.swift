@@ -24,6 +24,15 @@ struct VehicleHealthTab: View {
                     missingCostBadge
                 }
 
+                // 값이 하나도 없는 채로 실패하면 네 「—」만 남아 "아직 로딩 중"과 갈리지 않는다 —
+                // 한 줄로 알린다. 값이 있는 새로고침 실패는 조용히 있던 값을 그대로 보여준다.
+                if totalsViewModel.totals == nil, let error = totalsViewModel.errorMessage {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundStyle(Color.red500)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
                 ChargeTotalsCard(totals: totalsViewModel.totals,
                                  odometerKm: statusViewModel.status?.odometerKm,
                                  fastWonPerKwh: totalsViewModel.fastWonPerKwh,
