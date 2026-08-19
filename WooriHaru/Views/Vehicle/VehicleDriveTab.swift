@@ -63,10 +63,12 @@ struct VehicleDriveTab: View {
     /// **네 갈래다** — 못 받음 / 아직 안 받음 / 그 기간에 주행 없음 / 값 있음.
     /// 「기록 없음」과 「못 받음」을 한 화면으로 뭉개지 않는 관례를 따른다.
     @ViewBuilder private var content: some View {
-        if viewModel.insights == nil, let error = viewModel.errorMessage {
-            errorState(error).padding(.top, 48)
-        } else if viewModel.insights == nil {
+        // 로딩이 오류보다 먼저다 — 기간을 바꾸는 동안 옛 오류를 보여 주면
+        // 「못 받음」과 「아직 안 받음」이 뒤바뀐다.
+        if viewModel.isLoading && viewModel.insights == nil {
             ProgressView().padding(.top, 60)
+        } else if let error = viewModel.errorMessage, viewModel.insights == nil {
+            errorState(error).padding(.top, 48)
         } else if !viewModel.hasDrives {
             // 카드마다 비우지 않고 화면 하나로 말한다.
             ContentUnavailableView {

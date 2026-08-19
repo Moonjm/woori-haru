@@ -154,6 +154,35 @@ struct VehicleDriveViewModelTests {
         #expect(!viewModel.showsPlaces)
     }
 
+    /// **계수는 있는데 모든 온도 버킷의 `ratedRangeUsedKm`이 0인 경우다** — 아주 짧은
+    /// 주행만 있는 기간(실측: 447건 중 431건이 델타 정확히 0). 거리 버킷 쪽엔 주행이
+    /// 있어 `hasDrives`는 참이지만, 전비 카드는 다섯 줄 다 「—」가 되어 감춰야 한다.
+    @Test func 전비_행이_전부_비면_카드를_감춘다() async {
+        let mock = MockAPIClient()
+        let response = DriveInsightsResponse(
+            months: 12,
+            efficiencyKwhPerKm: Decimal(string: "0.1367"),
+            temperatureBuckets: [
+                TemperatureBucket(fromC: nil, toC: 0, driveCount: 3,
+                                  distanceKm: Decimal(string: "12.4")!, ratedRangeUsedKm: 0),
+                TemperatureBucket(fromC: 0, toC: 10, driveCount: 5,
+                                  distanceKm: Decimal(string: "20.1")!, ratedRangeUsedKm: 0),
+            ],
+            driveTimes: [],
+            distanceBuckets: [
+                DistanceBucket(fromKm: 0, toKm: 5, driveCount: 8, distanceKm: Decimal(string: "32.5")!),
+            ],
+            places: []
+        )
+        stub(mock, response)
+        let viewModel = makeViewModel(mock)
+
+        await viewModel.load()
+
+        #expect(viewModel.hasDrives)
+        #expect(!viewModel.showsEfficiency)
+    }
+
     @Test func 지오펜스가_있으면_자주_가는_곳을_낸다() async {
         let mock = MockAPIClient()
         stub(mock, Self.insights(places: [DrivePlace(name: "집", driveCount: 124, distanceKm: 812)]))
@@ -176,6 +205,30 @@ struct VehicleDriveViewModelTests {
         #expect(viewModel.heatCount(weekday: 0, hour: 14) == 12)
         #expect(viewModel.heatCount(weekday: 3, hour: 3) == 0)
         #expect(viewModel.maxHeatCount == 43)
+    }
+
+    /// **서버가 같은 칸(요일·시각)을 두 번 보내도 죽지 않고 합쳐야 한다** —
+    /// `rebuildHeatMap()`이 `uniqueKeysWithValues` 대신 `uniquingKeysWith: +`를
+    /// 쓰는 이유다. 지금 SQL은 이러지 않지만, 서버 데이터로 앱이 죽는 길을 열어 둘
+    /// 이유가 없다.
+    @Test func 같은_칸이_두_번_와도_합쳐서_센다() async {
+        let mock = MockAPIClient()
+        let response = DriveInsightsResponse(
+            months: 12, efficiencyKwhPerKm: Decimal(string: "0.1367"),
+            temperatureBuckets: [],
+            driveTimes: [
+                DriveTime(weekday: 1, hour: 8, count: 20),
+                DriveTime(weekday: 1, hour: 8, count: 15),
+            ],
+            distanceBuckets: [], places: []
+        )
+        stub(mock, response)
+        let viewModel = makeViewModel(mock)
+
+        await viewModel.load()
+
+        #expect(viewModel.heatCount(weekday: 1, hour: 8) == 35)
+        #expect(viewModel.maxHeatCount == 35)
     }
 
     /// 그 기간에 주행이 없는 것은 에러가 아니다. 카드마다 비우지 않고 화면 하나로 말한다.

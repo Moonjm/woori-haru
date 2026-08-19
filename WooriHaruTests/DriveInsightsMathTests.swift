@@ -66,7 +66,8 @@ struct DriveInsightsMathTests {
         #expect(DriveFormat.weekdayLabel(7) == ChargeFormat.placeholder)
     }
 
-    @Test func 시각은_두_자리로_적는다() {
+    /// 0을 채워 두 자리로 만들지 않는다 — 숫자 그대로에 「시」만 붙인다.
+    @Test func 시각은_숫자_그대로_시를_붙인다() {
         #expect(DriveFormat.hourLabel(0) == "0시")
         #expect(DriveFormat.hourLabel(17) == "17시")
     }

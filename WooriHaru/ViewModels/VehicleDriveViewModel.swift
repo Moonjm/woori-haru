@@ -28,7 +28,13 @@ final class VehicleDriveViewModel {
     var hasDrives: Bool { distanceDriveCount > 0 }
 
     /// `cars.efficiency`가 없으면 전비를 낼 수 없다. 카드를 감춘다.
-    var showsEfficiency: Bool { insights?.efficiencyKwhPerKm != nil }
+    ///
+    /// **계수가 있어도 행이 전부 비면 마찬가지로 감춘다.** 온도 버킷마다
+    /// `ratedRangeUsedKm`이 0이면(아주 짧은 주행만 있는 기간 등) `temperatureRows`가
+    /// 다섯 줄 다 「—」로 나온다 — 값이 하나도 없는 카드는 자리만 차지한다.
+    var showsEfficiency: Bool {
+        insights?.efficiencyKwhPerKm != nil && temperatureRows.contains { $0.kmPerKwh != nil }
+    }
 
     /// **지오펜스가 하나도 없는 것이 이 차량의 기본 상태다**(`geofences` 0행).
     /// 「가끔 비는 경우」로 다루면 안 되고, 등록하기 전까지 이 카드는 늘 감춰진다.

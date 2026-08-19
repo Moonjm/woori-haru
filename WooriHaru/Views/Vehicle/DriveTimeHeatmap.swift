@@ -30,6 +30,10 @@ struct DriveTimeHeatmap: View {
         }
     }
 
+    /// **행 하나가 접근성 요소 하나다** — 셀마다 달면 168정거장이 되어 되레 못 쓴다.
+    /// 셀은 `.accessibilityHidden`으로 접근성에서 지우고, 행 전체를 합쳐(`.combine`)
+    /// 요약 한 줄로 대신한다(`rowAccessibilityLabel(_:)`). `DriveBucketCards.swift`와
+    /// 같은 방식이다.
     private func row(_ weekday: Int) -> some View {
         HStack(spacing: 2) {
             Text(DriveFormat.weekdayLabel(weekday))
@@ -41,6 +45,8 @@ struct DriveTimeHeatmap: View {
                 cell(weekday: weekday, hour: hour)
             }
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(rowAccessibilityLabel(weekday))
     }
 
     private func cell(weekday: Int, hour: Int) -> some View {
@@ -49,9 +55,28 @@ struct DriveTimeHeatmap: View {
             .fill(color(for: value))
             .frame(height: 14)
             .frame(maxWidth: .infinity)
-            .accessibilityLabel(
-                "\(DriveFormat.weekdayLabel(weekday))요일 \(DriveFormat.hourLabel(hour)) \(DriveFormat.count(value))"
-            )
+            .accessibilityHidden(true)
+    }
+
+    /// 한 요일의 총합과 가장 많은 시각을 `count` 클로저로 직접 구한다 — 24번
+    /// 부르는 것은 라벨 한 줄에 드는 값싼 비용이다(행마다 한 번, 168칸을 다시 펴지 않는다).
+    /// 표본이 아예 없는 요일은 「0시 0회」 같은 거짓 피크 대신 그렇게 말한다.
+    private func rowAccessibilityLabel(_ weekday: Int) -> String {
+        var total = 0
+        var peakHour = 0
+        var peakCount = 0
+        for hour in 0..<24 {
+            let value = count(weekday, hour)
+            total += value
+            if value > peakCount {
+                peakCount = value
+                peakHour = hour
+            }
+        }
+        let weekdayName = "\(DriveFormat.weekdayLabel(weekday))요일"
+        guard total > 0 else { return "\(weekdayName) 주행 없음" }
+        return "\(weekdayName) 총 \(DriveFormat.count(total)), 가장 많은 시각 "
+            + "\(DriveFormat.hourLabel(peakHour)) \(DriveFormat.count(peakCount))"
     }
 
     /// 0은 **빈칸**이다 — 옅은 색으로 칠하면 「조금 탔다」로 읽힌다.
