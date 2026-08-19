@@ -209,10 +209,19 @@ enum VehicleFormat {
     ///
     /// **`relative`의 출력을 잘라 쓰지 않는다.** 「방금」에는 잘라낼 " 전"이 없어 「방금째」가 되고,
     /// 그쪽 표기가 바뀌면 이 자리는 컴파일도 테스트도 깨지지 않은 채 글자만 이상해진다.
+    ///
+    /// **하루 안에서는 분을 버리지 않는다** — 「3시간 12분째」다. 이 문구를 담은 카드는
+    /// 1분마다 다시 그려지는데(`TimelineView(.periodic(by: 60))`), 시간만 남기면 첫 한 시간이
+    /// 지난 뒤로는 한 시간에 한 번만 글자가 바뀌어 그 갱신이 있으나 마나가 된다.
+    /// 하루를 넘기면 다시 「N일째」다 — 그 크기에서 분은 읽는 사람에게 뜻이 없다.
     static func elapsed(minutes: Int) -> String {
         if minutes < 1 { return "방금" }
         if minutes < 60 { return "\(minutes)분째" }
-        if minutes < 60 * 24 { return "\(minutes / 60)시간째" }
+        if minutes < 60 * 24 {
+            let hours = minutes / 60
+            let rest = minutes % 60
+            return rest == 0 ? "\(hours)시간째" : "\(hours)시간 \(rest)분째"
+        }
         return "\(minutes / (60 * 24))일째"
     }
 
