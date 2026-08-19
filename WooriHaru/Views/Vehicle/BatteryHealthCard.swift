@@ -22,12 +22,12 @@ struct BatteryHealthCard: View {
                     Text("배터리 건강")
                         .font(.caption)
                         .fontWeight(.bold)
-                        .foregroundStyle(Color.slate500)
+                        .foregroundStyle(VehicleTheme.textSecondary)
                     Spacer(minLength: 8)
                     Text("열화 \(VehicleFormat.percent(degradationPercent))")
                         .font(.caption2)
                         .monospacedDigit()
-                        .foregroundStyle(Color.slate400)
+                        .foregroundStyle(VehicleTheme.textTertiary)
                 }
                 .padding(.bottom, 10)
 
@@ -35,7 +35,7 @@ struct BatteryHealthCard: View {
                 HStack(alignment: .firstTextBaseline) {
                     Text("잔존율")
                         .font(.caption2)
-                        .foregroundStyle(Color.slate500)
+                        .foregroundStyle(VehicleTheme.textSecondary)
                     Spacer(minLength: 8)
                     Text(VehicleFormat.percent(remainingPercent))
                         .font(.title3)
@@ -65,28 +65,24 @@ struct BatteryHealthCard: View {
         )
     }
 
-    /// 90% 이상 초록, 80~90% 주황, 80% 미만 진한 주황. 판정은 `HealthBand`가 한다 —
+    /// 90% 이상 민트, 80~90% 노랑, 80% 미만 빨강. 판정은 `HealthBand`가 한다 —
     /// **반올림한 값으로 갈라야** 옆에 찍히는 숫자와 색이 어긋나지 않는다.
+    /// 색은 `VehicleTheme`이 고른다 — 잔량 링과 같은 축을 쓰기 위해서다.
     private var remainingColor: Color {
-        switch HealthBand.of(remainingPercent) {
-        case .good: Color.green600
-        case .fair: Color.orange500
-        case .low: Color.orange700
-        case nil: Color.slate500
-        }
+        VehicleTheme.color(for: HealthBand.of(remainingPercent))
     }
 
     private func row(_ label: String, _ value: String) -> some View {
         HStack(alignment: .firstTextBaseline) {
             Text(label)
                 .font(.caption2)
-                .foregroundStyle(Color.slate500)
+                .foregroundStyle(VehicleTheme.textSecondary)
             Spacer(minLength: 8)
             Text(value)
                 .font(.subheadline)
                 .fontWeight(.bold)
                 .monospacedDigit()
-                .foregroundStyle(Color.slate900)
+                .foregroundStyle(VehicleTheme.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
         }
@@ -106,7 +102,7 @@ struct BatteryHealthPlaceholderCard: View {
             HStack(alignment: .top, spacing: 14) {
                 Image(systemName: icon)
                     .font(.system(size: 26))
-                    .foregroundStyle(Color.slate400)
+                    .foregroundStyle(VehicleTheme.textTertiary)
                     // 장식 아이콘이다 — VoiceOver가 원문 심벌 이름을 읽지 않도록 숨긴다.
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 4) {
@@ -114,10 +110,10 @@ struct BatteryHealthPlaceholderCard: View {
                         Text(title)
                             .font(.subheadline)
                             .fontWeight(.bold)
-                            .foregroundStyle(Color.slate900)
+                            .foregroundStyle(VehicleTheme.textPrimary)
                         Text(message)
                             .font(.caption)
-                            .foregroundStyle(Color.slate500)
+                            .foregroundStyle(VehicleTheme.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     // 제목·설명만 묶는다. 버튼까지 묶으면 눌러도 반응 없는 문구 조각으로 삼켜진다.
@@ -127,10 +123,10 @@ struct BatteryHealthPlaceholderCard: View {
                         Button("다시 시도", action: retry)
                             .font(.caption)
                             .fontWeight(.bold)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(VehicleTheme.accentBright)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
-                            .background(Color.blue600, in: Capsule())
+                            .background(VehicleTheme.accent.opacity(0.18), in: Capsule())
                             .buttonStyle(.plain)
                             .padding(.top, 4)
                     }
@@ -153,5 +149,6 @@ struct BatteryHealthPlaceholderCard: View {
                                      message: "80% 이상 충전하면 값이 쌓여요")
     }
     .padding(16)
-    .background(Color.slate50)
+    .background(VehicleTheme.background)
+    .environment(\.vehicleDark, true)
 }

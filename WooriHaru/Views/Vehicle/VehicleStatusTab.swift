@@ -37,7 +37,7 @@ struct VehicleStatusTab: View {
                 if totalsViewModel.totals == nil, let error = totalsViewModel.errorMessage {
                     Text(error)
                         .font(.caption)
-                        .foregroundStyle(Color.red500)
+                        .foregroundStyle(VehicleTheme.danger)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
@@ -82,7 +82,7 @@ struct VehicleStatusTab: View {
             }
             .font(.caption)
             // 오래된 값도 값이다. 가리지 않고 시각만 눈에 띄게 한다.
-            .foregroundStyle(statusViewModel.isStale(at: context.date) ? Color.orange700 : Color.slate500)
+            .foregroundStyle(statusViewModel.isStale(at: context.date) ? VehicleTheme.warning : VehicleTheme.textSecondary)
         }
     }
 
@@ -96,9 +96,9 @@ struct VehicleStatusTab: View {
                 Image(systemName: "chevron.right").font(.caption)
             }
             .font(.subheadline)
-            .foregroundStyle(Color.orange700)
+            .foregroundStyle(VehicleTheme.warning)
             .padding(14)
-            .background(Color.orange100, in: RoundedRectangle(cornerRadius: 14))
+            .background(VehicleTheme.warning.opacity(0.15), in: RoundedRectangle(cornerRadius: 14))
         }
         .buttonStyle(.plain)
     }
@@ -113,7 +113,7 @@ struct VehicleStatusTab: View {
         if let error = healthViewModel.errorMessage, healthViewModel.hasSamples {
             Text(error)
                 .font(.caption)
-                .foregroundStyle(Color.red500)
+                .foregroundStyle(VehicleTheme.danger)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
 
@@ -164,7 +164,7 @@ struct VehicleStatusTab: View {
         if let error = statusViewModel.errorMessage, statusViewModel.status != nil {
             Text(error)
                 .font(.caption)
-                .foregroundStyle(Color.red500)
+                .foregroundStyle(VehicleTheme.danger)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
 
@@ -243,7 +243,7 @@ struct VehicleStatusTab: View {
                 // 값이 있는 새로고침 실패는 띠를 그대로 두고 한 줄만 알린다.
                 Text(error)
                     .font(.caption)
-                    .foregroundStyle(Color.red500)
+                    .foregroundStyle(VehicleTheme.danger)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
 
@@ -254,7 +254,7 @@ struct VehicleStatusTab: View {
                 GlassCard {
                     Text("최근 \(StateTimelineMath.hours(from: from, to: to))시간 기록이 없어요")
                         .font(.caption)
-                        .foregroundStyle(Color.slate500)
+                        .foregroundStyle(VehicleTheme.textSecondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
@@ -265,7 +265,7 @@ struct VehicleStatusTab: View {
             GlassCard {
                 Text("불러오는 중")
                     .font(.caption)
-                    .foregroundStyle(Color.slate500)
+                    .foregroundStyle(VehicleTheme.textSecondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         } else if let error = timelineViewModel.errorMessage {
@@ -273,7 +273,7 @@ struct VehicleStatusTab: View {
                 HStack(spacing: 8) {
                     Text(error)
                         .font(.caption)
-                        .foregroundStyle(Color.slate500)
+                        .foregroundStyle(VehicleTheme.textSecondary)
                     Spacer(minLength: 8)
                     Button("다시 시도") { Task { await timelineViewModel.reload() } }
                         .font(.caption)
@@ -306,29 +306,29 @@ struct VehicleStatusTab: View {
                 .font(.title3)
                 .fontWeight(.heavy)
                 .monospacedDigit()
-                .foregroundStyle(Color.slate900)
+                .foregroundStyle(VehicleTheme.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
             Text(label)
                 .font(.caption2)
-                .foregroundStyle(Color.slate500)
+                .foregroundStyle(VehicleTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
-        .background(Color.slate100, in: RoundedRectangle(cornerRadius: 12))
+        .background(VehicleTheme.tileFill, in: RoundedRectangle(cornerRadius: 12))
     }
 
     private func row(_ label: String, _ value: String) -> some View {
         HStack(alignment: .firstTextBaseline) {
             Text(label)
                 .font(.caption)
-                .foregroundStyle(Color.slate500)
+                .foregroundStyle(VehicleTheme.textSecondary)
             Spacer(minLength: 12)
             Text(value)
                 .font(.subheadline)
                 .fontWeight(.semibold)
                 .monospacedDigit()
-                .foregroundStyle(Color.slate900)
+                .foregroundStyle(VehicleTheme.textPrimary)
         }
     }
 }

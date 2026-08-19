@@ -36,23 +36,27 @@ struct BatteryNowCard: View {
     /// 열화 링에서 물려받은 어휘 그대로다 — 96pt, 선 굵기 9.
     private var ring: some View {
         ZStack {
-            Circle().stroke(.white.opacity(0.15), lineWidth: 9)
+            Circle().stroke(VehicleTheme.trackFill, lineWidth: 9)
             Circle()
                 .trim(from: 0, to: ratio)
                 .stroke(ringColor, style: StrokeStyle(lineWidth: 9, lineCap: .round))
                 .rotationEffect(.degrees(-90))
+                // **화면에서 빛나는 것은 이것 하나뿐이다.** 후광 색은 링 색을 따라간다 —
+                // 잔량 20% 미만이면 링이 빨강이 되는데 거기 초록 후광이 지면 색이
+                // 서로를 부정한다.
+                .shadow(color: ringColor.opacity(0.55), radius: 12)
             VStack(spacing: 1) {
                 Text(status.batteryLevel.map { "\($0)%" } ?? ChargeFormat.placeholder)
                     .font(.title2)
                     .fontWeight(.heavy)
                     .monospacedDigit()
-                    .foregroundStyle(.white)
+                    .foregroundStyle(VehicleTheme.textPrimary)
                     .minimumScaleFactor(0.6)
                     .lineLimit(1)
                 Text(VehicleFormat.distance(status.ratedRangeKm))
                     .font(.system(size: 10, weight: .semibold))
                     .monospacedDigit()
-                    .foregroundStyle(.white.opacity(0.6))
+                    .foregroundStyle(VehicleTheme.textTertiary)
             }
             .padding(.horizontal, 10)
         }
@@ -65,14 +69,10 @@ struct BatteryNowCard: View {
         return min(1, max(0, CGFloat(level) / 100))
     }
 
-    /// 50% 이상 초록, 20~50% 노랑, 20% 미만 주황. **문구는 붙이지 않는다** — 색만 바뀐다.
+    /// 50% 이상 민트, 20~50% 노랑, 20% 미만 빨강. **문구는 붙이지 않는다** — 색만 바뀐다.
+    /// 판정은 `BatteryBand`, 색은 `VehicleTheme`. 둘 다 여기서 하지 않는다.
     private var ringColor: Color {
-        switch BatteryBand.of(status.batteryLevel) {
-        case .high: Color.green300
-        case .mid: Color.orange300
-        case .low: Color.orange500
-        case nil: Color.slate500
-        }
+        VehicleTheme.color(for: BatteryBand.of(status.batteryLevel))
     }
 
     // MARK: - 상태
@@ -81,18 +81,18 @@ struct BatteryNowCard: View {
     private var stateLine: some View {
         HStack(spacing: 6) {
             Circle()
-                .fill(.white.opacity(0.8))
+                .fill(VehicleTheme.accent)
                 .frame(width: 6, height: 6)
             VStack(alignment: .leading, spacing: 1) {
                 Text(VehicleFormat.stateLabel(status.state))
                     .font(.subheadline)
                     .fontWeight(.bold)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(VehicleTheme.textPrimary)
                 if let minutesInState {
                     Text(VehicleFormat.elapsed(minutes: minutesInState))
                         .font(.caption2)
                         .monospacedDigit()
-                        .foregroundStyle(.white.opacity(0.6))
+                        .foregroundStyle(VehicleTheme.textTertiary)
                 }
             }
         }
@@ -114,13 +114,13 @@ struct BatteryNowCard: View {
         HStack(alignment: .firstTextBaseline) {
             Text(label)
                 .font(.caption2)
-                .foregroundStyle(.white.opacity(0.55))
+                .foregroundStyle(VehicleTheme.textTertiary)
             Spacer(minLength: 8)
             Text(value)
                 .font(.subheadline)
                 .fontWeight(.bold)
                 .monospacedDigit()
-                .foregroundStyle(.white)
+                .foregroundStyle(VehicleTheme.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
         }
@@ -140,7 +140,7 @@ struct BatteryNowPlaceholderCard: View {
         HStack(alignment: .top, spacing: 14) {
             Image(systemName: icon)
                 .font(.system(size: 26))
-                .foregroundStyle(.white.opacity(0.5))
+                .foregroundStyle(VehicleTheme.textTertiary)
                 // 장식 아이콘이다 — VoiceOver가 원문 심벌 이름을 읽지 않도록 숨긴다.
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
@@ -148,10 +148,10 @@ struct BatteryNowPlaceholderCard: View {
                     Text(title)
                         .font(.subheadline)
                         .fontWeight(.bold)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(VehicleTheme.textPrimary)
                     Text(message)
                         .font(.caption)
-                        .foregroundStyle(.white.opacity(0.6))
+                        .foregroundStyle(VehicleTheme.textTertiary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 // 제목·설명만 묶는다. 버튼까지 묶으면 눌러도 반응 없는 문구 조각으로 삼켜진다.
@@ -161,10 +161,10 @@ struct BatteryNowPlaceholderCard: View {
                     Button("다시 시도", action: retry)
                         .font(.caption)
                         .fontWeight(.bold)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(VehicleTheme.accentBright)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
-                        .background(.white.opacity(0.18), in: Capsule())
+                        .background(VehicleTheme.accent.opacity(0.18), in: Capsule())
                         .buttonStyle(.plain)
                         .padding(.top, 4)
                 }
@@ -178,9 +178,11 @@ struct BatteryNowPlaceholderCard: View {
 // MARK: - 공용 패널 배경
 
 extension View {
-    /// 진한 패널 배경(그라디언트 + 모서리 + 그림자). `BatteryNowCard`와
-    /// `BatteryNowPlaceholderCard`가 같은 자리에 번갈아 서는 같은 패널이라,
-    /// 스타일이 갈라지면 화면 상태가 바뀔 때 색이 미묘하게 달라져 보인다.
+    /// 히어로 패널 배경. **더 이상 「진한 판」이 아니다** — 배경이 검정이 되면서
+    /// 어두운 판은 특별할 수 없게 됐다. 다른 카드와 같은 면을 쓰고, 강조는 링이 맡는다.
+    ///
+    /// `BatteryNowCard`와 `BatteryNowPlaceholderCard`가 같은 자리에 번갈아 서는 같은
+    /// 패널이라, 스타일이 갈라지면 화면 상태가 바뀔 때 색이 미묘하게 달라져 보인다.
     fileprivate func batteryPanelBackground() -> some View {
         modifier(BatteryPanelBackground())
     }
@@ -191,12 +193,11 @@ private struct BatteryPanelBackground: ViewModifier {
         content
             .padding(18)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                LinearGradient(colors: [Color.navy800, Color.navy900],
-                               startPoint: .topLeading, endPoint: .bottomTrailing),
-                in: RoundedRectangle(cornerRadius: 20)
+            .background(VehicleTheme.cardFill, in: RoundedRectangle(cornerRadius: 20))
+            .overlay(
+                RoundedRectangle(cornerRadius: 20)
+                    .strokeBorder(VehicleTheme.cardStroke, lineWidth: 1)
             )
-            .shadow(color: Color.navy900.opacity(0.35), radius: 14, y: 8)
     }
 }
 
@@ -217,5 +218,6 @@ private struct BatteryPanelBackground: ViewModifier {
                                   message: "차가 한 번 깨어나면 값이 쌓여요")
     }
     .padding(16)
-    .background(Color.slate50)
+    .background(VehicleTheme.background)
+    .environment(\.vehicleDark, true)
 }
