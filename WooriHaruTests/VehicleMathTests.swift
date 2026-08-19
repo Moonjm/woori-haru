@@ -97,4 +97,10 @@ struct VehicleMathTests {
         #expect(VehicleFormat.odometer(Decimal(string: "41203.8")) == "41,204km")
         #expect(VehicleFormat.distance(nil) == "—")
     }
+
+    @Test func 속도는_정수와_단위로_찍는다() {
+        #expect(VehicleFormat.speed(138) == "138km/h")
+        #expect(VehicleFormat.speed(0) == "0km/h")
+        #expect(VehicleFormat.speed(nil) == ChargeFormat.placeholder)
+    }
 }

@@ -41,14 +41,20 @@ struct VehicleDriveViewModelTests {
                 DistanceBucket(fromKm: 50, toKm: 100, driveCount: 36, distanceKm: 2500),
                 DistanceBucket(fromKm: 100, toKm: nil, driveCount: 3, distanceKm: 412),
             ],
-            places: places
+            places: places,
+            maxSpeedKmh: 138,
+            monthDistanceKm: Decimal(string: "1331.3"),
+            yearDistanceKm: Decimal(string: "13440.4")
         )
     }
 
     private nonisolated static func empty(months: Int = 3) -> DriveInsightsResponse {
         DriveInsightsResponse(
             months: months, efficiencyKwhPerKm: Decimal(string: "0.1367"),
-            temperatureBuckets: [], driveTimes: [], distanceBuckets: [], places: []
+            temperatureBuckets: [], driveTimes: [], distanceBuckets: [], places: [],
+            maxSpeedKmh: 138,
+            monthDistanceKm: Decimal(string: "1331.3"),
+            yearDistanceKm: Decimal(string: "13440.4")
         )
     }
 
@@ -172,7 +178,10 @@ struct VehicleDriveViewModelTests {
             distanceBuckets: [
                 DistanceBucket(fromKm: 0, toKm: 5, driveCount: 8, distanceKm: Decimal(string: "32.5")!),
             ],
-            places: []
+            places: [],
+            maxSpeedKmh: 138,
+            monthDistanceKm: Decimal(string: "1331.3"),
+            yearDistanceKm: Decimal(string: "13440.4")
         )
         stub(mock, response)
         let viewModel = makeViewModel(mock)
@@ -220,7 +229,10 @@ struct VehicleDriveViewModelTests {
                 DriveTime(weekday: 1, hour: 8, count: 20),
                 DriveTime(weekday: 1, hour: 8, count: 15),
             ],
-            distanceBuckets: [], places: []
+            distanceBuckets: [], places: [],
+            maxSpeedKmh: 138,
+            monthDistanceKm: Decimal(string: "1331.3"),
+            yearDistanceKm: Decimal(string: "13440.4")
         )
         stub(mock, response)
         let viewModel = makeViewModel(mock)

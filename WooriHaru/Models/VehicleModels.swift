@@ -168,6 +168,12 @@ enum VehicleFormat {
     /// 41203.8 → "41,204km"
     static func odometer(_ km: Decimal?) -> String { distance(km) }
 
+    /// 138 → "138km/h". **소수를 두지 않는다** — `drives.speed_max`가 `smallint`다.
+    static func speed(_ kmh: Int?) -> String {
+        guard let kmh else { return ChargeFormat.placeholder }
+        return "\(kmh)km/h"
+    }
+
     /// 4.518… → "4.5km/kWh", 6.0349… → "6.0km/kWh".
     /// **소수 한 자리를 늘 낸다** — 전비는 여러 값을 나란히 견주는 자리에 쓰이는데
     /// 「6」과 「6.7」이 한 열에 섞이면 자릿수가 흔들려 읽기 어렵다. 측정값이라 `5.0`이 `5`보다 옳기도 하다.
