@@ -55,7 +55,7 @@ struct VehicleDriveTab: View {
             Text(period.label)
                 .font(.caption)
                 .fontWeight(.bold)
-                .foregroundStyle(selected ? VehicleTheme.accentBright : VehicleTheme.textSecondary)
+                .foregroundStyle(selected ? VehicleTheme.accentBright : VehicleTheme.textTertiary)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
                 .background {
@@ -156,6 +156,7 @@ struct VehicleDriveTab: View {
         } actions: {
             Button("다시 시도") { Task { await viewModel.reload() } }
                 .buttonStyle(.borderedProminent)
+                .foregroundStyle(VehicleTheme.background)
         }
     }
 }

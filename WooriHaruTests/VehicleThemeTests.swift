@@ -49,4 +49,31 @@ struct VehicleThemeTests {
         #expect(none != VehicleTheme.danger)
         #expect(VehicleTheme.color(for: HealthBand?.none) == VehicleTheme.textTertiary)
     }
+
+    /// WCAG 상대 휘도. **눈으로 보고 「더 밝다」를 판정하지 않는다** — 민트(`accentBright`)는
+    /// 채도가 높아 밝아 보이지만 휘도는 옅은 청백(`textSecondary`)보다 낮다.
+    private func luminance(_ color: Color) -> Double {
+        let c = color.resolve(in: EnvironmentValues())
+        // `Color.white.opacity(x)`는 `resolve(in:)`으로 풀면 알파가 성분에 접히지 않고
+        // 흰색 성분이 그대로 나온다. 이 화면들은 전부 거의 검은 바탕 위에 얹히므로
+        // 알파를 곱한 값이 실제로 보이는 밝기에 가깝다.
+        return (0.2126 * Double(c.linearRed)
+              + 0.7152 * Double(c.linearGreen)
+              + 0.0722 * Double(c.linearBlue)) * Double(c.opacity)
+    }
+
+    /// 선택·비선택 짝은 **선택된 쪽이 더 밝아야 한다.** 이 관계가 뒤집히면 알약 배경을
+    /// 못 보는 상황에서 어느 것이 골라져 있는지 거꾸로 읽힌다 — 주행 탭 기간 칩에서 실제로 났던 일이다.
+    @Test func 선택된_쪽이_비선택보다_밝다() {
+        #expect(luminance(VehicleTheme.accentBright) > luminance(VehicleTheme.textTertiary))
+        #expect(luminance(VehicleTheme.accentBright) > luminance(VehicleTheme.accentMuted))
+    }
+
+    /// 막대 트랙은 **어느 상태보다도 어두워야 한다.** 막대가 트랙 위에 겹쳐 칠해지므로,
+    /// 트랙이 가장 어두운 상태만큼 밝으면 「기록 없음」과 그 상태가 안 갈린다.
+    @Test func 트랙이_가장_어두운_상태보다_어둡다() {
+        let kinds: [TimelineKind] = [.asleep, .offline, .online, .driving, .charging]
+        let darkestState = kinds.map { luminance(VehicleTheme.color(for: $0)) }.min() ?? 0
+        #expect(luminance(VehicleTheme.cardFill) < darkestState)
+    }
 }

@@ -233,6 +233,7 @@ struct VehicleSummaryTab: View {
         } actions: {
             Button("다시 시도") { Task { await viewModel.reload() } }
                 .buttonStyle(.borderedProminent)
+                .foregroundStyle(VehicleTheme.background)
         }
     }
 }

@@ -81,7 +81,9 @@ struct BatteryNowCard: View {
     private var stateLine: some View {
         HStack(spacing: 6) {
             Circle()
-                .fill(VehicleTheme.accent)
+                // **상태를 색으로 말하지 않는다.** 민트는 이 테마에서 「좋음」이라, 오프라인 옆에
+                // 켜지면 거짓말이 된다. 상태는 옆 글자가 말하고 점은 자리만 잡는다.
+                .fill(VehicleTheme.textSecondary)
                 .frame(width: 6, height: 6)
             VStack(alignment: .leading, spacing: 1) {
                 Text(VehicleFormat.stateLabel(status.state))

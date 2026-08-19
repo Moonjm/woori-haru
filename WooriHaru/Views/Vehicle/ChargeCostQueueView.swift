@@ -104,6 +104,9 @@ struct ChargeCostQueueView: View {
                 .disabled(viewModel.isSaving)
                 Button("저장 · 다음") { save() }
                     .buttonStyle(.borderedProminent)
+                    // **민트 위에 흰 글씨는 안 읽힌다**(대비 1.9:1). prominent 버튼은 틴트를
+                    // 배경으로 쓰고 라벨 색을 밝기에 맞춰 바꾸지 않으므로 여기서 못 박는다.
+                    .foregroundStyle(VehicleTheme.background)
                     .disabled(parsedCost == nil || viewModel.isSaving)
             }
             .frame(maxWidth: .infinity)
@@ -139,6 +142,7 @@ struct ChargeCostQueueView: View {
         } actions: {
             Button("닫기") { close() }
                 .buttonStyle(.borderedProminent)
+                .foregroundStyle(VehicleTheme.background)
                 .disabled(viewModel.isSaving)
         }
     }
@@ -151,6 +155,7 @@ struct ChargeCostQueueView: View {
         } actions: {
             Button("다시 시도") { Task { await viewModel.load() } }
                 .buttonStyle(.borderedProminent)
+                .foregroundStyle(VehicleTheme.background)
         }
     }
 

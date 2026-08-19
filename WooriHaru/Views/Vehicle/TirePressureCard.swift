@@ -123,7 +123,7 @@ private extension TireStatus {
         switch self {
         case .normal: return VehicleTheme.tileFill
         case .low, .high: return VehicleTheme.warning.opacity(0.15)
-        case .unknown: return VehicleTheme.background
+        case .unknown: return VehicleTheme.trackFill
         }
     }
 

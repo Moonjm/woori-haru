@@ -46,7 +46,9 @@ struct StateTimelineChart: View {
         GeometryReader { proxy in
             let width = proxy.size.width
             ZStack(alignment: .leading) {
-                Rectangle().fill(VehicleTheme.tileFill)
+                // **트랙은 어느 상태보다도 어두워야 한다.** 막대가 이 위에 겹쳐 칠해지므로,
+                // 트랙이 가장 어두운 상태(`asleep`)와 가까우면 「자는 중」과 「기록 없음」이 안 갈린다.
+                Rectangle().fill(VehicleTheme.cardFill)
                 ForEach(Array(bars.enumerated()), id: \.offset) { _, bar in
                     Rectangle()
                         .fill(Self.color(bar.kind))
