@@ -160,6 +160,8 @@ struct VehicleHealthMathTests {
         #expect(HealthBand.of(Decimal(string: "79.4")) == .low)
         #expect(HealthBand.of(90) == .good)
         #expect(HealthBand.of(nil) == nil)
+        // 표기도 같은 반올림을 쓴다 — 이 둘이 갈리면 "90%"인데 링만 노랑이 된다.
+        #expect(VehicleFormat.percent(Decimal(string: "89.5")) == "90%")
     }
 
     @Test func 잔량_색은_정수_경계로_갈린다() {

@@ -57,6 +57,11 @@ struct VehicleMathTests {
         #expect(VehicleFormat.relative(minutes: 45) == "45분 전")
         #expect(VehicleFormat.relative(minutes: 240) == "4시간 전")
         #expect(VehicleFormat.relative(minutes: 2880) == "2일 전")
+
+        #expect(VehicleFormat.elapsed(minutes: 0) == "방금")
+        #expect(VehicleFormat.elapsed(minutes: 45) == "45분째")
+        #expect(VehicleFormat.elapsed(minutes: 240) == "4시간째")
+        #expect(VehicleFormat.elapsed(minutes: 2880) == "2일째")
     }
 
     /// 서버가 주는 `asOf`는 KST 벽시계 값이다. **기기 시간대로 읽으면 안 된다** —

@@ -199,6 +199,17 @@ enum VehicleFormat {
         return "\(minutes / (60 * 24))일 전"
     }
 
+    /// 「지금 이 상태로 얼마나」 — `relative`가 과거 시점을 읽는 것과 달리 **지속 시간**을 읽는다.
+    ///
+    /// **`relative`의 출력을 잘라 쓰지 않는다.** 「방금」에는 잘라낼 " 전"이 없어 「방금째」가 되고,
+    /// 그쪽 표기가 바뀌면 이 자리는 컴파일도 테스트도 깨지지 않은 채 글자만 이상해진다.
+    static func elapsed(minutes: Int) -> String {
+        if minutes < 1 { return "방금" }
+        if minutes < 60 { return "\(minutes)분째" }
+        if minutes < 60 * 24 { return "\(minutes / 60)시간째" }
+        return "\(minutes / (60 * 24))일째"
+    }
+
     /// **모르는 값은 원문 그대로 낸다** — 상류가 상태를 늘렸다는 사실이 숨으면 안 된다.
     static func stateLabel(_ raw: String?) -> String {
         guard let raw else { return ChargeFormat.placeholder }

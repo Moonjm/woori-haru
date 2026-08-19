@@ -89,7 +89,7 @@ struct BatteryNowCard: View {
                     .fontWeight(.bold)
                     .foregroundStyle(.white)
                 if let minutesInState {
-                    Text("\(VehicleFormat.relative(minutes: minutesInState).replacingOccurrences(of: " 전", with: ""))째")
+                    Text(VehicleFormat.elapsed(minutes: minutesInState))
                         .font(.caption2)
                         .monospacedDigit()
                         .foregroundStyle(.white.opacity(0.6))
@@ -99,10 +99,12 @@ struct BatteryNowCard: View {
     }
 
     private var accessibilityText: String {
-        var parts = ["배터리 \(status.batteryLevel.map { "\($0)퍼센트" } ?? "값 없음")",
-                     "주행가능 \(VehicleFormat.distance(status.ratedRangeKm))",
-                     VehicleFormat.stateLabel(status.state)]
-        if let minutesInState { parts.append("\(VehicleFormat.relative(minutes: minutesInState))부터") }
+        var parts = ["배터리 \(status.batteryLevel.map { "\($0)퍼센트" } ?? "값 없음")"]
+        parts.append(status.ratedRangeKm == nil
+            ? "주행가능 값 없음"
+            : "주행가능 \(VehicleFormat.distance(status.ratedRangeKm))")
+        parts.append(status.state == nil ? "상태 값 없음" : VehicleFormat.stateLabel(status.state))
+        if let minutesInState { parts.append(VehicleFormat.elapsed(minutes: minutesInState)) }
         parts.append("사용 가능 \(status.usableBatteryLevel.map { "\($0)퍼센트" } ?? "값 없음")")
         parts.append("위치 \(status.locationName ?? "값 없음")")
         return parts.joined(separator: ", ")
