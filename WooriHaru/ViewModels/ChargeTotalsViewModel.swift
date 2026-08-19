@@ -6,7 +6,6 @@ import Observation
 @Observable
 final class ChargeTotalsViewModel {
     private(set) var totals: ChargeTotalsResponse?
-    private(set) var isLoading = false
     var errorMessage: String?
 
     private let service: ChargeService
@@ -39,10 +38,6 @@ final class ChargeTotalsViewModel {
     func reload() async {
         generation += 1
         let current = generation
-        isLoading = true
-        defer {
-            if current == generation { isLoading = false }
-        }
         do {
             let loaded = try await service.fetchTotals()
             guard current == generation else { return }

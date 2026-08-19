@@ -9,18 +9,11 @@ struct ChargeTotalsCard: View {
     let totals: ChargeTotalsResponse?
     /// `/tesla/status`에서 온다 — **누적 주행거리는 이 응답에 없다.**
     let odometerKm: Decimal?
-
-    private var fast: Decimal? {
-        VehicleMath.wonPerKwh(cost: totals?.fast.cost,
-                              energyUsedKwh: totals?.fast.energyUsedKwh,
-                              costMissingEnergyUsedKwh: totals?.fast.costMissingEnergyUsedKwh)
-    }
-
-    private var slow: Decimal? {
-        VehicleMath.wonPerKwh(cost: totals?.slow.cost,
-                              energyUsedKwh: totals?.slow.energyUsedKwh,
-                              costMissingEnergyUsedKwh: totals?.slow.costMissingEnergyUsedKwh)
-    }
+    /// **뷰모델이 낸 값을 그대로 받는다.** 여기서 다시 계산하면 화면에 나오는 값과
+    /// 테스트하는 값이 서로 다른 코드가 된다 — 공식을 바꿔도 테스트는 그대로 통과하고
+    /// 화면만 틀려지는 함정이 생긴다.
+    let fastWonPerKwh: Decimal?
+    let slowWonPerKwh: Decimal?
 
     var body: some View {
         GlassCard {
@@ -73,8 +66,8 @@ struct ChargeTotalsCard: View {
     /// 「289원」만 크게 적으면 그 얇음이 숨는다.
     private var unitPriceTile: some View {
         VStack(spacing: 2) {
-            row("급속", fast, totals?.fast.pricedCount)
-            row("완속", slow, totals?.slow.pricedCount)
+            row("급속", fastWonPerKwh, totals?.fast.pricedCount)
+            row("완속", slowWonPerKwh, totals?.slow.pricedCount)
             Text("kWh당")
                 .font(.caption2)
                 .foregroundStyle(Color.slate500)
@@ -120,10 +113,17 @@ struct ChargeTotalsCard: View {
                                     energyUsedKwh: Decimal(string: "16877.1"), cost: 3493723,
                                     costMissingCount: 10,
                                     costMissingEnergyUsedKwh: Decimal(string: "143.1")))
+    let fast = VehicleMath.wonPerKwh(cost: t.fast.cost,
+                                      energyUsedKwh: t.fast.energyUsedKwh,
+                                      costMissingEnergyUsedKwh: t.fast.costMissingEnergyUsedKwh)
+    let slow = VehicleMath.wonPerKwh(cost: t.slow.cost,
+                                      energyUsedKwh: t.slow.energyUsedKwh,
+                                      costMissingEnergyUsedKwh: t.slow.costMissingEnergyUsedKwh)
     return VStack(spacing: 12) {
-        ChargeTotalsCard(totals: t, odometerKm: Decimal(string: "41203.8"))
+        ChargeTotalsCard(totals: t, odometerKm: Decimal(string: "41203.8"),
+                          fastWonPerKwh: fast, slowWonPerKwh: slow)
         // 아직 못 받았을 때 — 자리는 지키고 값만 「—」다.
-        ChargeTotalsCard(totals: nil, odometerKm: nil)
+        ChargeTotalsCard(totals: nil, odometerKm: nil, fastWonPerKwh: nil, slowWonPerKwh: nil)
     }
     .padding(16)
     .background(Color.slate50)

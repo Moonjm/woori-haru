@@ -25,7 +25,9 @@ struct VehicleHealthTab: View {
                 }
 
                 ChargeTotalsCard(totals: totalsViewModel.totals,
-                                 odometerKm: statusViewModel.status?.odometerKm)
+                                 odometerKm: statusViewModel.status?.odometerKm,
+                                 fastWonPerKwh: totalsViewModel.fastWonPerKwh,
+                                 slowWonPerKwh: totalsViewModel.slowWonPerKwh)
 
                 healthSection
 
