@@ -11,6 +11,7 @@ struct VehicleView: View {
     @State private var summaryViewModel = VehicleSummaryViewModel()
     @State private var statusViewModel = VehicleStatusViewModel()
     @State private var healthViewModel = VehicleHealthViewModel()
+    @State private var totalsViewModel = ChargeTotalsViewModel()
     @State private var driveViewModel = VehicleDriveViewModel()
     @State private var showingMonthPicker = false
     @State private var showingQueue = false
@@ -62,13 +63,15 @@ struct VehicleView: View {
         switch tab {
         case .health:
             VehicleHealthTab(healthViewModel: healthViewModel,
-                             statusViewModel: statusViewModel) { showingQueue = true }
-                // 상태는 탭에 들어올 때마다 새로 받는다. 배터리 건강은 전 기간 집계라
-                // 뷰모델이 한 번만 받고, 배지 수만 매번 맞춘다.
+                             statusViewModel: statusViewModel,
+                             totalsViewModel: totalsViewModel) { showingQueue = true }
+                // 상태는 탭에 들어올 때마다 새로 받는다. 배터리 건강·충전 누적은 전 기간
+                // 집계라 뷰모델이 한 번만 받고, 배지 수만 매번 맞춘다.
                 .task {
                     async let status: Void = statusViewModel.load()
                     async let health: Void = healthViewModel.load()
-                    _ = await (status, health)
+                    async let totals: Void = totalsViewModel.load()
+                    _ = await (status, health, totals)
                 }
         case .drive:
             VehicleDriveTab(viewModel: driveViewModel)
