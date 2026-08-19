@@ -68,11 +68,19 @@
 
 ---
 
-## Task 1: 계산을 한 줄로 줄인다
+## Task 1: 타임라인을 24시간 한 줄로
+
+**이 셋은 한 커밋이어야 한다.** `TimelineBar`에서 `dayIndex`를 빼고 `days`를 `hours`로 바꾸는 순간
+서비스·뷰모델·차트·건강 탭이 동시에 깨진다. `xcodebuild test`는 `-only-testing`을 줘도 테스트 번들
+**전체**를 컴파일하므로, 나누면 어느 중간 지점도 초록이 되지 못한다.
 
 **Files:**
 - Modify: `WooriHaru/Models/StateTimelineModels.swift`
-- Test: `WooriHaruTests/StateTimelineTests.swift` (전면 재작성)
+- Modify: `WooriHaru/Services/VehicleService.swift`
+- Modify: `WooriHaru/ViewModels/StateTimelineViewModel.swift`
+- Modify: `WooriHaru/Views/Vehicle/StateTimelineChart.swift` (전면 개편)
+- Modify: `WooriHaru/Views/Vehicle/VehicleHealthTab.swift` (`timelineSection` 배선)
+- Test: `WooriHaruTests/StateTimelineTests.swift` (전면 재작성), `WooriHaruTests/StateTimelineViewModelTests.swift`
 
 **Interfaces:**
 - Consumes: `VehicleFormat.parseKST(_ raw: String) -> Date?` (기존)
@@ -82,6 +90,9 @@
   - `StateTimelineMath.bars(_:) -> [TimelineBar]` — 시그니처 그대로, 의미만 바뀐다
   - `StateSegment`·`TimeSegment`·`TimelineKind`는 그대로다
   - **`StateTimelineMath.secondsPerDay`는 삭제한다** — 하루 단위를 쓰는 곳이 사라진다
+  - `VehicleService.fetchStateTimeline(hours: Int = 24)` — 질의 키는 `"hours"`
+  - `StateTimelineViewModel.hours: Int`(static, 24) — **`days`는 사라진다**
+  - `StateTimelineChart(bars: [TimelineBar], hours: Int, from: Date, to: Date)`
 
 - [ ] **Step 1: 테스트를 새로 쓴다**
 
@@ -192,7 +203,8 @@ struct StateTimelineTests {
 
 Run: `xcodebuild test -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -only-testing:WooriHaruTests/StateTimelineTests 2>&1 | grep -E "error:|TEST FAILED|TEST SUCCEEDED" | tail -10`
 
-Expected: 컴파일 실패 — `StateTimelineResponse`에 `hours` 인자가 없다
+Expected: 컴파일 실패 — `StateTimelineResponse`에 `hours` 인자가 없다.
+**이 시점부터 Step 8까지는 전체가 컴파일되지 않는 것이 정상이다.**
 
 - [ ] **Step 3: 모델과 계산을 고친다**
 
@@ -288,36 +300,7 @@ enum StateTimelineMath {
 }
 ```
 
-- [ ] **Step 4: 테스트가 통과하는지 확인한다**
-
-Run: `xcodebuild test -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -only-testing:WooriHaruTests/StateTimelineTests 2>&1 | grep -E "Test run with|failed|error:|TEST SUCCEEDED|TEST FAILED" | tail -10`
-
-Expected: PASS (9 tests). 다른 스위트는 아직 컴파일되지 않아도 된다 — Task 2·3이 고친다.
-
-- [ ] **Step 5: 커밋한다**
-
-```bash
-git add WooriHaru/Models/StateTimelineModels.swift WooriHaruTests/StateTimelineTests.swift
-git commit -m "feat: 타임라인 좌표를 24시간 한 줄 비율로 바꾼다"
-```
-
----
-
-## Task 2: 서비스와 뷰모델을 시간 단위로
-
-**Files:**
-- Modify: `WooriHaru/Services/VehicleService.swift`
-- Modify: `WooriHaru/ViewModels/StateTimelineViewModel.swift`
-- Test: `WooriHaruTests/StateTimelineViewModelTests.swift`
-
-**Interfaces:**
-- Consumes: `StateTimelineResponse`(`hours` 필드), `TimelineBar`(`dayIndex` 없음), `StateTimelineMath.bars` (Task 1)
-- Produces:
-  - `VehicleService.fetchStateTimeline(hours: Int = 24) async throws -> StateTimelineResponse` — 질의 키는 `"hours"`
-  - `StateTimelineViewModel.hours: Int`(static, 값 24) — **`days`는 사라진다**
-  - 나머지(`timeline`·`bars`·`isLoading`·`errorMessage`·`hasSegments`·`load()`·`reload()`·404 처리)는 그대로다
-
-- [ ] **Step 1: 테스트를 고친다**
+- [ ] **Step 4: 뷰모델 테스트를 고친다**
 
 `WooriHaruTests/StateTimelineViewModelTests.swift`에서 픽스처와 질의 단언을 고친다. 파일 안의 `StateTimelineResponse(days: 7, from: "2026-08-13T00:00:00", to: "2026-08-19T12:00:00", …)` 형태를 전부 아래로 바꾼다:
 
@@ -348,13 +331,7 @@ git commit -m "feat: 타임라인 좌표를 24시간 한 줄 비율로 바꾼다
 
 `WooriHaruTests/VehicleServiceTests.swift`에는 **타임라인 질의 테스트가 없다**(확인함). 여기서 새로 만들지 않는다 — 위 뷰모델 테스트가 이미 질의 키를 단언한다.
 
-- [ ] **Step 2: 실패를 확인한다**
-
-Run: `xcodebuild test -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -only-testing:WooriHaruTests/StateTimelineViewModelTests 2>&1 | grep -E "error:|TEST FAILED|TEST SUCCEEDED" | tail -10`
-
-Expected: 컴파일 실패 — `StateTimelineViewModel`에 `hours`가 없다
-
-- [ ] **Step 3: 서비스를 고친다**
+- [ ] **Step 5: 서비스를 고친다**
 
 `WooriHaru/Services/VehicleService.swift`의 `fetchStateTimeline`을 바꾼다:
 
@@ -371,7 +348,7 @@ Expected: 컴파일 실패 — `StateTimelineViewModel`에 `hours`가 없다
     }
 ```
 
-- [ ] **Step 4: 뷰모델을 고친다**
+- [ ] **Step 6: 뷰모델을 고친다**
 
 `WooriHaru/ViewModels/StateTimelineViewModel.swift`에서 상수와 호출 한 줄만 바꾼다. **나머지는 손대지 않는다** — 캐시 없음, generation 토큰, 404 조용히 넘기기는 4단계 결정 그대로다.
 
@@ -386,32 +363,7 @@ Expected: 컴파일 실패 — `StateTimelineViewModel`에 `hours`가 없다
 
 클래스 독 코멘트의 「최근 7일」도 「최근 24시간」으로 바꾼다.
 
-- [ ] **Step 5: 테스트가 통과하는지 확인한다**
-
-Run: `xcodebuild test -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -only-testing:WooriHaruTests/StateTimelineViewModelTests 2>&1 | grep -E "Test run with|failed|error:|TEST SUCCEEDED|TEST FAILED" | tail -10`
-
-Expected: PASS
-
-- [ ] **Step 6: 커밋한다**
-
-```bash
-git add WooriHaru/Services/VehicleService.swift WooriHaru/ViewModels/StateTimelineViewModel.swift WooriHaruTests/StateTimelineViewModelTests.swift
-git commit -m "feat: 타임라인을 24시간 범위로 받아 온다"
-```
-
----
-
-## Task 3: 띠를 한 줄로 그린다
-
-**Files:**
-- Modify: `WooriHaru/Views/Vehicle/StateTimelineChart.swift` (전면 개편)
-- Modify: `WooriHaru/Views/Vehicle/VehicleHealthTab.swift` (`timelineSection` 배선)
-
-**Interfaces:**
-- Consumes: `TimelineBar`(`start`·`end`·`kind`), `TimelineKind`, `StateTimelineResponse`(`hours`·`from`·`to`) (Task 1), `VehicleFormat.parseKST` (기존), `GlassCard` (기존)
-- Produces: `StateTimelineChart(bars: [TimelineBar], hours: Int, from: Date, to: Date)`
-
-- [ ] **Step 1: 차트를 새로 쓴다**
+- [ ] **Step 7: 차트를 새로 쓴다**
 
 단위 테스트가 없다 — 좌표 계산은 Task 1이 덮었고 여기는 그리기만 한다. `WooriHaru/Views/Vehicle/StateTimelineChart.swift`를 아래로 **통째로 바꾼다.**
 
@@ -638,7 +590,7 @@ struct StateTimelineChart: View {
 }
 ```
 
-- [ ] **Step 2: 건강 탭 배선을 고친다**
+- [ ] **Step 8: 건강 탭 배선을 고친다**
 
 `WooriHaru/Views/Vehicle/VehicleHealthTab.swift`의 `timelineSection`에서 **`to`도 파싱하고** 차트 인자와 빈 문구를 바꾼다. 갈래 구조(값 → 로딩 → 오류 → 아무것도 안 그림)와 배너 위치는 **그대로 둔다.**
 
@@ -660,22 +612,22 @@ struct StateTimelineChart: View {
 
 `// MARK: - 최근 7일`을 `// MARK: - 최근 24시간`으로 바꾸고, `timelineSection`의 독 코멘트에서 「`from`을 못 읽으면 행을 셀 수 없어」를 「`from`·`to`를 못 읽으면 비율을 낼 수 없어」로 고친다.
 
-- [ ] **Step 3: 전체 테스트를 돌린다**
+- [ ] **Step 9: 전체 테스트를 돌린다 — 여기서 처음 초록이 된다**
 
 Run: `xcodebuild test -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPhone 17 Pro' 2>&1 | grep -E "Test run with|failed|error:|warning:|TEST SUCCEEDED|TEST FAILED" | tail -30`
 
 Expected: 전 스위트 PASS. 손댄 파일에 경고가 있으면 결함이다(`WooriHaruTests/DietFakes.swift`·`DietDayTests.swift`의 기존 경고는 제외).
 
-- [ ] **Step 4: 커밋한다**
+- [ ] **Step 10: 커밋한다**
 
 ```bash
-git add WooriHaru/Views/Vehicle/StateTimelineChart.swift WooriHaru/Views/Vehicle/VehicleHealthTab.swift
+git add WooriHaru/Models/StateTimelineModels.swift WooriHaru/Services/VehicleService.swift WooriHaru/ViewModels/StateTimelineViewModel.swift WooriHaru/Views/Vehicle/StateTimelineChart.swift WooriHaru/Views/Vehicle/VehicleHealthTab.swift WooriHaruTests/StateTimelineTests.swift WooriHaruTests/StateTimelineViewModelTests.swift
 git commit -m "feat: 최근 24시간을 한 줄 띠로 그린다"
 ```
 
 ---
 
-## Task 4: 평균 주행거리 타일
+## Task 2: 평균 주행거리 타일
 
 **Files:**
 - Modify: `WooriHaru/Models/DriveInsightsModels.swift`
@@ -907,7 +859,7 @@ git commit -m "feat: 주행 타일을 월·연 평균으로 바꾼다"
 
 ---
 
-## Task 5: 설계 문서를 구현에 맞춘다
+## Task 3: 설계 문서를 구현에 맞춘다
 
 **Files:**
 - Modify: `docs/superpowers/specs/2026-08-19-vehicle-dark-theme-design.md`
@@ -946,22 +898,22 @@ git commit -m "docs: A단계 구현 완료를 적는다"
 
 | 스펙 요구 | 태스크 |
 |---|---|
-| 한 줄, 높이 24pt | Task 3 |
-| 오른쪽 끝이 「지금」 | Task 1(범위 절단) · Task 3(축) |
-| 절대 시각 눈금, 4시간 간격 | Task 3 |
-| 겹침 순서 상태→주행→충전 | Task 1(`layer` 정렬) · Task 3(배열 순 그리기) |
-| 최소 폭 없음, 1픽셀 하한 | Task 3 |
-| 자정 분할 삭제, `dayIndex` 제거 | Task 1 |
+| 한 줄, 높이 24pt | Task 1 Step 7 |
+| 오른쪽 끝이 「지금」 | Task 1 Step 3(범위 절단) · Step 7(축) |
+| 절대 시각 눈금, 4시간 간격 | Task 1 Step 7 |
+| 겹침 순서 상태→주행→충전 | Task 1 Step 3(`layer` 정렬) · Step 7(배열 순 그리기) |
+| 최소 폭 없음, 1픽셀 하한 | Task 1 Step 7 |
+| 자정 분할 삭제, `dayIndex` 제거 | Task 1 Step 3 |
 | 자정 분할 테스트 삭제 | Task 1 Step 1 |
-| VoiceOver 한 정거장, 상태 셋 다 읽기 | Task 3 |
-| `days` → `hours` (응답·서비스·뷰모델) | Task 1 · Task 2 |
-| `totalDistanceKm`·`recordedMonths` | Task 4 |
-| 앱이 나눈다, 분모 0 방어 | Task 4 |
-| 「월 평균」·「연 평균」 라벨 | Task 4 |
-| 옵셔널 유지, 셋 다 nil이면 카드 감춤 | Task 4 |
-| 기간 분기 위에 그림 | Task 4 Step 7(기존 위치 유지) |
-| 경계·오류 표 | Task 3(타임라인) · Task 4(타일) |
-| 테스트 목록 | Task 1 · 2 · 4 |
+| VoiceOver 한 정거장, 상태 셋 다 읽기 | Task 1 Step 7 |
+| `days` → `hours` (응답·서비스·뷰모델) | Task 1 Step 3·5·6 |
+| `totalDistanceKm`·`recordedMonths` | Task 2 |
+| 앱이 나눈다, 분모 0 방어 | Task 2 |
+| 「월 평균」·「연 평균」 라벨 | Task 2 |
+| 옵셔널 유지, 셋 다 nil이면 카드 감춤 | Task 2 |
+| 기간 분기 위에 그림 | Task 2 Step 7(기존 위치 유지) |
+| 경계·오류 표 | Task 1(타임라인) · Task 2(타일) |
+| 테스트 목록 | Task 1 · Task 2 |
 
 **2. 플레이스홀더 스캔** — 「TBD」·「적절히 처리」·코드 없는 지시 없음. 모든 코드 단계에 실제 코드가 있다.
 
@@ -977,6 +929,6 @@ git commit -m "docs: A단계 구현 완료를 적는다"
 
 **4. 알려진 위험**
 
-- **Task 1이 끝난 시점에 다른 스위트는 컴파일되지 않는다.** `dayIndex`와 `days`를 쓰던 코드가 남아 있기 때문이다. Task 1의 검증을 단일 스위트로 한정한 이유이고, 전체가 초록으로 돌아오는 것은 Task 3 이후다.
-- **Task 4는 기존 테스트 10곳을 깨뜨린 뒤 고친다**(생성부 6 + `showsStats` 4). Step 8을 건너뛰면 전체 빌드가 실패한다.
+- **Task 1은 Step 2부터 Step 8까지 컴파일되지 않는다.** 모델을 바꾸는 순간 서비스·뷰모델·차트·건강 탭·테스트가 동시에 깨지고, `xcodebuild test`는 `-only-testing`을 줘도 테스트 번들 전체를 컴파일하므로 중간에 초록이 될 지점이 없다. **그래서 셋을 한 태스크로 묶었다** — 나누면 어느 커밋도 검증되지 않은 채 지나간다.
+- **Task 2는 기존 테스트 10곳을 깨뜨린 뒤 고친다**(생성부 6 + `showsStats` 4). Step 8을 건너뛰면 전체 빌드가 실패한다.
 - **서버가 개정 전이다.** 앱만으로는 타임라인 값이 옳은지 확인할 수 없다 — Task 5의 「남은 것」이 그 빈틈을 명시한다.
