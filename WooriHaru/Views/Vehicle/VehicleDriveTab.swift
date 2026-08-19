@@ -16,7 +16,7 @@ struct VehicleDriveTab: View {
                 if let error = viewModel.errorMessage, viewModel.insights != nil {
                     Text(error)
                         .font(.caption)
-                        .foregroundStyle(Color.red500)
+                        .foregroundStyle(VehicleTheme.danger)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
@@ -55,14 +55,16 @@ struct VehicleDriveTab: View {
             Text(period.label)
                 .font(.caption)
                 .fontWeight(.bold)
-                .foregroundStyle(selected ? .white : Color.slate500)
+                .foregroundStyle(selected ? VehicleTheme.accentBright : VehicleTheme.textSecondary)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
                 .background {
                     if selected {
-                        Capsule().fill(Color.blue600)
+                        Capsule()
+                            .fill(VehicleTheme.accent.opacity(0.20))
+                            .overlay(Capsule().strokeBorder(VehicleTheme.accent.opacity(0.45), lineWidth: 1))
                     } else {
-                        Capsule().fill(Color.slate100)
+                        Capsule().fill(VehicleTheme.tileFill)
                     }
                 }
         }
@@ -118,7 +120,7 @@ struct VehicleDriveTab: View {
                 Text("자주 가는 곳")
                     .font(.caption)
                     .fontWeight(.bold)
-                    .foregroundStyle(Color.slate500)
+                    .foregroundStyle(VehicleTheme.textSecondary)
                 // 서버가 지오펜스 id로 묶어 같은 이름이 둘 올 수 있는데 응답에는 id가
                 // 없다 — 위치로 아이디를 삼는다. 서버 랭킹 그대로인 읽기 전용 목록이라
                 // (건수 내림차순 상위 10개) 선택·애니메이션 상태가 없어 위치가 안전하다.
@@ -128,17 +130,17 @@ struct VehicleDriveTab: View {
                         Text(place.name)
                             .font(.subheadline)
                             .fontWeight(.semibold)
-                            .foregroundStyle(Color.slate900)
+                            .foregroundStyle(VehicleTheme.textPrimary)
                             .lineLimit(1)
                         Spacer(minLength: 8)
                         Text(DriveFormat.count(place.driveCount))
                             .font(.caption)
                             .monospacedDigit()
-                            .foregroundStyle(Color.slate500)
+                            .foregroundStyle(VehicleTheme.textSecondary)
                         Text(VehicleFormat.distance(place.distanceKm))
                             .font(.caption)
                             .monospacedDigit()
-                            .foregroundStyle(Color.slate400)
+                            .foregroundStyle(VehicleTheme.textTertiary)
                             .frame(width: 66, alignment: .trailing)
                     }
                 }

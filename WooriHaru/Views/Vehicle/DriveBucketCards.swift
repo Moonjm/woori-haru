@@ -22,7 +22,7 @@ struct TemperatureEfficiencyCard: View {
                 }
                 Text("주행가능거리가 준 만큼으로 환산한 값이라 실제 충전량과는 조금 달라요.")
                     .font(.caption2)
-                    .foregroundStyle(Color.slate400)
+                    .foregroundStyle(VehicleTheme.textTertiary)
             }
         }
     }
@@ -47,11 +47,11 @@ struct TemperatureEfficiencyCard: View {
         return HStack(spacing: 8) {
             Text(row.bucket.label)
                 .font(.caption2)
-                .foregroundStyle(Color.slate500)
+                .foregroundStyle(VehicleTheme.textSecondary)
                 .frame(width: 54, alignment: .leading)
             GeometryReader { proxy in
                 RoundedRectangle(cornerRadius: 4)
-                    .fill(isBest ? Color.blue600 : Color.blue300)
+                    .fill(isBest ? VehicleTheme.accentBright : VehicleTheme.accentMuted)
                     // 값이 없는 행은 ratio가 nil이라 폭 0 — 막대 자체가 보이지 않는다.
                     .frame(width: ratio.map { max(3, proxy.size.width * $0) } ?? 0)
             }
@@ -60,7 +60,7 @@ struct TemperatureEfficiencyCard: View {
                 .font(.caption2)
                 .fontWeight(.bold)
                 .monospacedDigit()
-                .foregroundStyle(Color.slate900)
+                .foregroundStyle(VehicleTheme.textPrimary)
                 .frame(width: 74, alignment: .trailing)
         }
         .accessibilityElement(children: .combine)
@@ -93,12 +93,12 @@ struct DistanceDistributionCard: View {
         return HStack(spacing: 8) {
             Text(bucket.label)
                 .font(.caption2)
-                .foregroundStyle(Color.slate500)
+                .foregroundStyle(VehicleTheme.textSecondary)
                 .frame(width: 66, alignment: .leading)
             GeometryReader { proxy in
                 RoundedRectangle(cornerRadius: 4)
                     // 0인 버킷도 자리를 지킨다 — 건너뛰면 분포가 어긋나 보인다.
-                    .fill(bucket.driveCount == 0 ? Color.slate200 : Color.green600)
+                    .fill(bucket.driveCount == 0 ? VehicleTheme.trackFill : VehicleTheme.accent)
                     .frame(width: max(3, proxy.size.width * ratio))
             }
             .frame(height: 14)
@@ -106,7 +106,7 @@ struct DistanceDistributionCard: View {
                 .font(.caption2)
                 .fontWeight(.bold)
                 .monospacedDigit()
-                .foregroundStyle(Color.slate900)
+                .foregroundStyle(VehicleTheme.textPrimary)
                 .frame(width: 56, alignment: .trailing)
         }
         .accessibilityElement(children: .combine)
@@ -121,12 +121,12 @@ private func header(_ title: String, _ trailing: String) -> some View {
         Text(title)
             .font(.caption)
             .fontWeight(.bold)
-            .foregroundStyle(Color.slate500)
+            .foregroundStyle(VehicleTheme.textSecondary)
         Spacer(minLength: 8)
         Text(trailing)
             .font(.caption2)
             .monospacedDigit()
-            .foregroundStyle(Color.slate400)
+            .foregroundStyle(VehicleTheme.textTertiary)
     }
 }
 
@@ -170,5 +170,6 @@ private func header(_ title: String, _ trailing: String) -> some View {
         }
         .padding(16)
     }
-    .background(Color.slate50)
+    .background(VehicleTheme.background)
+    .environment(\.vehicleDark, true)
 }

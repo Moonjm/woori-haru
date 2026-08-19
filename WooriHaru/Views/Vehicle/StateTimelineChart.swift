@@ -31,7 +31,7 @@ struct StateTimelineChart: View {
                 Text("최근 \(hours)시간")
                     .font(.caption)
                     .fontWeight(.bold)
-                    .foregroundStyle(Color.slate500)
+                    .foregroundStyle(VehicleTheme.textSecondary)
                     // 띠의 접근성 이름이 같은 말을 이미 하고 있다 — 제목은 눈을 위한 장식이다.
                     .accessibilityHidden(true)
 
@@ -46,7 +46,7 @@ struct StateTimelineChart: View {
         GeometryReader { proxy in
             let width = proxy.size.width
             ZStack(alignment: .leading) {
-                Rectangle().fill(Color.slate100)
+                Rectangle().fill(VehicleTheme.tileFill)
                 ForEach(Array(bars.enumerated()), id: \.offset) { _, bar in
                     Rectangle()
                         .fill(Self.color(bar.kind))
@@ -91,7 +91,7 @@ struct StateTimelineChart: View {
             }
             .font(.system(size: 9))
             .monospacedDigit()
-            .foregroundStyle(Color.slate400)
+            .foregroundStyle(VehicleTheme.textTertiary)
         }
         .frame(height: 12)
         .accessibilityHidden(true)
@@ -111,7 +111,7 @@ struct StateTimelineChart: View {
             Spacer(minLength: 0)
         }
         .font(.system(size: 9))
-        .foregroundStyle(Color.slate500)
+        .foregroundStyle(VehicleTheme.textSecondary)
         .accessibilityHidden(true)
     }
 
@@ -152,14 +152,10 @@ struct StateTimelineChart: View {
         return parts.joined(separator: ", ")
     }
 
+    /// **색을 여기서 고르지 않는다.** 띠와 범례가 같은 함수를 부르므로 한 곳에만 적혀야 하고,
+    /// 다섯이 서로 다른지는 `VehicleThemeTests`가 지킨다.
     private static func color(_ kind: TimelineKind) -> Color {
-        switch kind {
-        case .asleep: Color.slate200
-        case .offline: Color.slate300
-        case .online: Color.blue300
-        case .driving: Color.blue600
-        case .charging: Color.green600
-        }
+        VehicleTheme.color(for: kind)
     }
 
     /// VoiceOver가 시간으로 읽는 상태 셋. 범례와 같은 순서다 — 눈으로 보는 순서와
@@ -206,5 +202,6 @@ struct StateTimelineChart: View {
                               from: VehicleFormat.parseKST(response.from) ?? .now,
                               to: VehicleFormat.parseKST(response.to) ?? .now)
         .padding(16)
-        .background(Color.slate50)
+        .background(VehicleTheme.background)
+        .environment(\.vehicleDark, true)
 }

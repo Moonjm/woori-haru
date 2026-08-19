@@ -27,12 +27,12 @@ struct DriveTimeHeatmap: View {
                     Text("언제 타나")
                         .font(.caption)
                         .fontWeight(.bold)
-                        .foregroundStyle(Color.slate500)
+                        .foregroundStyle(VehicleTheme.textSecondary)
                     Spacer(minLength: 8)
                     Text("\(driveCount)회 기준")
                         .font(.caption2)
                         .monospacedDigit()
-                        .foregroundStyle(Color.slate400)
+                        .foregroundStyle(VehicleTheme.textTertiary)
                 }
 
                 ForEach(0..<7, id: \.self) { weekday in
@@ -52,7 +52,7 @@ struct DriveTimeHeatmap: View {
             Text(DriveFormat.weekdayLabel(weekday))
                 .font(.system(size: 10))
                 // 주말을 조금 다르게 둔다 — 출퇴근 패턴이 주중에 몰리는지 보는 자리다.
-                .foregroundStyle(weekday == 0 || weekday == 6 ? Color.orange700 : Color.slate500)
+                .foregroundStyle(weekday == 0 || weekday == 6 ? VehicleTheme.warning : VehicleTheme.textSecondary)
                 .frame(width: 16, alignment: .leading)
             ForEach(0..<24, id: \.self) { hour in
                 cell(weekday: weekday, hour: hour)
@@ -94,9 +94,9 @@ struct DriveTimeHeatmap: View {
 
     /// 0은 **빈칸**이다 — 옅은 색으로 칠하면 「조금 탔다」로 읽힌다.
     private func color(for value: Int) -> Color {
-        guard value > 0, maxCount > 0 else { return Color.slate100 }
+        guard value > 0, maxCount > 0 else { return VehicleTheme.tileFill }
         let ratio = Double(value) / Double(maxCount)
-        return Color.blue600.opacity(0.15 + 0.85 * ratio)
+        return VehicleTheme.accent.opacity(0.15 + 0.85 * ratio)
     }
 
     private var hourAxis: some View {
@@ -105,7 +105,7 @@ struct DriveTimeHeatmap: View {
             ForEach(0..<24, id: \.self) { hour in
                 Text(Self.markedHours.contains(hour) ? "\(hour)" : "")
                     .font(.system(size: 8))
-                    .foregroundStyle(Color.slate400)
+                    .foregroundStyle(VehicleTheme.textTertiary)
                     .frame(maxWidth: .infinity)
             }
         }
@@ -131,5 +131,6 @@ struct DriveTimeHeatmap: View {
         DriveTimeHeatmap(count: { _, _ in 0 }, maxCount: 0, driveCount: 0)
     }
     .padding(16)
-    .background(Color.slate50)
+    .background(VehicleTheme.background)
+    .environment(\.vehicleDark, true)
 }

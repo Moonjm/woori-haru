@@ -23,7 +23,7 @@ struct DegradationTrendChart: View {
                 Text("열화 추이")
                     .font(.caption)
                     .fontWeight(.bold)
-                    .foregroundStyle(Color.slate500)
+                    .foregroundStyle(VehicleTheme.textSecondary)
 
                 callout
 
@@ -51,7 +51,7 @@ struct DegradationTrendChart: View {
                 Text(selected.shortLabel)
                     .font(.caption)
                     .fontWeight(.heavy)
-                    .foregroundStyle(Color.blue600)
+                    .foregroundStyle(VehicleTheme.accent)
                 Text(VehicleFormat.distance(selected.fullRangeKm))
                     .font(.caption)
                     .fontWeight(.bold)
@@ -59,12 +59,12 @@ struct DegradationTrendChart: View {
                 Text("잔존 \(VehicleFormat.percent(remaining))")
                     .font(.caption2)
                     .monospacedDigit()
-                    .foregroundStyle(Color.slate500)
+                    .foregroundStyle(VehicleTheme.textSecondary)
                 // 표본 수는 그 달 값이 얼마나 단단한지다 — 한 건짜리 달은 튈 수 있다.
                 Text("표본 \(selected.sampleCount)건")
                     .font(.caption2)
                     .monospacedDigit()
-                    .foregroundStyle(Color.slate400)
+                    .foregroundStyle(VehicleTheme.textTertiary)
                 Spacer(minLength: 0)
             }
             .lineLimit(1)
@@ -82,7 +82,7 @@ struct DegradationTrendChart: View {
                 path.move(to: CGPoint(x: 0, y: y))
                 path.addLine(to: CGPoint(x: size.width, y: y))
             }
-            .stroke(Color.slate300, style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
+            .stroke(VehicleTheme.cardStroke, style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
 
             ForEach(Array(segments.enumerated()), id: \.offset) { _, segment in
                 Path { path in
@@ -91,13 +91,13 @@ struct DegradationTrendChart: View {
                         if index == 0 { path.move(to: point) } else { path.addLine(to: point) }
                     }
                 }
-                .stroke(Color.blue500, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+                .stroke(VehicleTheme.accent, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
             }
 
             ForEach(samples) { sample in
                 let isSelected = sample.yearMonth == selected?.yearMonth
                 Circle()
-                    .fill(isSelected ? Color.blue600 : Color.blue300)
+                    .fill(isSelected ? VehicleTheme.accentBright : VehicleTheme.accentMuted)
                     .frame(width: isSelected ? 9 : 5, height: isSelected ? 9 : 5)
                     .position(position(sample, in: size))
             }
@@ -154,15 +154,15 @@ struct DegradationTrendChart: View {
     private var footer: some View {
         HStack(spacing: 8) {
             Text("┈ 신차 \(VehicleFormat.distance(VehicleBaseline.newRangeKm))")
-                .foregroundStyle(Color.slate400)
+                .foregroundStyle(VehicleTheme.textTertiary)
             Spacer(minLength: 0)
             if samples.count > 1, let first = samples.first, let last = samples.last {
                 Text("\(first.shortLabel) → \(last.shortLabel)")
-                    .foregroundStyle(Color.slate400)
+                    .foregroundStyle(VehicleTheme.textTertiary)
             } else {
                 // 점 하나로는 추이가 아니다. 그 사실을 화면이 말해 준다.
                 Text("값이 쌓이면 추이가 보여요")
-                    .foregroundStyle(Color.slate500)
+                    .foregroundStyle(VehicleTheme.textSecondary)
             }
         }
         .font(.caption2)
@@ -189,5 +189,6 @@ struct DegradationTrendChart: View {
         DegradationTrendChart(segments: [[all[10]]], selectedKey: nil) { _ in }
     }
     .padding(16)
-    .background(Color.slate50)
+    .background(VehicleTheme.background)
+    .environment(\.vehicleDark, true)
 }
