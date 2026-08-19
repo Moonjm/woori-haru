@@ -75,11 +75,12 @@ struct ChargeRow: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            .contentShape(.rect)
 
             batteryGauge
                 .padding(.top, 6)
                 .padding(.horizontal, 16)
         }
+        // 게이지까지가 한 행이라 보이는 만큼이 눌려야 한다 — Spacer의 빈 공간이 위임되지 않기 때문에 외곽 컨테이너에 정형이 필요하다.
+        .contentShape(.rect)
     }
 }
