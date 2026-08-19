@@ -87,28 +87,35 @@ final class VehicleDriveViewModel {
 
     // MARK: - 로드
 
+    /// 탭에 들어올 때마다 부른다. **단, 지난번이 오류로 끝났다면 다시 받는다** —
+    /// 그러지 않으면 실패한 채로 탭을 나갔다 돌아와도 빨간 배너가 영영 그대로 남는다.
+    /// (`VehicleHealthViewModel.load()`와 같은 규칙이다.)
     func load() async {
-        guard insights == nil else { return }
-        await fetch(period, clearingOnFailure: false)
+        guard insights == nil || errorMessage != nil else { return }
+        await fetch(period, isPeriodChange: false)
     }
 
     /// 당겨서 새로고침. **실패해도 있던 값을 지우지 않는다** — 1단계 건강 화면과 같은 규칙이다.
     func reload() async {
-        await fetch(period, clearingOnFailure: false)
+        await fetch(period, isPeriodChange: false)
     }
 
-    /// 기간 칩. **실패하면 옛 기간의 값을 지운다** — 칩은 3개월인데 화면이 12개월 값이면
-    /// 거짓말이 된다. 새로고침 실패와 다르게 다뤄야 하는 유일한 자리다.
+    /// 기간 칩. **성공이든 실패든 옛 기간의 값을 곧장 지운다** — 칩은 3개월인데 화면이
+    /// 12개월 값이면 그 순간만이라도 거짓말이 된다. 새로고침과 다르게 다뤄야 하는 유일한 자리다.
     func select(_ next: DrivePeriod) async {
         guard next != period else { return }
         period = next
-        await fetch(next, clearingOnFailure: true)
+        await fetch(next, isPeriodChange: true)
     }
 
-    private func fetch(_ months: DrivePeriod, clearingOnFailure: Bool) async {
+    /// `isPeriodChange`는 「기간이 바뀌어 옛 값을 이 요청 결과로 완전히 갈아치운다」는 뜻이다 —
+    /// 「실패하면 지운다」가 아니다. 그래서 지우는 지점은 아래 한 곳, 응답을 기다리기 전뿐이다.
+    private func fetch(_ months: DrivePeriod, isPeriodChange: Bool) async {
         generation += 1
         let current = generation
-        if clearingOnFailure { insights = nil }
+        // 기간이 바뀌면 결과를 기다리지 않고 바로 옛 값을 지운다 — 칩과 화면이 한순간도
+        // 어긋나면 안 되기 때문이다.
+        if isPeriodChange { insights = nil }
         isLoading = true
         defer {
             if current == generation { isLoading = false }
@@ -122,7 +129,6 @@ final class VehicleDriveViewModel {
             return
         } catch {
             guard current == generation else { return }
-            if clearingOnFailure { insights = nil }
             errorMessage = "주행 인사이트를 불러오지 못했습니다."
         }
     }

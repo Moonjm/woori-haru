@@ -216,6 +216,23 @@ struct VehicleDriveViewModelTests {
         #expect(viewModel.errorMessage != nil)
     }
 
+    /// **지난번이 오류로 끝났으면 탭에 다시 들어와도 다시 받는다** — 그러지 않으면
+    /// 빨간 배너가 영영 남는다. `VehicleHealthViewModel.load()`와 같은 규칙이다.
+    @Test func 에러_상태에서_다시_들어오면_재시도한다() async {
+        let mock = MockAPIClient()
+        stub(mock, Self.insights())
+        let viewModel = makeViewModel(mock)
+        await viewModel.load()
+
+        mock.setError(MockAPIClient.MockAPIError.forced, for: "GET /tesla/drive-insights")
+        await viewModel.reload()
+        #expect(mock.getCalls.count == 2)
+
+        await viewModel.load()
+
+        #expect(mock.getCalls.count == 3)
+    }
+
     /// **기간을 바꾸다 실패하면 옛 기간의 값을 남기지 않는다** — 칩은 3개월인데 화면이
     /// 12개월 값이면 거짓말이 된다. 새로고침 실패와 다르게 다뤄야 한다.
     @Test func 기간_변경이_실패하면_옛_기간_값을_지운다() async {
