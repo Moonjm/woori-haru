@@ -24,6 +24,8 @@ struct StateTimelineChart: View {
         self.days = max(0, days)
         self.from = from
         var rows = Array(repeating: [TimelineBar](), count: max(0, days))
+        // **행 밖의 막대를 버리는 것은 일부러다.** 서버의 `days`와 `from..to` 창이 어긋나면
+        // 인덱스가 범위를 넘는데, 그때 무너지는 것보다 그 막대를 안 그리는 편이 낫다.
         for bar in bars where bar.dayIndex >= 0 && bar.dayIndex < rows.count {
             rows[bar.dayIndex].append(bar)
         }
@@ -121,19 +123,38 @@ struct StateTimelineChart: View {
         from.addingTimeInterval(Double(dayIndex) * StateTimelineMath.secondsPerDay)
     }
 
+    /// 하루를 한 문장으로. 날짜가 먼저다.
+    ///
+    /// **오프라인·잠자는 중도 온라인과 똑같이 시간으로 읽는다.** 실측상 최근 7일은 오프라인이
+    /// 78%라 **가장 흔한 행이 하루 종일 오프라인인 행**인데, 그 행을 「기록 없음」으로 읽으면
+    /// 화면은 꽉 찬 회색 띠를 그리는데 소리는 아무것도 없었다고 말한다. 이 저장소에서
+    /// 「기록이 없음」과 「그 상태로 있었음」은 다른 말이고, 섞으면 안 된다.
+    /// **「기록 없음」은 막대가 정말 하나도 없는 행에만 쓴다.**
+    ///
+    /// 「주행 N회」는 **세션이 아니라 막대를 센다** — 자정을 넘긴 주행 하나는 두 행으로 쪼개져
+    /// 양쪽 날에 한 번씩 잡힌다. 하루치 라벨이 말해야 하는 것이 바로 그 「이 날 있었던 횟수」다.
     private func rowLabel(_ dayIndex: Int) -> String {
         let bars = rows[dayIndex]
-        let onlineHours = bars
-            .filter { $0.kind == .online }
-            .reduce(0.0) { $0 + ($1.end - $1.start) } * 24
+        var parts = [Self.voiceOverFormatter.string(from: date(dayIndex))]
+
+        for (kind, label) in Self.spokenStates {
+            let hours = bars
+                .filter { $0.kind == kind }
+                .reduce(0.0) { $0 + ($1.end - $1.start) } * 24
+            // 0.05시간(3분) 미만은 말하지 않는다 — 「0.0시간」은 있으나 마나다.
+            if hours >= 0.05 { parts.append("\(label) \(String(format: "%.1f", hours))시간") }
+        }
+
         let drives = bars.filter { $0.kind == .driving }.count
         let charges = bars.filter { $0.kind == .charging }.count
-
-        var parts = [Self.voiceOverFormatter.string(from: date(dayIndex))]
-        if onlineHours >= 0.05 { parts.append("온라인 \(String(format: "%.1f", onlineHours))시간") }
         if drives > 0 { parts.append("주행 \(drives)회") }
         if charges > 0 { parts.append("충전 \(charges)회") }
-        if parts.count == 1 { parts.append("기록 없음") }
+
+        if parts.count == 1 {
+            // 막대가 아예 없는 행만 「기록 없음」이다. 3분 미만 조각만 있는 행은
+            // 「기록이 없음」이 아니라 「말할 만큼 길지 않음」이라 다르게 말한다.
+            parts.append(bars.isEmpty ? "기록 없음" : "짧은 구간뿐")
+        }
         return parts.joined(separator: ", ")
     }
 
@@ -146,6 +167,12 @@ struct StateTimelineChart: View {
         case .charging: Color.green600
         }
     }
+
+    /// VoiceOver가 시간으로 읽는 상태 셋. 범례와 같은 순서다 — 눈으로 보는 순서와
+    /// 귀로 듣는 순서가 갈리면 같은 그림을 두 가지로 설명하는 셈이 된다.
+    private static let spokenStates: [(kind: TimelineKind, label: String)] = [
+        (.online, "온라인"), (.offline, "오프라인"), (.asleep, "잠자는 중")
+    ]
 
     private static let legendItems: [(kind: TimelineKind, label: String)] = [
         (.online, "온라인"), (.offline, "오프라인"), (.asleep, "잠자는 중"),
