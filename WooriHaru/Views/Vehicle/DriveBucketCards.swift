@@ -31,10 +31,12 @@ struct TemperatureEfficiencyCard: View {
     private var minValue: Decimal { rows.compactMap(\.kmPerKwh).min() ?? 0 }
 
     private func bar(_ row: VehicleDriveViewModel.TemperatureRow) -> some View {
-        let ratio: CGFloat = {
-            guard let value = row.kmPerKwh, maxValue > minValue else {
-                return row.kmPerKwh == nil ? 0 : 1
-            }
+        // 값이 없으면 비율도 없다(nil). 최소 폭(minimumRatio)을 값 없는 버킷에도 적용하면
+        // 「—」 옆에 짧은 막대가 남아 「조금 탔다」로 읽힌다 — 그래서 최소 폭은 값이
+        // 있는 행에만 건다.
+        let ratio: CGFloat? = {
+            guard let value = row.kmPerKwh else { return nil }
+            guard maxValue > minValue else { return 1 }
             let span = maxValue - minValue
             let scaled = (value - minValue) / span
             let raw = CGFloat(truncating: scaled as NSDecimalNumber)
@@ -50,7 +52,8 @@ struct TemperatureEfficiencyCard: View {
             GeometryReader { proxy in
                 RoundedRectangle(cornerRadius: 4)
                     .fill(isBest ? Color.blue600 : Color.blue300)
-                    .frame(width: max(3, proxy.size.width * ratio))
+                    // 값이 없는 행은 ratio가 nil이라 폭 0 — 막대 자체가 보이지 않는다.
+                    .frame(width: ratio.map { max(3, proxy.size.width * $0) } ?? 0)
             }
             .frame(height: 14)
             Text(VehicleFormat.efficiency(row.kmPerKwh))
