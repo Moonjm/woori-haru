@@ -168,6 +168,12 @@ enum VehicleFormat {
     /// 41203.8 → "41,204km"
     static func odometer(_ km: Decimal?) -> String { distance(km) }
 
+    /// 138 → "138km/h". **소수를 두지 않는다** — `drives.speed_max`가 `smallint`다.
+    static func speed(_ kmh: Int?) -> String {
+        guard let kmh else { return ChargeFormat.placeholder }
+        return "\(kmh)km/h"
+    }
+
     /// 4.518… → "4.5km/kWh", 6.0349… → "6.0km/kWh".
     /// **소수 한 자리를 늘 낸다** — 전비는 여러 값을 나란히 견주는 자리에 쓰이는데
     /// 「6」과 「6.7」이 한 열에 섞이면 자릿수가 흔들려 읽기 어렵다. 측정값이라 `5.0`이 `5`보다 옳기도 하다.
@@ -197,6 +203,26 @@ enum VehicleFormat {
         if minutes < 60 { return "\(minutes)분 전" }
         if minutes < 60 * 24 { return "\(minutes / 60)시간 전" }
         return "\(minutes / (60 * 24))일 전"
+    }
+
+    /// 「지금 이 상태로 얼마나」 — `relative`가 과거 시점을 읽는 것과 달리 **지속 시간**을 읽는다.
+    ///
+    /// **`relative`의 출력을 잘라 쓰지 않는다.** 「방금」에는 잘라낼 " 전"이 없어 「방금째」가 되고,
+    /// 그쪽 표기가 바뀌면 이 자리는 컴파일도 테스트도 깨지지 않은 채 글자만 이상해진다.
+    ///
+    /// **하루 안에서는 분을 버리지 않는다** — 「3시간 12분째」다. 이 문구를 담은 카드는
+    /// 1분마다 다시 그려지는데(`TimelineView(.periodic(by: 60))`), 시간만 남기면 첫 한 시간이
+    /// 지난 뒤로는 한 시간에 한 번만 글자가 바뀌어 그 갱신이 있으나 마나가 된다.
+    /// 하루를 넘기면 다시 「N일째」다 — 그 크기에서 분은 읽는 사람에게 뜻이 없다.
+    static func elapsed(minutes: Int) -> String {
+        if minutes < 1 { return "방금" }
+        if minutes < 60 { return "\(minutes)분째" }
+        if minutes < 60 * 24 {
+            let hours = minutes / 60
+            let rest = minutes % 60
+            return rest == 0 ? "\(hours)시간째" : "\(hours)시간 \(rest)분째"
+        }
+        return "\(minutes / (60 * 24))일째"
     }
 
     /// **모르는 값은 원문 그대로 낸다** — 상류가 상태를 늘렸다는 사실이 숨으면 안 된다.

@@ -57,6 +57,19 @@ struct VehicleMathTests {
         #expect(VehicleFormat.relative(minutes: 45) == "45분 전")
         #expect(VehicleFormat.relative(minutes: 240) == "4시간 전")
         #expect(VehicleFormat.relative(minutes: 2880) == "2일 전")
+
+        // 지속 시간은 하루 안에서 분을 버리지 않는다 — 카드가 1분마다 다시 그려지는데
+        // 시간만 남기면 첫 한 시간 뒤로는 그 갱신이 화면에 드러나지 않는다.
+        #expect(VehicleFormat.elapsed(minutes: 0) == "방금")
+        #expect(VehicleFormat.elapsed(minutes: 45) == "45분째")
+        #expect(VehicleFormat.elapsed(minutes: 192) == "3시간 12분째")
+        #expect(VehicleFormat.elapsed(minutes: 61) == "1시간 1분째")
+        // 딱 떨어지는 시간에는 「0분」을 붙이지 않는다.
+        #expect(VehicleFormat.elapsed(minutes: 240) == "4시간째")
+        #expect(VehicleFormat.elapsed(minutes: 60) == "1시간째")
+        // 하루를 넘기면 다시 날 단위다.
+        #expect(VehicleFormat.elapsed(minutes: 2880) == "2일째")
+        #expect(VehicleFormat.elapsed(minutes: 1500) == "1일째")
     }
 
     /// 서버가 주는 `asOf`는 KST 벽시계 값이다. **기기 시간대로 읽으면 안 된다** —
@@ -91,5 +104,11 @@ struct VehicleMathTests {
         #expect(VehicleFormat.distance(Decimal(string: "842.3")) == "842km")
         #expect(VehicleFormat.odometer(Decimal(string: "41203.8")) == "41,204km")
         #expect(VehicleFormat.distance(nil) == "—")
+    }
+
+    @Test func 속도는_정수와_단위로_찍는다() {
+        #expect(VehicleFormat.speed(138) == "138km/h")
+        #expect(VehicleFormat.speed(0) == "0km/h")
+        #expect(VehicleFormat.speed(nil) == ChargeFormat.placeholder)
     }
 }

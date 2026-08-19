@@ -96,7 +96,10 @@ struct VehicleServiceTests {
         mock.stubGet("/tesla/drive-insights", result: DataResponse<DriveInsightsResponse>(
             data: DriveInsightsResponse(
                 months: 12, efficiencyKwhPerKm: Decimal(string: "0.1367"),
-                temperatureBuckets: [], driveTimes: [], distanceBuckets: [], places: []
+                temperatureBuckets: [], driveTimes: [], distanceBuckets: [], places: [],
+                maxSpeedKmh: 138,
+                monthDistanceKm: Decimal(string: "1331.3"),
+                yearDistanceKm: Decimal(string: "13440.4")
             )
         ))
         let service = VehicleService(api: mock)
@@ -114,7 +117,10 @@ struct VehicleServiceTests {
         mock.stubGet("/tesla/drive-insights", result: DataResponse<DriveInsightsResponse>(
             data: DriveInsightsResponse(
                 months: 3, efficiencyKwhPerKm: nil,
-                temperatureBuckets: [], driveTimes: [], distanceBuckets: [], places: []
+                temperatureBuckets: [], driveTimes: [], distanceBuckets: [], places: [],
+                maxSpeedKmh: 138,
+                monthDistanceKm: Decimal(string: "1331.3"),
+                yearDistanceKm: Decimal(string: "13440.4")
             )
         ))
         let service = VehicleService(api: mock)
