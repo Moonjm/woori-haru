@@ -68,23 +68,21 @@ struct StateTimelineChart: View {
     /// 4시간 간격의 정각과, 오른쪽 끝의 「지금」.
     ///
     /// **정각을 고르는 산술은 `StateTimelineMath.ticks`가 한다.** 여기 남은 것은 폭을 알아야
-    /// 정할 수 있는 일 하나 — 어느 눈금을 버릴지다.
-    ///
-    /// **자를지 말지를 비율이 아니라 실제 폭으로 정한다.** 눈금 칸은 `[W·f − 15, W·f + 15]`이고
-    /// 오른쪽 끝 「지금」은 `[W − 30, W]`라, 겹치기 시작하는 비율이 폭에 따라 달라진다
-    /// (320pt에서는 0.86부터다). 고정 비율로 자르면 좁은 기기에서 글자가 포개진다.
+    /// 정할 수 있는 일 하나 — 어느 눈금을 버릴지다. 그 판정은 `StateTimelineMath.visibleTicks`가
+    /// 한다(왼쪽으로 삐져나오는 것 · 앞 눈금과 겹치는 것 · 「지금」과 겹치는 것을 한 번에 거른다).
+    /// 순수 함수로 뺀 이유는 폭이 길어지는 범위(서버가 자정에 맞춘 145~168시간)에서 눈금이
+    /// 서른 몇 개가 되어도 테스트가 겹침을 잡게 하려는 것이다.
     private var axis: some View {
         GeometryReader { proxy in
             let width = proxy.size.width
             ZStack(alignment: .leading) {
-                ForEach(Array(StateTimelineMath.ticks(from: from, to: to).enumerated()), id: \.offset) { _, tick in
-                    // 왼쪽으로 삐져나오거나 「지금」과 겹치는 눈금은 그리지 않는다.
-                    let leading = width * tick.fraction - tickLabelWidth / 2
-                    if leading >= 0, leading + tickLabelWidth <= width - tickLabelWidth {
-                        Text(Self.hourFormatter.string(from: tick.date))
-                            .frame(width: tickLabelWidth)
-                            .offset(x: leading)
-                    }
+                ForEach(Array(StateTimelineMath.visibleTicks(
+                    StateTimelineMath.ticks(from: from, to: to),
+                    width: width, labelWidth: tickLabelWidth
+                ).enumerated()), id: \.offset) { _, tick in
+                    Text(Self.hourFormatter.string(from: tick.date))
+                        .frame(width: tickLabelWidth)
+                        .offset(x: width * tick.fraction - tickLabelWidth / 2)
                 }
                 Text("지금")
                     .fontWeight(.bold)

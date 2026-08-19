@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 import Testing
 @testable import WooriHaru
@@ -131,7 +132,9 @@ struct StateTimelineTests {
         let decoded = try JSONDecoder().decode(StateTimelineResponse.self, from: json)
         #expect(decoded.from == "2026-08-12T13:00:00")
         #expect(decoded.states.count == 1)
-        // 7일치가 「최근 168시간」으로 정직하게 읽힌다 — 24시간인 척하지 않는다.
+        // 이 테스트가 직접 쓴 payload는 from~to가 정확히 7×24시간이라 168이 나온다 — 실제
+        // 개정 전 서버는 KST 자정에 맞춰 시작하므로 요청 시각에 따라 145~168시간을 낸다.
+        // 여기서는 24시간인 척하지 않는다는 것만 확인한다.
         #expect(StateTimelineMath.hours(from: VehicleFormat.parseKST(decoded.from)!,
                                         to: VehicleFormat.parseKST(decoded.to)!) == 168)
     }
@@ -177,5 +180,57 @@ struct StateTimelineTests {
         let from = VehicleFormat.parseKST("2026-08-18T13:00:00")!
         #expect(StateTimelineMath.ticks(from: from, to: from).isEmpty)
         #expect(StateTimelineMath.ticks(from: from, to: VehicleFormat.parseKST("2026-08-17T13:00:00")!).isEmpty)
+    }
+
+    // MARK: - 눈금 솎아내기
+
+    @Test func 짧은_범위는_솎아내도_눈금이_그대로_남는다() {
+        // `from`을 정각(12시)으로 잡는다 — 13:00으로 잡으면 마지막 눈금(비율 0.9583)이
+        // 320pt에서 원래도 「지금」과 겹쳐 빠지므로(그 경계는 f > 0.86), 이웃 겹침 판정을
+        // 추가해도 결과가 그대로인지를 못 본다. 12시 시작은 눈금이 5개뿐이고 마지막이
+        // 0.833이라 「지금」과도, 이웃과도 안 겹친다.
+        let from = VehicleFormat.parseKST("2026-08-18T12:00:00")!
+        let to = VehicleFormat.parseKST("2026-08-19T12:00:00")!
+        let ticks = StateTimelineMath.ticks(from: from, to: to)
+        let visible = StateTimelineMath.visibleTicks(ticks, width: 320, labelWidth: 30)
+        #expect(visible == ticks)
+    }
+
+    /// 서버가 자정에 맞춘 범위(145~168시간)를 주면 4시간 간격 눈금이 서른 몇 개가 된다.
+    /// **앞 눈금과 겹치지 않아야 한다** — 이웃 간격을 안 보면 30pt짜리 글자가 10.7pt 간격으로 포개진다.
+    @Test func 긴_범위에서_남은_눈금끼리_겹치지_않는다() {
+        let from = VehicleFormat.parseKST("2026-08-12T00:00:00")!
+        let to = VehicleFormat.parseKST("2026-08-19T13:00:00")!  // 157시간
+        let ticks = StateTimelineMath.ticks(from: from, to: to)
+        #expect(ticks.count > 6)  // 24시간 범위보다 훨씬 많다는 전제 확인
+
+        let width: CGFloat = 343
+        let labelWidth: CGFloat = 30
+        let visible = StateTimelineMath.visibleTicks(ticks, width: width, labelWidth: labelWidth)
+        #expect(visible.count > 1)
+
+        for (prev, next) in zip(visible, visible.dropFirst()) {
+            let prevX = width * CGFloat(prev.fraction)
+            let nextX = width * CGFloat(next.fraction)
+            #expect(nextX - prevX >= labelWidth)
+        }
+    }
+
+    @Test func 폭이_0이면_눈금이_모두_빠진다() {
+        let from = VehicleFormat.parseKST("2026-08-18T13:00:00")!
+        let to = VehicleFormat.parseKST("2026-08-19T13:00:00")!
+        let ticks = StateTimelineMath.ticks(from: from, to: to)
+        #expect(StateTimelineMath.visibleTicks(ticks, width: 0, labelWidth: 30).isEmpty)
+    }
+
+    @Test func 지금_자리와_겹치는_눈금은_빠진다() {
+        // 13:42 다음의 4시간 정각들 중 마지막(12시, 비율 0.9292)은 320pt에서
+        // 「지금」 칸([290, 320])과 겹친다 — 눈금 칸이 [304.3−15, 304.3+15]이기 때문이다.
+        let from = VehicleFormat.parseKST("2026-08-18T13:42:00")!
+        let to = VehicleFormat.parseKST("2026-08-19T13:42:00")!
+        let ticks = StateTimelineMath.ticks(from: from, to: to)
+        let visible = StateTimelineMath.visibleTicks(ticks, width: 320, labelWidth: 30)
+        #expect(visible.count == ticks.count - 1)
+        #expect(!visible.contains { isClose($0.fraction, ticks.last!.fraction) })
     }
 }

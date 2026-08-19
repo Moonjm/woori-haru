@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 
 // MARK: - 응답
@@ -165,4 +166,29 @@ enum StateTimelineMath {
     }
 
     private static let kst = TimeZone(identifier: "Asia/Seoul") ?? .current
+
+    /// 실제로 그릴 눈금만 남긴다. 셋을 한 번에 판정한다 — 왼쪽으로 삐져나오는 것,
+    /// **앞 눈금과 겹치는 것**, 오른쪽 끝 「지금」과 겹치는 것.
+    ///
+    /// **이웃 간격을 보지 않으면 범위가 길어질 때 축이 뭉개진다.** 24시간에서는 눈금이 여섯
+    /// 개뿐이라 드러나지 않지만, 서버가 자정에 맞춘 범위(약 145~168시간)를 주면 눈금이 서른
+    /// 몇 개가 되어 30pt짜리 글자가 10pt 간격으로 포개진다.
+    ///
+    /// 폭을 받아야 하므로 순수 함수로 두고 뷰가 부른다 — 그래야 이 판정에 테스트가 닿는다.
+    static func visibleTicks(_ ticks: [TimelineTick],
+                             width: CGFloat,
+                             labelWidth: CGFloat) -> [TimelineTick] {
+        guard width > 0, labelWidth > 0 else { return [] }
+        var kept: [TimelineTick] = []
+        // 앞 눈금이 차지한 오른쪽 끝. 0에서 시작하므로 첫 눈금은 왼쪽으로 못 삐져나온다.
+        var lastTrailing: CGFloat = 0
+        for tick in ticks {
+            let leading = width * CGFloat(tick.fraction) - labelWidth / 2
+            guard leading >= lastTrailing else { continue }
+            guard leading + labelWidth <= width - labelWidth else { continue }
+            kept.append(tick)
+            lastTrailing = leading + labelWidth
+        }
+        return kept
+    }
 }
