@@ -20,13 +20,14 @@ struct VehicleDriveTab: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
-                // **기간 칩과 무관하다.** 세 값 중 어느 것도 `months` 창을 따르지 않는다 —
-                // 역대 최고는 전 기간이고, 이번 달·올해는 고정 기간이다. 「이 기간에 주행이
-                // 없다」는 이유로 감추면 3개월 창이 빈 사람에게 올해 주행거리가 사라진다.
+                // **기간 칩과 무관하다.** 세 값 중 어느 것도 `months` 범위를 따르지 않는다 —
+                // 역대 최고는 전 기간이고, 평균 둘은 전 기간을 기록이 있는 달 수로 나눈 값이다.
+                // 「이 기간에 주행이 없다」는 이유로 감추면 3개월 범위가 빈 사람에게 전 기간
+                // 평균까지 사라진다.
                 if viewModel.showsStats {
                     DriveStatsCard(maxSpeedKmh: viewModel.insights?.maxSpeedKmh,
-                                   monthDistanceKm: viewModel.insights?.monthDistanceKm,
-                                   yearDistanceKm: viewModel.insights?.yearDistanceKm)
+                                   avgMonthlyKm: viewModel.avgMonthlyKm,
+                                   avgYearlyKm: viewModel.avgYearlyKm)
                 }
 
                 content

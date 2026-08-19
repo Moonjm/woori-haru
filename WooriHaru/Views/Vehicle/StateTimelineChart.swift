@@ -1,105 +1,103 @@
 import SwiftUI
 
-/// 최근 며칠의 상태를 하루 한 줄씩 가로 띠로. **위가 가장 오래된 날, 아래가 오늘이다** —
-/// 아래로 읽어 내려가면 지금에 닿는다.
+/// 최근 몇 시간의 상태를 **한 줄**로. **오른쪽 끝이 「지금」이다** — 서버가 `to`를 요청 시각으로
+/// 주고 자정에 맞추지 않는다.
 ///
-/// **오늘 행은 지금 이후가 빈칸이다.** 아직 오지 않은 시간을 색으로 칠하지 않는다.
+/// **4단계의 7행 격자를 버렸다.** 한 행이 화면 폭의 1/7이면 밤새 충전 한 건이 손톱만 하게
+/// 찍힌다. 같은 폭에 24시간만 놓으면 실측 22개 구간이 들어가 하나가 7배 넓어진다.
 ///
-/// 실측(2026-08-19)으로 최근 7일은 오프라인이 131시간(78%)이라 화면 대부분이 회색이다.
-/// 그게 사실이므로 그대로 그린다.
+/// 눈금은 **절대 시각**이다. 이 그림이 답하려는 질문이 「밤새 충전이 **언제** 걸렸나」이므로
+/// 「-12시간」 같은 상대 표기로는 읽을 수 없다.
 struct StateTimelineChart: View {
-    private let days: Int
+    private let bars: [TimelineBar]
     private let from: Date
-    /// 행별로 미리 갈라 둔다 — 매 프레임 `filter`를 7번 도는 것을 피한다.
-    /// 입력이 이미 레이어 순으로 정렬돼 있어 넣는 순서가 곧 덧칠 순서다.
-    private let rows: [[TimelineBar]]
+    private let to: Date
 
     @Environment(\.displayScale) private var displayScale
 
-    private let rowHeight: CGFloat = 14
-    private let rowSpacing: CGFloat = 3
-    private let labelWidth: CGFloat = 34
+    private let barHeight: CGFloat = 24
+    private let tickLabelWidth: CGFloat = 30
 
-    init(bars: [TimelineBar], days: Int, from: Date) {
-        self.days = max(0, days)
+    init(bars: [TimelineBar], from: Date, to: Date) {
+        // 입력이 이미 레이어 순으로 정렬돼 있어 그리는 순서가 곧 덧칠 순서다. 다시 정렬하지 않는다.
+        self.bars = bars
         self.from = from
-        var rows = Array(repeating: [TimelineBar](), count: max(0, days))
-        // **행 밖의 막대를 버리는 것은 일부러다.** 서버의 `days`와 `from..to` 창이 어긋나면
-        // 인덱스가 범위를 넘는데, 그때 무너지는 것보다 그 막대를 안 그리는 편이 낫다.
-        for bar in bars where bar.dayIndex >= 0 && bar.dayIndex < rows.count {
-            rows[bar.dayIndex].append(bar)
-        }
-        self.rows = rows
+        self.to = to
     }
 
     var body: some View {
         GlassCard {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("최근 \(days)일")
+            VStack(alignment: .leading, spacing: 8) {
+                Text("최근 \(hours)시간")
                     .font(.caption)
                     .fontWeight(.bold)
                     .foregroundStyle(Color.slate500)
+                    // 띠의 접근성 이름이 같은 말을 이미 하고 있다 — 제목은 눈을 위한 장식이다.
+                    .accessibilityHidden(true)
 
-                VStack(spacing: rowSpacing) {
-                    ForEach(0..<days, id: \.self) { dayIndex in
-                        row(dayIndex)
-                    }
-                }
-
-                hourAxis
+                strip
+                axis
                 legend
             }
         }
     }
 
-    private func row(_ dayIndex: Int) -> some View {
-        HStack(spacing: 6) {
-            Text(Self.dayFormatter.string(from: date(dayIndex)))
-                .font(.system(size: 10, weight: .semibold))
-                .monospacedDigit()
-                .foregroundStyle(Color.slate400)
-                .frame(width: labelWidth, alignment: .trailing)
-            GeometryReader { proxy in
-                let width = proxy.size.width
-                ZStack(alignment: .leading) {
-                    Rectangle().fill(Color.slate100)
-                    ForEach(Array(rows[dayIndex].enumerated()), id: \.offset) { _, bar in
-                        Rectangle()
-                            .fill(Self.color(bar.kind))
-                            // **최소 폭을 두지 않는다.** 바닥값을 깔면 짧은 구간이 실제보다
-                            // 길어 보이는 띠가 된다 — 「한쪽만으로 그린 막대는 거짓말이다」와
-                            // 같은 규칙이다. 화면의 물리적 하한인 1픽셀만 둔다.
-                            .frame(width: max(1 / displayScale, width * (bar.end - bar.start)))
-                            .offset(x: width * bar.start)
-                    }
+    private var strip: some View {
+        GeometryReader { proxy in
+            let width = proxy.size.width
+            ZStack(alignment: .leading) {
+                Rectangle().fill(Color.slate100)
+                ForEach(Array(bars.enumerated()), id: \.offset) { _, bar in
+                    Rectangle()
+                        .fill(Self.color(bar.kind))
+                        // **최소 폭을 두지 않는다.** 바닥값을 깔면 짧은 구간이 실제보다 길어
+                        // 보이는 띠가 된다 — 「한쪽만으로 그린 막대는 거짓말이다」와 같은 규칙이다.
+                        // 화면의 물리적 하한인 1픽셀만 둔다.
+                        .frame(width: max(1 / displayScale, width * (bar.end - bar.start)))
+                        .offset(x: width * bar.start)
                 }
-                .clipShape(RoundedRectangle(cornerRadius: 3))
             }
-            .frame(height: rowHeight)
+            .clipShape(RoundedRectangle(cornerRadius: 5))
         }
-        // 구간 168개를 하나씩 읽게 만들지 않는다 — 하루가 한 정거장이다.
+        .frame(height: barHeight)
+        // 구간을 하나씩 읽게 만들지 않는다 — 띠 전체가 한 정거장이다.
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(rowLabel(dayIndex))
+        .accessibilityLabel(stripLabel)
     }
 
-    private var hourAxis: some View {
-        HStack(spacing: 6) {
-            Spacer().frame(width: labelWidth)
-            HStack(spacing: 0) {
-                ForEach([0, 6, 12, 18], id: \.self) { hour in
-                    Text(hour == 0 ? "0시" : "\(hour)")
-                        .frame(maxWidth: .infinity, alignment: .leading)
+    /// 4시간 간격의 정각과, 오른쪽 끝의 「지금」.
+    ///
+    /// **정각을 고르는 산술은 `StateTimelineMath.ticks`가 한다.** 여기 남은 것은 폭을 알아야
+    /// 정할 수 있는 일 하나 — 어느 눈금을 버릴지다. 그 판정은 `StateTimelineMath.visibleTicks`가
+    /// 한다(왼쪽으로 삐져나오는 것 · 앞 눈금과 겹치는 것 · 「지금」과 겹치는 것을 한 번에 거른다).
+    /// 순수 함수로 뺀 이유는 폭이 길어지는 범위(서버가 자정에 맞춘 145~168시간)에서 눈금이
+    /// 서른 몇 개가 되어도 테스트가 겹침을 잡게 하려는 것이다.
+    private var axis: some View {
+        GeometryReader { proxy in
+            let width = proxy.size.width
+            ZStack(alignment: .leading) {
+                ForEach(Array(StateTimelineMath.visibleTicks(
+                    StateTimelineMath.ticks(from: from, to: to),
+                    width: width, labelWidth: tickLabelWidth
+                ).enumerated()), id: \.offset) { _, tick in
+                    Text(Self.hourFormatter.string(from: tick.date))
+                        .frame(width: tickLabelWidth)
+                        .offset(x: width * tick.fraction - tickLabelWidth / 2)
                 }
-                Text("24")
+                Text("지금")
+                    .fontWeight(.bold)
+                    .frame(width: tickLabelWidth, alignment: .trailing)
+                    .offset(x: width - tickLabelWidth)
             }
             .font(.system(size: 9))
             .monospacedDigit()
             .foregroundStyle(Color.slate400)
         }
+        .frame(height: 12)
         .accessibilityHidden(true)
     }
 
-    /// **`asleep`을 빼지 않는다.** 최근 7일 표본에는 0건이지만 2026년에도 월 1~4건씩 있었다.
+    /// **`asleep`을 빼지 않는다.** 최근 표본에 0건이어도 2026년에 월 1~4건씩 있었다.
     private var legend: some View {
         HStack(spacing: 10) {
             ForEach(Array(Self.legendItems.enumerated()), id: \.offset) { _, item in
@@ -119,30 +117,27 @@ struct StateTimelineChart: View {
 
     // MARK: - 값
 
-    private func date(_ dayIndex: Int) -> Date {
-        from.addingTimeInterval(Double(dayIndex) * StateTimelineMath.secondsPerDay)
-    }
+    private var span: TimeInterval { to.timeIntervalSince(from) }
 
-    /// 하루를 한 문장으로. 날짜가 먼저다.
+    /// **띠 길이를 `to − from`에서 낸다.** 서버가 범위 길이를 따로 싣지 않으므로,
+    /// 그린 범위와 말하는 길이가 갈릴 자리가 아예 없다.
+    private var hours: Int { StateTimelineMath.hours(from: from, to: to) }
+
+    /// 띠 전체를 한 문장으로.
     ///
-    /// **오프라인·잠자는 중도 온라인과 똑같이 시간으로 읽는다.** 실측상 최근 7일은 오프라인이
-    /// 78%라 **가장 흔한 행이 하루 종일 오프라인인 행**인데, 그 행을 「기록 없음」으로 읽으면
-    /// 화면은 꽉 찬 회색 띠를 그리는데 소리는 아무것도 없었다고 말한다. 이 저장소에서
-    /// 「기록이 없음」과 「그 상태로 있었음」은 다른 말이고, 섞으면 안 된다.
-    /// **「기록 없음」은 막대가 정말 하나도 없는 행에만 쓴다.**
-    ///
-    /// 「주행 N회」는 **세션이 아니라 막대를 센다** — 자정을 넘긴 주행 하나는 두 행으로 쪼개져
-    /// 양쪽 날에 한 번씩 잡힌다. 하루치 라벨이 말해야 하는 것이 바로 그 「이 날 있었던 횟수」다.
-    private func rowLabel(_ dayIndex: Int) -> String {
-        let bars = rows[dayIndex]
-        var parts = [Self.voiceOverFormatter.string(from: date(dayIndex))]
+    /// **오프라인·잠자는 중도 온라인과 똑같이 시간으로 읽는다.** 실측상 대부분이 오프라인이라
+    /// 그것을 빼고 읽으면 화면은 꽉 찬 회색 띠를 그리는데 소리는 아무것도 없었다고 말한다.
+    /// 「기록 없음」은 막대가 정말 하나도 없을 때만 쓴다.
+    private var stripLabel: String {
+        var parts = ["최근 \(hours)시간"]
 
         for (kind, label) in Self.spokenStates {
-            let hours = bars
-                .filter { $0.kind == kind }
-                .reduce(0.0) { $0 + ($1.end - $1.start) } * 24
+            let ratio = bars.filter { $0.kind == kind }.reduce(0.0) { $0 + ($1.end - $1.start) }
+            // **그려진 범위에서 낸다.** 반올림한 `hours`로 곱하면 분 단위로 어긋난 범위에서
+            // 띠는 범위대로 그려지는데 소리만 다른 길이를 말한다.
+            let hoursSpent = ratio * (span / 3600)
             // 0.05시간(3분) 미만은 말하지 않는다 — 「0.0시간」은 있으나 마나다.
-            if hours >= 0.05 { parts.append("\(label) \(String(format: "%.1f", hours))시간") }
+            if hoursSpent >= 0.05 { parts.append("\(label) \(String(format: "%.1f", hoursSpent))시간") }
         }
 
         let drives = bars.filter { $0.kind == .driving }.count
@@ -151,8 +146,7 @@ struct StateTimelineChart: View {
         if charges > 0 { parts.append("충전 \(charges)회") }
 
         if parts.count == 1 {
-            // 막대가 아예 없는 행만 「기록 없음」이다. 3분 미만 조각만 있는 행은
-            // 「기록이 없음」이 아니라 「말할 만큼 길지 않음」이라 다르게 말한다.
+            // 3분 미만 조각만 있는 것은 「기록이 없음」이 아니라 「말할 만큼 길지 않음」이다.
             parts.append(bars.isEmpty ? "기록 없음" : "짧은 구간뿐")
         }
         return parts.joined(separator: ", ")
@@ -179,40 +173,38 @@ struct StateTimelineChart: View {
         (.driving, "주행"), (.charging, "충전")
     ]
 
-    /// **KST로 찍는다.** `from`은 `VehicleFormat.parseKST`가 KST 벽시계로 읽은 값이라,
-    /// 기기 시간대로 찍으면 시차만큼 날짜가 밀린다.
-    private static let dayFormatter = kstFormatter("M/d")
-    private static let voiceOverFormatter = kstFormatter("M월 d일")
+    private static let kst = TimeZone(identifier: "Asia/Seoul") ?? .current
 
-    private static func kstFormatter(_ pattern: String) -> DateFormatter {
+    /// **KST로 찍는다.** `from`·`to`는 `VehicleFormat.parseKST`가 KST 벽시계로 읽은 값이라,
+    /// 기기 시간대로 찍으면 시차만큼 어긋난다.
+    private static let hourFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone(identifier: "Asia/Seoul") ?? .current
-        formatter.dateFormat = pattern
+        formatter.timeZone = kst
+        formatter.dateFormat = "H시"
         return formatter
-    }
+    }()
 }
 
 #Preview("타임라인") {
     let response = StateTimelineResponse(
-        days: 3, from: "2026-08-17T00:00:00", to: "2026-08-19T12:00:00",
+        from: "2026-08-18T13:00:00", to: "2026-08-19T13:00:00",
         states: [
-            StateSegment(state: "offline", from: "2026-08-17T00:00:00", to: "2026-08-17T07:30:00"),
-            StateSegment(state: "online", from: "2026-08-17T07:30:00", to: "2026-08-17T09:10:00"),
-            StateSegment(state: "asleep", from: "2026-08-17T09:10:00", to: "2026-08-18T06:00:00"),
-            StateSegment(state: "online", from: "2026-08-18T06:00:00", to: "2026-08-18T08:00:00"),
-            StateSegment(state: "offline", from: "2026-08-18T08:00:00", to: "2026-08-19T09:00:00"),
-            StateSegment(state: "online", from: "2026-08-19T09:00:00", to: "2026-08-19T12:00:00")
+            StateSegment(state: "offline", from: "2026-08-18T13:00:00", to: "2026-08-18T18:30:00"),
+            StateSegment(state: "online", from: "2026-08-18T18:30:00", to: "2026-08-18T19:40:00"),
+            StateSegment(state: "asleep", from: "2026-08-18T19:40:00", to: "2026-08-19T06:00:00"),
+            StateSegment(state: "offline", from: "2026-08-19T06:00:00", to: "2026-08-19T09:00:00"),
+            StateSegment(state: "online", from: "2026-08-19T09:00:00", to: "2026-08-19T13:00:00")
         ],
         drives: [
-            TimeSegment(from: "2026-08-17T07:40:00", to: "2026-08-17T08:10:00"),
+            TimeSegment(from: "2026-08-18T18:40:00", to: "2026-08-18T19:10:00"),
             TimeSegment(from: "2026-08-19T09:20:00", to: "2026-08-19T09:50:00")
         ],
-        charges: [TimeSegment(from: "2026-08-18T06:10:00", to: "2026-08-18T07:40:00")])
+        charges: [TimeSegment(from: "2026-08-18T22:10:00", to: "2026-08-19T02:40:00")])
 
     return StateTimelineChart(bars: StateTimelineMath.bars(response),
-                              days: response.days,
-                              from: VehicleFormat.parseKST(response.from) ?? .now)
+                              from: VehicleFormat.parseKST(response.from) ?? .now,
+                              to: VehicleFormat.parseKST(response.to) ?? .now)
         .padding(16)
         .background(Color.slate50)
 }
