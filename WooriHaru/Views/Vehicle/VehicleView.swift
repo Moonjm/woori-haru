@@ -52,6 +52,10 @@ struct VehicleView: View {
                 await summaryViewModel.reload()
                 await summaryViewModel.refreshMissingCount()
                 await healthViewModel.refreshMissingCount()
+                // 금액을 채우면 누적 충전비·단가·「N건 기준」이 다 움직인다 — 채워진 에너지가
+                // 「금액 없음」 분모에서 빠져나오기 때문이다. 배지만 갱신하면 0건이 된 배지와
+                // 낡은 누적 카드가 건강 탭 같은 화면에 나란히 남는다.
+                await totalsViewModel.reload()
             }
         }) {
             ChargeCostQueueView()
@@ -77,7 +81,8 @@ struct VehicleView: View {
             VehicleDriveTab(viewModel: driveViewModel)
                 .task { await driveViewModel.load() }
         case .summary:
-            VehicleSummaryTab(viewModel: summaryViewModel) { showingQueue = true }
+            VehicleSummaryTab(viewModel: summaryViewModel,
+                              onCostSaved: { await totalsViewModel.reload() }) { showingQueue = true }
         }
     }
 
