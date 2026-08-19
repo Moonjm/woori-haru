@@ -284,7 +284,7 @@ extension VehicleTheme {
         switch kind {
         case .asleep: Color.white.opacity(0.08)
         case .offline: Color.white.opacity(0.18)
-        case .online: textSecondary.opacity(0.35)
+        case .online: textSecondary.opacity(0.50)
         case .driving: textSecondary
         case .charging: accentGlow
         }
@@ -1074,6 +1074,11 @@ git commit -m "feat: 요약 탭과 충전 화면을 다크 팔레트로 옮긴�
 - [ ] 홈에서 차량으로 밀어 올릴 때 **뒤에 남은 홈 화면이 안 뒤집히는지**
 - [ ] 금액 입력 키보드와 커서가 어두운 화면에 어울리는지
 - [ ] `ContentUnavailableView`(「채울 게 없어요」·「기록이 없어요」)가 어둡게 나오는지
+
+**구현 뒤 고친 것:** `online`을 처음에 `textSecondary.opacity(0.35)`로 뒀는데, 실기에서 보니
+`offline`(흰색 18%)과 휘도가 1.5배밖에 안 벌어져 24pt짜리 띠에서 「깨어 있음」과 「연결 끊김」이
+안 갈렸다. `0.50`으로 올려 넷의 사다리를 대략 두 배씩(0.08 → 0.18 → 0.38 → 0.76)으로 고르게 맞췄다.
+위 코드 블록은 고친 값으로 적어 두었다.
 
 **알려진 잔여물:** 요약 탭에서 연월을 고를 때 올라오는 `MonthPickerSheet`는 이 계획이 손대지 않는다 — 가계부·일정·달력 등 다섯 화면이 함께 쓰는 공용 시트다.
 

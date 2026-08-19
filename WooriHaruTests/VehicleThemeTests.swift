@@ -80,6 +80,21 @@ struct VehicleThemeTests {
         #expect(luminance(VehicleTheme.textSecondary) > luminance(VehicleTheme.accentBright))
     }
 
+    /// 밝기로만 갈리는 넷은 **고른 사다리**여야 한다 — 이웃끼리 최소 1.8배씩 벌어진다.
+    ///
+    /// **서로 다르기만 해서는 부족하다.** `타임라인_다섯_상태가_서로_다른_색이다`는 값이
+    /// 다르다는 것만 보므로, `online`이 `offline`보다 1.5배 밝을 뿐인 상태를 통과시켰다 —
+    /// 24pt짜리 띠에서는 그 정도로 안 갈린다. 한 칸만 좁아도 거기서 띠가 뭉개진다.
+    ///
+    /// 충전은 뺀다. 그쪽은 밝기가 아니라 **색**으로 갈리는 유일한 상태다.
+    @Test func 밝기로_갈리는_넷이_고른_사다리다() {
+        let ladder: [TimelineKind] = [.asleep, .offline, .online, .driving]
+        let levels = ladder.map { luminance(VehicleTheme.color(for: $0)) }.sorted()
+        for (dim, bright) in zip(levels, levels.dropFirst()) {
+            #expect(bright >= dim * 1.8)
+        }
+    }
+
     /// 막대 트랙은 가장 어두운 상태보다 **뚜렷하게** 어두워야 한다.
     ///
     /// **단순한 대소 비교로는 이 결함을 표현할 수 없다.** 사고 당시 트랙(`tileFill`, 흰 7%)도

@@ -80,11 +80,16 @@ extension VehicleTheme {
     ///
     /// **충전만 색을 가진다.** 나머지 넷은 밝기로만 갈린다 — 그래서 밤새 충전이 있었던 날
     /// 초록 구간 하나가 띠에서 바로 눈에 띈다. 다섯을 다 다른 색으로 칠하면 그 대비가 사라진다.
+    ///
+    /// **밝기로만 가르는 넷은 고른 사다리여야 한다.** 휘도가 대략 두 배씩 벌어진다
+    /// (0.08 → 0.18 → 0.38 → 0.76). 처음에 `online`을 35%로 뒀더니 `offline`과 1.5배밖에
+    /// 안 벌어져 24pt짜리 띠에서 「깨어 있음」과 「연결 끊김」이 안 갈렸다 — 한 칸만 좁으면
+    /// 거기서 띠가 뭉개진다. 이 관계는 `VehicleThemeTests`가 붙잡는다.
     static func color(for kind: TimelineKind) -> Color {
         switch kind {
         case .asleep: Color.white.opacity(0.08)
         case .offline: Color.white.opacity(0.18)
-        case .online: textSecondary.opacity(0.35)
+        case .online: textSecondary.opacity(0.50)
         case .driving: textSecondary
         case .charging: accentGlow
         }
