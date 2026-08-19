@@ -31,9 +31,14 @@ struct VehicleHealthTab: View {
             .padding(.bottom, 110)
         }
         .refreshable {
-            await healthViewModel.reload()
-            await healthViewModel.refreshMissingCount()
-            await statusViewModel.reload()
+            // 셋 다 병렬로 부른다 — `healthViewModel.reload()`와 `.refreshMissingCount()`는
+            // 같은 뷰모델 인스턴스를 건드리지만 쓰는 값이 겹치지 않는다(`samples`/`isLoaded`/
+            // `errorMessage` vs `missingCostCount`). `statusViewModel.reload()`는 아예 다른
+            // 뷰모델이라 애초에 무관하다. 초기 로드(`VehicleView`)가 쓰는 것과 같은 패턴이다.
+            async let health: Void = healthViewModel.reload()
+            async let missingCount: Void = healthViewModel.refreshMissingCount()
+            async let status: Void = statusViewModel.reload()
+            _ = await (health, missingCount, status)
         }
     }
 
@@ -116,7 +121,9 @@ struct VehicleHealthTab: View {
                 title: "불러오는 중",
                 message: "충전 기록에서 값을 뽑고 있어요"
             )
-        } else if !healthViewModel.hasSamples {
+        } else {
+            // 표본 없음 — 위에서 이미 `hasSamples`·오류·`isLoaded` 갈래를 다 처리했으니
+            // 남는 것은 「받았고 오류도 없는데 표본이 비었다」뿐이다.
             BatteryHealthPlaceholderCard(
                 icon: "bolt.badge.clock",
                 title: "아직 잴 만한 충전이 없어요",

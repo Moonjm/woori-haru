@@ -67,11 +67,16 @@ struct VehicleHealthMathTests {
         #expect(VehicleMath.tireStatus(bar: Decimal(string: "3.3")) == .high)      // 48psi
     }
 
-    /// **표기와 판정은 같은 이야기를 해야 한다.** `pressurePsi`(표기)와 `tireStatus`(판정)가
-    /// 서로 다른 반올림을 쓰면 "화면은 46psi인데 판정은 경고"가 생긴다. 3.2061bar는 원값이
-    /// 46.5psi 바로 위(46.50063…)라 46/47psi 반올림 경계 근방이다 — 어느 쪽으로 반올림되든
-    /// 표기된 정수와 판정이 같은 경계 규칙(`TirePressureSpec.normalRangePsi`)을 따르는지를
-    /// 관계로 검증한다. 어느 쪽 결과가 나올지 미리 정해 못 박지 않는다.
+    /// **이 테스트가 실제로 고정하는 것:** 표기된 정수(`pressurePsi`)와 판정(`tireStatus`)이
+    /// 같은 경계 규칙(`TirePressureSpec.normalRangePsi`)을 쓴다는 것 — 어느 쪽 정수가 나오든
+    /// 둘이 어긋나지 않아야 한다는 관계만 본다.
+    ///
+    /// **`.5` 정확한 동점은 이 경로로 못 만든다.** psi = bar × 145038 / 10⁴이므로 정확히
+    /// `.5`가 되려면 `bar ≡ 2500 (mod 5000)`이어야 하는데 그런 bar 값은 없다. `.plain`과
+    /// `.halfEven`은 정확한 `.5` 동점에서만 갈리므로, 3.2061bar(원값 46.50063…psi)로는 고쳐진
+    /// 구현과 깨진 구현이 똑같이 통과한다 — 즉 이 테스트는 그 결함을 가려내지 못한다. 실제
+    /// 결함(반올림 없이 원값으로 판정)을 가르는 것은 `공기압을_범위로_판정한다`의 `2.62bar`
+    /// 케이스다(원값 37.999956 → 반올림 안 하면 `.low`).
     @Test func 공기압_표기와_판정은_경계에서_같은_이야기를_한다() {
         let bar = Decimal(string: "3.2061")!
         let displayed = VehicleFormat.pressurePsi(bar)

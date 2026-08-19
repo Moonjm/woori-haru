@@ -74,6 +74,33 @@ struct VehicleHealthViewModelTests {
         #expect(viewModel.trendSamples.last?.yearMonth == samples.last?.yearMonth)
     }
 
+    /// **달 번호로 자른다** — 배열 끝에서 24개를 세는 것과 다르다. 2020년의 옛 표본 6개와
+    /// 최근 20개월(2025-01~2026-08, 연속)을 잇는다. 배열 길이는 26이라 `Array(suffix(24))`는
+    /// 2020년 표본 4개까지 끌고 와 24개를 채우지만, 24개월 창(2024-09~2026-08)에는 2020년
+    /// 표본이 하나도 들지 않는다 — 실제 24개월 안에 있는 20개만 남아야 한다.
+    @Test func 최근_24개월만_그린다_달_사이_공백이_있어도() async {
+        let mock = MockAPIClient()
+        let oldSamples = (1...6).map { Self.sample(String(format: "2020-%02d", $0), "540.0") }
+        let recentStartOrdinal = 2026 * 12 + 8 - 19
+        let recentSamples = (0..<20).map { index -> BatteryHealthSample in
+            let ordinal = recentStartOrdinal + index
+            let year = (ordinal - 1) / 12
+            let month = (ordinal - 1) % 12 + 1
+            return Self.sample(String(format: "%04d-%02d", year, month), "540.0")
+        }
+        let samples = oldSamples + recentSamples
+        stub(mock, samples)
+        let viewModel = makeViewModel(mock)
+
+        await viewModel.load()
+
+        #expect(viewModel.samples.count == 26)
+        // `Array(samples.suffix(24))`였다면 24가 나온다 — 달 번호로 자르므로 20이어야 한다.
+        #expect(viewModel.trendSamples.count == 20)
+        #expect(viewModel.trendSamples.first?.yearMonth == recentSamples.first?.yearMonth)
+        #expect(viewModel.trendSamples.last?.yearMonth == recentSamples.last?.yearMonth)
+    }
+
     /// **빠진 달에서 선을 끊는다.** 없는 값을 직선으로 메우면 그 달에도 잰 것처럼 보인다.
     @Test func 표본이_빠진_달에서_선이_갈린다() async {
         let mock = MockAPIClient()
@@ -125,6 +152,24 @@ struct VehicleHealthViewModelTests {
         #expect(viewModel.errorMessage != nil)
         #expect(!viewModel.hasSamples)
         #expect(!viewModel.isLoaded)
+    }
+
+    /// 이미 값을 받은 뒤 새로고침이 실패하면 **카드를 지우지 않는다** — 있던 값을 오류 화면으로
+    /// 갈아치우지 않는다. 첫 로드 실패(`실패하면_에러를_드러낸다`)만으로는 이 경로가 가려지지
+    /// 않는다: 그 테스트는 `samples`가 처음부터 빈 채로 실패하는 경우라, `reload()`가 실패할 때
+    /// `samples`를 건드리지 않는지(지우는지)를 전혀 보지 않는다.
+    @Test func 새로고침이_실패해도_있던_표본은_남는다() async {
+        let mock = MockAPIClient()
+        stub(mock, [Self.sample("2026-08", "525.3")])
+        let viewModel = makeViewModel(mock)
+
+        await viewModel.load()
+        mock.setError(MockAPIClient.MockAPIError.forced, for: "GET /tesla/battery-health")
+        await viewModel.reload()
+
+        #expect(viewModel.hasSamples)
+        #expect(viewModel.isLoaded)
+        #expect(viewModel.errorMessage != nil)
     }
 
     /// 배지 하나 때문에 화면을 죽이지 않는다. 요약 탭과 같은 규칙이다.

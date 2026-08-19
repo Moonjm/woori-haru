@@ -35,7 +35,16 @@ struct BatteryHealthCard: View {
         }
         .batteryPanelBackground()
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("배터리 건강 잔존 \(VehicleFormat.percent(remainingPercent)), 열화 \(VehicleFormat.percent(degradationPercent))")
+        // `.combine`은 자식 뷰들을 하나로 묶을 뿐, 그 결과를 그대로 읽지 않는다 —
+        // `.accessibilityLabel`을 얹으면 묶인 내용을 통째로 대체한다. 링의 잔존·열화만 적으면
+        // 세 줄(주행가능·용량·줄어든 거리)이 VoiceOver에서 사라지므로, 화면에 보이는 순서대로
+        // 값을 모두 이어 붙인다.
+        .accessibilityLabel(
+            "배터리 건강 잔존 \(VehicleFormat.percent(remainingPercent)), 열화 \(VehicleFormat.percent(degradationPercent)), " +
+            "주행가능 \(VehicleFormat.againstBaseline(fullRangeKm, baseline: VehicleBaseline.newRangeKm, unit: "km", fraction: 0)), " +
+            "용량 \(VehicleFormat.againstBaseline(capacityKwh, baseline: VehicleBaseline.newCapacityKwh, unit: "kWh", fraction: 1)), " +
+            "줄어든 거리 \(VehicleFormat.distance(rangeLostKm))"
+        )
     }
 
     // MARK: - 링
@@ -76,10 +85,15 @@ struct BatteryHealthCard: View {
     }
 
     /// 90% 이상 초록, 80~90% 노랑, 80% 미만 주황. **문구는 붙이지 않는다.**
+    ///
+    /// **`VehicleMath.rounded`로 반올림한 값을 비교한다.** 옆 숫자(`VehicleFormat.percent`)도
+    /// 같은 규칙으로 반올림해 찍으므로, 원값을 그대로 비교하면 `[89.5, 90)` 구간이 "90%"로
+    /// 보이면서 링은 노랑이 되는 표기/판정 불일치가 생긴다 — 타이어 판정과 같은 규칙이다.
     private var ringColor: Color {
         guard let remainingPercent else { return Color.slate500 }
-        if remainingPercent >= 90 { return .green300 }
-        if remainingPercent >= 80 { return .orange300 }
+        let rounded = VehicleMath.rounded(remainingPercent)
+        if rounded >= 90 { return .green300 }
+        if rounded >= 80 { return .orange300 }
         return .orange500
     }
 

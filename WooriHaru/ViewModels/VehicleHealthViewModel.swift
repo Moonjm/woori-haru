@@ -13,7 +13,6 @@ final class VehicleHealthViewModel {
     static let trendMonths = 24
 
     private(set) var samples: [BatteryHealthSample] = []
-    private(set) var isLoading = false
     /// 응답을 **받은 적이 있는지.** 「받은 적 없다」와 「받았는데 표본이 비었다」는 다르다.
     private(set) var isLoaded = false
     var errorMessage: String?
@@ -77,18 +76,16 @@ final class VehicleHealthViewModel {
 
     /// 탭에 들어올 때마다 부른다. **전 기간 집계는 한 번만 받고**, 배지 수만 매번 맞춘다 —
     /// 큐에서 금액을 채우고 돌아오면 그 수가 달라져 있어야 한다.
+    /// **단, 지난번이 오류로 끝났다면 다시 받는다** — 그러지 않으면 실패한 채로 탭을 나갔다
+    /// 돌아와도 빨간 배너가 영영 그대로 남는다.
     func load() async {
-        if !isLoaded { await reload() }
+        if !isLoaded || errorMessage != nil { await reload() }
         await refreshMissingCount()
     }
 
     func reload() async {
         generation += 1
         let current = generation
-        isLoading = true
-        defer {
-            if current == generation { isLoading = false }
-        }
         do {
             let loaded = try await service.fetchBatteryHealth()
             guard current == generation else { return }
