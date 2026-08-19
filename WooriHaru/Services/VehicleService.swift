@@ -56,4 +56,15 @@ struct VehicleService: Sendable {
         }
         return missing
     }
+
+    /// 최근 `days`일의 상태·주행·충전 구간. **세 배열이 겹친 채로 온다** — 서버가 합치지 않는다.
+    /// 창은 서버가 KST 자정에 맞춰 잘라 주므로 `days=7`이면 온전한 6일 + 오늘 부분이 온다.
+    func fetchStateTimeline(days: Int = 7) async throws -> StateTimelineResponse {
+        let response: DataResponse<StateTimelineResponse> =
+            try await api.get("/tesla/state-timeline", query: ["days": String(days)])
+        guard let timeline = response.data else {
+            throw APIError.serverError(statusCode: 200, message: "상태 타임라인 응답이 비어 있습니다")
+        }
+        return timeline
+    }
 }
