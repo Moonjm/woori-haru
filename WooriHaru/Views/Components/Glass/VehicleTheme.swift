@@ -24,6 +24,10 @@ enum VehicleTheme {
     static let tileFill  = Color.white.opacity(0.07)
     /// 「값이 없다·0이다」를 뜻하는 트랙과 막대. 강조 색을 쓰면 없는 값이 있는 척한다.
     static let trackFill = Color.white.opacity(0.10)
+    /// 24시간 띠의 바닥. **`trackFill`보다 어둡다** — 여기는 막대가 **위에 겹쳐** 칠해지는
+    /// 자리라, 바닥이 가장 어두운 상태(`asleep`)에 가까우면 자고 있던 구간과 기록이 없는
+    /// 구간이 안 갈린다. 역할을 따로 세운 이유는 그 관계를 테스트가 붙잡을 수 있게 하려는 것이다.
+    static let timelineTrack = cardFill
 
     // MARK: - 강조
 

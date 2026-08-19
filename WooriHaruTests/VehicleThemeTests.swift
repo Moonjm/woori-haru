@@ -63,17 +63,31 @@ struct VehicleThemeTests {
     }
 
     /// 선택·비선택 짝은 **선택된 쪽이 더 밝아야 한다.** 이 관계가 뒤집히면 알약 배경을
-    /// 못 보는 상황에서 어느 것이 골라져 있는지 거꾸로 읽힌다 — 주행 탭 기간 칩에서 실제로 났던 일이다.
+    /// 못 보는 상황에서 어느 것이 골라져 있는지 거꾸로 읽힌다.
     @Test func 선택된_쪽이_비선택보다_밝다() {
         #expect(luminance(VehicleTheme.accentBright) > luminance(VehicleTheme.textTertiary))
         #expect(luminance(VehicleTheme.accentBright) > luminance(VehicleTheme.accentMuted))
     }
 
-    /// 막대 트랙은 **어느 상태보다도 어두워야 한다.** 막대가 트랙 위에 겹쳐 칠해지므로,
-    /// 트랙이 가장 어두운 상태만큼 밝으면 「기록 없음」과 그 상태가 안 갈린다.
-    @Test func 트랙이_가장_어두운_상태보다_어둡다() {
+    /// **`textSecondary`는 선택 짝의 비선택 쪽으로 쓸 수 없다.** 주행 탭 기간 칩에서 실제로
+    /// 났던 사고이고, 리뷰 여섯 바퀴를 통과했다 — 민트가 채도 때문에 밝아 **보이지만**
+    /// 휘도는 옅은 청백보다 낮기 때문이다.
+    ///
+    /// 호출부의 토큰 선택을 단위 테스트가 읽을 수는 없다. 대신 그 사고를 만든 **사실**을
+    /// 여기 박아 둔다 — 이 단언이 깨지는 날은 팔레트가 움직인 날이고, 그때 칩과 탭바를
+    /// 다시 봐야 한다.
+    @Test func 옅은_청백이_민트보다_밝다() {
+        #expect(luminance(VehicleTheme.textSecondary) > luminance(VehicleTheme.accentBright))
+    }
+
+    /// 막대 트랙은 가장 어두운 상태보다 **뚜렷하게** 어두워야 한다.
+    ///
+    /// **단순한 대소 비교로는 이 결함을 표현할 수 없다.** 사고 당시 트랙(`tileFill`, 흰 7%)도
+    /// `asleep`(흰 8%)보다 어둡기는 했다 — 문제는 순서가 아니라 **너무 가까운 것**이었고,
+    /// 그래서 자고 있던 구간과 기록이 없는 구간이 띠에서 안 갈렸다. 배수로 못 박는다.
+    @Test func 트랙이_가장_어두운_상태보다_충분히_어둡다() {
         let kinds: [TimelineKind] = [.asleep, .offline, .online, .driving, .charging]
         let darkestState = kinds.map { luminance(VehicleTheme.color(for: $0)) }.min() ?? 0
-        #expect(luminance(VehicleTheme.cardFill) < darkestState)
+        #expect(darkestState >= luminance(VehicleTheme.timelineTrack) * 1.8)
     }
 }
