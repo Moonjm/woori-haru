@@ -1045,7 +1045,7 @@ Expected: **출력 없음.** 하나라도 남으면 그 자리는 검은 바탕�
 
 - [ ] **Step 11: 밝은 갈래가 안 바뀌었는지 확인한다**
 
-Run: `git diff develop --stat -- WooriHaru/Views/ | grep -v 'Vehicle/\|Charge/\|Glass/'`
+Run: `git diff develop --name-only -- WooriHaru/Views/ | grep -v 'Views/Vehicle/\|Views/Charge/\|Views/Components/Glass/'`
 
 Expected: **출력 없음.** 차량·충전·공용 글래스 밖의 뷰 파일이 하나라도 나오면 범위를 벗어난 것이다.
 
