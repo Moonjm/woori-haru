@@ -1,15 +1,17 @@
 import SwiftUI
 
-/// 「차량」 미니앱 — 건강·요약 두 탭. 가계부와 같은 하단 글래스 탭바 구조다.
+/// 「차량」 미니앱 — 건강·주행·요약 세 탭. 가계부와 같은 하단 글래스 탭바 구조다.
 /// **여는 순간 건강 화면이 먼저 뜬다** — 첫 화면이 답을 하나 해야 한다.
+/// **세 개가 상한이다** — 더 늘리려는 순간 화면을 합칠 자리를 먼저 찾는다.
 struct VehicleView: View {
-    private enum Tab { case health, summary }
+    private enum Tab { case health, drive, summary }
 
     @Environment(\.dismiss) private var dismiss
     @State private var tab: Tab = .health
     @State private var summaryViewModel = VehicleSummaryViewModel()
     @State private var statusViewModel = VehicleStatusViewModel()
     @State private var healthViewModel = VehicleHealthViewModel()
+    @State private var driveViewModel = VehicleDriveViewModel()
     @State private var showingMonthPicker = false
     @State private var showingQueue = false
 
@@ -19,7 +21,7 @@ struct VehicleView: View {
             tabBar
         }
         .glassScreenBackground()
-        // 좌우 스와이프 = 월 이동. 건강 탭에는 월이 없으므로 마스크로 끈다
+        // 좌우 스와이프 = 월 이동. 건강·주행 탭에는 월이 없으므로 마스크로 끈다
         // (`nil`을 넘길 수 없는 API라 including으로 제어한다).
         .simultaneousGesture(monthSwipeGesture, including: tab == .summary ? .all : .subviews)
         .navigationBarBackButtonHidden(true) // 월 이동 스와이프와 겹치는 엣지 뒤로가기 차단
@@ -68,6 +70,9 @@ struct VehicleView: View {
                     async let health: Void = healthViewModel.load()
                     _ = await (status, health)
                 }
+        case .drive:
+            VehicleDriveTab(viewModel: driveViewModel)
+                .task { await driveViewModel.load() }
         case .summary:
             VehicleSummaryTab(viewModel: summaryViewModel) { showingQueue = true }
         }
@@ -76,6 +81,7 @@ struct VehicleView: View {
     @ViewBuilder private var principalTitle: some View {
         switch tab {
         case .health: Text("차량 건강").font(.subheadline).fontWeight(.bold)
+        case .drive: Text("주행").font(.subheadline).fontWeight(.bold)
         case .summary: monthSwitcher
         }
     }
@@ -128,6 +134,7 @@ struct VehicleView: View {
     private var tabBar: some View {
         HStack(spacing: 4) {
             tabButton(.health, icon: "bolt.batteryblock.fill", label: "건강")
+            tabButton(.drive, icon: "steeringwheel", label: "주행")
             tabButton(.summary, icon: "chart.bar.fill", label: "요약")
         }
         .padding(6)
@@ -135,7 +142,7 @@ struct VehicleView: View {
         // 버튼 사이 여백 탭이 아래 목록으로 새지 않게 바 전체를 히트 영역으로 만든다.
         .contentShape(RoundedRectangle(cornerRadius: 24))
         .onTapGesture {}
-        .padding(.horizontal, 60)
+        .padding(.horizontal, 28)
         .padding(.bottom, 8)
     }
 
