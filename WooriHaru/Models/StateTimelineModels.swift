@@ -2,14 +2,14 @@ import Foundation
 
 // MARK: - 응답
 
-/// 최근 며칠의 차량 상태 — **세 배열이 겹친 채로 온다.**
+/// 최근 몇 시간의 차량 상태 — **세 배열이 겹친 채로 온다.**
 ///
 /// 서버가 하나의 띠로 합치지 않는 이유는 TeslaMate `states`에 `driving`·`charging`이 없어서다
 /// (`CREATE TYPE states_status AS ENUM ('online', 'offline', 'asleep')`). 합치려면 구간 산술이
 /// 필요한데, 세 겹을 그대로 받아 화면이 덧칠하면 그 로직이 사라진다.
 struct StateTimelineResponse: Codable, Equatable {
-    let days: Int
-    /// KST 벽시계. **서버가 KST 자정에 맞춰 잘라 준다** — `days=7`이면 온전한 6일 + 오늘 부분이다.
+    let hours: Int
+    /// KST 벽시계. **자정에 맞춰지지 않는다** — `to`가 요청 시각이고 `from`은 그보다 `hours`시간 앞이다.
     let from: String
     let to: String
     let states: [StateSegment]
@@ -57,9 +57,11 @@ enum TimelineKind: Equatable {
     }
 }
 
-/// 한 막대 = 하루 안의 한 조각. `start`·`end`는 그 행에서의 비율(0.0~1.0)이다.
+/// 한 막대 = 범위 안의 한 조각. `start`·`end`는 **범위 전체에 대한 비율**(0.0 = `from`, 1.0 = `to`)이다.
+///
+/// **4단계의 `dayIndex`가 사라졌다.** 7일을 하루 한 행씩 그릴 때는 막대가 어느 행에 속하는지
+/// 알아야 했지만, 24시간을 한 줄로 그리면 행이 하나뿐이라 그 값이 가리킬 곳이 없다.
 struct TimelineBar: Equatable {
-    let dayIndex: Int
     let start: Double
     let end: Double
     let kind: TimelineKind
@@ -67,60 +69,55 @@ struct TimelineBar: Equatable {
 
 // MARK: - 계산
 
-/// 화면이 하는 유일한 계산이다. **한국은 서머타임이 없어** 하루를 86,400초 고정으로 잡아도
-/// 자정 경계가 어긋나지 않는다.
+/// 화면이 하는 유일한 계산이다.
+///
+/// **4단계에서 하던 세 가지 중 하나가 사라졌다** — 자정을 넘는 구간을 날짜 행으로 쪼개는 일이다.
+/// 행이 하나뿐이면 쪼갤 곳이 없다. 남은 것은 범위 밖 자르기와 정렬 둘이다.
 enum StateTimelineMath {
-    static let secondsPerDay: Double = 86_400
-
     static func bars(_ response: StateTimelineResponse) -> [TimelineBar] {
         guard let windowStart = VehicleFormat.parseKST(response.from),
-              let windowEnd = VehicleFormat.parseKST(response.to),
-              windowEnd > windowStart else { return [] }
+              let windowEnd = VehicleFormat.parseKST(response.to) else { return [] }
+        let span = windowEnd.timeIntervalSince(windowStart)
+        guard span > 0 else { return [] }
 
         var bars: [TimelineBar] = []
         for segment in response.states {
             guard let kind = TimelineKind.state(segment.state) else { continue }
-            bars += split(segment.from, segment.to, kind: kind, from: windowStart, to: windowEnd)
+            if let bar = clip(segment.from, segment.to, kind: kind, from: windowStart, span: span) {
+                bars.append(bar)
+            }
         }
         for segment in response.drives {
-            bars += split(segment.from, segment.to, kind: .driving, from: windowStart, to: windowEnd)
+            if let bar = clip(segment.from, segment.to, kind: .driving, from: windowStart, span: span) {
+                bars.append(bar)
+            }
         }
         for segment in response.charges {
-            bars += split(segment.from, segment.to, kind: .charging, from: windowStart, to: windowEnd)
+            if let bar = clip(segment.from, segment.to, kind: .charging, from: windowStart, span: span) {
+                bars.append(bar)
+            }
         }
 
-        // **정렬 기준을 셋 다 준다.** Swift의 `sorted`는 안정 정렬을 보장하지 않아
+        // **정렬 기준을 둘 다 준다.** Swift의 `sorted`는 안정 정렬을 보장하지 않아
         // 레이어만으로 비교하면 같은 레이어 안의 순서가 실행마다 달라질 수 있다.
         return bars.sorted {
             if $0.kind.layer != $1.kind.layer { return $0.kind.layer < $1.kind.layer }
-            if $0.dayIndex != $1.dayIndex { return $0.dayIndex < $1.dayIndex }
             return $0.start < $1.start
         }
     }
 
-    /// 구간 하나를 날짜 행으로 쪼갠다. **창 밖은 자른다** — 서버가 이미 잘라 주지만,
+    /// 구간 하나를 범위 안의 비율로 바꾼다. **범위 밖은 자른다** — 서버가 이미 잘라 주지만,
     /// 계약이 깨져도 화면이 무너지지 않게 한 번 더 막는다.
-    private static func split(_ rawFrom: String, _ rawTo: String, kind: TimelineKind,
-                              from windowStart: Date, to windowEnd: Date) -> [TimelineBar] {
+    private static func clip(_ rawFrom: String, _ rawTo: String, kind: TimelineKind,
+                             from windowStart: Date, span: TimeInterval) -> TimelineBar? {
         guard let segmentStart = VehicleFormat.parseKST(rawFrom),
-              let segmentEnd = VehicleFormat.parseKST(rawTo) else { return [] }
+              let segmentEnd = VehicleFormat.parseKST(rawTo) else { return nil }
+        let windowEnd = windowStart.addingTimeInterval(span)
         let start = max(segmentStart, windowStart)
         let end = min(segmentEnd, windowEnd)
-        guard end > start else { return [] }
-
-        var bars: [TimelineBar] = []
-        var cursor = start
-        while cursor < end {
-            let dayIndex = Int(floor(cursor.timeIntervalSince(windowStart) / secondsPerDay))
-            let dayStart = windowStart.addingTimeInterval(Double(dayIndex) * secondsPerDay)
-            let sliceEnd = min(end, dayStart.addingTimeInterval(secondsPerDay))
-            bars.append(TimelineBar(
-                dayIndex: dayIndex,
-                start: cursor.timeIntervalSince(dayStart) / secondsPerDay,
-                end: sliceEnd.timeIntervalSince(dayStart) / secondsPerDay,
-                kind: kind))
-            cursor = sliceEnd
-        }
-        return bars
+        guard end > start else { return nil }
+        return TimelineBar(start: start.timeIntervalSince(windowStart) / span,
+                           end: end.timeIntervalSince(windowStart) / span,
+                           kind: kind)
     }
 }

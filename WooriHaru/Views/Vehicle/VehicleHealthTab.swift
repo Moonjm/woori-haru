@@ -219,7 +219,7 @@ struct VehicleHealthTab: View {
         return VehicleMath.minutesAgo(from: since, now: date)
     }
 
-    // MARK: - 최근 7일
+    // MARK: - 최근 24시간
 
     /// **다섯으로 갈린다** — 값 있음(+새로고침 실패 시 배너 한 줄) / 기록 없음 /
     /// 불러오는 중 / 못 받음 / 아직 안 받음(아무것도 안 그린다).
@@ -233,11 +233,12 @@ struct VehicleHealthTab: View {
     /// 스피너가 둘이면 화면이 시끄럽다. 이 절은 **할 말이 생기기 전까지 자리를 차지하지 않고,**
     /// 한 번 문제를 말한 뒤에는 그 자리에서 진행 상황까지 말한다.
     ///
-    /// `from`을 못 읽으면 행을 셀 수 없어 첫 갈래에 못 든다. 그때는 아래 갈래로 흘러가
+    /// `from`·`to`를 못 읽으면 비율을 낼 수 없어 첫 갈래에 못 든다. 그때는 아래 갈래로 흘러가
     /// **오류가 없는 한 아무것도 그리지 않는다** — 「못 받음」으로 승격시키지 않는다.
     @ViewBuilder private var timelineSection: some View {
         if let timeline = timelineViewModel.timeline,
-           let from = VehicleFormat.parseKST(timeline.from) {
+           let from = VehicleFormat.parseKST(timeline.from),
+           let to = VehicleFormat.parseKST(timeline.to) {
             if let error = timelineViewModel.errorMessage {
                 // 값이 있는 새로고침 실패는 띠를 그대로 두고 한 줄만 알린다.
                 Text(error)
@@ -247,10 +248,12 @@ struct VehicleHealthTab: View {
             }
 
             if timelineViewModel.hasSegments {
-                StateTimelineChart(bars: timelineViewModel.bars, days: timeline.days, from: from)
+                StateTimelineChart(bars: timelineViewModel.bars,
+                                   hours: timeline.hours,
+                                   from: from, to: to)
             } else {
                 GlassCard {
-                    Text("최근 \(timeline.days)일 기록이 없어요")
+                    Text("최근 \(timeline.hours)시간 기록이 없어요")
                         .font(.caption)
                         .foregroundStyle(Color.slate500)
                         .frame(maxWidth: .infinity, alignment: .leading)

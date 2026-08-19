@@ -1,15 +1,15 @@
 import Foundation
 import Observation
 
-/// 최근 7일 상태 타임라인 — `/tesla/state-timeline` 하나만 본다.
+/// 최근 24시간 상태 타임라인 — `/tesla/state-timeline` 하나만 본다.
 ///
-/// **캐시하지 않는다.** 「최근 7일」은 창이 계속 움직이므로 탭에 들어올 때마다 새로 받아야 한다.
+/// **캐시하지 않는다.** 「최근 24시간」은 창이 계속 움직이므로 탭에 들어올 때마다 새로 받아야 한다.
 /// 전 기간 집계라 한 번만 받는 `ChargeTotalsViewModel`과 정확히 반대다.
 @MainActor
 @Observable
 final class StateTimelineViewModel {
-    /// 며칠을 그릴지는 화면이 정한다. 서버는 1~30을 받는다.
-    static let days = 7
+    /// 몇 시간을 그릴지는 화면이 정한다. 서버는 1~168을 받는다.
+    static let hours = 24
 
     /// **`bars`를 저장 속성으로 둔다.** 계산 속성으로 두면 스크롤 한 프레임마다 구간 168개를
     /// 다시 쪼갠다 — 2단계 히트맵이 같은 이유로 `heatMap`을 저장 속성으로 만들었다.
@@ -40,7 +40,7 @@ final class StateTimelineViewModel {
             if current == generation { isLoading = false }
         }
         do {
-            let loaded = try await service.fetchStateTimeline(days: Self.days)
+            let loaded = try await service.fetchStateTimeline(hours: Self.hours)
             guard current == generation else { return }
             timeline = loaded
             errorMessage = nil
