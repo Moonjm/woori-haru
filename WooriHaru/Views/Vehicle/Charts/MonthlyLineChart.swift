@@ -20,10 +20,10 @@ struct MonthlyLineChart: View {
 
             HStack(spacing: 5) {
                 ForEach(points) { point in
+                    let isSelected = point.id == selectedID
                     Text(point.label)
-                        .font(.system(size: 9, weight: point.id == selectedID ? .heavy : .regular))
-                        .foregroundStyle(point.id == selectedID
-                                         ? VehicleTheme.accentBright : VehicleTheme.textTertiary)
+                        .font(.system(size: 9, weight: isSelected ? .heavy : .regular))
+                        .foregroundStyle(isSelected ? VehicleTheme.accentBright : VehicleTheme.textTertiary)
                         .frame(maxWidth: .infinity)
                 }
             }
