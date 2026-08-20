@@ -3,7 +3,7 @@ import Testing
 @testable import WooriHaru
 
 @MainActor
-struct VehicleDriveViewModelTests {
+struct VehicleStatsViewModelTests {
 
     /// 실측(2026-08-17 최근 12개월) 그대로다 — 온도 939건, 거리 959건.
     private nonisolated static func insights(
@@ -58,13 +58,25 @@ struct VehicleDriveViewModelTests {
         )
     }
 
-    private func makeViewModel(_ mock: MockAPIClient) -> VehicleDriveViewModel {
-        VehicleDriveViewModel(service: VehicleService(api: mock))
+    private func makeViewModel(_ mock: MockAPIClient) -> VehicleStatsViewModel {
+        VehicleStatsViewModel(service: VehicleService(api: mock))
     }
 
     private func stub(_ mock: MockAPIClient, _ response: DriveInsightsResponse) {
         mock.stubGet("/tesla/drive-insights",
                      result: DataResponse<DriveInsightsResponse>(data: response))
+    }
+
+    /// `load()`/`reload()`가 추이(`/tesla/summary`)를 함께 부르므로, 인사이트 호출 횟수만
+    /// 보던 기존 단언들은 이 경로로 걸러서 봐야 한다.
+    private func insightsCalls(_ mock: MockAPIClient) -> [(path: String, query: [String: String])] {
+        mock.getCalls.filter { $0.path == "/tesla/drive-insights" }
+    }
+
+    /// 추이(`/tesla/summary`) 호출만 걸러 본다 — 「언제 다시 받고, 언제 안 받는가」를
+    /// 못박아 두는 테스트 전용 헬퍼다.
+    private func summaryCalls(_ mock: MockAPIClient) -> [(path: String, query: [String: String])] {
+        mock.getCalls.filter { $0.path == "/tesla/summary" }
     }
 
     /// 기본은 12개월이다.
@@ -76,7 +88,7 @@ struct VehicleDriveViewModelTests {
         await viewModel.load()
 
         #expect(viewModel.period == .twelveMonths)
-        #expect(mock.getCalls.first?.query == ["months": "12"])
+        #expect(insightsCalls(mock).first?.query == ["months": "12"])
         #expect(viewModel.hasDrives)
     }
 
@@ -90,7 +102,9 @@ struct VehicleDriveViewModelTests {
         await viewModel.select(.threeMonths)
 
         #expect(viewModel.period == .threeMonths)
-        #expect(mock.getCalls.map { $0.query["months"] } == ["12", "3"])
+        #expect(insightsCalls(mock).map { $0.query["months"] } == ["12", "3"])
+        // 추이는 기간 칩을 따르지 않는다 — 칩을 눌러도 `/tesla/summary`를 다시 부르지 않는다.
+        #expect(summaryCalls(mock).count == 1)
     }
 
     /// 같은 기간을 다시 누르면 부르지 않는다.
@@ -102,7 +116,7 @@ struct VehicleDriveViewModelTests {
 
         await viewModel.select(.twelveMonths)
 
-        #expect(mock.getCalls.count == 1)
+        #expect(insightsCalls(mock).count == 1)
     }
 
     /// 버킷별 전비를 앱이 낸다. 영하가 가장 나쁘고 10~20℃가 가장 좋다 — 실측 그대로다.
@@ -348,11 +362,11 @@ struct VehicleDriveViewModelTests {
 
         mock.setError(MockAPIClient.MockAPIError.forced, for: "GET /tesla/drive-insights")
         await viewModel.reload()
-        #expect(mock.getCalls.count == 2)
+        #expect(insightsCalls(mock).count == 2)
 
         await viewModel.load()
 
-        #expect(mock.getCalls.count == 3)
+        #expect(insightsCalls(mock).count == 3)
     }
 
     /// **기간을 바꾸다 실패하면 옛 기간의 값을 남기지 않는다** — 칩은 3개월인데 화면이
@@ -369,5 +383,84 @@ struct VehicleDriveViewModelTests {
         #expect(viewModel.period == .threeMonths)
         #expect(viewModel.insights == nil)
         #expect(viewModel.errorMessage != nil)
+    }
+
+    /// 세 달 — 가운데가 기록 없는 달이다.
+    private nonisolated static func stubTrend(_ mock: MockAPIClient) {
+        let june = VehiclePeriod(yearMonth: "2026-06", distanceKm: 620, drivingMin: 880,
+                                 driveCount: 34, energyAddedKwh: 115, energyUsedKwh: 126,
+                                 cost: 22770, chargeCount: 5)
+        let july = VehiclePeriod(yearMonth: "2026-07", distanceKm: nil, drivingMin: nil,
+                                 driveCount: nil, energyAddedKwh: nil, energyUsedKwh: nil,
+                                 cost: nil, chargeCount: nil)
+        let august = VehiclePeriod(yearMonth: "2026-08", distanceKm: 780, drivingMin: 1120,
+                                   driveCount: 41, energyAddedKwh: 153, energyUsedKwh: 161,
+                                   cost: 32700, chargeCount: 7)
+        mock.stubGet("/tesla/summary", result: DataResponse<VehicleSummaryResponse>(
+            data: VehicleSummaryResponse(month: august, previous: june,
+                                         trend: [june, july, august], charges: [])
+        ))
+    }
+
+    private nonisolated static func stubEmptyInsights(_ mock: MockAPIClient) {
+        mock.stubGet("/tesla/drive-insights", result: DataResponse<DriveInsightsResponse>(
+            data: DriveInsightsResponse(months: 12, efficiencyKwhPerKm: nil,
+                                        temperatureBuckets: [], driveTimes: [],
+                                        distanceBuckets: [], places: [], maxSpeedKmh: nil,
+                                        totalDistanceKm: nil, recordedMonths: nil)
+        ))
+    }
+
+    /// 통계 탭은 주행 인사이트와 12개월 추이를 **둘 다** 받는다.
+    @Test func 추이를_받아_월별_점으로_바꾼다() async {
+        let mock = MockAPIClient()
+        Self.stubEmptyInsights(mock)
+        Self.stubTrend(mock)
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+
+        await viewModel.load()
+
+        #expect(viewModel.hasTrend)
+        #expect(viewModel.distancePoints.count == 3)
+        #expect(viewModel.distancePoints[0].label == "6")
+        #expect(viewModel.distancePoints[1].value == nil)      // 기록 없는 달은 nil로 남는다
+        // 누적은 기록 없는 달을 건너뛰고 이어 간다.
+        let cumulative = viewModel.cumulativeDistancePoints
+        let expectedCumulativeAugust: Decimal = 620 + 780
+        #expect(cumulative[2].value == expectedCumulativeAugust)
+        #expect(cumulative[1].value == nil)
+    }
+
+    /// 추이를 못 받아도 주행 카드는 그린다 —
+    /// 「못 받음」을 「기록 없음」으로 뭉개지 않는 관례를 두 응답 사이에도 지킨다.
+    @Test func 추이를_못_받아도_주행_섹션은_산다() async {
+        let mock = MockAPIClient()
+        Self.stubEmptyInsights(mock)
+        mock.setError(MockAPIClient.MockAPIError.forced, for: "GET /tesla/summary")
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+
+        await viewModel.load()
+
+        #expect(!viewModel.hasTrend)
+        #expect(viewModel.distancePoints.isEmpty)
+        #expect(viewModel.insights != nil)
+        // 추이 실패는 배너를 세우지 않는다.
+        #expect(viewModel.errorMessage == nil)
+    }
+
+    /// 당겨서 새로고침은 추이도 다시 받는다 — `reload()`가 `fetchTrend: false`로 바뀌면
+    /// 이 카운트가 깨진다.
+    @Test func 새로고침은_추이도_다시_받는다() async {
+        let mock = MockAPIClient()
+        Self.stubEmptyInsights(mock)
+        Self.stubTrend(mock)
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+        #expect(summaryCalls(mock).count == 1)
+
+        await viewModel.reload()
+
+        #expect(summaryCalls(mock).count == 2)
+        #expect(viewModel.hasTrend)
     }
 }

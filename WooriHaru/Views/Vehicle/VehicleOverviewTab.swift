@@ -1,19 +1,17 @@
 import SwiftUI
 
-/// 상태 탭 — 미니앱을 열면 **여기가 먼저 뜬다.**
+/// 개요 탭 — 미니앱을 열면 **여기가 먼저 뜬다.**
 ///
 /// 뷰모델을 넷 받는다. 배터리 건강(`/tesla/battery-health`)·현재 상태(`/tesla/status`)·
 /// 충전 누적·상태 타임라인(`/tesla/state-timeline`)은 서로 다른 호출이고,
 /// **하나가 실패해도 다른 카드는 그린다.**
-struct VehicleStatusTab: View {
+struct VehicleOverviewTab: View {
     @Bindable var healthViewModel: VehicleHealthViewModel
     @Bindable var statusViewModel: VehicleStatusViewModel
     @Bindable var totalsViewModel: ChargeTotalsViewModel
     @Bindable var timelineViewModel: StateTimelineViewModel
     /// 금액 미등록 큐를 여는 진입점. **입력 경로를 바꾸는 것이 아니라 하나 더 다는 것이다.**
     let onOpenQueue: () -> Void
-
-    @State private var selectedTrendKey: String?
 
     var body: some View {
         ScrollView {
@@ -125,11 +123,6 @@ struct VehicleStatusTab: View {
                 capacityKwh: healthViewModel.latestCapacityKwh,
                 rangeLostKm: healthViewModel.rangeLostKm
             )
-            DegradationTrendChart(
-                segments: healthViewModel.trendSegments,
-                selectedKey: selectedTrendKey,
-                onSelect: { selectedTrendKey = $0 }
-            )
         } else if let error = healthViewModel.errorMessage {
             BatteryHealthPlaceholderCard(
                 icon: "exclamationmark.triangle",
@@ -185,7 +178,7 @@ struct VehicleStatusTab: View {
         } else if statusViewModel.isLoading {
             // **로딩이 오류보다 먼저다.** 재시도를 눌렀는데 오류 패널이 그대로 서 있으면
             // 누른 것이 먹혔는지 알 길이 없다 — `errorMessage`는 다음 성공까지 남는다.
-            // 주행 탭이 같은 이유로 같은 순서를 쓴다.
+            // 통계 탭이 같은 이유로 같은 순서를 쓴다.
             BatteryNowPlaceholderCard(icon: "car",
                                       title: "불러오는 중",
                                       message: "차량 상태를 받고 있어요")

@@ -1,11 +1,14 @@
 import Foundation
 import Observation
 
-/// 주행 탭 — `/tesla/drive-insights` 하나만 본다. 네 카드가 한 응답에서 나오므로
-/// 호출도 하나이고, **기간 칩이 바뀌면 넷이 함께 바뀐다.**
+/// 통계 탭 — `/tesla/drive-insights`와 `/tesla/summary` 둘을 본다. 인사이트 네 카드는
+/// 한 응답에서 나오므로 **기간 칩이 바뀌면 넷이 함께 바뀐다.** 추이(월별 차트)는 따로 받는다 —
+/// 「이번 달 기준 12개월」로 고정이라 기간 칩과 무관하고, 충전 탭의 `VehicleSummaryViewModel`이
+/// 보는 창(선택한 달 기준)과도 다르기 때문이다. 그래서 `load()`/`reload()`에서만 병렬로
+/// 함께 받고, 기간 칩(`select()`)을 눌러도 추이는 다시 부르지 않는다.
 @MainActor
 @Observable
-final class VehicleDriveViewModel {
+final class VehicleStatsViewModel {
 
     private(set) var insights: DriveInsightsResponse? {
         didSet { rebuildHeatMap() }
@@ -13,6 +16,10 @@ final class VehicleDriveViewModel {
     private(set) var isLoading = false
     private(set) var period: DrivePeriod = .twelveMonths
     var errorMessage: String?
+
+    /// **기간 칩을 따르지 않는다** — 늘 이번 달 기준 12개월이다.
+    /// 충전 탭의 `VehicleSummaryViewModel`과 같은 엔드포인트를 보지만 창이 달라 따로 받는다.
+    private(set) var trend: [VehiclePeriod] = []
 
     private let service: VehicleService
     /// 겹친 요청 중 최신 것만 결과를 반영한다.
@@ -112,6 +119,37 @@ final class VehicleDriveViewModel {
     /// 없는 칸은 **0이다.** 「기록이 없다」가 아니라 「그 시각에 안 탔다」다.
     func heatCount(weekday: Int, hour: Int) -> Int { heatMap[weekday * 24 + hour] ?? 0 }
 
+    // MARK: - 파생 값(추이)
+
+    var hasTrend: Bool { !trend.isEmpty }
+
+    private func points(_ value: (VehiclePeriod) -> Decimal?) -> [ChartPoint] {
+        trend.map { ChartPoint(id: $0.yearMonth, label: "\($0.monthNumber)", value: value($0)) }
+    }
+
+    var distancePoints: [ChartPoint] { points(\.distanceKm) }
+    var driveCountPoints: [ChartPoint] { points { $0.driveCount.map { Decimal($0) } } }
+    var drivingMinPoints: [ChartPoint] { points { $0.drivingMin.map { Decimal($0) } } }
+    var energyPoints: [ChartPoint] { points(\.energyAddedKwh) }
+    var costPoints: [ChartPoint] { points(\.cost) }
+    var chargeCountPoints: [ChartPoint] { points { $0.chargeCount.map { Decimal($0) } } }
+    var efficiencyPoints: [ChartPoint] { points(\.efficiency) }
+
+    /// **누적은 뷰가 아니라 여기서 낸다.** 뷰에서 다시 더하면 테스트하는 값과 화면 값이 갈린다.
+    var cumulativeDistancePoints: [ChartPoint] {
+        let totals = VehicleMath.runningTotals(trend.map(\.distanceKm))
+        return zip(trend, totals).map { period, total in
+            ChartPoint(id: period.yearMonth, label: "\(period.monthNumber)", value: total)
+        }
+    }
+
+    var cumulativeCostPoints: [ChartPoint] {
+        let totals = VehicleMath.runningTotals(trend.map(\.cost))
+        return zip(trend, totals).map { period, total in
+            ChartPoint(id: period.yearMonth, label: "\(period.monthNumber)", value: total)
+        }
+    }
+
     // MARK: - 로드
 
     /// 탭에 들어올 때마다 부른다. **단, 지난번이 오류로 끝났다면 다시 받는다** —
@@ -119,25 +157,32 @@ final class VehicleDriveViewModel {
     /// (`VehicleHealthViewModel.load()`와 같은 규칙이다.)
     func load() async {
         guard insights == nil || errorMessage != nil else { return }
-        await fetch(period, isPeriodChange: false)
+        await fetch(period, isPeriodChange: false, fetchTrend: true)
     }
 
     /// 당겨서 새로고침. **실패해도 있던 값을 지우지 않는다** — 1단계 건강 화면과 같은 규칙이다.
     func reload() async {
-        await fetch(period, isPeriodChange: false)
+        await fetch(period, isPeriodChange: false, fetchTrend: true)
     }
 
     /// 기간 칩. **성공이든 실패든 옛 기간의 값을 곧장 지운다** — 칩은 3개월인데 화면이
     /// 12개월 값이면 그 순간만이라도 거짓말이 된다. 새로고침과 다르게 다뤄야 하는 유일한 자리다.
+    ///
+    /// **추이는 다시 받지 않는다** — 「이번 달 기준 12개월」은 기간 칩과 무관해 이미 있는
+    /// 값 그대로다. 다시 받으면 칩을 누를 때마다 `/tesla/summary`를 불필요하게 또 부른다.
     func select(_ next: DrivePeriod) async {
         guard next != period else { return }
         period = next
-        await fetch(next, isPeriodChange: true)
+        await fetch(next, isPeriodChange: true, fetchTrend: false)
     }
 
     /// `isPeriodChange`는 「기간이 바뀌어 옛 값을 이 요청 결과로 완전히 갈아치운다」는 뜻이다 —
     /// 「실패하면 지운다」가 아니다. 그래서 지우는 지점은 아래 한 곳, 응답을 기다리기 전뿐이다.
-    private func fetch(_ months: DrivePeriod, isPeriodChange: Bool) async {
+    ///
+    /// `fetchTrend`가 참이면 주행 인사이트와 12개월 추이를 **병렬로** 받는다. 하나가 던져도
+    /// 다른 하나는 산다 — 추이는 이번 달 기준으로 고정이라 기간 칩 변경(`select`)에는 딸려
+    /// 보내지 않는다.
+    private func fetch(_ months: DrivePeriod, isPeriodChange: Bool, fetchTrend: Bool) async {
         generation += 1
         let current = generation
         // 기간이 바뀌면 결과를 기다리지 않고 바로 옛 값을 지운다 — 칩과 화면이 한순간도
@@ -147,16 +192,33 @@ final class VehicleDriveViewModel {
         defer {
             if current == generation { isLoading = false }
         }
-        do {
-            let loaded = try await service.fetchDriveInsights(months: months.rawValue)
-            guard current == generation else { return }
-            insights = loaded
+
+        async let insightsTask = service.fetchDriveInsights(months: months.rawValue)
+        async let summaryTask: VehicleSummaryResponse? = fetchTrend
+            ? (try? await service.fetchSummary(yearMonth: LedgerYearMonth.current().apiValue))
+            : nil
+
+        // **둘을 따로 잡는다** — 하나가 던져도 다른 하나는 산다.
+        var loadedInsights: DriveInsightsResponse?
+        var insightsError: (any Error)?
+        do { loadedInsights = try await insightsTask } catch { insightsError = error }
+
+        // 추이는 실패해도 배너를 세우지 않는다 — 주행 카드가 살아 있는데 빨간 줄이 서면
+        // 「전부 못 받았다」로 읽힌다. 섹션이 조용히 빠질 뿐이다.
+        // **실패해도 있던 값을 지우지 않는다**(당겨서 새로고침 관례).
+        let loadedSummary = await summaryTask
+
+        if insightsError is CancellationError { return }
+        guard current == generation else { return }
+
+        if let loadedInsights {
+            insights = loadedInsights
             errorMessage = nil
-        } catch is CancellationError {
-            return
-        } catch {
-            guard current == generation else { return }
+        } else if insightsError != nil {
             errorMessage = "주행 인사이트를 불러오지 못했습니다."
+        }
+        if fetchTrend {
+            trend = loadedSummary?.trend ?? trend
         }
     }
 }

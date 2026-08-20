@@ -1,7 +1,7 @@
 import Foundation
 import Observation
 
-/// 상태 탭 — 서버 DB에 쌓인 마지막 값을 그대로 본다. 자동 폴링도, 차를 깨우는 일도 없다.
+/// 개요 탭 — 서버 DB에 쌓인 마지막 값을 그대로 본다. 자동 폴링도, 차를 깨우는 일도 없다.
 @MainActor
 @Observable
 final class VehicleStatusViewModel {

@@ -17,7 +17,7 @@ final class VehicleHealthViewModel {
     private(set) var isLoaded = false
     var errorMessage: String?
 
-    /// 금액 미등록 배지. 요약 탭이 쓰는 것과 같은 값을 각자 받는다 —
+    /// 금액 미등록 배지. 충전 탭이 쓰는 것과 같은 값을 각자 받는다 —
     /// 이 앱에서 사람이 실제로 손을 쓰는 일은 금액을 채우는 것 하나뿐이라,
     /// 첫 화면이 바뀌어도 그 일이 한 번의 탭 안에 있어야 한다.
     private(set) var missingCostCount = 0
@@ -100,7 +100,7 @@ final class VehicleHealthViewModel {
         }
     }
 
-    /// 배지 하나 때문에 화면을 죽이지 않는다 — 실패하면 조용히 둔다. 요약 탭과 같은 규칙이다.
+    /// 배지 하나 때문에 화면을 죽이지 않는다 — 실패하면 조용히 둔다. 충전 탭과 같은 규칙이다.
     func refreshMissingCount() async {
         do {
             missingCostCount = try await service.fetchMissingCost(limit: 1).totalCount

@@ -110,6 +110,61 @@ enum VehicleMath {
         return monthly * 12
     }
 
+    /// 누적합. **기록이 없는 달(`nil`)은 자리를 지키되 누적을 끊지 않는다** —
+    /// 그 달을 0으로 읽으면 누적선이 주저앉고, 건너뛰어 배열에서 빼면 x축이 어긋난다.
+    /// 「값 없음」은 그 달의 점만 없는 것이지 그때까지 간 거리가 없어지는 것이 아니다.
+    static func runningTotals(_ values: [Decimal?]) -> [Decimal?] {
+        var sum: Decimal?
+        return values.map { value in
+            guard let value else { return nil }
+            let next = (sum ?? 0) + value
+            sum = next
+            return next
+        }
+    }
+
+    /// 그 달 충전비가 지난달과 달라진 이유를 셋으로 쪼갠다.
+    ///
+    /// **세 효과의 합이 총 증감과 정확히 같다.** 충전비 = 충전량 × 단가이고
+    /// 충전량 = 주행거리 ÷ 전비이므로, 항을 차례로 고정해 가면 남김없이 갈린다.
+    ///
+    /// **여기 단가는 `cost ÷ energyAddedKwh`다** — 누적 카드의 `wonPerKwh`(분모가
+    /// 벽에서 뽑아쓴 `energyUsedKwh`)와 다른 값이다. 세 항의 곱이 비용이 되려면
+    /// 분모가 차에 들어간 양이어야 한다. 화면에는 「충전량 1kWh당」이라고 적어 구분한다.
+    static func costBreakdown(current: VehiclePeriod, previous: VehiclePeriod) -> CostBreakdown? {
+        guard let d1 = current.distanceKm, let e1 = current.energyAddedKwh, let c1 = current.cost,
+              let d0 = previous.distanceKm, let e0 = previous.energyAddedKwh, let c0 = previous.cost,
+              d1 > 0, e1 > 0, d0 > 0, e0 > 0
+        else { return nil }
+
+        let p0 = c0 / e0                 // 지난달 충전량당 단가
+        let p1 = c1 / e1
+
+        // 「지난달 전비 그대로 이번 달 거리를 갔다면 필요했을 충전량」.
+        // **eff0(= d0/e0)로 나누지 않고 e0/d0를 곱한다** — 나눗셈을 두 번 거치면
+        // 무한소수에서 잔차가 남아, 같은 달끼리 비교해도 전비 효과가 0이 되지 않는다
+        // (실측 -6.29e-30). 대수적으로는 같은 식이다.
+        let neededKwh = d1 * e0 / d0
+
+        let distance   = (d1 - d0) * e0 / d0 * p0
+        let efficiency = (e1 - neededKwh) * p0
+        let unitPrice  = e1 * (p1 - p0)
+
+        return CostBreakdown(total: c1 - c0,
+                             distance: distance,
+                             efficiency: efficiency,
+                             unitPrice: unitPrice)
+    }
+
+    /// 충전량 1kWh당 금액. **분모가 `energyAddedKwh`(차에 들어간 양)다** —
+    /// 누적 카드의 `wonPerKwh`는 벽에서 뽑아쓴 `energyUsedKwh`로 나누므로 값이 다르다.
+    /// 비용 = 충전량 × 단가가 정확히 성립해야 `costBreakdown`의 세 항이 남김없이 갈리므로
+    /// 이 자리의 분모는 반드시 차에 들어간 양이어야 한다.
+    static func wonPerAddedKwh(cost: Decimal?, energyAddedKwh: Decimal?) -> Decimal? {
+        guard let cost, let energyAddedKwh, energyAddedKwh > 0 else { return nil }
+        return cost / energyAddedKwh
+    }
+
     /// 증감 %. 지난달이 없거나 0이면 nil이다 — 0에서 늘었다고 말할 수 없다.
     static func deltaPercent(current: Decimal?, previous: Decimal?) -> Int? {
         guard let current, let previous, previous > 0 else { return nil }
@@ -255,4 +310,14 @@ enum VehicleFormat {
         default: return raw
         }
     }
+}
+
+/// 충전비 증감의 세 갈래. 부호는 **비용 기준**이다 — 양수면 그만큼 더 썼다는 뜻이고,
+/// `efficiency`가 양수면 전비가 나빠져 돈이 더 들었다는 말이다.
+struct CostBreakdown: Equatable {
+    /// 이번 달 − 지난달.
+    let total: Decimal
+    let distance: Decimal
+    let efficiency: Decimal
+    let unitPrice: Decimal
 }
