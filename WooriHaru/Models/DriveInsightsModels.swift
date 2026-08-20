@@ -105,15 +105,27 @@ struct DrivePlace: Codable, Equatable {
 
 // MARK: - 기간
 
-/// 화면 맨 위 기간 칩. **네 카드가 같은 기간을 본다** — 카드마다 기간이 다르면 서로 비교가 안 된다.
-/// 서버가 받는 범위는 1~60이고, 화면은 그중 둘만 낸다.
+/// 화면 맨 위 기간 칩. **네 카드가 아니라 스물여섯 장이 같은 기간을 본다** —
+/// 카드마다 기간이 다르면 서로 비교가 안 된다.
+///
+/// **`0`은 전체 기간이다**(서버 계약). 일 단위(오늘/7일)로 내려가지 않는 이유는 이 화면
+/// 스물여섯 중 아홉이 월 단위 집계라, 짧은 기간을 고르면 그 아홉이 막대 한 개짜리가 되기
+/// 때문이다.
 enum DrivePeriod: Int, CaseIterable, Identifiable {
     case threeMonths = 3
+    case sixMonths = 6
     case twelveMonths = 12
+    case all = 0
 
     var id: Int { rawValue }
 
-    var label: String { "최근 \(rawValue)개월" }
+    /// **「최근」을 뗀다.** 칩이 넷이 되면서 「최근 12개월」이 칩 폭을 넘긴다.
+    var label: String {
+        switch self {
+        case .all: "전체"
+        default: "\(rawValue)개월"
+        }
+    }
 }
 
 // MARK: - 계산

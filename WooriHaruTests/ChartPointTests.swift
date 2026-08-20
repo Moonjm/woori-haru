@@ -98,4 +98,23 @@ struct ChartPointTests {
         #expect(ChartScale.slotIndex(atX: 10, count: 12, width: 0) == 0)
         #expect(ChartScale.slotIndex(atX: 10, count: 0, width: 329) == 0)
     }
+
+    @Test func 칸이_많아지면_간격이_좁아진다() {
+        #expect(ChartScale.slotSpacing(count: 12) == 5)
+        // 60칸에서도 막대가 남아야 한다.
+        let spacing = ChartScale.slotSpacing(count: 60)
+        #expect(spacing < 5)
+        let width: CGFloat = 320
+        let barWidth = (width - spacing * 59) / 60
+        #expect(barWidth > 0)
+    }
+
+    @Test func 칸이_많으면_x축_라벨을_솎는다() {
+        // 12칸이면 전부 적는다.
+        #expect(MonthLabel.shows(index: 5, count: 12))
+        // 60칸이면 여섯 달에 하나만 적는다 — 다 적으면 글자가 겹친다.
+        #expect(MonthLabel.shows(index: 0, count: 60))
+        #expect(!MonthLabel.shows(index: 1, count: 60))
+        #expect(MonthLabel.shows(index: 6, count: 60))
+    }
 }

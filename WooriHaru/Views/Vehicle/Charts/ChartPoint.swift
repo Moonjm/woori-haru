@@ -33,11 +33,20 @@ enum ChartScale {
 
     /// 막대·라벨 사이 간격. **HStack과 x 계산이 같은 값을 봐야 한다** —
     /// 두 곳에 따로 적으면 선의 점이 자기 막대에서 조용히 미끄러진다.
-    static let slotSpacing: CGFloat = 5
+    ///
+    /// **칸 수에 따라 좁아진다.** 12칸이면 5pt인데 60칸에서 그대로 두면 320pt 폭에서
+    /// 간격만 295pt를 먹어 막대 폭이 음수가 된다.
+    static func slotSpacing(count: Int) -> CGFloat {
+        switch count {
+        case ..<16: 5
+        case ..<32: 3
+        default: 1
+        }
+    }
 
     /// 슬롯 하나의 폭. 간격 `count - 1`개를 뺀 나머지를 `count`로 나눈다.
     private static func slotWidth(count: Int, width: CGFloat) -> CGFloat {
-        (width - slotSpacing * CGFloat(count - 1)) / CGFloat(count)
+        (width - slotSpacing(count: count) * CGFloat(count - 1)) / CGFloat(count)
     }
 
     /// 슬롯 `index`의 중심 x. `count == 1`이면 가운데다.
@@ -51,7 +60,7 @@ enum ChartScale {
         // 간격만으로 폭이 다 차면(카드가 아직 폭을 못 받은 첫 프레임, 점이 아주 많은 경우)
         // 슬롯이 음수가 된다 — 음수 x로 흩뿌리지 않고 가운데에 모은다.
         guard slot > 0 else { return width / 2 }
-        return CGFloat(index) * (slot + slotSpacing) + slot / 2
+        return CGFloat(index) * (slot + slotSpacing(count: count)) + slot / 2
     }
 
     /// x를 슬롯 인덱스로 되돌린다. **`slotCenterX`의 역이어야 한다** —
@@ -62,8 +71,31 @@ enum ChartScale {
         // `slotCenterX`와 같은 갈림길을 탄다 — 슬롯이 음수면 그쪽은 전부 가운데에
         // 모이므로 여기서 나눠 봐야 범위 밖 인덱스만 나온다.
         guard slot > 0 else { return 0 }
-        let raw = Int(((x - slot / 2) / (slot + slotSpacing)).rounded())
+        let raw = Int(((x - slot / 2) / (slot + slotSpacing(count: count))).rounded())
         // 양 끝 바깥을 눌러도 맨 앞·맨 뒤 슬롯이 받는다.
         return min(count - 1, max(0, raw))
+    }
+}
+
+/// x축 월 라벨. **칸이 많으면 솎는다** — 60칸을 다 적으면 글자가 서로 덮는다.
+enum MonthLabel {
+    /// 라벨 하나가 최소 이만큼은 떨어져 있어야 읽힌다(9pt 글자 두 자리 기준).
+    private static let maxLabels = 12
+
+    static func shows(index: Int, count: Int) -> Bool {
+        guard count > maxLabels else { return true }
+        // `maxLabels`가 아니라 `maxLabels - 1`로 올림 나눗셈한다. 분모를 `maxLabels`로
+        // 두면 60칸처럼 딱 떨어지는 칸 수에서 간격이 5(60÷12)로 나와 여섯 달마다 하나라는
+        // 뜻과 어긋난다 — `maxLabels - 1`개의 간격으로 나눠야 6이 나온다.
+        let stride = (count + maxLabels - 2) / (maxLabels - 1)
+        return index % stride == 0
+    }
+
+    /// `"2026-08"` → `"8"`. **월 숫자만 적는다** — 열두 칸에 「26.8」까지 넣으면 겹친다.
+    /// 어느 해인지는 콜아웃이 말한다.
+    static func axis(_ yearMonth: String) -> String {
+        guard let month = yearMonth.split(separator: "-").last,
+              let value = Int(month) else { return yearMonth }
+        return String(value)
     }
 }

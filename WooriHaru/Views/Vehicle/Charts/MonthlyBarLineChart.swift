@@ -19,7 +19,7 @@ struct MonthlyBarLineChart: View {
             // 카드 안쪽 여백만큼 어긋나 오른쪽 끝 달이 안 잡힌다.
             GeometryReader { proxy in
                 ZStack(alignment: .bottom) {
-                    HStack(alignment: .bottom, spacing: ChartScale.slotSpacing) {
+                    HStack(alignment: .bottom, spacing: ChartScale.slotSpacing(count: bars.count)) {
                         ForEach(bars) { point in
                             let isSelected = point.id == selectedID
                             RoundedRectangle(cornerRadius: 4)
@@ -47,7 +47,7 @@ struct MonthlyBarLineChart: View {
             }
             .frame(height: height)
 
-            HStack(spacing: ChartScale.slotSpacing) {
+            HStack(spacing: ChartScale.slotSpacing(count: bars.count)) {
                 ForEach(bars) { point in
                     let isSelected = point.id == selectedID
                     Text(point.label)

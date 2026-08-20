@@ -18,7 +18,7 @@ struct MonthlyLineChart: View {
             }
             .frame(height: height)
 
-            HStack(spacing: ChartScale.slotSpacing) {
+            HStack(spacing: ChartScale.slotSpacing(count: points.count)) {
                 ForEach(points) { point in
                     let isSelected = point.id == selectedID
                     Text(point.label)
