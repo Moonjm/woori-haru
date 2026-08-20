@@ -34,6 +34,7 @@ struct VehicleStatsTab: View {
                                    avgYearlyKm: viewModel.avgYearlyKm)
                 }
 
+                StatsDriveSection(viewModel: viewModel)
                 content
                 batterySection
             }
