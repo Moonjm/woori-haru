@@ -56,6 +56,7 @@
 - Modify: `WooriHaru/Services/VehicleService.swift`
 - Modify: `WooriHaru/Models/DriveInsightsModels.swift` (`DriveFormat.isoWeekdayLabel` 추가)
 - Test: `WooriHaruTests/InsightsModelsTests.swift`
+- Test: `WooriHaruTests/InsightsStub.swift` (열한 태스크가 함께 쓰는 스텁 팩토리)
 
 **Interfaces:**
 - Consumes: 기존 `TemperatureBucket`·`DriveTime`·`DistanceBucket`·`DrivePlace`(`DriveInsightsModels.swift`) — 서버가 같은 타입을 그대로 쓰므로 **다시 정의하지 않는다.**
@@ -124,8 +125,7 @@ struct InsightsModelsTests {
         try JSONDecoder().decode(InsightsResponse.self, from: Data(Self.json.utf8))
     }
 
-    @Test("기록 없는 달은 0이 아니라 nil로 온다")
-    func emptyMonthIsNil() throws {
+    @Test func 기록_없는_달은_0이_아니라_nil로_온다() throws {
         let month = try #require(try decoded().monthly.last)
         #expect(month.distanceKm == nil)
         #expect(month.driveCount == nil)
@@ -134,24 +134,22 @@ struct InsightsModelsTests {
         #expect(month.parkDrainSamples == 0)
     }
 
-    @Test("역대 기록은 셋이 따로 null일 수 있다")
-    func recordsAreIndependentlyNullable() throws {
+    @Test func 역대_기록은_셋이_따로_비어_올_수_있다() throws {
         let records = try decoded().records
         #expect(records.longestDistance != nil)
         #expect(records.longestDuration == nil)
         #expect(records.bestEfficiency != nil)
     }
 
-    @Test("전 기간 값 셋은 non-null이다")
-    func lifetimeFieldsAreNonNull() throws {
+    @Test func 전_기간_값_셋은_늘_온다() throws {
         let response = try decoded()
         #expect(response.totalDistanceKm == 107258.4)
         #expect(response.recordedMonths == 59)
         #expect(response.regions.countries == 1)
     }
 
-    @Test("요일 규약이 배열마다 다르다")
-    func weekdayConventionsDiffer() throws {
+    /// **한 응답 안에서 규약이 둘이다** — 섞으면 차트가 하루씩 밀린다.
+    @Test func 요일_규약이_배열마다_다르다() throws {
         let response = try decoded()
         // driveTimes는 0 = 일요일
         #expect(DriveFormat.weekdayLabel(response.driveTimes[0].weekday) == "일")
@@ -159,11 +157,10 @@ struct InsightsModelsTests {
         #expect(DriveFormat.isoWeekdayLabel(response.weekday[0].weekday) == "월")
     }
 
-    @Test("ISO 요일 라벨은 범위 밖에서 —를 낸다")
-    func isoWeekdayOutOfRange() {
-        #expect(DriveFormat.isoWeekdayLabel(0) == "—")
+    @Test func ISO_요일_라벨은_범위_밖에서_빈값을_낸다() {
+        #expect(DriveFormat.isoWeekdayLabel(0) == ChargeFormat.placeholder)
         #expect(DriveFormat.isoWeekdayLabel(7) == "일")
-        #expect(DriveFormat.isoWeekdayLabel(8) == "—")
+        #expect(DriveFormat.isoWeekdayLabel(8) == ChargeFormat.placeholder)
     }
 }
 ```
@@ -375,6 +372,105 @@ struct EfficiencyRecord: Codable, Equatable {
 
 **시각은 `Date`가 아니라 `String`으로 받는다.** `APIClient`(`APIClient.swift:237`)가 날짜 전략 없는 평범한 `JSONDecoder()`를 쓰기 때문이다 — `Date`로 선언하면 디코딩이 통째로 실패한다. `ChargeModels`·`StateTimelineModels`가 이미 그렇게 하고 있고, 필요할 때 `VehicleFormat.parseKST(_:)`(`VehicleModels.swift:216`)로 파싱한다. **새 디코더를 만들지 않는다.**
 
+- [ ] **Step 5: 공용 스텁 팩토리를 만든다**
+
+**Task 3부터 13까지 열한 태스크가 같은 응답을 스텁한다.** 태스크마다 따로 만들면 필드를
+하나 더할 때 열한 군데를 고친다. `WooriHaruTests/InsightsStub.swift`에 한 벌 둔다.
+
+이 저장소의 목 관례는 `MockVehicleService`가 아니라 **`MockAPIClient` + `stubGet`**이다
+(`VehicleStatsTests.swift:389`의 `stubTrend` 참고). 테스트 이름도 **한국어**다.
+
+```swift
+import Foundation
+@testable import WooriHaru
+
+/// 통계 응답 스텁 한 벌. **열한 태스크가 같은 것을 쓴다** — 태스크마다 만들면 필드를
+/// 하나 더할 때 열한 군데를 고치게 된다.
+enum InsightsStub {
+    /// `monthlyCount`개월치를 만든다. 노브는 **각각 하나의 경계**를 연다.
+    /// - `emptyLastMonth`: 마지막 달이 기록 없는 달(값은 nil, `parkDrainSamples`는 0)
+    /// - `emptyPlaces`: `places`·`chargers`가 빈 배열, `regions`가 전부 0
+    /// - `emptyRecords`: `records` 셋 다 nil
+    static func response(months: Int = 12,
+                         monthlyCount: Int = 12,
+                         emptyLastMonth: Bool = false,
+                         emptyPlaces: Bool = false,
+                         emptyRecords: Bool = false) -> InsightsResponse {
+        let monthly = (0..<monthlyCount).map { index -> InsightsMonth in
+            let isEmpty = emptyLastMonth && index == monthlyCount - 1
+            // 2026-08에서 거슬러 올라간다. 자릿수를 두 자리로 맞춘다.
+            let month = 8 - (monthlyCount - 1 - index)
+            let yearMonth = String(format: "2026-%02d", max(1, month))
+            return InsightsMonth(
+                yearMonth: yearMonth,
+                distanceKm: isEmpty ? nil : 780,
+                driveCount: isEmpty ? nil : 41,
+                drivingMin: isEmpty ? nil : 1120,
+                energyAddedKwh: isEmpty ? nil : 153,
+                energyUsedKwh: isEmpty ? nil : 161,
+                cost: isEmpty ? nil : 32700,
+                chargeCount: isEmpty ? nil : 7,
+                chargingMin: isEmpty ? nil : 640,
+                ratedRangeUsedKm: isEmpty ? nil : 812,
+                // 셋은 기록이 없어도 온다.
+                idleMin: isEmpty ? 44640 : 42800,
+                parkDrainRatedKm: isEmpty ? 0 : Decimal(string: "18.4")!,
+                parkDrainSamples: isEmpty ? 0 : 34)
+        }
+        // **1 = 월요일**(ISO)로 일곱 개. 순서가 곧 월~일이다.
+        let weekday = (1...7).map { day in
+            InsightsWeekday(weekday: day, driveCount: 38, distanceKm: 612,
+                            drivingMin: 940, occurrences: 52, idleMin: 61200)
+        }
+        return InsightsResponse(
+            months: months, monthly: monthly,
+            efficiencyKwhPerKm: Decimal(string: "0.168")!,
+            temperatureBuckets: [], 
+            // **0 = 일요일**. `weekday` 배열과 규약이 다르다.
+            driveTimes: [DriveTime(weekday: 0, hour: 8, count: 12)],
+            distanceBuckets: [],
+            places: emptyPlaces ? [] : [
+                DrivePlace(name: "집", driveCount: 302, distanceKm: 4120),
+                DrivePlace(name: "회사", driveCount: 151, distanceKm: 2010)],
+            maxSpeedKmh: 138, totalDistanceKm: 107258, recordedMonths: 59,
+            weekday: weekday,
+            chargeTimes: [DriveTime(weekday: 0, hour: 23, count: 4)],
+            speedBuckets: [SpeedBucket(fromKmh: 120, toKmh: nil, driveCount: 3)],
+            speedEnergyBuckets: [SpeedEnergyBucket(fromKmh: 0, toKmh: 20,
+                                                    distanceKm: 302, ratedRangeUsedKm: 410)],
+            chargeStartLevels: [ChargeLevelBucket(fromPct: 0, toPct: 10, count: 3)],
+            chargeEndLevels: [ChargeLevelBucket(fromPct: 80, toPct: 90, count: 12),
+                              ChargeLevelBucket(fromPct: 90, toPct: 100, count: 41)],
+            chargers: emptyPlaces ? [] : [
+                Charger(name: "집", chargeCount: 210, energyAddedKwh: 4820,
+                        cost: 612000, costMissingCount: 4)],
+            regions: Regions(cities: emptyPlaces ? 0 : 34,
+                             states: emptyPlaces ? 0 : 8,
+                             countries: emptyPlaces ? 0 : 1),
+            // **`longestDuration`만 nil이다** — 셋이 따로 빌 수 있음을 기본 스텁이 드러낸다.
+            records: emptyRecords
+                ? InsightsRecords(longestDistance: nil, longestDuration: nil, bestEfficiency: nil)
+                : InsightsRecords(
+                    longestDistance: DistanceRecord(driveId: 4821,
+                                                    startedAt: "2025-09-13T07:12:00",
+                                                    distanceKm: 412),
+                    longestDuration: nil,
+                    bestEfficiency: EfficiencyRecord(driveId: 5002,
+                                                     startedAt: "2026-05-02T14:20:00",
+                                                     distanceKm: 88, ratedRangeUsedKm: 71)))
+    }
+
+    /// `months`마다 다른 응답을 물릴 수 있다 — 기간 칩 테스트가 그것을 본다.
+    static func stub(_ mock: MockAPIClient, _ response: InsightsResponse) {
+        mock.stubGet("/tesla/insights", result: DataResponse<InsightsResponse>(data: response))
+    }
+}
+```
+
+**`MockAPIClient.stubGet`은 경로 하나에 결과 하나다.** 기간별로 다른 응답이 필요한 테스트
+(Task 3)는 `select` 전후로 스텁을 갈아 끼우고, 무엇을 요청했는지는 `mock.getCalls`
+(`MockAPIClient.swift:100`)로 본다.
+
 - [ ] **Step 5: 서비스에 `fetchInsights`를 더한다**
 
 `WooriHaru/Services/VehicleService.swift`, `fetchDriveInsights` 바로 아래:
@@ -395,7 +491,7 @@ struct EfficiencyRecord: Codable, Equatable {
     }
 ```
 
-- [ ] **Step 6: 타깃에 붙이고 테스트가 통과하는지 본다**
+- [ ] **Step 7: 타깃에 붙이고 테스트가 통과하는지 본다**
 
 ```bash
 ruby scripts/xcode-add-files.rb
@@ -403,12 +499,12 @@ xcodebuild test -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPho
 ```
 Expected: PASS (5개)
 
-- [ ] **Step 7: 커밋**
+- [ ] **Step 8: 커밋**
 
 ```bash
 git add WooriHaru/Models/InsightsModels.swift WooriHaru/Models/DriveInsightsModels.swift \
         WooriHaru/Services/VehicleService.swift WooriHaruTests/InsightsModelsTests.swift \
-        WooriHaru.xcodeproj/project.pbxproj
+        WooriHaruTests/InsightsStub.swift WooriHaru.xcodeproj/project.pbxproj
 git commit -m "feat: 통계 응답을 받고 요일 규약 둘을 가른다"
 ```
 
@@ -437,14 +533,12 @@ import Testing
 
 @Suite("기간 칩")
 struct DrivePeriodTests {
-    @Test("칩이 넷이고 전체는 0이다")
-    func fourChips() {
+    @Test func 칩이_넷이고_전체는_0이다() {
         #expect(DrivePeriod.allCases.map(\.rawValue) == [3, 6, 12, 0])
         #expect(DrivePeriod.all.rawValue == 0)
     }
 
-    @Test("전체만 라벨이 개월 수가 아니다")
-    func labels() {
+    @Test func 전체만_라벨이_개월수가_아니다() {
         #expect(DrivePeriod.threeMonths.label == "3개월")
         #expect(DrivePeriod.twelveMonths.label == "12개월")
         #expect(DrivePeriod.all.label == "전체")
@@ -455,8 +549,7 @@ struct DrivePeriodTests {
 `WooriHaruTests/ChartPointTests.swift`에 더한다:
 
 ```swift
-    @Test("칸이 많아지면 간격이 좁아진다 — 막대 폭이 0 이하가 되면 안 된다")
-    func slotSpacingShrinks() {
+    @Test func 칸이_많아지면_간격이_좁아진다() {
         #expect(ChartScale.slotSpacing(count: 12) == 5)
         // 60칸에서도 막대가 남아야 한다.
         let spacing = ChartScale.slotSpacing(count: 60)
@@ -466,8 +559,7 @@ struct DrivePeriodTests {
         #expect(barWidth > 0)
     }
 
-    @Test("칸이 많으면 x축 라벨을 솎는다")
-    func labelsThin() {
+    @Test func 칸이_많으면_x축_라벨을_솎는다() {
         // 12칸이면 전부 적는다.
         #expect(MonthLabel.shows(index: 5, count: 12))
         // 60칸이면 여섯 달에 하나만 적는다 — 다 적으면 글자가 겹친다.
@@ -586,28 +678,33 @@ git add -A && git commit -m "feat: 기간 칩을 넷으로 늘리고 축 라벨�
 
 `WooriHaruTests/VehicleStatsTests.swift`에 더한다. 기존 목 서비스 관례를 그대로 따른다.
 
-```swift
-    @Test("기간을 바꾸면 월별 계열도 함께 바뀐다")
-    func periodDrivesMonthly() async throws {
-        // 1단계에서는 trend가 12개월 고정이라 칩이 월별 차트에 안 먹었다.
-        let service = MockVehicleService(insightsByMonths: [
-            12: .stub(monthlyCount: 12),
-            3: .stub(monthlyCount: 3),
-        ])
-        let vm = VehicleStatsViewModel(service: service)
-        await vm.load()
-        #expect(vm.distancePoints.count == 12)
+**목 관례:** `MockAPIClient` + `InsightsStub`(Task 1)을 쓴다. **`MockVehicleService` 같은 것은 이 저장소에 없다.** 테스트 이름은 한국어다 — `VehicleStatsTests.swift`의 기존 이름들과 같은 결로 짓는다.
 
-        await vm.select(.threeMonths)
-        #expect(vm.distancePoints.count == 3)
+```swift
+    /// 1단계에서는 `trend`가 12개월 고정이라 칩이 월별 차트에 안 먹었다.
+    @Test func 기간을_바꾸면_월별_계열도_함께_바뀐다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(months: 12, monthlyCount: 12))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+        #expect(viewModel.distancePoints.count == 12)
+
+        InsightsStub.stub(mock, InsightsStub.response(months: 3, monthlyCount: 3))
+        await viewModel.select(.threeMonths)
+        #expect(viewModel.distancePoints.count == 3)
     }
 
-    @Test("전체를 고르면 months=0으로 부른다")
-    func allSendsZero() async throws {
-        let service = MockVehicleService(insightsByMonths: [0: .stub(monthlyCount: 60)])
-        let vm = VehicleStatsViewModel(service: service)
-        await vm.select(.all)
-        #expect(service.requestedMonths.contains(0))
+    /// **0이 전체 기간이다.** 칩 라벨이 「전체」라고 해서 파라미터를 빼면 서버가 기본값
+    /// 12로 답해 조용히 12개월만 나온다.
+    @Test func 전체를_고르면_개월수_0으로_부른다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(months: 0, monthlyCount: 60))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+
+        await viewModel.select(.all)
+
+        let call = mock.getCalls.last { $0.path == "/tesla/insights" }
+        #expect(call?.query["months"] == "0")
     }
 ```
 
@@ -671,8 +768,7 @@ import Testing
 
 @Suite("분포 막대")
 struct DistributionBarChartTests {
-    @Test("0인 칸도 자리를 지킨다")
-    func zeroKeepsSlot() {
+    @Test func 분포에서_0인_칸도_자리를_지킨다() {
         let points = [ChartPoint(id: "a", label: "0~5", value: 10),
                       ChartPoint(id: "b", label: "5~10", value: 0),
                       ChartPoint(id: "c", label: "10+", value: 4)]
@@ -681,8 +777,7 @@ struct DistributionBarChartTests {
         #expect(points.count == 3)
     }
 
-    @Test("최대가 0이면 모든 비율이 0이다 — 0으로 나누지 않는다")
-    func allZero() {
+    @Test func 최대가_0이면_모든_비율이_0이다() {
         let points = [ChartPoint(id: "a", label: "0~5", value: 0),
                       ChartPoint(id: "b", label: "5~10", value: 0)]
         let max = ChartScale.maxValue(points)
@@ -796,8 +891,8 @@ struct RankBarListTests {
         RankBarList.Row(id: "회사", label: "회사", value: 151, primary: "151회", secondary: "2,010km"),
     ]
 
-    @Test("막대는 0에서 시작한다 — 2등이 1등의 절반이면 절반으로 보여야 한다")
-    func ratioIsAbsolute() {
+    /// 밑동을 자르면 「1등이 2등의 몇 배인가」가 거짓이 된다.
+    @Test func 순위_막대는_0에서_시작한다() {
         let max = ChartScale.maxValue(rows.map(\.chartPoint))
         #expect(max == 302)
         #expect(ChartScale.ratio(rows[0].value, max: max) == 1)
@@ -805,16 +900,14 @@ struct RankBarListTests {
         #expect(abs(ChartScale.ratio(rows[1].value, max: max) - 0.5) < 0.0001)
     }
 
-    @Test("값이 0인 행도 이름은 남는다")
-    func zeroKeepsName() {
+    @Test func 값이_0인_행도_이름은_남는다() {
         let row = RankBarList.Row(id: "미상", label: "미상", value: 0,
                                   primary: "0회", secondary: "—")
         #expect(ChartScale.ratio(row.value, max: 302) == 0)
         #expect(row.label == "미상")
     }
 
-    @Test("모두 0이면 0으로 나누지 않는다")
-    func allZero() {
+    @Test func 순위가_모두_0이면_0으로_나누지_않는다() {
         let zeros = [RankBarList.Row(id: "a", label: "a", value: 0, primary: "0", secondary: "—")]
         let max = ChartScale.maxValue(zeros.map(\.chartPoint))
         #expect(ChartScale.ratio(zeros[0].value, max: max) == 0)
@@ -957,19 +1050,17 @@ import Testing
 
 @Suite("히트맵 격자")
 struct HeatmapGridTests {
-    @Test("최대가 0이면 모든 칸이 빈칸이다 — 0으로 나누지 않는다")
-    func allEmpty() {
+    @Test func 최대가_0이면_모든_칸이_빈칸이다() {
         #expect(HeatmapGrid.intensity(count: 0, maxCount: 0) == 0)
         #expect(HeatmapGrid.intensity(count: 3, maxCount: 0) == 0)
     }
 
-    @Test("가장 진한 칸이 1이다")
-    func peakIsOne() {
+    @Test func 가장_진한_칸이_1이다() {
         #expect(HeatmapGrid.intensity(count: 12, maxCount: 12) == 1)
     }
 
-    @Test("0인 칸은 흐리게가 아니라 빈칸이다")
-    func zeroIsEmpty() {
+    /// 0에 최소 진하기를 주면 「조금 탔다」로 읽힌다.
+    @Test func 히트맵의_0인_칸은_빈칸이다() {
         // 0에 최소 진하기를 주면 「조금 탔다」로 읽힌다.
         #expect(HeatmapGrid.intensity(count: 0, maxCount: 12) == 0)
     }
@@ -1022,9 +1113,10 @@ git add -A && git commit -m "refactor: 히트맵 격자를 원형으로 뽑는�
 
 - [ ] **Step 1: 실패하는 테스트를 쓴다**
 
+**목 관례:** `MockAPIClient` + `InsightsStub`(Task 1)을 쓴다. **`MockVehicleService` 같은 것은 이 저장소에 없다.** 테스트 이름은 한국어다 — `VehicleStatsTests.swift`의 기존 이름들과 같은 결로 짓는다.
+
 ```swift
-    @Test("효율 추세는 정격거리 소모를 kWh로 환산해 나눈다")
-    func efficiencyTrend() {
+    @Test func 효율_추세는_정격거리_소모를_kWh로_환산해_나눈다() {
         // 100km를 정격 120km 쓰고 갔고 계수가 0.2kWh/km면 24kWh를 쓴 셈이라 4.17km/kWh.
         let value = VehicleMath.kmPerKwh(distanceKm: 100, ratedRangeUsedKm: 120,
                                          efficiencyKwhPerKm: 0.2)
@@ -1032,19 +1124,18 @@ git add -A && git commit -m "refactor: 히트맵 격자를 원형으로 뽑는�
         #expect(abs(unwrapped - Decimal(string: "4.1666")!) < Decimal(string: "0.001")!)
     }
 
-    @Test("계수가 없으면 효율 추세 점이 nil이다 — 0이 아니다")
-    func efficiencyWithoutCoefficient() {
+    /// **0이 아니라 nil이다** — 계수가 없는 것은 「전비가 0」이 아니라 「모른다」다.
+    @Test func 계수가_없으면_효율_점이_nil이다() {
         #expect(VehicleMath.kmPerKwh(distanceKm: 100, ratedRangeUsedKm: 120,
                                       efficiencyKwhPerKm: nil) == nil)
     }
 
-    @Test("주행 시간이 없는 달은 막대가 아니라 빈 칸이다")
-    func drivingMinNil() async throws {
-        let service = MockVehicleService(insightsByMonths: [12: .stub(monthlyCount: 2,
-                                                                     emptyLastMonth: true)])
-        let vm = VehicleStatsViewModel(service: service)
-        await vm.load()
-        #expect(vm.drivingMinPoints.last?.value == nil)
+    @Test func 주행_시간이_없는_달은_막대가_아니라_빈칸이다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 2, emptyLastMonth: true))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+        #expect(viewModel.drivingMinPoints.last?.value == nil)
     }
 ```
 
@@ -1134,27 +1225,30 @@ git add -A && git commit -m "feat: 월별 주행 시간과 효율 추세를 그�
 
 - [ ] **Step 1: 실패하는 테스트를 쓴다**
 
+**목 관례:** `MockAPIClient` + `InsightsStub`(Task 1)을 쓴다. **`MockVehicleService` 같은 것은 이 저장소에 없다.** 테스트 이름은 한국어다 — `VehicleStatsTests.swift`의 기존 이름들과 같은 결로 짓는다.
+
 ```swift
-    @Test("요일별 평균은 그 요일이 몇 번 있었나로 나눈다")
-    func weekdayAverage() {
+    @Test func 요일별_평균은_그_요일이_몇_번_있었나로_나눈다() {
         // 월요일 52번에 612km면 11.77km.
         let value = VehicleMath.avgPerOccurrence(total: 612, occurrences: 52)
         let unwrapped = try! #require(value)
         #expect(abs(unwrapped - Decimal(string: "11.769")!) < Decimal(string: "0.01")!)
     }
 
-    @Test("그 요일이 한 번도 없으면 nil이다 — 0이 아니다")
-    func weekdayZeroOccurrences() {
+    @Test func 그_요일이_한_번도_없으면_nil이다() {
         #expect(VehicleMath.avgPerOccurrence(total: 0, occurrences: 0) == nil)
     }
 
-    @Test("요일 라벨이 ISO 규약을 따른다 — 하루도 밀리지 않는다")
-    func weekdayLabelsAreISO() async throws {
-        let service = MockVehicleService(insightsByMonths: [12: .stub(monthlyCount: 1)])
-        let vm = VehicleStatsViewModel(service: service)
-        await vm.load()
-        // stub의 weekday는 1...7이 월~일 순서로 들어 있다.
-        #expect(vm.weekdayDistancePoints.map(\.label) == ["월", "화", "수", "목", "금", "토", "일"])
+    /// **이 차트가 하루 밀리는 것이 이 태스크의 가장 큰 위험이다.** 같은 응답의
+    /// `driveTimes`는 0=일요일인데 `weekday`는 1=월요일이다.
+    @Test func 요일_라벨이_ISO_규약을_따른다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 1))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+        // 스텁의 weekday는 1...7이 월~일 순서다.
+        #expect(viewModel.weekdayDistancePoints.map(\.label)
+                == ["월", "화", "수", "목", "금", "토", "일"])
     }
 ```
 
@@ -1242,18 +1336,18 @@ git add -A && git commit -m "feat: 요일별 주행거리와 속도 분포 둘�
 
 - [ ] **Step 1: 실패하는 테스트를 쓴다**
 
+**목 관례:** `MockAPIClient` + `InsightsStub`(Task 1)을 쓴다. **`MockVehicleService` 같은 것은 이 저장소에 없다.** 테스트 이름은 한국어다 — `VehicleStatsTests.swift`의 기존 이름들과 같은 결로 짓는다.
+
 ```swift
-    @Test("충전 시간이 없는 달은 빈 칸이다")
-    func chargingMinNil() async throws {
-        let service = MockVehicleService(insightsByMonths: [12: .stub(monthlyCount: 2,
-                                                                     emptyLastMonth: true)])
-        let vm = VehicleStatsViewModel(service: service)
-        await vm.load()
-        #expect(vm.chargingMinPoints.last?.value == nil)
+    @Test func 충전_시간이_없는_달은_빈칸이다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 2, emptyLastMonth: true))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+        #expect(viewModel.chargingMinPoints.last?.value == nil)
     }
 
-    @Test("누적 충전비는 기록 없는 달에서 끊기고 다음 값이 이어 붙는다")
-    func cumulativeCostSkipsGaps() {
+    @Test func 누적_충전비는_기록_없는_달에서_끊기고_다음_값이_이어_붙는다() {
         // nil은 건너뛰되 누적은 잃지 않는다 — 1단계 runningTotals의 규칙이다.
         #expect(VehicleMath.runningTotals([10, nil, 5]) == [10, nil, 15])
     }
@@ -1293,25 +1387,30 @@ git add -A && git commit -m "feat: 월별 충전 시간을 그린다"
 
 - [ ] **Step 1: 실패하는 테스트를 쓴다**
 
+**목 관례:** `MockAPIClient` + `InsightsStub`(Task 1)을 쓴다. **`MockVehicleService` 같은 것은 이 저장소에 없다.** 테스트 이름은 한국어다 — `VehicleStatsTests.swift`의 기존 이름들과 같은 결로 짓는다.
+
 ```swift
-    @Test("충전 시간대는 0이 일요일이다 — 주행 히트맵과 같은 규약")
-    func chargeTimesUseSundayZero() async throws {
-        let service = MockVehicleService(insightsByMonths: [12: .stub(monthlyCount: 1)])
-        let vm = VehicleStatsViewModel(service: service)
-        await vm.load()
-        // stub의 chargeTimes에 weekday 0, hour 23이 4건 들어 있다.
-        #expect(vm.chargeHeatCount(weekday: 0, hour: 23) == 4)
+    /// **`chargeTimes`는 0=일요일이다** — `weekday` 배열(1=월요일)과 섞으면 밀린다.
+    @Test func 충전_시간대는_0이_일요일이다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 1))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+        // 스텁의 chargeTimes에 weekday 0, hour 23이 4건 있다.
+        #expect(viewModel.chargeHeatCount(weekday: 0, hour: 23) == 4)
     }
 
-    @Test("종료 SoC 마지막 칸만 100을 품는다")
-    func endLevelLastBucketIsClosed() async throws {
-        let service = MockVehicleService(insightsByMonths: [12: .stub(monthlyCount: 1)])
-        let vm = VehicleStatsViewModel(service: service)
-        await vm.load()
-        let last = try #require(vm.insights?.chargeEndLevels.last)
+    @Test func 종료_SoC_마지막_칸만_100을_품는다() async throws {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 1))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+
+        let last = try #require(viewModel.insights?.chargeEndLevels.last)
         #expect(last.fromPct == 90 && last.toPct == 100)
-        // 라벨이 다른 칸과 달라야 한다 — 「90~100%」로 양끝이 닫힘을 드러낸다.
-        #expect(vm.chargeEndLevelPoints.last?.label == "90~100")
+        // 마지막 칸만 라벨이 다르다 — 양끝이 닫힘을 글자로 드러낸다.
+        #expect(viewModel.chargeEndLevelPoints.last?.label == "90~100")
+        #expect(viewModel.chargeEndLevelPoints.first?.label == "80")
     }
 ```
 
@@ -1377,25 +1476,29 @@ git add -A && git commit -m "feat: 충전 시간대와 SoC 분포 둘을 그린�
 
 - [ ] **Step 1: 실패하는 테스트를 쓴다**
 
+**목 관례:** `MockAPIClient` + `InsightsStub`(Task 1)을 쓴다. **`MockVehicleService` 같은 것은 이 저장소에 없다.** 테스트 이름은 한국어다 — `VehicleStatsTests.swift`의 기존 이름들과 같은 결로 짓는다.
+
 ```swift
-    @Test("표본이 없는 달은 팬텀 드레인 막대를 안 그린다 — 0.0km는 「안 샜다」가 아니다")
-    func parkDrainWithoutSamples() async throws {
-        let service = MockVehicleService(insightsByMonths: [12: .stub(monthlyCount: 2,
-                                                                     emptyLastMonth: true)])
-        let vm = VehicleStatsViewModel(service: service)
-        await vm.load()
-        // stub의 마지막 달은 parkDrainSamples가 0이고 parkDrainRatedKm이 0.0이다.
-        #expect(vm.parkDrainPoints.last?.value == nil)
+    /// **0.0km는 「안 샜다」가 아니다** — 잴 구간이 없었다는 뜻이다. 0으로 그리면
+    /// 그 달만 완벽했던 것처럼 보인다.
+    @Test func 표본이_없는_달은_팬텀_드레인_막대를_안_그린다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 2, emptyLastMonth: true))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+        // 스텁의 마지막 달은 parkDrainSamples가 0이고 parkDrainRatedKm이 0.0이다.
+        #expect(viewModel.parkDrainPoints.last?.value == nil)
+        // 앞 달은 표본이 있으므로 그린다 — 「전부 nil」로 통과하면 안 된다.
+        #expect(viewModel.parkDrainPoints.first?.value != nil)
     }
 
-    @Test("정지 시간은 기록이 없는 달에도 값이 온다")
-    func idleMinAlwaysPresent() async throws {
-        let service = MockVehicleService(insightsByMonths: [12: .stub(monthlyCount: 2,
-                                                                     emptyLastMonth: true)])
-        let vm = VehicleStatsViewModel(service: service)
-        await vm.load()
-        // 안 탄 달은 「내내 서 있었다」다 — nil이 아니다.
-        #expect(vm.idleMinPoints.last?.value != nil)
+    /// 안 탄 달은 「내내 서 있었다」다 — 다른 월별 계열과 옵셔널 여부가 다르다.
+    @Test func 정지_시간은_기록이_없는_달에도_값이_온다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 2, emptyLastMonth: true))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+        #expect(viewModel.idleMinPoints.last?.value != nil)
     }
 ```
 
@@ -1479,49 +1582,69 @@ git add -A && git commit -m "feat: 주차 섹션에 정지 시간과 대기 소�
 
 - [ ] **Step 1: 실패하는 테스트를 쓴다**
 
+**목 관례:** `MockAPIClient` + `InsightsStub`(Task 1). 테스트 이름은 한국어다.
+
 ```swift
-    @Test("자주 가는 곳은 이름이 유일해서 id로 쓸 수 있다")
-    func placeNameIsIdentity() async throws {
-        let service = MockVehicleService(insightsByMonths: [12: .stub(monthlyCount: 1)])
-        let vm = VehicleStatsViewModel(service: service)
-        await vm.load()
-        let ids = vm.placeRows.map(\.id)
+    /// 서버가 **표시 이름으로 묶어** 주므로 목록 안에서 이름이 유일하다 —
+    /// 1단계에서 `id: \.offset`으로 그리던 이유가 사라졌다.
+    @Test func 자주_가는_곳은_이름이_유일해서_id로_쓸_수_있다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 1))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+
+        let ids = viewModel.placeRows.map(\.id)
+        #expect(ids == ["집", "회사"])
         #expect(Set(ids).count == ids.count)
     }
 
-    @Test("순위 막대는 순위 기준과 같은 값으로 길이를 정한다")
-    func rankBarUsesSortKey() async throws {
-        let service = MockVehicleService(insightsByMonths: [12: .stub(monthlyCount: 1)])
-        let vm = VehicleStatsViewModel(service: service)
-        await vm.load()
-        // 서버가 건수 내림차순으로 주므로 막대도 내림차순이어야 한다.
-        let values = vm.placeRows.map(\.value)
+    /// **막대 길이가 순위 기준과 달라지면 짧은 막대가 위에 온다.**
+    @Test func 순위_막대는_순위_기준과_같은_값으로_길이를_정한다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 1))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+
+        // 서버가 건수 내림차순으로 준다.
+        let values = viewModel.placeRows.map(\.value)
+        #expect(values == [302, 151])
         #expect(values == values.sorted(by: >))
     }
 
-    @Test("금액 미입력이 섞인 충전소는 단서를 단다 — 순위가 조용히 뒤집히면 안 된다")
-    func chargerNotesMissingCost() async throws {
-        let service = MockVehicleService(insightsByMonths: [12: .stub(monthlyCount: 1)])
-        let vm = VehicleStatsViewModel(service: service)
-        await vm.load()
-        // stub의 첫 충전소는 costMissingCount가 4다.
-        #expect(vm.chargerRows.first?.note == "4건 금액 없음")
+    /// 미입력이 섞이면 위에 적힌 금액이 실제보다 적다 — 그 사실을 안 적으면
+    /// 순위가 조용히 뒤집힌다.
+    @Test func 금액_미입력이_섞인_충전소는_단서를_단다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 1))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+        #expect(viewModel.chargerRows.first?.note == "4건 금액 없음")
     }
 
-    @Test("금액이 전부 미입력인 충전소는 비용이 —다 — 0원이 아니다")
-    func chargerWithoutCost() {
+    /// **0원이 아니라 「—」다.** 0원은 「공짜로 넣었다」는 거짓이다.
+    @Test func 금액이_전부_미입력인_충전소는_비용이_없다() {
         let charger = Charger(name: "어딘가", chargeCount: 3, energyAddedKwh: 40,
                               cost: nil, costMissingCount: 3)
-        #expect(ChargeFormat.cost(charger.cost) == "—")
+        #expect(ChargeFormat.cost(charger.cost) == ChargeFormat.placeholder)
     }
 
-    @Test("배열이 비면 위치 섹션을 통째로 감춘다")
-    func emptyHidesSection() async throws {
-        let service = MockVehicleService(insightsByMonths: [12: .stub(monthlyCount: 1,
-                                                                     emptyPlaces: true)])
-        let vm = VehicleStatsViewModel(service: service)
-        await vm.load()
-        #expect(!vm.showsPlaceSection)
+    /// **1단계의 「지오펜스가 없으면 감춘다」와 다르다** — 서버가 주소로 이름을 짓게 되어
+    /// 남은 빈 길은 「그 기간에 주행·충전이 없었다」뿐이다.
+    @Test func 배열이_비면_위치_섹션을_통째로_감춘다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 1, emptyPlaces: true))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+        #expect(!viewModel.showsPlaceSection)
+    }
+
+    /// 채워져 오는 것이 이 차량의 기본 상태다 — 감추기가 기본이 되면 안 된다.
+    @Test func 주소로_이름이_붙은_곳들은_섹션을_연다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 1))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+        #expect(viewModel.showsPlaceSection)
     }
 ```
 
@@ -1629,32 +1752,35 @@ git add -A && git commit -m "feat: 자주 가는 곳과 충전소를 순위 막�
 
 - [ ] **Step 1: 실패하는 테스트를 쓴다**
 
+**목 관례:** `MockAPIClient` + `InsightsStub`(Task 1). 테스트 이름은 한국어다.
+
 ```swift
-    @Test("최고효율은 분자와 분모로 앱이 낸다")
-    func bestEfficiencyRatio() {
+    @Test func 최고효율은_분자와_분모로_앱이_낸다() {
         let record = EfficiencyRecord(driveId: 1, startedAt: "2026-05-02T14:20:00",
                                       distanceKm: 26.7, ratedRangeUsedKm: 15.3)
         let ratio = try! #require(VehicleMath.ratio(record.distanceKm, record.ratedRangeUsedKm))
         #expect(abs(ratio - Decimal(string: "1.745")!) < Decimal(string: "0.01")!)
     }
 
-    @Test("기록 셋이 따로 비어도 나머지는 그린다")
-    func recordsPartiallyNil() async throws {
-        let service = MockVehicleService(insightsByMonths: [12: .stub(monthlyCount: 1)])
-        let vm = VehicleStatsViewModel(service: service)
-        await vm.load()
-        // stub은 longestDuration만 nil이다.
-        #expect(vm.showsRecords)
-        #expect(vm.insights?.records.longestDuration == nil)
+    /// **셋이 따로 nil일 수 있다** — `bestEfficiency`만 nil인 길이 따로 있다.
+    @Test func 기록_셋이_따로_비어도_나머지는_그린다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 1))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+
+        // 스텁은 longestDuration만 nil이다.
+        #expect(viewModel.showsRecords)
+        #expect(viewModel.insights?.records.longestDuration == nil)
+        #expect(viewModel.insights?.records.longestDistance != nil)
     }
 
-    @Test("셋 다 비면 기록 섹션을 감춘다")
-    func allRecordsNil() async throws {
-        let service = MockVehicleService(insightsByMonths: [12: .stub(monthlyCount: 1,
-                                                                     emptyRecords: true)])
-        let vm = VehicleStatsViewModel(service: service)
-        await vm.load()
-        #expect(!vm.showsRecords)
+    @Test func 셋_다_비면_기록_섹션을_감춘다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 1, emptyRecords: true))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+        #expect(!viewModel.showsRecords)
     }
 ```
 
@@ -1742,8 +1868,8 @@ import Testing
 
 @Suite("배터리 창")
 struct BatteryWindowTests {
-    @Test("보조 계열은 대부분 비어 있다 — 주 계열로 선을 그린다")
-    func usableIsMostlyNil() {
+    /// **실측 3%만 채워져 있다** — 이것으로 선을 그리면 거의 다 끊긴다.
+    @Test func 보조_계열은_대부분_비어_있다() {
         let samples = [
             BatterySample(at: "2026-08-18T15:02:00", batteryLevel: 62, usableBatteryLevel: 61),
             BatterySample(at: "2026-08-18T15:07:00", batteryLevel: 61, usableBatteryLevel: nil),
@@ -1755,14 +1881,13 @@ struct BatteryWindowTests {
         #expect(samples.compactMap(\.usableBatteryLevel).count == 1)
     }
 
-    @Test("표본이 없는 팬텀 드레인은 줄을 감춘다 — 0km/시간이 아니다")
-    func parkDrainWithoutSamples() {
+    /// 0km/시간은 「안 샜다」는 거짓말이다.
+    @Test func 표본이_없는_팬텀_드레인은_줄을_감춘다() {
         let drain = ParkDrain(ratedKm: 0, hours: 0, samples: 0)
         #expect(VehicleMath.drainPerHour(drain) == nil)
     }
 
-    @Test("팬텀 드레인은 시간으로 나눈다 — 뷰가 아니라 여기서")
-    func drainPerHour() {
+    @Test func 팬텀_드레인은_뷰가_아니라_여기서_나눈다() {
         let drain = ParkDrain(ratedKm: 4.2, hours: 96.4, samples: 6)
         let value = try! #require(VehicleMath.drainPerHour(drain))
         #expect(abs(value - Decimal(string: "0.0435")!) < Decimal(string: "0.001")!)
