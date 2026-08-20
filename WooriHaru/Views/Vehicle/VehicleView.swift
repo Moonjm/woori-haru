@@ -88,11 +88,14 @@ struct VehicleView: View {
                     _ = await (status, health, totals, timeline)
                 }
         case .stats:
-            VehicleStatsTab(viewModel: statsViewModel, healthViewModel: healthViewModel)
+            VehicleStatsTab(viewModel: statsViewModel,
+                            healthViewModel: healthViewModel,
+                            totalsViewModel: totalsViewModel)
                 .task {
                     async let stats: Void = statsViewModel.load()
                     async let health: Void = healthViewModel.load()
-                    _ = await (stats, health)
+                    async let totals: Void = totalsViewModel.load()
+                    _ = await (stats, health, totals)
                 }
         case .charge:
             VehicleChargeTab(viewModel: summaryViewModel,

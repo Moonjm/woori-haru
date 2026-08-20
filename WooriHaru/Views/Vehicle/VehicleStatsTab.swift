@@ -14,6 +14,8 @@ struct VehicleStatsTab: View {
     @Bindable var viewModel: VehicleStatsViewModel
     /// 「배터리」 섹션의 열화 추세만 쓴다. 잔존율 카드는 개요 탭에 남는다.
     @Bindable var healthViewModel: VehicleHealthViewModel
+    /// 「충전」 섹션의 급속/완속 도넛에만 쓴다. 전 기간 집계라 기간 칩과 무관하다.
+    @Bindable var totalsViewModel: ChargeTotalsViewModel
 
     @State private var selectedHealthKey: String?
 
@@ -42,6 +44,7 @@ struct VehicleStatsTab: View {
 
                 StatsDriveSection(viewModel: viewModel)
                 content
+                StatsChargeSection(viewModel: viewModel, totalsViewModel: totalsViewModel)
                 batterySection
             }
             .padding(.horizontal, 16)
