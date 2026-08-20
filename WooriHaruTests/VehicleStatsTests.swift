@@ -535,6 +535,23 @@ struct VehicleStatsViewModelTests {
         #expect(viewModel.efficiencyPoints[1].value == nil)
     }
 
+    /// #12 월별 충전 시간. **막대 값은 분 그대로 둔다** — `drivingMinPoints`와 같다.
+    /// 시·분 표기(`ChargeFormat.duration`)는 콜아웃에서만 쓴다.
+    @Test func 월별_충전_시간은_분_그대로_점으로_옮긴다() async {
+        let mock = MockAPIClient()
+        stub(mock, Self.response(monthly: [
+            Self.month("2026-06", chargingMin: 257),
+            Self.month("2026-07"),
+        ]))
+        let viewModel = makeViewModel(mock)
+
+        await viewModel.load()
+
+        #expect(viewModel.chargingMinPoints[0].value == 257)
+        // 기록 없는 달은 0분이 아니라 nil이다.
+        #expect(viewModel.chargingMinPoints[1].value == nil)
+    }
+
     // MARK: - 종합 효율(정격 대비)
 
     /// 100km를 정격 50km로, 10km를 정격 100km로 갔다면 월별 비율은 2.0과 0.1이지만

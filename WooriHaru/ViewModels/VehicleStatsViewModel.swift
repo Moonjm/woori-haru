@@ -157,6 +157,11 @@ final class VehicleStatsViewModel {
     var costPoints: [ChartPoint] { points(\.cost) }
     var chargeCountPoints: [ChartPoint] { points { $0.chargeCount.map { Decimal($0) } } }
 
+    /// #12 월별 충전 시간(분). **막대 값은 분 그대로 둔다** — `drivingMinPoints`와 같은 이유다.
+    /// 막대 높이는 비율이라 단위가 무엇이든 그림이 같아, 60으로 나눠 시간 단위로 바꿔도
+    /// 얻는 것이 없다. 시·분 표기는 콜아웃에서 `ChargeFormat.duration(_:)`이 맡는다.
+    var chargingMinPoints: [ChartPoint] { points { $0.chargingMin.map { Decimal($0) } } }
+
     /// 전비(km/kWh). **`VehiclePeriod.efficiency`가 하던 계산을 여기로 옮겼다** —
     /// `InsightsMonth`에는 그 계산 속성이 없다. 분모는 1단계와 같은 충전량이다.
     ///

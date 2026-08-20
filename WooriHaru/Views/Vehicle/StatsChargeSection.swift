@@ -24,6 +24,7 @@ struct StatsChargeSection: View {
             }
             if viewModel.hasChargeMonths {
                 monthlyEnergyCard
+                chargingTimeCard
                 chargeCountCard
                 cumulativeCostCard
             }
@@ -78,6 +79,20 @@ struct StatsChargeSection: View {
         let shown = viewModel.monthly.first { $0.yearMonth == anchor }
         return ChartCard(title: "월별 충전 횟수",
                          callout: shown.map { DriveFormat.count($0.chargeCount) }) {
+            MonthlyBarChart(points: points,
+                            selectedID: anchor,
+                            onSelect: { selectedID = $0 })
+        }
+    }
+
+    /// #12 월별 충전 시간. 콜아웃만 시·분으로 적는다(`ChargeFormat.duration`) — 막대 값은
+    /// `drivingMinPoints`와 같은 이유로 분 그대로 둔다(막대 높이는 비율이라 단위 무관).
+    private var chargingTimeCard: some View {
+        let points = viewModel.chargingMinPoints
+        let anchor = anchorID(points)
+        let shown = viewModel.monthly.first { $0.yearMonth == anchor }
+        return ChartCard(title: "월별 충전 시간",
+                         callout: shown.map { ChargeFormat.duration($0.chargingMin) }) {
             MonthlyBarChart(points: points,
                             selectedID: anchor,
                             onSelect: { selectedID = $0 })
