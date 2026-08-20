@@ -47,6 +47,7 @@
 		8825C75C2F5B1A4C00E46B14 /* UserService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8825C75B2F5B1A4C00E46B14 /* UserService.swift */; };
 		88DD96ED2F61B3A900E60283 /* StudyRecordView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88DD96EC2F61B3A900E60283 /* StudyRecordView.swift */; };
 		897E42FFEAD38504BCF1B861 /* VehicleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 823FB1E6072082F5CCEE8AC8 /* VehicleView.swift */; };
+		8BB898B17D4BBEB63A05130F /* HeatmapGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C17B2756F0E576D57B12DB0 /* HeatmapGrid.swift */; };
 		8CB8971CA8F25A48887B5650 /* MonthGridBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECC4B98A560D4DF30F7501E2 /* MonthGridBuilder.swift */; };
 		9B8FDCDA4FB0EF187F1CB0B6 /* ChargeTotalsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4A2F8E3D8868F29934E27D0 /* ChargeTotalsCard.swift */; };
 		A10001 /* WooriHaruApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20001 /* WooriHaruApp.swift */; };
@@ -283,6 +284,7 @@
 		5ABE2410B818951F5517EC74 /* ChargeTotalsModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ChargeTotalsModels.swift; sourceTree = "<group>"; };
 		60574F8D44D3658931EEA927 /* InsightsModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = InsightsModels.swift; sourceTree = "<group>"; };
 		690A0D0A21A54E8BE01CDC21 /* VehicleModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VehicleModels.swift; sourceTree = "<group>"; };
+		6C17B2756F0E576D57B12DB0 /* HeatmapGrid.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = HeatmapGrid.swift; path = Vehicle/Charts/HeatmapGrid.swift; sourceTree = "<group>"; };
 		70222E6D42ADFB926C91C06A /* DonutChart.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DonutChart.swift; path = Vehicle/Charts/DonutChart.swift; sourceTree = "<group>"; };
 		77EA0C38FD701A857D17DCF5 /* VehicleStatsTab.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = VehicleStatsTab.swift; path = Vehicle/VehicleStatsTab.swift; sourceTree = "<group>"; };
 		78050D87EA38A6611E1D3DED /* MonthlyBarLineChart.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MonthlyBarLineChart.swift; path = Vehicle/Charts/MonthlyBarLineChart.swift; sourceTree = "<group>"; };
@@ -551,6 +553,7 @@
 				91FF808F31A8E2E333C035E5 /* ChartCard.swift */,
 				2F5C927A43E15178A5FF6653 /* DistributionBarChart.swift */,
 				1F98D63C2CC1AFA4FA2AA471 /* RankBarList.swift */,
+				6C17B2756F0E576D57B12DB0 /* HeatmapGrid.swift */,
 			);
 			name = Charts;
 			sourceTree = "<group>";
@@ -1361,6 +1364,7 @@
 				CDA451B131462A81C4C81CEE /* InsightsModels.swift in Sources */,
 				DBF548CE86E57030B0252CD1 /* DistributionBarChart.swift in Sources */,
 				6E61B6AF90309458C4C6D9D0 /* RankBarList.swift in Sources */,
+				8BB898B17D4BBEB63A05130F /* HeatmapGrid.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
