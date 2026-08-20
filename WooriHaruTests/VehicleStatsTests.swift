@@ -91,16 +91,29 @@ struct VehicleStatsViewModelTests {
 
     /// 한 달치. 기록이 없는 달은 값 자리가 전부 nil이다 — 셋(`idleMin`·팬텀 드레인 둘)만
     /// 그때도 값이 온다.
+    ///
+    /// **그 셋을 0으로 못박지 않는다.** 계약은 오히려 반대다 — 빈 달일수록 `idleMin`이
+    /// 크다(내내 서 있었으므로). 전부 0으로 두면 뒤 태스크가 `idleMin`·팬텀 드레인
+    /// 접근자를 더할 때 「상수 0을 돌려주는 접근자」가 조용히 통과한다. 값은 공용
+    /// `InsightsStub`과 맞추고, 노브로 덮어쓸 수 있게 연다.
     private nonisolated static func month(
         _ yearMonth: String, distanceKm: Decimal? = nil, drivingMin: Int? = nil,
         driveCount: Int? = nil, energyAddedKwh: Decimal? = nil, energyUsedKwh: Decimal? = nil,
-        cost: Decimal? = nil, chargeCount: Int? = nil
+        cost: Decimal? = nil, chargeCount: Int? = nil, chargingMin: Int? = nil,
+        ratedRangeUsedKm: Decimal? = nil,
+        idleMin: Int? = nil, parkDrainRatedKm: Decimal? = nil, parkDrainSamples: Int? = nil
     ) -> InsightsMonth {
-        InsightsMonth(yearMonth: yearMonth, distanceKm: distanceKm, driveCount: driveCount,
-                      drivingMin: drivingMin, energyAddedKwh: energyAddedKwh,
-                      energyUsedKwh: energyUsedKwh, cost: cost, chargeCount: chargeCount,
-                      chargingMin: nil, ratedRangeUsedKm: nil,
-                      idleMin: 0, parkDrainRatedKm: 0, parkDrainSamples: 0)
+        // 주행도 충전도 없는 달이면 「내내 서 있었다」 — 31일 = 44640분.
+        let isEmpty = distanceKm == nil && drivingMin == nil && driveCount == nil
+            && energyAddedKwh == nil && cost == nil && chargeCount == nil
+        return InsightsMonth(
+            yearMonth: yearMonth, distanceKm: distanceKm, driveCount: driveCount,
+            drivingMin: drivingMin, energyAddedKwh: energyAddedKwh,
+            energyUsedKwh: energyUsedKwh, cost: cost, chargeCount: chargeCount,
+            chargingMin: chargingMin, ratedRangeUsedKm: ratedRangeUsedKm,
+            idleMin: idleMin ?? (isEmpty ? 44640 : 42800),
+            parkDrainRatedKm: parkDrainRatedKm ?? (isEmpty ? 0 : Decimal(string: "18.4")!),
+            parkDrainSamples: parkDrainSamples ?? (isEmpty ? 0 : 34))
     }
 
     private func makeViewModel(_ mock: MockAPIClient) -> VehicleStatsViewModel {
@@ -300,27 +313,79 @@ struct VehicleStatsViewModelTests {
         #expect(viewModel.avgYearlyKm == 0)
     }
 
-    /// 아직 응답을 못 받은 상태(`insights == nil`)에서는 월별 계열이 없다 —
-    /// 섹션 헤더가 내용 없이 먼저 서면 안 된다.
-    @Test func 응답을_아직_못_받으면_월별_계열이_없다() {
+    /// 아직 응답을 못 받은 상태에서는 통계 카드도 섹션도 없다 —
+    /// 로딩 스피너 위에 「—」 셋짜리 카드나 빈 섹션 헤더가 먼저 서면 안 된다.
+    @Test func 응답을_아직_못_받으면_카드도_섹션도_없다() {
         let viewModel = makeViewModel(MockAPIClient())
 
-        #expect(!viewModel.hasMonthly)
+        #expect(!viewModel.hasLoadedInsights)
+        #expect(!viewModel.hasDriveMonths)
+        #expect(!viewModel.hasChargeMonths)
         #expect(viewModel.distancePoints.isEmpty)
         #expect(viewModel.cumulativeDistancePoints.isEmpty)
     }
 
-    /// **응답은 받았는데 월이 하나도 없는 길이 따로 있다** — `insights != nil`과
-    /// `hasMonthly`를 같은 것으로 다루면 빈 섹션 헤더가 선다.
-    @Test func 응답을_받아도_월이_없으면_계열이_비어_있다() async {
+    /// **「받았다」와 「내용이 있다」는 다르다.** 값이 하나도 없는 응답도 받은 것은 받은
+    /// 것이라 통계 카드는 선다 — 감추는 것은 응답 전뿐이다.
+    @Test func 응답을_받으면_내용이_비어도_통계_카드는_선다() async {
         let mock = MockAPIClient()
         stub(mock, Self.response(monthly: []))
         let viewModel = makeViewModel(mock)
 
         await viewModel.load()
 
-        #expect(viewModel.insights != nil)
-        #expect(!viewModel.hasMonthly)
+        #expect(viewModel.hasLoadedInsights)
+        #expect(!viewModel.hasDriveMonths)
+        #expect(!viewModel.hasChargeMonths)
+    }
+
+    /// **서버는 기록이 없는 달도 값이 전부 nil인 행으로 자리를 채워 보낸다.**
+    /// 행의 존재(`!monthly.isEmpty`)로 게이트를 삼으면 「이 기간에 주행 기록이 없어요」
+    /// 안내문 위아래로 빈 차트 일곱 장이 헤더까지 달고 선다.
+    @Test func 월이_전부_비면_주행도_충전도_섹션이_없다() async {
+        let mock = MockAPIClient()
+        stub(mock, Self.response(monthly: [
+            Self.month("2026-06"), Self.month("2026-07"), Self.month("2026-08"),
+        ]))
+        let viewModel = makeViewModel(mock)
+
+        await viewModel.load()
+
+        // 행은 셋이다 — 자리를 지키는 것과 내용이 있는 것은 다르다.
+        #expect(viewModel.monthly.count == 3)
+        #expect(viewModel.distancePoints.count == 3)
+        #expect(!viewModel.hasDriveMonths)
+        #expect(!viewModel.hasChargeMonths)
+    }
+
+    /// **게이트를 둘로 나눈 이유가 여기다.** 충전은 주행 없이도 한다 — 하나로 묶으면
+    /// 안 타고 충전만 한 기간에 충전 카드까지 사라진다.
+    @Test func 충전만_있는_달은_충전_섹션만_세운다() async {
+        let mock = MockAPIClient()
+        stub(mock, Self.response(monthly: [
+            Self.month("2026-08", energyAddedKwh: 153, cost: 32700, chargeCount: 7),
+        ]))
+        let viewModel = makeViewModel(mock)
+
+        await viewModel.load()
+
+        #expect(viewModel.hasChargeMonths)
+        #expect(!viewModel.hasDriveMonths)
+    }
+
+    /// 반대 방향도 못박는다 — 주행만 있고 충전이 없는 달(집 충전 금액 미입력 등)에
+    /// 주행 섹션이 함께 사라지면 안 된다.
+    @Test func 주행만_있는_달은_주행_섹션만_세운다() async {
+        let mock = MockAPIClient()
+        stub(mock, Self.response(monthly: [
+            Self.month("2026-08", distanceKm: 780, drivingMin: 1120, driveCount: 41),
+        ]))
+        let viewModel = makeViewModel(mock)
+
+        await viewModel.load()
+
+        #expect(viewModel.hasDriveMonths)
+        #expect(!viewModel.hasChargeMonths)
     }
 
     /// 히트맵은 성기게 온다 — 없는 칸은 0이다. `weekday` 0이 일요일이다.
@@ -441,7 +506,7 @@ struct VehicleStatsViewModelTests {
 
         await viewModel.load()
 
-        #expect(viewModel.hasMonthly)
+        #expect(viewModel.hasDriveMonths)
         #expect(viewModel.distancePoints.count == 3)
         #expect(viewModel.distancePoints[0].label == "6")
         #expect(viewModel.distancePoints[1].value == nil)      // 기록 없는 달은 nil로 남는다

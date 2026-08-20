@@ -41,7 +41,7 @@ struct VehicleStatsTab: View {
                 // `/tesla/insights`에서는 셋이 non-null이라 그쪽 조건은 거짓이 될 수 없다.
                 // 남은 것은 아래 `content`와 같은 갈림길뿐이다 — 응답 전에 그리면 로딩
                 // 스피너 위에 「—」 셋짜리 카드가 먼저 선다.
-                if viewModel.insights != nil {
+                if viewModel.hasLoadedInsights {
                     DriveStatsCard(maxSpeedKmh: viewModel.insights?.maxSpeedKmh,
                                    avgMonthlyKm: viewModel.avgMonthlyKm,
                                    avgYearlyKm: viewModel.avgYearlyKm)

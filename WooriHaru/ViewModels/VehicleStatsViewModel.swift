@@ -122,9 +122,27 @@ final class VehicleStatsViewModel {
 
     // MARK: - 파생 값(월별)
 
-    /// 월별 차트를 그릴 수 있는가. **`insights != nil`과 다르다** — 응답은 받았는데
-    /// 기록이 하나도 없어 `monthly`가 빈 배열로 오는 길이 따로 있다.
-    var hasMonthly: Bool { !monthly.isEmpty }
+    /// 주행 섹션 게이트. **행의 존재가 아니라 값의 존재를 본다** — 서버는 기록이 없는
+    /// 달도 값이 전부 nil인 행으로 자리를 채워 보내므로(`InsightsMonth` 참고)
+    /// `!monthly.isEmpty`는 「그 기간에 하나도 안 탔다」일 때도 참이다. 그것으로 게이트를
+    /// 삼으면 「이 기간에 주행 기록이 없어요」 안내문 위아래로 빈 차트가 헤더까지 달고 선다.
+    ///
+    /// **기간 칩이 월별에 먹게 되면서 이 경로가 실제로 열렸다** — 1단계에서는 월별이
+    /// 12개월 고정이라 이 조합이 나오지 않았다.
+    var hasDriveMonths: Bool {
+        monthly.contains { $0.distanceKm != nil || $0.drivingMin != nil || $0.driveCount != nil }
+    }
+
+    /// 충전 섹션 게이트. **주행과 따로 본다** — 충전은 주행 없이도 한다. 하나로 묶으면
+    /// 안 타고 충전만 한 기간에 충전 카드까지 사라진다.
+    var hasChargeMonths: Bool {
+        monthly.contains { $0.cost != nil || $0.energyAddedKwh != nil || $0.chargeCount != nil }
+    }
+
+    /// 「응답을 받았는가」 하나만 말한다. **내용 게이트 둘과 다르다** — 값이 하나도 없는
+    /// 응답도 받은 것은 받은 것이다. 1단계 `showsStats`가 이것과 「서버가 그 필드를
+    /// 내는가」를 함께 가리고 있었는데, 후자는 새 계약에서 거짓이 될 수 없어 사라졌다.
+    var hasLoadedInsights: Bool { insights != nil }
 
     private func points(_ value: (InsightsMonth) -> Decimal?) -> [ChartPoint] {
         monthly.map {

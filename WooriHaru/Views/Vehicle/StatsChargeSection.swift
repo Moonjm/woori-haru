@@ -14,12 +14,15 @@ struct StatsChargeSection: View {
     /// **헤더는 내용과 함께만 선다**(`StatsDriveSection`과 같은 규칙). 다만 이 섹션은
     /// 창이 둘이라 게이트도 둘이다 — 월별 차트 셋은 기간 칩을 따르는 `monthly`에서,
     /// 도넛은 전 기간 집계에서 온다. **둘 중 하나만 살아도 헤더는 선다.**
+    ///
+    /// **월별 게이트가 주행 섹션의 것과 다르다**(`hasChargeMonths`) — 충전은 주행 없이도
+    /// 하므로, 안 타고 충전만 한 기간에 이 섹션까지 사라지면 안 된다.
     var body: some View {
         VStack(spacing: 12) {
-            if viewModel.hasMonthly || totalsViewModel.hasTotals {
+            if viewModel.hasChargeMonths || totalsViewModel.hasTotals {
                 header
             }
-            if viewModel.hasMonthly {
+            if viewModel.hasChargeMonths {
                 monthlyEnergyCard
                 chargeCountCard
                 cumulativeCostCard

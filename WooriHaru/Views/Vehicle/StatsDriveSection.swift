@@ -9,12 +9,12 @@ struct StatsDriveSection: View {
 
     @State private var selectedID: String?
 
-    /// **헤더는 내용과 함께만 선다.** 월별 표본이 없으면(아직 못 받았거나 기록이 하나도
-    /// 없거나) 섹션째 빠진다 — 헤더만 남으면 첫 로딩 중에 빈 제목 둘이 나란히 서고,
-    /// 실패는 「제목만 있고 아무것도 없다」로 보인다.
+    /// **헤더는 내용과 함께만 선다.** 주행 값이 있는 달이 하나도 없으면(아직 못 받았거나,
+    /// 그 기간에 안 탔거나) 섹션째 빠진다 — 헤더만 남으면 첫 로딩 중에 빈 제목 둘이
+    /// 나란히 서고, 실패는 「제목만 있고 아무것도 없다」로 보인다.
     var body: some View {
         VStack(spacing: 12) {
-            if viewModel.hasMonthly {
+            if viewModel.hasDriveMonths {
                 header
                 monthlyDistanceCard
                 drivingTimeCard
