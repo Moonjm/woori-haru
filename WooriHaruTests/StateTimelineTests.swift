@@ -279,34 +279,4 @@ struct StateTimelineTests {
     @Test func 막대가_하나도_없으면_아무것도_고르지_않는다() {
         #expect(StateTimelineMath.bar(atFraction: 0.5, in: []) == nil)
     }
-
-    // MARK: - 세로 스크롤과의 다툼
-
-    /// 손을 막 얹은 순간은 세로가 아니다 — **탭 한 번이 살아 있어야 한다.**
-    @Test func 움직이지_않은_손가락은_세로_스크롤이_아니다() {
-        #expect(StateTimelineMath.isVerticalDrag(dx: 0, dy: 0) == false)
-    }
-
-    @Test func 가로로_끌면_세로_스크롤이_아니다() {
-        #expect(StateTimelineMath.isVerticalDrag(dx: 40, dy: 3) == false)
-        #expect(StateTimelineMath.isVerticalDrag(dx: -40, dy: 3) == false)
-    }
-
-    @Test func 세로로_충분히_끌면_세로_스크롤이다() {
-        #expect(StateTimelineMath.isVerticalDrag(dx: 2, dy: 30))
-        #expect(StateTimelineMath.isVerticalDrag(dx: 2, dy: -30))
-    }
-
-    /// **짧은 흔들림에 라벨이 사라지지 않는다.** 문턱이 없으면 쓸어보는 손가락이 몇 픽셀만
-    /// 위아래로 떨려도 구간 정보가 깜빡인다.
-    @Test func 세로로_조금_흔들린_것은_스크롤이_아니다() {
-        #expect(StateTimelineMath.isVerticalDrag(dx: 0, dy: 8) == false)
-    }
-
-    /// 대각선은 **세로가 가로의 1.5배를 넘어야** 스크롤로 본다 — 월 이동 스와이프가
-    /// 쓰는 것과 같은 비율이다. 한 화면 안에서 방향 판정이 두 가지면 손이 헷갈린다.
-    @Test func 대각선은_세로가_뚜렷할_때만_스크롤이다() {
-        #expect(StateTimelineMath.isVerticalDrag(dx: 20, dy: 25) == false)
-        #expect(StateTimelineMath.isVerticalDrag(dx: 20, dy: 40))
-    }
 }

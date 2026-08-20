@@ -147,21 +147,6 @@ enum StateTimelineMath {
         return bars.last { fraction >= $0.start && fraction < $0.end }
     }
 
-    /// 이 드래그가 **세로 스크롤로 굳었는지.**
-    ///
-    /// **띠는 `ScrollView` 안에 있다.** 쓸어보기 제스처가 스크롤을 삼키면 띠 위에 손을 얹은
-    /// 채로는 화면이 안 내려가고 당겨서 새로고침도 안 된다 — 띠는 화면 위쪽에 있어서
-    /// 새로고침을 하려고 손을 얹는 자리가 하필 거기다.
-    ///
-    /// **문턱을 두는 이유:** 없으면 쓸어보는 손가락이 몇 픽셀만 위아래로 떨려도 구간 정보가
-    /// 깜빡인다. **1.5배를 쓰는 이유:** 월 이동 스와이프가 같은 비율을 쓴다 — 한 화면 안에서
-    /// 방향 판정이 두 가지면 손이 헷갈린다.
-    ///
-    /// 움직이지 않은 손가락(0, 0)은 세로가 아니다 — 탭 한 번이 살아 있어야 한다.
-    static func isVerticalDrag(dx: Double, dy: Double, threshold: Double = 10) -> Bool {
-        abs(dy) > threshold && abs(dy) > abs(dx) * 1.5
-    }
-
     /// 범위 길이를 시간으로. 화면의 「최근 N시간」이 이것으로 만들어진다.
     /// **`to − from`에서 낸다** — 그려진 범위와 말하는 길이가 갈릴 자리를 두지 않는다.
     static func hours(from: Date, to: Date) -> Int {

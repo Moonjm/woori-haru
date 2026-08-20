@@ -24,8 +24,9 @@ struct StateTimelineChart: View {
     /// 막대만 들고 있으면 막대 안 어디를 짚었는지 알 수 없어 선이 구간 시작으로 튄다.
     @State private var touchedFraction: Double?
 
-    /// 이 제스처를 세로 스크롤로 넘겨줬는지. **한 번 포기하면 손을 뗄 때까지 돌아오지 않는다.**
-    @State private var scrubAbandoned = false
+    /// 긴 누름이 붙잡혀 쓸어보기가 시작됐는지. 햅틱을 한 번만 울리려고 따로 둔다 —
+    /// `touchedFraction`은 손가락이 움직일 때마다 바뀌어서 트리거로 쓸 수 없다.
+    @State private var isScrubbing = false
 
     init(bars: [TimelineBar], from: Date, to: Date) {
         // 입력이 이미 레이어 순으로 정렬돼 있어 그리는 순서가 곧 덧칠 순서다. 다시 정렬하지 않는다.
@@ -84,33 +85,35 @@ struct StateTimelineChart: View {
             }
             .clipShape(RoundedRectangle(cornerRadius: 5))
             .contentShape(.rect)
-            // **`minimumDistance: 0`이라 탭 한 번도 잡힌다.** 끌지 않고 눌렀다 떼기만 해도
-            // 그 자리의 구간이 잠깐 뜬다 — 「끌어야 나온다」를 따로 배우게 하지 않는다.
+            // **꾹 눌러야 쓸어보기가 시작된다.** 띠는 `ScrollView` 안에 있고, 그 위에서
+            // 세로 스크롤·당겨서 새로고침이 그대로 살아 있어야 한다 — 띠가 화면 위쪽이라
+            // 새로고침하려고 손을 얹는 자리가 하필 거기다.
             //
-            // **`gesture`가 아니라 `simultaneousGesture`다.** 띠는 `ScrollView` 안에 있고,
-            // 배타 제스처로 걸면 띠 위에 손을 얹은 채로는 화면이 안 내려가고 당겨서
-            // 새로고침도 안 된다 — 띠가 화면 위쪽이라 새로고침하려고 손을 얹는 자리가
-            // 하필 거기다. 월 이동 스와이프가 같은 이유로 같은 선택을 했다.
-            .simultaneousGesture(
-                DragGesture(minimumDistance: 0)
+            // **방향으로 가르는 방법은 실패했다.** `minimumDistance: 0`짜리 드래그는
+            // 터치 다운 즉시 인식돼서 `simultaneousGesture`로 걸어도 스크롤이 안 살아나고,
+            // 시작 몇 픽셀의 세로 흔들림으로 쓸어보기인지 스크롤인지를 가르면 비뚤게 시작한
+            // 쓸어보기가 통째로 죽는다. **시간으로 가르면 그 다툼이 아예 없다.**
+            //
+            // `maximumDistance: 10`이 갈라내는 지점이다 — 0.2초가 차기 전에 손가락이
+            // 10pt 넘게 움직이면 긴 누름이 실패하고, 터치는 스크롤뷰로 넘어간다.
+            .gesture(
+                LongPressGesture(minimumDuration: 0.2, maximumDistance: 10)
+                    .sequenced(before: DragGesture(minimumDistance: 0))
                     .onChanged { value in
-                        // 세로로 굳은 제스처는 스크롤이다. **한 번 포기하면 끝까지 포기한다** —
-                        // 스크롤 도중 손가락이 가로로 흔들릴 때마다 라벨이 되살아나면
-                        // 화면을 내리는 내내 제목이 깜빡인다.
-                        guard !scrubAbandoned else { return }
-                        if StateTimelineMath.isVerticalDrag(dx: value.translation.width,
-                                                            dy: value.translation.height) {
-                            scrubAbandoned = true
-                            touchedFraction = nil
-                            return
-                        }
-                        touchedFraction = width > 0 ? value.location.x / width : nil
+                        // **긴 누름이 붙잡힌 뒤의 드래그만 읽는다.** 긴 누름 자체는 위치를
+                        // 알려주지 않으므로, 라벨은 손가락이 처음 움직인 순간부터 뜬다.
+                        guard case .second(true, let drag?) = value else { return }
+                        isScrubbing = true
+                        touchedFraction = width > 0 ? drag.location.x / width : nil
                     }
                     .onEnded { _ in
+                        isScrubbing = false
                         touchedFraction = nil
-                        scrubAbandoned = false
                     }
             )
+            // 긴 누름은 **언제 걸렸는지가 안 보인다.** 손끝으로 알려 주지 않으면
+            // 사람은 0.2초를 못 기다리고 손을 뗀다.
+            .sensoryFeedback(trigger: isScrubbing) { _, engaged in engaged ? .selection : nil }
         }
         .frame(height: barHeight)
         // 구간을 하나씩 읽게 만들지 않는다 — 띠 전체가 한 정거장이다.
