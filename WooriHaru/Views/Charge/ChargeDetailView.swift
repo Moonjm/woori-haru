@@ -47,13 +47,14 @@ struct ChargeDetailView: View {
                     if let errorMessage {
                         Text(errorMessage)
                             .font(.caption)
-                            .foregroundStyle(Color.red500)
+                            .foregroundStyle(VehicleTheme.danger)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
                 .padding(16)
             }
             .glassScreenBackground()
+            .vehicleDarkTheme()
             .navigationTitle("충전 상세")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -94,7 +95,7 @@ struct ChargeDetailView: View {
                 Text(ChargeFormat.cost(cost))
                     .font(.system(size: 32, weight: .heavy))
                     .monospacedDigit()
-                    .foregroundStyle(cost == nil ? Color.orange700 : Color.slate900)
+                    .foregroundStyle(cost == nil ? VehicleTheme.warning : VehicleTheme.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
                 // 단가는 **화면에 보이는 그 금액**으로 낸다 — 저장은 됐는데 상세를 다시 못 받은
@@ -103,11 +104,11 @@ struct ChargeDetailView: View {
                     Text(ChargeFormat.unitPrice(unit))
                         .font(.caption)
                         .monospacedDigit()
-                        .foregroundStyle(Color.slate500)
+                        .foregroundStyle(VehicleTheme.textSecondary)
                 } else if cost == nil {
                     Text("오른쪽 위 「금액 수정」으로 채워 넣어요")
                         .font(.caption)
-                        .foregroundStyle(Color.slate500)
+                        .foregroundStyle(VehicleTheme.textSecondary)
                 }
             }
             .frame(maxWidth: .infinity)
@@ -182,11 +183,11 @@ struct ChargeDetailView: View {
                 Text(detail.geofenceName ?? item.locationName ?? "장소 없음")
                     .font(.subheadline)
                     .fontWeight(.semibold)
-                    .foregroundStyle(Color.slate900)
+                    .foregroundStyle(VehicleTheme.textPrimary)
                 if let address = detail.address {
                     Text(address)
                         .font(.caption)
-                        .foregroundStyle(Color.slate500)
+                        .foregroundStyle(VehicleTheme.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -197,13 +198,13 @@ struct ChargeDetailView: View {
         HStack(alignment: .firstTextBaseline) {
             Text(label)
                 .font(.caption)
-                .foregroundStyle(Color.slate500)
+                .foregroundStyle(VehicleTheme.textSecondary)
             Spacer(minLength: 12)
             Text(value)
                 .font(.subheadline)
                 .fontWeight(.semibold)
                 .monospacedDigit()
-                .foregroundStyle(Color.slate900)
+                .foregroundStyle(VehicleTheme.textPrimary)
                 .multilineTextAlignment(.trailing)
         }
     }
@@ -285,22 +286,25 @@ struct ChargeCostEditSheet: View {
                     .keyboardType(.numberPad)
                     .font(.system(size: 28, weight: .bold))
                     .monospacedDigit()
+                    .foregroundStyle(VehicleTheme.textPrimary)
                     .focused($focused)
                     .padding(14)
-                    .background(Color.slate100, in: RoundedRectangle(cornerRadius: 14))
+                    .background(VehicleTheme.tileFill, in: RoundedRectangle(cornerRadius: 14))
 
                 if let errorMessage {
                     Text(errorMessage)
                         .font(.caption)
-                        .foregroundStyle(Color.red500)
+                        .foregroundStyle(VehicleTheme.danger)
                 } else {
                     Text("충전 1건의 금액이에요. 비울 수는 없고, 잘못 넣었으면 다시 저장해요.")
                         .font(.caption)
-                        .foregroundStyle(Color.slate500)
+                        .foregroundStyle(VehicleTheme.textSecondary)
                 }
                 Spacer(minLength: 0)
             }
             .padding(16)
+            .glassScreenBackground()
+            .vehicleDarkTheme()
             .navigationTitle("금액 수정")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

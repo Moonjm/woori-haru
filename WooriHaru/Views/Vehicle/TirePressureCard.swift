@@ -26,13 +26,13 @@ struct TirePressureCard: View {
                     Text("타이어 공기압")
                         .font(.caption)
                         .fontWeight(.bold)
-                        .foregroundStyle(Color.slate500)
+                        .foregroundStyle(VehicleTheme.textSecondary)
                     Spacer(minLength: 8)
                     Text("\(VehicleFormat.psiText(VehicleMath.averagePsi(tpms))) 평균")
                         .font(.caption)
                         .fontWeight(.bold)
                         .monospacedDigit()
-                        .foregroundStyle(Color.slate500)
+                        .foregroundStyle(VehicleTheme.textSecondary)
                 }
 
                 diagram
@@ -47,12 +47,12 @@ struct TirePressureCard: View {
         HStack(spacing: 10) {
             VStack(spacing: 10) { wheel(wheels[0]); wheel(wheels[2]) }
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color.slate100)
+                .fill(VehicleTheme.tileFill)
                 .frame(width: 40)
                 .overlay {
                     Image(systemName: "car.fill")
                         .font(.system(size: 18))
-                        .foregroundStyle(Color.slate300)
+                        .foregroundStyle(VehicleTheme.textTertiary)
                 }
             VStack(spacing: 10) { wheel(wheels[1]); wheel(wheels[3]) }
         }
@@ -69,7 +69,7 @@ struct TirePressureCard: View {
                 .foregroundStyle(wheel.status.foreground)
             Text(wheel.name)
                 .font(.system(size: 9))
-                .foregroundStyle(Color.slate400)
+                .foregroundStyle(VehicleTheme.textTertiary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(wheel.status.background, in: RoundedRectangle(cornerRadius: 12))
@@ -85,15 +85,15 @@ struct TirePressureCard: View {
         if !abnormal.isEmpty {
             line("exclamationmark.triangle.fill",
                  "\(abnormal.map(\.name).joined(separator: "·")) 공기압을 확인해 주세요",
-                 Color.orange700)
+                 VehicleTheme.warning)
         } else if unknown.count == wheels.count {
-            line("questionmark.circle", "아직 공기압 값을 받지 못했어요", Color.slate400)
+            line("questionmark.circle", "아직 공기압 값을 받지 못했어요", VehicleTheme.textTertiary)
         } else if !unknown.isEmpty {
             line("questionmark.circle",
                  "\(unknown.map(\.name).joined(separator: "·")) 값이 없어요",
-                 Color.slate400)
+                 VehicleTheme.textTertiary)
         } else {
-            line("checkmark.circle.fill", "네 바퀴 모두 정상", Color.green600)
+            line("checkmark.circle.fill", "네 바퀴 모두 정상", VehicleTheme.accent)
         }
     }
 
@@ -113,17 +113,17 @@ struct TirePressureCard: View {
 private extension TireStatus {
     var foreground: Color {
         switch self {
-        case .normal: return .slate900
-        case .low, .high: return .orange700
-        case .unknown: return .slate400
+        case .normal: return VehicleTheme.textPrimary
+        case .low, .high: return VehicleTheme.warning
+        case .unknown: return VehicleTheme.textTertiary
         }
     }
 
     var background: Color {
         switch self {
-        case .normal: return .slate100
-        case .low, .high: return .orange100
-        case .unknown: return .slate50
+        case .normal: return VehicleTheme.tileFill
+        case .low, .high: return VehicleTheme.warning.opacity(0.15)
+        case .unknown: return VehicleTheme.trackFill
         }
     }
 
@@ -148,5 +148,6 @@ private extension TireStatus {
         TirePressureCard(tpms: nil)
     }
     .padding(16)
-    .background(Color.slate50)
+    .background(VehicleTheme.background)
+    .environment(\.vehicleDark, true)
 }

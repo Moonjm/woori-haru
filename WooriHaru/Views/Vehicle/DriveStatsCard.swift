@@ -34,16 +34,16 @@ struct DriveStatsCard: View {
                 .font(.subheadline)
                 .fontWeight(.heavy)
                 .monospacedDigit()
-                .foregroundStyle(Color.slate900)
+                .foregroundStyle(VehicleTheme.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
             Text(label)
                 .font(.caption2)
-                .foregroundStyle(Color.slate500)
+                .foregroundStyle(VehicleTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
-        .background(Color.slate100, in: RoundedRectangle(cornerRadius: 12))
+        .background(VehicleTheme.tileFill, in: RoundedRectangle(cornerRadius: 12))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(label) \(value)")
     }
@@ -57,5 +57,6 @@ struct DriveStatsCard: View {
         DriveStatsCard(maxSpeedKmh: nil, avgMonthlyKm: nil, avgYearlyKm: nil)
     }
     .padding(16)
-    .background(Color.slate50)
+    .background(VehicleTheme.background)
+    .environment(\.vehicleDark, true)
 }

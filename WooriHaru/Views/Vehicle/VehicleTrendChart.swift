@@ -19,14 +19,14 @@ struct VehicleTrendChart: View {
                 Text("월별 충전 금액")
                     .font(.caption)
                     .fontWeight(.bold)
-                    .foregroundStyle(Color.slate500)
+                    .foregroundStyle(VehicleTheme.textSecondary)
 
                 if let selected {
                     HStack(spacing: 6) {
                         Text("\(selected.monthNumber)월")
                             .font(.caption)
                             .fontWeight(.heavy)
-                            .foregroundStyle(Color.blue600)
+                            .foregroundStyle(VehicleTheme.accent)
                         // ChargeFormat.cost는 건별 금액용이라 nil을 「미입력」으로 읽는다 —
                         // 여기는 그 달의 합계 자리라 기록 없는 달과 구분해야 한다.
                         Text(ChargeFormat.summaryTotal(selected.cost, count: selected.chargeCount ?? 0, loaded: true))
@@ -35,10 +35,10 @@ struct VehicleTrendChart: View {
                             .monospacedDigit()
                         Text(VehicleFormat.distance(selected.distanceKm))
                             .font(.caption2)
-                            .foregroundStyle(Color.slate500)
+                            .foregroundStyle(VehicleTheme.textSecondary)
                         Text(ChargeFormat.energy(selected.energyAddedKwh))
                             .font(.caption2)
-                            .foregroundStyle(Color.slate500)
+                            .foregroundStyle(VehicleTheme.textSecondary)
                         Spacer(minLength: 0)
                     }
                     .lineLimit(1)
@@ -66,12 +66,12 @@ struct VehicleTrendChart: View {
             // 기록이 없는 달도 자리를 지킨다 — 건너뛰면 계절 비교가 어긋난다.
             RoundedRectangle(cornerRadius: 4)
                 .fill(period.cost == nil
-                      ? AnyShapeStyle(Color.slate200)
-                      : AnyShapeStyle(isSelected ? Color.blue600 : Color.blue300))
+                      ? AnyShapeStyle(VehicleTheme.trackFill)
+                      : AnyShapeStyle(isSelected ? VehicleTheme.accentBright : VehicleTheme.accentMuted))
                 .frame(height: max(3, ratio * 72))
             Text("\(period.monthNumber)")
                 .font(.system(size: 9, weight: isSelected ? .heavy : .regular))
-                .foregroundStyle(isSelected ? Color.blue600 : Color.slate400)
+                .foregroundStyle(isSelected ? VehicleTheme.accentBright : VehicleTheme.textTertiary)
         }
         .frame(maxWidth: .infinity)
         .contentShape(.rect)

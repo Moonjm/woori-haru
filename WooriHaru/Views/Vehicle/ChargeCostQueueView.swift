@@ -27,6 +27,7 @@ struct ChargeCostQueueView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .glassScreenBackground()
+            .vehicleDarkTheme()
             .navigationTitle("금액 등록")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -41,7 +42,7 @@ struct ChargeCostQueueView: View {
                         Text("\(min(viewModel.index + 1, viewModel.items.count)) / \(viewModel.items.count)")
                             .font(.caption)
                             .monospacedDigit()
-                            .foregroundStyle(Color.slate500)
+                            .foregroundStyle(VehicleTheme.textSecondary)
                     }
                 }
             }
@@ -64,31 +65,32 @@ struct ChargeCostQueueView: View {
                       ChargeFormat.batteryRange(item.startBatteryLevel, item.endBatteryLevel)]
                         .joined(separator: " · "))
                     .font(.caption)
-                    .foregroundStyle(Color.slate500)
+                    .foregroundStyle(VehicleTheme.textSecondary)
             }
 
             HStack(spacing: 8) {
                 Text("₩")
                     .font(.system(size: 28, weight: .bold))
-                    .foregroundStyle(Color.slate500)
+                    .foregroundStyle(VehicleTheme.textSecondary)
                 TextField("금액", text: $text)
                     .keyboardType(.numberPad)
                     .font(.system(size: 28, weight: .bold))
                     .monospacedDigit()
+                    .foregroundStyle(VehicleTheme.textPrimary)
                     .focused($focused)
             }
             .padding(14)
-            .background(Color.slate100, in: RoundedRectangle(cornerRadius: 14))
+            .background(VehicleTheme.tileFill, in: RoundedRectangle(cornerRadius: 14))
 
             if let suggested = viewModel.suggestedCost {
                 Text("직전 단가 기준 약 \(LedgerFormat.amount(suggested, currency: "KRW"))")
                     .font(.caption)
-                    .foregroundStyle(Color.slate500)
+                    .foregroundStyle(VehicleTheme.textSecondary)
             }
             if let error = viewModel.errorMessage {
                 Text(error)
                     .font(.caption)
-                    .foregroundStyle(Color.red500)
+                    .foregroundStyle(VehicleTheme.danger)
             }
 
             Spacer(minLength: 0)
@@ -102,6 +104,9 @@ struct ChargeCostQueueView: View {
                 .disabled(viewModel.isSaving)
                 Button("저장 · 다음") { save() }
                     .buttonStyle(.borderedProminent)
+                    // **민트 위에 흰 글씨는 안 읽힌다**(대비 1.9:1). prominent 버튼은 틴트를
+                    // 배경으로 쓰고 라벨 색을 밝기에 맞춰 바꾸지 않으므로 여기서 못 박는다.
+                    .foregroundStyle(VehicleTheme.background)
                     .disabled(parsedCost == nil || viewModel.isSaving)
             }
             .frame(maxWidth: .infinity)
@@ -137,6 +142,7 @@ struct ChargeCostQueueView: View {
         } actions: {
             Button("닫기") { close() }
                 .buttonStyle(.borderedProminent)
+                .foregroundStyle(VehicleTheme.background)
                 .disabled(viewModel.isSaving)
         }
     }
@@ -149,6 +155,7 @@ struct ChargeCostQueueView: View {
         } actions: {
             Button("다시 시도") { Task { await viewModel.load() } }
                 .buttonStyle(.borderedProminent)
+                .foregroundStyle(VehicleTheme.background)
         }
     }
 
