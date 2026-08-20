@@ -51,6 +51,7 @@
 		A10AD40468D182F380D2EDED /* ScheduleViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2969E3F2EAA5A9B4E033CC8F /* ScheduleViewModel.swift */; };
 		A454F886AE329C10E8408C58 /* ScheduleDayEditSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5946F8BE2411A7B092525B6 /* ScheduleDayEditSheet.swift */; };
 		A4AE9B9A3DE1AA33DD7F5E0A /* DriveInsightsModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = D80FDE88B927023C50D1C62C /* DriveInsightsModels.swift */; };
+		A8156A2E0E58AEF21CD71611 /* MonthlyLineChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = 928AF4C8D9E51E1F78D6D88C /* MonthlyLineChart.swift */; };
 		A96AC1C7074B35DF261C1958 /* DispatchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD3CE59E8DF1F82DF405E788 /* DispatchService.swift */; };
 		AA100001 /* PairStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200001 /* PairStore.swift */; };
 		AA100002 /* CategoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200002 /* CategoryStore.swift */; };
@@ -286,6 +287,7 @@
 		88C2E2B22F557CCD001249F8 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		88DD96EC2F61B3A900E60283 /* StudyRecordView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyRecordView.swift; sourceTree = "<group>"; };
 		88EBCBE73E844A5092ABC002 /* VehicleStatsViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VehicleStatsViewModel.swift; sourceTree = "<group>"; };
+		928AF4C8D9E51E1F78D6D88C /* MonthlyLineChart.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MonthlyLineChart.swift; path = Vehicle/Charts/MonthlyLineChart.swift; sourceTree = "<group>"; };
 		961A0AFE42DC5F675D6EF817 /* ChartPoint.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ChartPoint.swift; path = Vehicle/Charts/ChartPoint.swift; sourceTree = "<group>"; };
 		A1C9DA97EA2D7E94602135D9 /* TirePressureCard.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TirePressureCard.swift; path = Vehicle/TirePressureCard.swift; sourceTree = "<group>"; };
 		A20001 /* WooriHaruApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WooriHaruApp.swift; sourceTree = "<group>"; };
@@ -525,6 +527,7 @@
 			children = (
 				961A0AFE42DC5F675D6EF817 /* ChartPoint.swift */,
 				50285BAA6308B5D509F6F401 /* MonthlyBarChart.swift */,
+				928AF4C8D9E51E1F78D6D88C /* MonthlyLineChart.swift */,
 			);
 			name = Charts;
 			sourceTree = "<group>";
@@ -1321,6 +1324,7 @@
 				D4A14506B36EE336E3DF1100 /* VehicleTheme.swift in Sources */,
 				E9ED799BF0F12E5D22DA0296 /* ChartPoint.swift in Sources */,
 				D93142B6B70EAFEFD1D4A4F4 /* MonthlyBarChart.swift in Sources */,
+				A8156A2E0E58AEF21CD71611 /* MonthlyLineChart.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
