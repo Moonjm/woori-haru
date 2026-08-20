@@ -228,6 +228,40 @@ final class VehicleStatsViewModel {
         }
     }
 
+    /// #15 충전 히트맵. **`chargeTimes`는 0=일요일이다** — `driveTimes`와 같고
+    /// 같은 응답의 `weekday` 배열(1=월요일, ISO)과 다르다. 직전 태스크가 `weekday`를 썼다고
+    /// 여기서도 `isoWeekdayLabel`을 따라가면 안 된다 — `HeatmapGrid`는 이미 `weekdayLabel`
+    /// (0=일요일)을 쓰므로 이 접근자를 그대로 넘기면 맞는다.
+    ///
+    /// 없는 칸이 서버에서 아예 빠지므로(성기게 옴) 매번 선형 탐색한다 — `chargeTimes`는
+    /// `driveTimes`처럼 168칸을 자주 훑는 히트맵 전용 사전(`heatMap`)을 따로 둘 만큼
+    /// 크지 않다(충전은 주행보다 훨씬 드물다).
+    func chargeHeatCount(weekday: Int, hour: Int) -> Int {
+        insights?.chargeTimes.first { $0.weekday == weekday && $0.hour == hour }?.count ?? 0
+    }
+
+    var maxChargeHeatCount: Int { insights?.chargeTimes.map(\.count).max() ?? 0 }
+
+    /// #16 충전 시작 SoC 분포. 열 칸이 늘 오고 0인 칸도 자리를 지킨다.
+    var chargeStartLevelPoints: [ChartPoint] {
+        (insights?.chargeStartLevels ?? []).map {
+            ChartPoint(id: "cs\($0.fromPct)", label: $0.label, value: Decimal($0.count))
+        }
+    }
+
+    /// #17 충전 종료 SoC 분포. **마지막 칸만 양끝이 닫혀 있다**(90 이상 100 이하) —
+    /// 정확히 100%로 끝난 충전이 실측 71건이라 「미만」이면 가장 흔한 값이 어느 칸에도
+    /// 안 든다. 그 칸만 라벨을 「90~100」으로 적어 다른 칸(「미만」)과 다름을 글자로 드러낸다.
+    var chargeEndLevelPoints: [ChartPoint] {
+        let buckets = insights?.chargeEndLevels ?? []
+        return buckets.enumerated().map { index, bucket in
+            let isLast = index == buckets.count - 1
+            return ChartPoint(id: "ce\(bucket.fromPct)",
+                              label: isLast ? "\(bucket.fromPct)~\(bucket.toPct)" : bucket.label,
+                              value: Decimal(bucket.count))
+        }
+    }
+
     // MARK: - 로드
 
     /// 탭에 들어올 때마다 부른다. **단, 지난번이 오류로 끝났다면 다시 받는다** —

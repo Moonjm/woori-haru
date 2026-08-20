@@ -635,4 +635,44 @@ struct VehicleStatsViewModelTests {
         let value = try! #require(point.value)
         #expect(abs(value - Decimal(string: "4.3844")!) < Decimal(string: "0.001")!)
     }
+
+    // MARK: - 분포(충전)
+
+    /// **`chargeTimes`는 0=일요일이다** — `weekday` 배열(1=월요일)과 섞으면 밀린다.
+    @Test func 충전_시간대는_0이_일요일이다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 1))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+        // 스텁의 chargeTimes에 weekday 0, hour 23이 4건 있다.
+        #expect(viewModel.chargeHeatCount(weekday: 0, hour: 23) == 4)
+        #expect(viewModel.maxChargeHeatCount == 4)
+        // 표본이 없는 칸은 0이다.
+        #expect(viewModel.chargeHeatCount(weekday: 1, hour: 8) == 0)
+    }
+
+    /// #16 시작 SoC는 예외 없이 모든 칸이 「미만」이다 — #17의 마지막 칸 예외가 없다.
+    @Test func 시작_SoC_분포는_버킷_건수를_그대로_점으로_옮긴다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 1))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+        let point = try! #require(viewModel.chargeStartLevelPoints.first)
+        #expect(point.id == "cs0")
+        #expect(point.label == "0")
+        #expect(point.value == 3)
+    }
+
+    @Test func 종료_SoC_마지막_칸만_100을_품는다() async throws {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 1))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+
+        let last = try #require(viewModel.insights?.chargeEndLevels.last)
+        #expect(last.fromPct == 90 && last.toPct == 100)
+        // 마지막 칸만 라벨이 다르다 — 양끝이 닫힘을 글자로 드러낸다.
+        #expect(viewModel.chargeEndLevelPoints.last?.label == "90~100")
+        #expect(viewModel.chargeEndLevelPoints.first?.label == "80")
+    }
 }
