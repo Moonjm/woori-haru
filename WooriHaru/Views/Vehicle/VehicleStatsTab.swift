@@ -1,11 +1,11 @@
 import SwiftUI
 
-/// 주행 탭 — 온도별 전비·시간대·거리 분포·자주 가는 곳. 네 카드가 **한 응답**에서 나온다.
+/// 통계 탭 — 온도별 전비·시간대·거리 분포·자주 가는 곳. 네 카드가 **한 응답**에서 나온다.
 ///
 /// **기간 칩은 화면 맨 위 하나다.** 카드마다 기간이 다르면 서로 비교가 안 된다.
-/// 요약 탭의 월 스와이프는 여기 걸지 않는다 — 이 탭의 기간 단위는 달이 아니다.
-struct VehicleDriveTab: View {
-    @Bindable var viewModel: VehicleDriveViewModel
+/// 충전 탭의 월 스와이프는 여기 걸지 않는다 — 이 탭의 기간 단위는 달이 아니다.
+struct VehicleStatsTab: View {
+    @Bindable var viewModel: VehicleStatsViewModel
 
     var body: some View {
         ScrollView {

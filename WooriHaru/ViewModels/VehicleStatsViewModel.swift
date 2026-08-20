@@ -1,11 +1,11 @@
 import Foundation
 import Observation
 
-/// 주행 탭 — `/tesla/drive-insights` 하나만 본다. 네 카드가 한 응답에서 나오므로
+/// 통계 탭 — `/tesla/drive-insights` 하나만 본다. 네 카드가 한 응답에서 나오므로
 /// 호출도 하나이고, **기간 칩이 바뀌면 넷이 함께 바뀐다.**
 @MainActor
 @Observable
-final class VehicleDriveViewModel {
+final class VehicleStatsViewModel {
 
     private(set) var insights: DriveInsightsResponse? {
         didSet { rebuildHeatMap() }

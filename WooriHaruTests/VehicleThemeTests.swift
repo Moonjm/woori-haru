@@ -69,7 +69,7 @@ struct VehicleThemeTests {
         #expect(luminance(VehicleTheme.accentBright) > luminance(VehicleTheme.accentMuted))
     }
 
-    /// **`textSecondary`는 선택 짝의 비선택 쪽으로 쓸 수 없다.** 주행 탭 기간 칩에서 실제로
+    /// **`textSecondary`는 선택 짝의 비선택 쪽으로 쓸 수 없다.** 통계 탭 기간 칩에서 실제로
     /// 났던 사고이고, 리뷰 여섯 바퀴를 통과했다 — 민트가 채도 때문에 밝아 **보이지만**
     /// 휘도는 옅은 청백보다 낮기 때문이다.
     ///

@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// 요약 탭 — 그 달 주행·충전, 지표, 12개월 추이, 미등록 배지, 그 달 충전 목록.
-struct VehicleSummaryTab: View {
+/// 충전 탭 — 그 달 주행·충전, 지표, 12개월 추이, 미등록 배지, 그 달 충전 목록.
+struct VehicleChargeTab: View {
     @Bindable var viewModel: VehicleSummaryViewModel
     /// 상세 시트에서 금액을 저장한 뒤 부른다 — 이 탭이 들고 있지 않은 누적 집계를 부모가 다시 받는다.
     let onCostSaved: () async -> Void

@@ -1,24 +1,24 @@
 import SwiftUI
 
-/// 「차량」 미니앱 — 상태·주행·요약 세 탭. 가계부와 같은 하단 글래스 탭바 구조다.
-/// **여는 순간 상태 화면이 먼저 뜬다** — 첫 화면이 답을 하나 해야 한다.
+/// 「차량」 미니앱 — 개요·통계·충전 세 탭. 가계부와 같은 하단 글래스 탭바 구조다.
+/// **여는 순간 개요 화면이 먼저 뜬다** — 첫 화면이 답을 하나 해야 한다.
 ///
-/// **첫 탭 이름이 「건강」에서 「상태」로 돌아왔다.** 1단계에서 상태 표를 배터리 건강 대시보드로
-/// 갈아끼우며 「건강」이 됐는데, 4단계가 현재 상태를 열화 위로 올리고 5단계가 24시간 띠를
-/// 더하면서 무게중심이 다시 옮겨갔다 — 이 탭이 그리는 아홉 중 「건강」인 것은 잔존율 카드와
-/// 열화 추이 둘뿐이다. 탭 이름은 첫 화면이 답하는 질문을 따라간다.
+/// **첫 탭 이름이 「건강」에서 「상태」를 거쳐 「개요」로 바뀌었다.** 1단계에서 상태 표를 배터리
+/// 건강 대시보드로 갈아끼우며 「건강」이 됐는데, 4단계가 현재 상태를 열화 위로 올리고 5단계가
+/// 24시간 띠를 더하면서 무게중심이 다시 옮겨갔다 — 이 탭이 그리는 아홉 중 「건강」인 것은
+/// 잔존율 카드와 열화 추이 둘뿐이다. 탭 이름은 첫 화면이 답하는 질문을 따라간다.
 /// **세 개가 상한이다** — 더 늘리려는 순간 화면을 합칠 자리를 먼저 찾는다.
 struct VehicleView: View {
-    private enum Tab { case status, drive, summary }
+    private enum Tab { case overview, stats, charge }
 
     @Environment(\.dismiss) private var dismiss
-    @State private var tab: Tab = .status
+    @State private var tab: Tab = .overview
     @State private var summaryViewModel = VehicleSummaryViewModel()
     @State private var statusViewModel = VehicleStatusViewModel()
     @State private var healthViewModel = VehicleHealthViewModel()
     @State private var totalsViewModel = ChargeTotalsViewModel()
     @State private var timelineViewModel = StateTimelineViewModel()
-    @State private var driveViewModel = VehicleDriveViewModel()
+    @State private var statsViewModel = VehicleStatsViewModel()
     @State private var showingMonthPicker = false
     @State private var showingQueue = false
 
@@ -29,9 +29,9 @@ struct VehicleView: View {
         }
         .glassScreenBackground()
         .vehicleDarkTheme()
-        // 좌우 스와이프 = 월 이동. 상태·주행 탭에는 월이 없으므로 마스크로 끈다
+        // 좌우 스와이프 = 월 이동. 개요·통계 탭에는 월이 없으므로 마스크로 끈다
         // (`nil`을 넘길 수 없는 API라 including으로 제어한다).
-        .simultaneousGesture(monthSwipeGesture, including: tab == .summary ? .all : .subviews)
+        .simultaneousGesture(monthSwipeGesture, including: tab == .charge ? .all : .subviews)
         .navigationBarBackButtonHidden(true) // 월 이동 스와이프와 겹치는 엣지 뒤로가기 차단
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -61,7 +61,7 @@ struct VehicleView: View {
                 await healthViewModel.refreshMissingCount()
                 // 금액을 채우면 누적 충전비·단가·「N건 기준」이 다 움직인다 — 채워진 에너지가
                 // 「금액 없음」 분모에서 빠져나오기 때문이다. 배지만 갱신하면 0건이 된 배지와
-                // 낡은 누적 카드가 상태 탭 같은 화면에 나란히 남는다.
+                // 낡은 누적 카드가 개요 탭 같은 화면에 나란히 남는다.
                 await totalsViewModel.reload()
             }
         }) {
@@ -72,8 +72,8 @@ struct VehicleView: View {
 
     @ViewBuilder private var content: some View {
         switch tab {
-        case .status:
-            VehicleStatusTab(healthViewModel: healthViewModel,
+        case .overview:
+            VehicleOverviewTab(healthViewModel: healthViewModel,
                              statusViewModel: statusViewModel,
                              totalsViewModel: totalsViewModel,
                              timelineViewModel: timelineViewModel) { showingQueue = true }
@@ -87,24 +87,24 @@ struct VehicleView: View {
                     async let timeline: Void = timelineViewModel.load()
                     _ = await (status, health, totals, timeline)
                 }
-        case .drive:
-            VehicleDriveTab(viewModel: driveViewModel)
-                .task { await driveViewModel.load() }
-        case .summary:
-            VehicleSummaryTab(viewModel: summaryViewModel,
+        case .stats:
+            VehicleStatsTab(viewModel: statsViewModel)
+                .task { await statsViewModel.load() }
+        case .charge:
+            VehicleChargeTab(viewModel: summaryViewModel,
                               onCostSaved: { await totalsViewModel.reload() }) { showingQueue = true }
         }
     }
 
     @ViewBuilder private var principalTitle: some View {
         switch tab {
-        case .status:
-            Text("차량 상태").font(.subheadline).fontWeight(.bold)
+        case .overview:
+            Text("개요").font(.subheadline).fontWeight(.bold)
                 .foregroundStyle(VehicleTheme.textPrimary)
-        case .drive:
-            Text("주행").font(.subheadline).fontWeight(.bold)
+        case .stats:
+            Text("통계").font(.subheadline).fontWeight(.bold)
                 .foregroundStyle(VehicleTheme.textPrimary)
-        case .summary: monthSwitcher
+        case .charge: monthSwitcher
         }
     }
 
@@ -155,9 +155,9 @@ struct VehicleView: View {
 
     private var tabBar: some View {
         HStack(spacing: 4) {
-            tabButton(.status, icon: "bolt.batteryblock.fill", label: "상태")
-            tabButton(.drive, icon: "steeringwheel", label: "주행")
-            tabButton(.summary, icon: "chart.bar.fill", label: "요약")
+            tabButton(.overview, icon: "car.fill", label: "개요")
+            tabButton(.stats, icon: "chart.bar.fill", label: "통계")
+            tabButton(.charge, icon: "bolt.fill", label: "충전")
         }
         .padding(6)
         // 다크에서는 유리를 쓰지 않는다 — 테두리가 형태를 만든다.

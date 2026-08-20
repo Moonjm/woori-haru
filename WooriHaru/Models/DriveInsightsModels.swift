@@ -34,7 +34,7 @@ struct DriveInsightsResponse: Codable {
     /// 않으므로 나누기 전에 앱이 막는다 — `VehicleMath.avgMonthlyDistanceKm`이 그 자리다.
     ///
     /// **옵셔널인 이유는 `maxSpeedKmh`와 같다** — 서버가 개정 전 필드를 내는 동안 앱이 먼저
-    /// 나가도 주행 탭 응답 전체가 디코딩 실패로 무너지지 않아야 한다.
+    /// 나가도 통계 탭 응답 전체가 디코딩 실패로 무너지지 않아야 한다.
     let totalDistanceKm: Decimal?
     let recordedMonths: Int?
 }

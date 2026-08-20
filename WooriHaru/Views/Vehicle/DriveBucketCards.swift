@@ -6,7 +6,7 @@ import SwiftUI
 /// 0부터 그리면 둘 다 긴 막대가 되어 차이가 안 보인다. 가장 낮은 버킷을 짧게 남기고
 /// 나머지를 그 위에 얹는다.
 struct TemperatureEfficiencyCard: View {
-    let rows: [VehicleDriveViewModel.TemperatureRow]
+    let rows: [VehicleStatsViewModel.TemperatureRow]
     /// **거리 카드와 다른 수다** — 주행가능거리 소모가 0 이하인 주행이 여기선 빠진다.
     let driveCount: Int
 
@@ -30,7 +30,7 @@ struct TemperatureEfficiencyCard: View {
     private var maxValue: Decimal { rows.compactMap(\.kmPerKwh).max() ?? 0 }
     private var minValue: Decimal { rows.compactMap(\.kmPerKwh).min() ?? 0 }
 
-    private func bar(_ row: VehicleDriveViewModel.TemperatureRow) -> some View {
+    private func bar(_ row: VehicleStatsViewModel.TemperatureRow) -> some View {
         // 값이 없으면 비율도 없다(nil). 최소 폭(minimumRatio)을 값 없는 버킷에도 적용하면
         // 「—」 옆에 짧은 막대가 남아 「조금 탔다」로 읽힌다 — 그래서 최소 폭은 값이
         // 있는 행에만 건다.
@@ -150,7 +150,7 @@ private func header(_ title: String, _ trailing: String) -> some View {
     ]
     let efficiency = Decimal(string: "0.1367")!
     let rows = buckets.map { bucket in
-        VehicleDriveViewModel.TemperatureRow(
+        VehicleStatsViewModel.TemperatureRow(
             bucket: bucket,
             kmPerKwh: VehicleMath.kmPerKwh(distanceKm: bucket.distanceKm,
                                            ratedRangeUsedKm: bucket.ratedRangeUsedKm,

@@ -3,7 +3,7 @@ import Testing
 @testable import WooriHaru
 
 @MainActor
-struct VehicleDriveViewModelTests {
+struct VehicleStatsViewModelTests {
 
     /// 실측(2026-08-17 최근 12개월) 그대로다 — 온도 939건, 거리 959건.
     private nonisolated static func insights(
@@ -58,8 +58,8 @@ struct VehicleDriveViewModelTests {
         )
     }
 
-    private func makeViewModel(_ mock: MockAPIClient) -> VehicleDriveViewModel {
-        VehicleDriveViewModel(service: VehicleService(api: mock))
+    private func makeViewModel(_ mock: MockAPIClient) -> VehicleStatsViewModel {
+        VehicleStatsViewModel(service: VehicleService(api: mock))
     }
 
     private func stub(_ mock: MockAPIClient, _ response: DriveInsightsResponse) {
