@@ -67,7 +67,7 @@ struct ChargeCurveChart: View {
                     // 점 하나로는 곡선이 아니다.
                     Text("이 충전엔 그릴 만한 곡선이 없어요")
                         .font(.caption)
-                        .foregroundStyle(Color.slate400)
+                        .foregroundStyle(VehicleTheme.textTertiary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.vertical, 20)
                 } else {
@@ -87,14 +87,14 @@ struct ChargeCurveChart: View {
             Text("충전 곡선")
                 .font(.caption)
                 .fontWeight(.bold)
-                .foregroundStyle(Color.slate500)
+                .foregroundStyle(VehicleTheme.textSecondary)
             Spacer(minLength: 8)
             if points.count >= 2 {
                 Text("최고 \(peak(points))kW")
                     .font(.caption)
                     .fontWeight(.bold)
                     .monospacedDigit()
-                    .foregroundStyle(Color.slate900)
+                    .foregroundStyle(VehicleTheme.textPrimary)
             }
         }
     }
@@ -115,14 +115,14 @@ struct ChargeCurveChart: View {
                 path.addLine(to: CGPoint(x: size.width, y: size.height))
                 path.closeSubpath()
             }
-            .fill(LinearGradient(colors: [Color.blue300.opacity(0.55), Color.blue300.opacity(0.05)],
+            .fill(LinearGradient(colors: [VehicleTheme.accent.opacity(0.45), VehicleTheme.accent.opacity(0.03)],
                                  startPoint: .top, endPoint: .bottom))
             Path { path in
                 for (i, p) in points.enumerated() {
                     if i == 0 { path.move(to: at(p)) } else { path.addLine(to: at(p)) }
                 }
             }
-            .stroke(Color.blue600, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+            .stroke(VehicleTheme.accent, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
         }
     }
 
@@ -134,7 +134,7 @@ struct ChargeCurveChart: View {
         }
         .font(.caption2)
         .monospacedDigit()
-        .foregroundStyle(Color.slate400)
+        .foregroundStyle(VehicleTheme.textTertiary)
     }
 }
 
@@ -150,5 +150,6 @@ struct ChargeCurveChart: View {
         ChargeCurveChart(samples: [])
     }
     .padding(16)
-    .background(Color.slate50)
+    .background(VehicleTheme.background)
+    .environment(\.vehicleDark, true)
 }
