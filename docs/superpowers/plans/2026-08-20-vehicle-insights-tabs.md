@@ -110,7 +110,7 @@ sed -i '' \
 grep -c "VehicleOverviewTab.swift\|VehicleStatsTab.swift\|VehicleChargeTab.swift\|VehicleStatsViewModel.swift" WooriHaru.xcodeproj/project.pbxproj
 ```
 
-기대: 마지막 `grep -c`가 `8`(파일 4개 × `PBXFileReference` + `PBXBuildFile`).
+기대: 마지막 `grep -c`가 **0이 아닐 것**(파일 하나가 `PBXFileReference`·`PBXBuildFile` 두 곳에 나오므로 보통 8이지만, 그룹 구조에 따라 다를 수 있다. 0이면 `sed`가 아무것도 못 바꾼 것이니 멈추고 `project.pbxproj`를 직접 본다).
 
 - [ ] **Step 3: 타입 이름을 바꾼다**
 
@@ -228,8 +228,8 @@ struct VehicleStatsTab: View {
     /// 열화 추세 — 「지금 어떤가」가 아니라 「어떻게 변해왔나」라 개요가 아니라 여기다.
     /// **기간 칩을 따르지 않는다** — 열화는 전 기간을 봐야 기울기가 보인다.
     @ViewBuilder private var batterySection: some View {
-        if !healthViewModel.segments.isEmpty {
-            DegradationTrendChart(segments: healthViewModel.segments,
+        if !healthViewModel.trendSegments.isEmpty {
+            DegradationTrendChart(segments: healthViewModel.trendSegments,
                                   selectedKey: selectedHealthKey,
                                   onSelect: { selectedHealthKey = $0 })
         }
@@ -238,7 +238,7 @@ struct VehicleStatsTab: View {
 
 `@State private var selectedHealthKey: String?`을 프로퍼티에 더한다.
 
-> `healthViewModel.segments`의 정확한 이름은 `VehicleHealthViewModel`을 열어 확인한다. 개요 탭이 `DegradationTrendChart`에 넘기던 인자를 **그대로** 옮긴다 — 새로 계산하지 않는다.
+프로퍼티 이름은 **`trendSegments`다**(`segments`가 아니다) — `VehicleHealthViewModel.swift:53`. 개요 탭이 `DegradationTrendChart`에 넘기던 인자를 그대로 옮긴다.
 
 - [ ] **Step 4: `VehicleView`가 두 탭에 같은 뷰모델을 넘기게 한다**
 
@@ -701,34 +701,34 @@ struct MonthlyBarLineChart: View {
         let barMax = ChartScale.maxValue(bars)
         let lineMax = ChartScale.maxValue(line)
         VStack(spacing: 5) {
-            ZStack(alignment: .bottom) {
-                HStack(alignment: .bottom, spacing: 5) {
-                    ForEach(bars) { point in
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(point.value == nil
-                                  ? AnyShapeStyle(VehicleTheme.trackFill)
-                                  : AnyShapeStyle(point.id == selectedID
-                                                  ? VehicleTheme.accentBright : VehicleTheme.accentMuted))
-                            .frame(height: max(3, ChartScale.ratio(point.value, max: barMax) * height))
-                            .frame(maxWidth: .infinity)
+            // **탭 폭을 GeometryReader에서 받는다.** 화면 폭(`UIScreen`)으로 나누면
+            // 카드 안쪽 여백만큼 어긋나 오른쪽 끝 달이 안 잡힌다.
+            GeometryReader { proxy in
+                ZStack(alignment: .bottom) {
+                    HStack(alignment: .bottom, spacing: 5) {
+                        ForEach(bars) { point in
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(point.value == nil
+                                      ? AnyShapeStyle(VehicleTheme.trackFill)
+                                      : AnyShapeStyle(point.id == selectedID
+                                                      ? VehicleTheme.accentBright : VehicleTheme.accentMuted))
+                                .frame(height: max(3, ChartScale.ratio(point.value, max: barMax) * height))
+                                .frame(maxWidth: .infinity)
+                        }
                     }
-                }
-                .frame(height: height, alignment: .bottom)
+                    .frame(height: height, alignment: .bottom)
 
-                GeometryReader { proxy in
                     linePath(in: proxy.size, maxValue: lineMax)
                 }
-                .frame(height: height)
+                .contentShape(.rect)
+                .onTapGesture { location in
+                    guard !bars.isEmpty else { return }
+                    let slot = proxy.size.width / CGFloat(bars.count)
+                    let index = min(bars.count - 1, max(0, Int(location.x / max(1, slot))))
+                    onSelect(bars[index].id)
+                }
             }
             .frame(height: height)
-            .contentShape(.rect)
-            .onTapGesture { location in
-                guard !bars.isEmpty else { return }
-                let width = UIScreen.main.bounds.width
-                let index = min(bars.count - 1,
-                                max(0, Int(location.x / max(1, width / CGFloat(bars.count)))))
-                onSelect(bars[index].id)
-            }
 
             HStack(spacing: 5) {
                 ForEach(bars) { point in
@@ -778,7 +778,7 @@ struct MonthlyBarLineChart: View {
 }
 ```
 
-> `VehicleTheme.warning`이 없으면 `VehicleTheme.danger`나 새 색을 쓴다. `VehicleTheme.swift`를 열어 확인하고, 없으면 **선 색을 새로 더하지 말고** 있는 것 중 막대(`accent` 계열)와 확실히 갈리는 것을 고른다.
+`VehicleTheme.warning`은 이미 있다(`VehicleTheme.swift`). **새 색을 더하지 않는다** — 막대가 `accent` 계열이라 선은 확실히 갈리는 색이어야 하고, `warning`이 그 자리다.
 
 - [ ] **Step 2: 도넛 원형을 만든다**
 
@@ -933,11 +933,11 @@ struct CostBreakdownTests {
 
     /// 세 효과의 합이 총 증감과 정확히 같아야 한다 — 어긋나면 화면이
     /// 「▲18,400원인데 항을 더하면 17,900원」이라고 말하게 된다.
-    @Test func 세_효과의_합이_총_증감과_같다() {
+    @Test func 세_효과의_합이_총_증감과_같다() throws {
         let prev = period("2026-07", km: 620, kwh: 115, cost: 22770)
         let curr = period("2026-08", km: 780, kwh: 153, cost: 32700)
         let result = VehicleMath.costBreakdown(current: curr, previous: prev)
-        let breakdown = try! #require(result)
+        let breakdown = try #require(result)
 
         #expect(breakdown.total == 32700 - 22770)
         let sum = breakdown.distance + breakdown.efficiency + breakdown.unitPrice
@@ -960,9 +960,9 @@ struct CostBreakdownTests {
     }
 
     /// 아무것도 안 바뀌면 세 효과가 전부 0이다.
-    @Test func 같은_달이면_효과가_전부_0이다() {
+    @Test func 같은_달이면_효과가_전부_0이다() throws {
         let p = period("2026-08", km: 780, kwh: 153, cost: 32700)
-        let breakdown = try! #require(VehicleMath.costBreakdown(current: p, previous: p))
+        let breakdown = try #require(VehicleMath.costBreakdown(current: p, previous: p))
         #expect(breakdown.total == 0)
         #expect(breakdown.distance == 0)
         #expect(breakdown.efficiency == 0)
@@ -1074,13 +1074,38 @@ git commit -m "feat: 누적합과 충전비 3분해를 VehicleMath에 더한다"
 `WooriHaruTests/VehicleStatsTests.swift` 끝에 더한다.
 
 ```swift
+    /// 세 달 — 가운데가 기록 없는 달이다.
+    private nonisolated static func stubTrend(_ mock: MockAPIClient) {
+        let june = VehiclePeriod(yearMonth: "2026-06", distanceKm: 620, drivingMin: 880,
+                                 driveCount: 34, energyAddedKwh: 115, energyUsedKwh: 126,
+                                 cost: 22770, chargeCount: 5)
+        let july = VehiclePeriod(yearMonth: "2026-07", distanceKm: nil, drivingMin: nil,
+                                 driveCount: nil, energyAddedKwh: nil, energyUsedKwh: nil,
+                                 cost: nil, chargeCount: nil)
+        let august = VehiclePeriod(yearMonth: "2026-08", distanceKm: 780, drivingMin: 1120,
+                                   driveCount: 41, energyAddedKwh: 153, energyUsedKwh: 161,
+                                   cost: 32700, chargeCount: 7)
+        mock.stubGet("/tesla/summary", result: DataResponse<VehicleSummaryResponse>(
+            data: VehicleSummaryResponse(month: august, previous: june,
+                                         trend: [june, july, august], charges: [])
+        ))
+    }
+
+    private nonisolated static func stubEmptyInsights(_ mock: MockAPIClient) {
+        mock.stubGet("/tesla/drive-insights", result: DataResponse<DriveInsightsResponse>(
+            data: DriveInsightsResponse(months: 12, efficiencyKwhPerKm: nil,
+                                        temperatureBuckets: [], driveTimes: [],
+                                        distanceBuckets: [], places: [], maxSpeedKmh: nil,
+                                        totalDistanceKm: nil, recordedMonths: nil)
+        ))
+    }
+
     /// 통계 탭은 주행 인사이트와 12개월 추이를 **둘 다** 받는다.
-    /// 하나가 실패해도 다른 쪽 섹션은 그린다 — 「못 받음」을 「기록 없음」으로 뭉개지 않는 관례다.
     @Test func 추이를_받아_월별_점으로_바꾼다() async {
-        let api = MockAPIClient()
-        api.stub("/tesla/drive-insights", json: Self.emptyInsightsJSON)
-        api.stub("/tesla/summary", json: Self.trendJSON)
-        let viewModel = VehicleStatsViewModel(service: VehicleService(api: api))
+        let mock = MockAPIClient()
+        Self.stubEmptyInsights(mock)
+        Self.stubTrend(mock)
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
 
         await viewModel.load()
 
@@ -1090,24 +1115,28 @@ git commit -m "feat: 누적합과 충전비 3분해를 VehicleMath에 더한다"
         #expect(viewModel.distancePoints[1].value == nil)      // 기록 없는 달은 nil로 남는다
         // 누적은 기록 없는 달을 건너뛰고 이어 간다.
         #expect(viewModel.cumulativeDistancePoints[2].value == 620 + 780)
+        #expect(viewModel.cumulativeDistancePoints[1].value == nil)
     }
 
-    /// 추이를 못 받아도 주행 카드는 그린다.
+    /// 추이를 못 받아도 주행 카드는 그린다 —
+    /// 「못 받음」을 「기록 없음」으로 뭉개지 않는 관례를 두 응답 사이에도 지킨다.
     @Test func 추이를_못_받아도_주행_섹션은_산다() async {
-        let api = MockAPIClient()
-        api.stub("/tesla/drive-insights", json: Self.emptyInsightsJSON)
-        api.stubError("/tesla/summary")
-        let viewModel = VehicleStatsViewModel(service: VehicleService(api: api))
+        let mock = MockAPIClient()
+        Self.stubEmptyInsights(mock)
+        mock.setError(MockAPIClient.MockAPIError.forced, for: "GET /tesla/summary")
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
 
         await viewModel.load()
 
         #expect(!viewModel.hasTrend)
         #expect(viewModel.distancePoints.isEmpty)
         #expect(viewModel.insights != nil)
+        // 추이 실패는 배너를 세우지 않는다.
+        #expect(viewModel.errorMessage == nil)
     }
 ```
 
-> `MockAPIClient`의 정확한 스텁 API(`stub`/`stubError`의 시그니처)는 `WooriHaruTests/MockAPIClient.swift`를 열어 확인하고 그 형태에 맞춘다. `Self.trendJSON`·`Self.emptyInsightsJSON`은 같은 파일 안에 `private static let` 문자열로 둔다 — `trendJSON`의 `trend` 배열은 세 달(`2026-06` 620km, `2026-07` 전부 null, `2026-08` 780km)이다.
+`DriveInsightsResponse`·`VehiclePeriod`의 인자 순서는 `Models/`의 선언과 정확히 맞춰야 한다 — 위 코드는 `DriveInsightsModels.swift`·`VehicleModels.swift`의 현재 선언 순서를 따랐다. 컴파일 오류가 나면 그 선언을 보고 맞춘다.
 
 - [ ] **Step 2: 테스트가 실패하는지 확인한다**
 
@@ -1136,33 +1165,35 @@ xcodebuild -project WooriHaru.xcodeproj -scheme WooriHaru -destination 'platform
         isLoading = true
         defer { isLoading = false }
 
-        async let insightsResult = Result { try await service.fetchDriveInsights(months: period.rawValue) }
-        async let summaryResult  = Result { try await service.fetchSummary(yearMonth: Date.currentYearMonthKST) }
+        async let insightsTask = service.fetchDriveInsights(months: period.rawValue)
+        async let summaryTask = service.fetchSummary(yearMonth: LedgerYearMonth.current().apiValue)
 
-        let (loadedInsights, loadedSummary) = await (insightsResult, summaryResult)
+        // **둘을 따로 잡는다** — 하나가 던져도 다른 하나는 산다.
+        var loadedInsights: DriveInsightsResponse?
+        var insightsError: (any Error)?
+        do { loadedInsights = try await insightsTask } catch { insightsError = error }
+
+        // 추이는 실패해도 배너를 세우지 않는다 — 주행 카드가 살아 있는데 빨간 줄이 서면
+        // 「전부 못 받았다」로 읽힌다. 섹션이 조용히 빠질 뿐이다.
+        // **실패해도 있던 값을 지우지 않는다**(당겨서 새로고침 관례).
+        let loadedSummary = try? await summaryTask
+
+        if insightsError is CancellationError { return }
         guard current == generation else { return }
 
-        switch loadedInsights {
-        case .success(let value):
-            insights = value
+        if let loadedInsights {
+            insights = loadedInsights
             errorMessage = nil
-        case .failure(is CancellationError):
-            return
-        case .failure:
+        } else if insightsError != nil {
             errorMessage = "주행 인사이트를 불러오지 못했습니다."
         }
-
-        // 추이는 실패해도 배너를 세우지 않는다 — 주행 카드가 살아 있는데
-        // 빨간 줄이 서면 「전부 못 받았다」로 읽힌다. 섹션이 조용히 빠질 뿐이다.
-        if case .success(let value) = loadedSummary {
-            trend = value.trend
-        }
+        trend = loadedSummary?.trend ?? trend
     }
 ```
 
-> `Result { try await ... }`가 이 프로젝트의 Swift 버전에서 안 되면 `do/catch` 두 벌을 `async let` 없이 `withTaskGroup`이나 순차 호출로 바꾼다. **중요한 것은 「하나가 실패해도 다른 하나는 산다」** 이지 특정 문법이 아니다.
->
-> `Date.currentYearMonthKST`가 `Date+Extensions.swift`에 없으면 거기에 더한다 — `VehicleSummaryViewModel`이 이번 달을 만드는 방식을 그대로 쓴다.
+`Result { try await … }`는 컴파일되지 않는다(`Result(catching:)`가 async 클로저를 받지 않는다) — 위처럼 `async let` 둘을 각각 `do/catch`·`try?`로 받는다.
+
+`LedgerYearMonth.current()`는 `Models/LedgerModels.swift:222`에 이미 있고 `.apiValue`가 `"2026-08"`을 낸다. **새 헬퍼를 만들지 않는다.**
 
 파생 프로퍼티를 `// MARK: - 파생 값` 절 아래에 더한다.
 
@@ -1389,8 +1420,10 @@ git commit -m "feat: 통계 탭에 주행 차트 넷을 더한다"
 
 **Files:**
 - Create: `WooriHaru/Views/Vehicle/StatsChargeSection.swift`
+- Create: `WooriHaru/Views/Vehicle/Charts/ChartCard.swift` (Step 4)
 - Modify: `WooriHaru/Views/Vehicle/VehicleStatsTab.swift`
 - Modify: `WooriHaru/Views/Vehicle/VehicleView.swift`
+- Modify: `WooriHaru/Views/Vehicle/StatsDriveSection.swift` (Step 4 — Task 9가 만든 파일의 `chartCard`를 `ChartCard`로 바꾼다)
 
 **Interfaces:**
 - Consumes: `MonthlyBarChart`·`MonthlyBarLineChart`·`MonthlyLineChart`·`DonutChart`(Task 4~6), `VehicleStatsViewModel`(Task 8), `ChargeTotalsViewModel`(기존)
@@ -1825,7 +1858,7 @@ struct CostBreakdownCard: View {
 }
 ```
 
-> `VehicleFormat.won(_:)`이 옵셔널만 받으면 `VehicleFormat.won(abs(rounded) as Decimal?)` 형태로 넘긴다. `abs(_:)`가 `Decimal`에 없으면 `rounded < 0 ? -rounded : rounded`로 쓴다.
+`VehicleFormat.won(_:)`은 `Decimal?`을 받고 `ChargeTotalsModels.swift:64`에 있다 — 옵셔널 승격이 되므로 `won(abs(rounded))`가 그대로 컴파일된다. `abs(_:)`는 `Decimal`이 `SignedNumeric`이라 쓸 수 있다.
 
 - [ ] **Step 2: Xcode 타겟에 등록한다**
 
@@ -1907,10 +1940,18 @@ git commit -m "feat: 충전비가 달라진 이유를 세 갈래로 쪼갠다"
 - `VehicleStatsViewModel`의 점 프로퍼티 — Task 8 정의, Task 9·10에서 씀 ✔
 - `VehicleStatsTab(viewModel:healthViewModel:totalsViewModel:)` — Task 2에서 인자 둘, Task 10에서 셋으로 늘어남. **Task 10이 `VehicleView` 호출부를 함께 고친다** ✔
 
-**확인이 필요한 자리** (구현자가 파일을 열어 맞춰야 하는 곳, 각 태스크에 인용 블록으로 적어 뒀다)
+**미확인 자리는 계획 확정 전에 전부 확인했다** — 아래는 그 결과이고, 계획 본문에는 실제 이름으로 적혀 있다.
 
-- `VehicleHealthViewModel.segments`의 실제 이름 (Task 2 Step 3)
-- `MockAPIClient`의 스텁 API 형태 (Task 8 Step 1)
-- `Date.currentYearMonthKST` 존재 여부 (Task 8 Step 3)
-- `VehicleTheme.warning` 존재 여부 (Task 6 Step 1)
-- `VehicleFormat.won(_:)`의 옵셔널 여부 (Task 12 Step 1)
+| 확인한 것 | 결과 |
+|---|---|
+| `VehicleHealthViewModel`의 세그먼트 프로퍼티 | **`trendSegments`**(`segments` 아님) — `VehicleHealthViewModel.swift:53` |
+| `MockAPIClient` 스텁 API | `stubGet(_:result:)`가 **타입 있는 `DataResponse<T>`**를 받는다(JSON 문자열 아님). 오류는 `setError(_:for: "GET /경로")` |
+| 이번 달 `yearMonth` | `LedgerYearMonth.current().apiValue` — `LedgerModels.swift:222`. 새 헬퍼 불필요 |
+| `VehicleTheme.warning` | **있다.** 이중축 선 색으로 쓴다 |
+| `VehicleFormat.won(_:)` | **있다** — `Decimal?`을 받는다(`ChargeTotalsModels.swift:64`) |
+
+**사전 점검에서 고친 계획 결함 셋**
+
+1. `MonthlyBarLineChart`의 탭이 `UIScreen.main.bounds.width`로 나누고 있었다 — 카드 안쪽 여백만큼 어긋나 오른쪽 끝 달이 안 잡힌다. `GeometryReader`의 폭을 쓰도록 고쳤다.
+2. `Result { try await … }`는 컴파일되지 않는다(`Result(catching:)`가 async 클로저를 안 받는다). `async let` 둘을 각각 `do/catch`·`try?`로 받도록 고쳤다.
+3. Task 10 Step 4가 `StatsDriveSection.swift`(Task 9가 만든 파일)를 고치는데 Files 목록에 없었다. 더했다.
