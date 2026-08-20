@@ -1,13 +1,23 @@
 import SwiftUI
 
-/// 통계 탭 「주행」 섹션 — 새 차트 넷과 기존 카드 넷.
+/// 통계 탭 「주행」 섹션 — 월별 차트 넷(#1·#2·#3·#10)과 분포 셋(#4·#7·#8)이 한 카드
+/// 무더기를 이룬다. #5·#6·#9(거리 분포·시간대 히트맵·온도별 전비)는 이 섹션 밖,
+/// `VehicleStatsTab`의 다른 자리에 그대로 산다.
 ///
-/// **여덟 장이 같은 창을 본다.** 재료가 `/tesla/insights` 한 응답의 `monthly`로 옮겨져
-/// 월별 차트도 기간 칩을 따른다 — 1단계에서 이 넷만 12개월로 고정이던 것이 풀렸다.
+/// **월별 넷은 같은 기간 창을 본다.** 재료가 `/tesla/insights` 한 응답의 `monthly`로
+/// 옮겨져 월별 차트도 기간 칩을 따른다 — 1단계에서 이 넷만 12개월로 고정이던 것이 풀렸다.
+/// **분포 셋은 기간 창을 보되 시간축이 없다** — 달력이 아니라 요일·속도로 칸을 나눈다.
 struct StatsDriveSection: View {
     @Bindable var viewModel: VehicleStatsViewModel
 
     @State private var selectedID: String?
+
+    /// 분포 세 장은 **월별 `selectedID`와 상태를 나눈다.** 한 상태를 같이 쓰면 분포 칸을
+    /// 탭했을 때 그 id(`"wd2"` 등)가 월별 카드의 `anchorID`에도 그대로 넘어가 버려
+    /// (`"2026-08"` 대신 `"wd2"`를 찾다가 실패) 월별 카드 넷이 한꺼번에 콜아웃을 잃는다.
+    @State private var weekdaySelectedID: String?
+    @State private var speedSelectedID: String?
+    @State private var speedEfficiencySelectedID: String?
 
     /// **헤더는 내용과 함께만 선다.** 주행 값이 있는 달이 하나도 없으면(아직 못 받았거나,
     /// 그 기간에 안 탔거나) 섹션째 빠진다 — 헤더만 남으면 첫 로딩 중에 빈 제목 둘이
@@ -19,7 +29,10 @@ struct StatsDriveSection: View {
                 monthlyDistanceCard
                 drivingTimeCard
                 cumulativeDistanceCard
+                weekdayDistanceCard
                 efficiencyCard
+                speedCard
+                speedEfficiencyCard
             }
         }
     }
@@ -111,6 +124,62 @@ struct StatsDriveSection: View {
                                  selectedID: anchor,
                                  onSelect: { selectedID = $0 })
             }
+        }
+    }
+
+    // MARK: - 카드(분포)
+
+    /// 분포 세 장의 기본 선택. **월별 `anchorID`의 「마지막 값 있는 점」 규칙이 안 맞는다** —
+    /// 분포에는 시간 순서가 없어 「마지막」이 아무 뜻도 없다. 대신 **가장 큰 칸**을
+    /// 기본으로 보여 준다 — 처음 볼 때 가장 궁금한 것은 「어디가 두드러지나」이기 때문이다.
+    private func distributionAnchor(_ points: [ChartPoint], selected: String?) -> String? {
+        selected ?? points.max { ($0.value ?? -1) < ($1.value ?? -1) }?.id
+    }
+
+    /// `ChartPoint.value`가 `Decimal?`로 고정된 원형이라, 건수를 실어 온 점을 도로
+    /// `Int?`로 되돌린다.
+    private func intCount(_ value: Decimal?) -> Int? {
+        value.map { NSDecimalNumber(decimal: $0).intValue }
+    }
+
+    /// #4 요일별 평균 주행거리. 라벨은 `viewModel.weekdayDistancePoints`가 이미
+    /// `isoWeekdayLabel`로 낸다 — 여기서 요일 규약을 다시 고르지 않는다.
+    private var weekdayDistanceCard: some View {
+        let points = viewModel.weekdayDistancePoints
+        let anchor = distributionAnchor(points, selected: weekdaySelectedID)
+        let shown = points.first { $0.id == anchor }
+        return ChartCard(title: "요일별 평균 주행거리",
+                         callout: shown.map { "\($0.label) \(VehicleFormat.distance($0.value))" }) {
+            DistributionBarChart(points: points,
+                                 selectedID: anchor,
+                                 onSelect: { weekdaySelectedID = $0 })
+        }
+    }
+
+    /// #7 최고속도 분포. 주행 한 건의 **최고** 속도라 #8과 모집단이 다르다.
+    private var speedCard: some View {
+        let points = viewModel.speedPoints
+        let anchor = distributionAnchor(points, selected: speedSelectedID)
+        let shown = points.first { $0.id == anchor }
+        return ChartCard(title: "최고속도 분포",
+                         callout: shown.map { "\($0.label)km/h \(DriveFormat.count(intCount($0.value)))" }) {
+            DistributionBarChart(points: points,
+                                 selectedID: anchor,
+                                 onSelect: { speedSelectedID = $0 })
+        }
+    }
+
+    /// #8 속도별 전비. **`driveCount`가 없는 배열이다** — #7과 모집단이 달라
+    /// 콜아웃에 「N회 기준」을 적지 않는다.
+    private var speedEfficiencyCard: some View {
+        let points = viewModel.speedEfficiencyPoints
+        let anchor = distributionAnchor(points, selected: speedEfficiencySelectedID)
+        let shown = points.first { $0.id == anchor }
+        return ChartCard(title: "속도별 전비",
+                         callout: shown.map { "\($0.label)km/h \(VehicleFormat.efficiency($0.value))" }) {
+            DistributionBarChart(points: points,
+                                 selectedID: anchor,
+                                 onSelect: { speedEfficiencySelectedID = $0 })
         }
     }
 }

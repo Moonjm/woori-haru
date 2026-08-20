@@ -567,4 +567,55 @@ struct VehicleStatsViewModelTests {
 
         #expect(viewModel.overallEfficiencyRatio == nil)
     }
+
+    // MARK: - 분포(요일·속도)
+
+    /// 월요일 52번에 612km면 11.77km.
+    @Test func 요일별_평균은_그_요일이_몇_번_있었나로_나눈다() {
+        let value = VehicleMath.avgPerOccurrence(total: 612, occurrences: 52)
+        let unwrapped = try! #require(value)
+        #expect(abs(unwrapped - Decimal(string: "11.769")!) < Decimal(string: "0.01")!)
+    }
+
+    @Test func 그_요일이_한_번도_없으면_nil이다() {
+        #expect(VehicleMath.avgPerOccurrence(total: 0, occurrences: 0) == nil)
+    }
+
+    /// **이 차트가 하루 밀리는 것이 이 태스크의 가장 큰 위험이다.** 같은 응답의
+    /// `driveTimes`는 0=일요일인데 `weekday`는 1=월요일이다.
+    @Test func 요일_라벨이_ISO_규약을_따른다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 1))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+        // 스텁의 weekday는 1...7이 월~일 순서다.
+        #expect(viewModel.weekdayDistancePoints.map(\.label)
+                == ["월", "화", "수", "목", "금", "토", "일"])
+    }
+
+    /// #7은 버킷 건수를 그대로 점으로 옮긴다 — 나눗셈이 없다.
+    @Test func 최고속도_분포는_버킷_건수를_그대로_점으로_옮긴다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 1))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+        let point = try! #require(viewModel.speedPoints.first)
+        #expect(point.id == "sp120")
+        #expect(point.label == "120+")
+        #expect(point.value == 3)
+    }
+
+    /// #8은 정격거리 소모를 kWh로 환산해 나눈다 — `VehicleMath.kmPerKwh`와 같은 식이다.
+    /// 스텁: 302km, 정격 소모 410km, 계수 0.168kWh/km → 소비 68.88kWh →
+    /// 302÷68.88 = 4.384436...km/kWh(직접 검산).
+    @Test func 속도별_전비는_정격거리_소모를_kWh로_환산해_나눈다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 1))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+        let point = try! #require(viewModel.speedEfficiencyPoints.first)
+        #expect(point.id == "se0")
+        let value = try! #require(point.value)
+        #expect(abs(value - Decimal(string: "4.3844")!) < Decimal(string: "0.001")!)
+    }
 }

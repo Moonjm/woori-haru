@@ -187,6 +187,13 @@ enum VehicleMath {
         max(0, Int(now.timeIntervalSince(date) / 60))
     }
 
+    /// 요일별 평균처럼 「합 ÷ 발생 횟수」꼴 평균 하나. 분모가 0이면 nil이다 — **0이 아니다.**
+    /// 그 요일이 범위에 한 번도 없었다는 것과 「평균 0km」는 다른 말이다.
+    static func avgPerOccurrence(total: Decimal, occurrences: Int) -> Decimal? {
+        guard occurrences > 0 else { return nil }
+        return total / Decimal(occurrences)
+    }
+
     /// **`VehicleHealthModels.swift`의 확장도 쓴다** — 그래서 private가 아니다.
     /// 반올림 규칙을 두 벌 두면 잔존율과 열화가 화면에서 101%가 되는 달이 나온다.
     static func rounded(_ value: Decimal) -> Decimal {

@@ -192,6 +192,37 @@ final class VehicleStatsViewModel {
         }
     }
 
+    // MARK: - 파생 값(분포)
+
+    /// #4 요일별 평균 주행거리. **`isoWeekdayLabel`을 쓴다** — 이 배열만 1=월요일이고
+    /// 같은 응답의 `driveTimes`·`chargeTimes`는 0=일요일이다. 섞으면 차트가 하루씩 밀린다.
+    var weekdayDistancePoints: [ChartPoint] {
+        (insights?.weekday ?? []).map { day in
+            ChartPoint(id: "wd\(day.weekday)",
+                       label: DriveFormat.isoWeekdayLabel(day.weekday),
+                       value: VehicleMath.avgPerOccurrence(total: day.distanceKm,
+                                                            occurrences: day.occurrences))
+        }
+    }
+
+    /// #7 최고속도 분포. 주행 **한 건의 최고** 속도라 #8과 모집단이 다르다.
+    var speedPoints: [ChartPoint] {
+        (insights?.speedBuckets ?? []).map {
+            ChartPoint(id: "sp\($0.fromKmh)", label: $0.label, value: Decimal($0.driveCount))
+        }
+    }
+
+    /// #8 속도별 전비. **`driveCount`가 없는 배열이다** — `ΔratedRange > 0`인 주행만 들어
+    /// #7과 모집단이 다르므로, 카드 콜아웃에 「N회 기준」을 적지 않는다.
+    var speedEfficiencyPoints: [ChartPoint] {
+        (insights?.speedEnergyBuckets ?? []).map { bucket in
+            ChartPoint(id: "se\(bucket.fromKmh)", label: bucket.label,
+                       value: VehicleMath.kmPerKwh(distanceKm: bucket.distanceKm,
+                                                    ratedRangeUsedKm: bucket.ratedRangeUsedKm,
+                                                    efficiencyKwhPerKm: insights?.efficiencyKwhPerKm))
+        }
+    }
+
     // MARK: - 로드
 
     /// 탭에 들어올 때마다 부른다. **단, 지난번이 오류로 끝났다면 다시 받는다** —
