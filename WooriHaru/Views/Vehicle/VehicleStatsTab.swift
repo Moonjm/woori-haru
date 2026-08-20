@@ -165,11 +165,26 @@ struct VehicleStatsTab: View {
 
     /// 열화 추세 — 「지금 어떤가」가 아니라 「어떻게 변해왔나」라 개요가 아니라 여기다.
     /// **기간 칩을 따르지 않는다** — 열화는 전 기간을 봐야 기울기가 보인다.
+    ///
+    /// **헤더를 단다.** 바로 위가 「🔌 충전」 카드들이라 헤더가 없으면 열화 추세가
+    /// 충전 섹션의 다섯째 카드로 읽힌다. 헤더는 내용과 함께만 선다 —
+    /// 열화 추세가 없으면 제목만 남은 빈 섹션이 된다.
     @ViewBuilder private var batterySection: some View {
         if !healthViewModel.trendSegments.isEmpty {
-            DegradationTrendChart(segments: healthViewModel.trendSegments,
-                                  selectedKey: selectedHealthKey,
-                                  onSelect: { selectedHealthKey = $0 })
+            VStack(spacing: 12) {
+                HStack {
+                    Text("🔋 배터리")
+                        .font(.subheadline)
+                        .fontWeight(.heavy)
+                        .foregroundStyle(VehicleTheme.textPrimary)
+                    Spacer(minLength: 0)
+                }
+                .padding(.top, 4)
+
+                DegradationTrendChart(segments: healthViewModel.trendSegments,
+                                      selectedKey: selectedHealthKey,
+                                      onSelect: { selectedHealthKey = $0 })
+            }
         }
     }
 
