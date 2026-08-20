@@ -90,6 +90,15 @@ final class VehicleStatsViewModel {
             || insights.regions.cities > 0
     }
 
+    /// #26 명예의 전당 게이트. **셋이 각각 nil일 수 있다** — `bestEfficiency`만 nil인
+    /// 길이 따로 있다(20km 넘는 주행이 없을 때). 하나라도 있으면 섹션을 그리고,
+    /// 셋 다 없으면 헤더까지 감춘다(다른 섹션들과 같은 「헤더는 내용과 함께만 선다」 규칙).
+    var showsRecords: Bool {
+        guard let records = insights?.records else { return false }
+        return records.longestDistance != nil || records.longestDuration != nil
+            || records.bestEfficiency != nil
+    }
+
     /// **뷰가 아니라 여기서 나눈다.** 뷰에서 다시 계산하면 테스트하는 값과 화면에 나오는 값이
     /// 서로 다른 코드가 된다 — 3단계에서 같은 함정을 두 번 밟았다.
     ///

@@ -92,6 +92,14 @@ enum VehicleMath {
         return distanceKm / energyAddedKwh
     }
 
+    /// 두 값의 나눗셈 하나. **분모가 0 이하면 nil이다** — 서버가 그 처리를 정해 버리면
+    /// 화면이 따라야 한다. #26 명예의 전당의 최고효율(`distanceKm ÷ ratedRangeUsedKm`)이
+    /// 첫 소비자다.
+    static func ratio(_ numerator: Decimal, _ denominator: Decimal) -> Decimal? {
+        guard denominator > 0 else { return nil }
+        return numerator / denominator
+    }
+
     /// 월 평균 주행거리 = 총거리 / 기록이 있는 달 수.
     ///
     /// **분모가 0이거나 없으면 nil이다.** 서버는 주행이 하나도 없을 때 `recordedMonths: 0`을
