@@ -1,5 +1,9 @@
 import SwiftUI
 
+/// 막대·라벨 사이 간격. **HStack과 x 공식이 같은 값을 봐야 한다** —
+/// 두 곳에 따로 적으면 선의 점이 자기 막대에서 조용히 미끄러진다.
+private let slotSpacing: CGFloat = 5
+
 /// 막대 + 선 이중축. **두 축의 눈금을 화면에 적지 않는다** — 단위가 다른 두 계열을 겹치는
 /// 자리라 눈금 둘을 다 적으면 카드가 숫자로 덮인다. 정확한 값은 콜아웃이 말한다.
 ///
@@ -19,7 +23,7 @@ struct MonthlyBarLineChart: View {
             // 카드 안쪽 여백만큼 어긋나 오른쪽 끝 달이 안 잡힌다.
             GeometryReader { proxy in
                 ZStack(alignment: .bottom) {
-                    HStack(alignment: .bottom, spacing: 5) {
+                    HStack(alignment: .bottom, spacing: slotSpacing) {
                         ForEach(bars) { point in
                             let isSelected = point.id == selectedID
                             RoundedRectangle(cornerRadius: 4)
@@ -45,7 +49,7 @@ struct MonthlyBarLineChart: View {
             }
             .frame(height: height)
 
-            HStack(spacing: 5) {
+            HStack(spacing: slotSpacing) {
                 ForEach(bars) { point in
                     let isSelected = point.id == selectedID
                     Text(point.label)
@@ -63,11 +67,12 @@ struct MonthlyBarLineChart: View {
     private func linePath(in size: CGSize, maxValue: Decimal) -> some View {
         Path { path in
             var started = false
+            let slot = (size.width - slotSpacing * CGFloat(line.count - 1)) / CGFloat(line.count)
             for (index, point) in line.enumerated() {
                 guard let value = point.value else { started = false; continue }
                 let x = line.count <= 1
                     ? size.width / 2
-                    : size.width * CGFloat(index) / CGFloat(line.count - 1)
+                    : CGFloat(index) * (slot + slotSpacing) + slot / 2
                 let y = size.height * (1 - ChartScale.ratio(value, max: maxValue))
                 let cgPoint = CGPoint(x: x, y: y)
                 if started { path.addLine(to: cgPoint) } else { path.move(to: cgPoint); started = true }

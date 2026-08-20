@@ -1,5 +1,9 @@
 import SwiftUI
 
+/// 막대·라벨 사이 간격. **HStack과 x 공식이 같은 값을 봐야 한다** —
+/// 두 곳에 따로 적으면 선의 점이 자기 막대에서 조용히 미끄러진다.
+private let slotSpacing: CGFloat = 5
+
 /// 월별 선 하나. **y축이 0에서 시작한다** — 누적값과 추세를 그리는 자리라 0이 뜻을 갖는다.
 /// 0에서 시작하지 않아야 하는 차트(열화 추세)는 `DegradationTrendChart`가 따로 그린다.
 ///
@@ -18,7 +22,7 @@ struct MonthlyLineChart: View {
             }
             .frame(height: height)
 
-            HStack(spacing: 5) {
+            HStack(spacing: slotSpacing) {
                 ForEach(points) { point in
                     let isSelected = point.id == selectedID
                     Text(point.label)
@@ -84,9 +88,10 @@ struct MonthlyLineChart: View {
 
     private func position(index: Int, value: Decimal, maxValue: Decimal, in size: CGSize) -> CGPoint {
         // 점이 하나뿐이면 왼쪽 끝에 붙는 대신 가운데에 찍는다.
+        let slot = (size.width - slotSpacing * CGFloat(points.count - 1)) / CGFloat(points.count)
         let x = points.count <= 1
             ? size.width / 2
-            : size.width * CGFloat(index) / CGFloat(points.count - 1)
+            : CGFloat(index) * (slot + slotSpacing) + slot / 2
         let ratio = ChartScale.ratio(value, max: maxValue)
         return CGPoint(x: x, y: size.height * (1 - ratio))
     }
