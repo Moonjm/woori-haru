@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// 최근 몇 시간의 상태를 **한 줄**로. **오른쪽 끝이 「지금」이다** — 서버가 `to`를 요청 시각으로
 /// 주고 자정에 맞추지 않는다.
@@ -89,28 +90,25 @@ struct StateTimelineChart: View {
             // 세로 스크롤·당겨서 새로고침이 그대로 살아 있어야 한다 — 띠가 화면 위쪽이라
             // 새로고침하려고 손을 얹는 자리가 하필 거기다.
             //
-            // **방향으로 가르는 방법은 실패했다.** `minimumDistance: 0`짜리 드래그는
-            // 터치 다운 즉시 인식돼서 `simultaneousGesture`로 걸어도 스크롤이 안 살아나고,
-            // 시작 몇 픽셀의 세로 흔들림으로 쓸어보기인지 스크롤인지를 가르면 비뚤게 시작한
-            // 쓸어보기가 통째로 죽는다. **시간으로 가르면 그 다툼이 아예 없다.**
+            // **SwiftUI 제스처로는 두 번 실패했다.** `DragGesture(minimumDistance: 0)`은
+            // `simultaneousGesture`로 걸어도 스크롤을 살려내지 못했고, 방향으로 가르자
+            // 비뚤게 시작한 쓸어보기가 죽었다. `LongPressGesture.sequenced(before:)`도
+            // 스크롤을 놓아주지 않았다 — SwiftUI의 중재가 무엇을 하는지 밖에서 알 수 없다.
             //
-            // `maximumDistance: 10`이 갈라내는 지점이다 — 0.2초가 차기 전에 손가락이
-            // 10pt 넘게 움직이면 긴 누름이 실패하고, 터치는 스크롤뷰로 넘어간다.
-            .gesture(
-                LongPressGesture(minimumDuration: 0.2, maximumDistance: 10)
-                    .sequenced(before: DragGesture(minimumDistance: 0))
-                    .onChanged { value in
-                        // **긴 누름이 붙잡힌 뒤의 드래그만 읽는다.** 긴 누름 자체는 위치를
-                        // 알려주지 않으므로, 라벨은 손가락이 처음 움직인 순간부터 뜬다.
-                        guard case .second(true, let drag?) = value else { return }
-                        isScrubbing = true
-                        touchedFraction = width > 0 ? drag.location.x / width : nil
-                    }
-                    .onEnded { _ in
-                        isScrubbing = false
-                        touchedFraction = nil
-                    }
-            )
+            // **그래서 UIKit 인식기를 직접 쓴다.** `UILongPressGestureRecognizer`가
+            // `UIScrollView`의 팬과 어울리는 방식은 UIKit의 표준 동작이라 예측 가능하다 —
+            // 0.2초 안에 손가락이 움직이면 스크롤이 이기고, 눌러 버티면 인식기가 이긴다.
+            // 게다가 이 인식기는 `.changed`마다 위치를 주므로 SwiftUI 조합에서 못 얻던
+            // 「누른 자리」까지 함께 해결된다.
+            .gesture(TimelineScrubGesture { point in
+                guard let point, width > 0 else {
+                    isScrubbing = false
+                    touchedFraction = nil
+                    return
+                }
+                isScrubbing = true
+                touchedFraction = point.x / width
+            })
             // 긴 누름은 **언제 걸렸는지가 안 보인다.** 손끝으로 알려 주지 않으면
             // 사람은 0.2초를 못 기다리고 손을 뗀다.
             .sensoryFeedback(trigger: isScrubbing) { _, engaged in engaged ? .selection : nil }
@@ -273,6 +271,40 @@ struct StateTimelineChart: View {
         formatter.dateFormat = "HH:mm"
         return formatter
     }()
+}
+
+
+/// 띠를 꾹 눌렀다 끌어 읽는 제스처. **UIKit 인식기를 그대로 쓴다.**
+///
+/// SwiftUI의 `DragGesture`·`LongPressGesture.sequenced(before:)`로는 `ScrollView` 안에서
+/// 세로 스크롤을 살려내지 못했다. `UILongPressGestureRecognizer`는 `UIScrollView`의 팬과
+/// 함께 쓰는 것이 UIKit의 오래된 표준 경로라 동작이 예측 가능하다 — `allowableMovement`
+/// 안에서 `minimumPressDuration`을 버티면 인식기가 이기고, 그 전에 움직이면 스크롤이 이긴다.
+///
+/// **위치를 함께 얻는 것이 덤이 아니다.** SwiftUI 조합에서는 긴 누름이 위치를 알려주지 않아
+/// 손가락이 움직이기 전까지 라벨을 띄울 좌표가 없었다. 이 인식기는 `.began`부터 위치를 준다.
+private struct TimelineScrubGesture: UIGestureRecognizerRepresentable {
+    /// 짚은 자리(뷰 좌표). 손을 떼거나 취소되면 `nil`.
+    let onChange: (CGPoint?) -> Void
+
+    func makeUIGestureRecognizer(context: Context) -> UILongPressGestureRecognizer {
+        let recognizer = UILongPressGestureRecognizer()
+        recognizer.minimumPressDuration = 0.2
+        // 0.2초가 차기 전에 이만큼 움직이면 인식기가 실패하고 터치는 스크롤뷰로 간다.
+        recognizer.allowableMovement = 10
+        return recognizer
+    }
+
+    func handleUIGestureRecognizerAction(_ recognizer: UILongPressGestureRecognizer, context: Context) {
+        switch recognizer.state {
+        case .began, .changed:
+            onChange(recognizer.location(in: recognizer.view))
+        default:
+            // `.ended`·`.cancelled`·`.failed` 모두 라벨을 지운다 — 취소를 빠뜨리면
+            // 전화가 오거나 제어 센터를 내린 뒤에 구간 정보가 화면에 남는다.
+            onChange(nil)
+        }
+    }
 }
 
 #Preview("타임라인") {

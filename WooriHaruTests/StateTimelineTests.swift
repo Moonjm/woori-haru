@@ -279,4 +279,29 @@ struct StateTimelineTests {
     @Test func 막대가_하나도_없으면_아무것도_고르지_않는다() {
         #expect(StateTimelineMath.bar(atFraction: 0.5, in: []) == nil)
     }
+
+    /// 띠의 **오른쪽 맨 끝**(「지금」)에서는 비율이 정확히 1.0이다. 반열린 규칙만 쓰면
+    /// 눈에는 색이 칠해져 있는 자리에서 아무것도 안 잡혀 제목이 되돌아간다.
+    @Test func 오른쪽_맨_끝은_마지막_막대에_붙는다() {
+        let bars = [
+            TimelineBar(start: 0.0, end: 0.5, kind: .offline),
+            TimelineBar(start: 0.5, end: 1.0, kind: .online)
+        ]
+        #expect(StateTimelineMath.bar(atFraction: 1.0, in: bars)?.kind == .online)
+    }
+
+    /// 끝점 예외가 **안쪽 이음매까지 무르게 만들지 않는다.**
+    @Test func 끝점_예외가_안쪽_경계를_바꾸지_않는다() {
+        let bars = [
+            TimelineBar(start: 0.0, end: 0.5, kind: .offline),
+            TimelineBar(start: 0.5, end: 1.0, kind: .online)
+        ]
+        #expect(StateTimelineMath.bar(atFraction: 0.5, in: bars)?.kind == .online)
+    }
+
+    /// 오른쪽 끝에 막대가 없으면 끝점도 비어 있다 — 없는 것을 끌어다 붙이지 않는다.
+    @Test func 끝에_막대가_없으면_끝점도_비어_있다() {
+        let bars = [TimelineBar(start: 0.0, end: 0.4, kind: .offline)]
+        #expect(StateTimelineMath.bar(atFraction: 1.0, in: bars) == nil)
+    }
 }
