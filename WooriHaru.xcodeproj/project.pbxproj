@@ -142,6 +142,7 @@
 		E388FF0F4AE279B6C9099FEE /* ScheduleDayCellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 813FA531B52FC382C20B699F /* ScheduleDayCellView.swift */; };
 		E574D8B442A50FE739D2797E /* ChargeCostQueueViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2752001B1F1C6B23D62A759B /* ChargeCostQueueViewModel.swift */; };
 		E79FC13D69A9C1D841B88449 /* ChargeRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CC3CC54FB4A7E913816594F /* ChargeRow.swift */; };
+		E9ED799BF0F12E5D22DA0296 /* ChartPoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 961A0AFE42DC5F675D6EF817 /* ChartPoint.swift */; };
 		EAD60DE46F1B149DA45D02A0 /* VehicleModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 690A0D0A21A54E8BE01CDC21 /* VehicleModels.swift */; };
 		EB02C36F09E042FBA560DB49 /* ScheduleDayEditViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27B9109A23976C3D60DF063E /* ScheduleDayEditViewModel.swift */; };
 		EB0B5D92B892DFD790210BC3 /* StateTimelineViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09020C369FEE3FA5F7F7D34F /* StateTimelineViewModel.swift */; };
@@ -283,6 +284,7 @@
 		88C2E2B22F557CCD001249F8 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		88DD96EC2F61B3A900E60283 /* StudyRecordView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyRecordView.swift; sourceTree = "<group>"; };
 		88EBCBE73E844A5092ABC002 /* VehicleStatsViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VehicleStatsViewModel.swift; sourceTree = "<group>"; };
+		961A0AFE42DC5F675D6EF817 /* ChartPoint.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ChartPoint.swift; path = Vehicle/Charts/ChartPoint.swift; sourceTree = "<group>"; };
 		A1C9DA97EA2D7E94602135D9 /* TirePressureCard.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TirePressureCard.swift; path = Vehicle/TirePressureCard.swift; sourceTree = "<group>"; };
 		A20001 /* WooriHaruApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WooriHaruApp.swift; sourceTree = "<group>"; };
 		A20002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -454,7 +456,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		880AD4802F5F071300777742 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+		880AD4802F5F071300777742 /* Exceptions for "StudyTimerWidget" folder in "StudyTimerWidgetExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -464,8 +466,29 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		880AD46C2F5F071200777742 /* StudyTimerWidget */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (880AD4802F5F071300777742 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = StudyTimerWidget; sourceTree = "<group>"; };
-		TT100001 /* WooriHaruTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = WooriHaruTests; sourceTree = "<group>"; };
+		880AD46C2F5F071200777742 /* StudyTimerWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				880AD4802F5F071300777742 /* Exceptions for "StudyTimerWidget" folder in "StudyTimerWidgetExtension" target */,
+			);
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = StudyTimerWidget;
+			sourceTree = "<group>";
+		};
+		TT100001 /* WooriHaruTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = WooriHaruTests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -495,6 +518,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		16D251238C85460507EA66D4 /* Charts */ = {
+			isa = PBXGroup;
+			children = (
+				961A0AFE42DC5F675D6EF817 /* ChartPoint.swift */,
+			);
+			name = Charts;
+			sourceTree = "<group>";
+		};
 		4D87006A40CD34B77177903D /* Charge */ = {
 			isa = PBXGroup;
 			children = (
@@ -550,6 +581,7 @@
 				1290DDC78D6B77BC67BF5EFC /* BatteryNowCard.swift */,
 				E54EE8F06DA8FCE8902A9684 /* StateTimelineChart.swift */,
 				D3969DDF508574526929B164 /* DriveStatsCard.swift */,
+				16D251238C85460507EA66D4 /* Charts */,
 			);
 			name = Vehicle;
 			sourceTree = "<group>";
@@ -1284,6 +1316,7 @@
 				C357EE1396A9C735D6DCBB57 /* StateTimelineChart.swift in Sources */,
 				DA93828D80FD5DBC1FEBF0F2 /* DriveStatsCard.swift in Sources */,
 				D4A14506B36EE336E3DF1100 /* VehicleTheme.swift in Sources */,
+				E9ED799BF0F12E5D22DA0296 /* ChartPoint.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
