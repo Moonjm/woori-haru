@@ -14,14 +14,16 @@ struct MonthlyBarChart: View {
     var body: some View {
         let maxValue = ChartScale.maxValue(points)
         HStack(alignment: .bottom, spacing: ChartScale.slotSpacing(count: points.count)) {
-            ForEach(points) { point in
-                bar(point, maxValue: maxValue)
+            // **id는 offset이 아니라 점의 정체성이다** — offset으로 두면 데이터가 바뀔 때
+            // SwiftUI가 엉뚱한 슬롯을 같은 뷰로 재사용해 탭·값이 옆으로 미끄러진다.
+            ForEach(Array(points.enumerated()), id: \.element.id) { index, point in
+                bar(point, index: index, maxValue: maxValue)
             }
         }
         .frame(height: barHeight + 24)
     }
 
-    private func bar(_ point: ChartPoint, maxValue: Decimal) -> some View {
+    private func bar(_ point: ChartPoint, index: Int, maxValue: Decimal) -> some View {
         let isSelected = point.id == selectedID
         let ratio = ChartScale.ratio(point.value, max: maxValue)
         return VStack(spacing: 5) {
@@ -33,7 +35,9 @@ struct MonthlyBarChart: View {
                       ? AnyShapeStyle(VehicleTheme.trackFill)
                       : AnyShapeStyle(isSelected ? VehicleTheme.accentBright : VehicleTheme.accentMuted))
                 .frame(height: max(3, ratio * barHeight))
-            Text(point.label)
+            // **감추지 않고 빈 글자로 둔다.** 라벨 뷰 자체를 없애면 남은 라벨들이
+            // `HStack`에서 다시 채워져 자기 막대에서 옆으로 밀린다 — 자리는 지키고 글자만 지운다.
+            Text(MonthLabel.shows(index: index, count: points.count) ? point.label : "")
                 .font(.system(size: 9, weight: isSelected ? .heavy : .regular))
                 .foregroundStyle(isSelected ? VehicleTheme.accentBright : VehicleTheme.textTertiary)
         }

@@ -10,6 +10,7 @@ struct DrivePeriodTests {
 
     @Test func 전체만_라벨이_개월수가_아니다() {
         #expect(DrivePeriod.threeMonths.label == "3개월")
+        #expect(DrivePeriod.sixMonths.label == "6개월")
         #expect(DrivePeriod.twelveMonths.label == "12개월")
         #expect(DrivePeriod.all.label == "전체")
     }

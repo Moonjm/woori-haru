@@ -48,9 +48,13 @@ struct MonthlyBarLineChart: View {
             .frame(height: height)
 
             HStack(spacing: ChartScale.slotSpacing(count: bars.count)) {
-                ForEach(bars) { point in
+                // **id는 offset이 아니라 점의 정체성이다** — offset으로 두면 데이터가 바뀔 때
+                // SwiftUI가 엉뚱한 슬롯을 같은 뷰로 재사용해 탭·값이 옆으로 미끄러진다.
+                ForEach(Array(bars.enumerated()), id: \.element.id) { index, point in
                     let isSelected = point.id == selectedID
-                    Text(point.label)
+                    // **감추지 않고 빈 글자로 둔다.** 라벨 뷰 자체를 없애면 남은 라벨들이
+                    // `HStack`에서 다시 채워져 자기 막대에서 옆으로 밀린다 — 자리는 지키고 글자만 지운다.
+                    Text(MonthLabel.shows(index: index, count: bars.count) ? point.label : "")
                         .font(.system(size: 9, weight: isSelected ? .heavy : .regular))
                         .foregroundStyle(isSelected
                                          ? VehicleTheme.accentBright : VehicleTheme.textTertiary)
