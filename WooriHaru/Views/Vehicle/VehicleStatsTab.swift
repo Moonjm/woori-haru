@@ -6,6 +6,10 @@ import SwiftUI
 /// 충전 탭의 월 스와이프는 여기 걸지 않는다 — 이 탭의 기간 단위는 달이 아니다.
 struct VehicleStatsTab: View {
     @Bindable var viewModel: VehicleStatsViewModel
+    /// 「배터리」 섹션의 열화 추세만 쓴다. 잔존율 카드는 개요 탭에 남는다.
+    @Bindable var healthViewModel: VehicleHealthViewModel
+
+    @State private var selectedHealthKey: String?
 
     var body: some View {
         ScrollView {
@@ -31,6 +35,7 @@ struct VehicleStatsTab: View {
                 }
 
                 content
+                batterySection
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 110)
@@ -145,6 +150,16 @@ struct VehicleStatsTab: View {
                     }
                 }
             }
+        }
+    }
+
+    /// 열화 추세 — 「지금 어떤가」가 아니라 「어떻게 변해왔나」라 개요가 아니라 여기다.
+    /// **기간 칩을 따르지 않는다** — 열화는 전 기간을 봐야 기울기가 보인다.
+    @ViewBuilder private var batterySection: some View {
+        if !healthViewModel.trendSegments.isEmpty {
+            DegradationTrendChart(segments: healthViewModel.trendSegments,
+                                  selectedKey: selectedHealthKey,
+                                  onSelect: { selectedHealthKey = $0 })
         }
     }
 

@@ -13,8 +13,6 @@ struct VehicleOverviewTab: View {
     /// 금액 미등록 큐를 여는 진입점. **입력 경로를 바꾸는 것이 아니라 하나 더 다는 것이다.**
     let onOpenQueue: () -> Void
 
-    @State private var selectedTrendKey: String?
-
     var body: some View {
         ScrollView {
             VStack(spacing: 12) {
@@ -124,11 +122,6 @@ struct VehicleOverviewTab: View {
                 fullRangeKm: healthViewModel.latest?.fullRangeKm,
                 capacityKwh: healthViewModel.latestCapacityKwh,
                 rangeLostKm: healthViewModel.rangeLostKm
-            )
-            DegradationTrendChart(
-                segments: healthViewModel.trendSegments,
-                selectedKey: selectedTrendKey,
-                onSelect: { selectedTrendKey = $0 }
             )
         } else if let error = healthViewModel.errorMessage {
             BatteryHealthPlaceholderCard(
