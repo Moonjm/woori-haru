@@ -155,4 +155,11 @@ enum DriveFormat {
 
     /// 62 → "62회"
     static func count(_ value: Int) -> String { "\(value)회" }
+
+    /// **`nil`은 「0회」가 아니라 「—」다.** 기록이 없는 달과 안 탄 달을 한 글자로 뭉개면
+    /// 같은 콜아웃 안에서 거리(「—」)와 횟수(「0회」)가 서로 다른 말을 한다.
+    static func count(_ value: Int?) -> String {
+        guard let value else { return ChargeFormat.placeholder }
+        return count(value)
+    }
 }

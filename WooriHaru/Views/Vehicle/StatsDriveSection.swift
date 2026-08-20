@@ -43,7 +43,7 @@ struct StatsDriveSection: View {
     private var monthlyDistanceCard: some View {
         ChartCard(title: "월별 주행거리 · 주행횟수",
                   callout: selected.map {
-                      "\(VehicleFormat.distance($0.distanceKm)) · \(DriveFormat.count($0.driveCount ?? 0))"
+                      "\(VehicleFormat.distance($0.distanceKm)) · \(DriveFormat.count($0.driveCount))"
                   }) {
             MonthlyBarLineChart(bars: viewModel.distancePoints,
                                 line: viewModel.driveCountPoints,
@@ -62,12 +62,16 @@ struct StatsDriveSection: View {
     }
 
     private var cumulativeDistanceCard: some View {
-        ChartCard(title: "누적 주행거리",
-                  callout: viewModel.cumulativeDistancePoints
-                      .last(where: { $0.value != nil })
-                      .map { VehicleFormat.distance($0.value) }) {
-            MonthlyLineChart(points: viewModel.cumulativeDistancePoints,
-                             selectedID: selectedID ?? viewModel.trend.last?.yearMonth,
+        let points = viewModel.cumulativeDistancePoints
+        // **강조와 콜아웃이 같은 달을 가리키게 한다.** 기본값은 「마지막으로 기록이 있는 달」이라
+        // 아무것도 고르지 않은 상태에서 지금까지 총 주행거리가 그대로 보이고,
+        // 탭하면 그 달까지의 누적으로 바뀐다.
+        let anchorID = selectedID ?? points.last(where: { $0.value != nil })?.id
+        let shown = points.first { $0.id == anchorID }
+        return ChartCard(title: "누적 주행거리",
+                          callout: shown.map { VehicleFormat.distance($0.value) }) {
+            MonthlyLineChart(points: points,
+                             selectedID: anchorID,
                              onSelect: { selectedID = $0 })
         }
     }
