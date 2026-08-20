@@ -1,7 +1,7 @@
 import Foundation
 import Observation
 
-/// 요약 탭 — 월 단위 차량 집계와 그 달 충전 목록. 미등록 배지 수만 월과 무관하게 따로 받는다.
+/// 충전 탭 — 월 단위 차량 집계와 그 달 충전 목록. 미등록 배지 수만 월과 무관하게 따로 받는다.
 @MainActor
 @Observable
 final class VehicleSummaryViewModel {

@@ -1,11 +1,23 @@
 import SwiftUI
 
-/// 주행 탭 — 온도별 전비·시간대·거리 분포·자주 가는 곳. 네 카드가 **한 응답**에서 나온다.
+/// 통계 탭 — 「주행」 섹션(12개월 추이 차트 넷 + 온도별 전비·시간대·거리 분포·자주 가는 곳)과
+/// 「배터리」 섹션(열화 추세)을 묶는다.
+///
+/// **`VehicleStatsViewModel`이 엔드포인트 둘을 본다.** `/tesla/drive-insights`는 기간 칩을
+/// 따라 카드 넷을 채우고, `/tesla/summary`는 늘 이번 달 기준 12개월 추이를 낸다 — 창이 달라
+/// 칩을 눌러도 추이는 다시 받지 않는다. 배터리 열화 추세(`healthViewModel`)도 전 기간을 봐야
+/// 기울기가 드러나 기간 칩과 무관하다.
 ///
 /// **기간 칩은 화면 맨 위 하나다.** 카드마다 기간이 다르면 서로 비교가 안 된다.
-/// 요약 탭의 월 스와이프는 여기 걸지 않는다 — 이 탭의 기간 단위는 달이 아니다.
-struct VehicleDriveTab: View {
-    @Bindable var viewModel: VehicleDriveViewModel
+/// 충전 탭의 월 스와이프는 여기 걸지 않는다 — 이 탭의 기간 단위는 달이 아니다.
+struct VehicleStatsTab: View {
+    @Bindable var viewModel: VehicleStatsViewModel
+    /// 「배터리」 섹션의 열화 추세만 쓴다. 잔존율 카드는 개요 탭에 남는다.
+    @Bindable var healthViewModel: VehicleHealthViewModel
+    /// 「충전」 섹션의 급속/완속 도넛에만 쓴다. 전 기간 집계라 기간 칩과 무관하다.
+    @Bindable var totalsViewModel: ChargeTotalsViewModel
+
+    @State private var selectedHealthKey: String?
 
     var body: some View {
         ScrollView {
@@ -30,7 +42,10 @@ struct VehicleDriveTab: View {
                                    avgYearlyKm: viewModel.avgYearlyKm)
                 }
 
+                StatsDriveSection(viewModel: viewModel)
                 content
+                StatsChargeSection(viewModel: viewModel, totalsViewModel: totalsViewModel)
+                batterySection
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 110)
@@ -144,6 +159,31 @@ struct VehicleDriveTab: View {
                             .frame(width: 66, alignment: .trailing)
                     }
                 }
+            }
+        }
+    }
+
+    /// 열화 추세 — 「지금 어떤가」가 아니라 「어떻게 변해왔나」라 개요가 아니라 여기다.
+    /// **기간 칩을 따르지 않는다** — 열화는 전 기간을 봐야 기울기가 보인다.
+    ///
+    /// **헤더를 단다.** 바로 위가 「🔌 충전」 카드들이라 헤더가 없으면 열화 추세가
+    /// 충전 섹션의 다섯째 카드로 읽힌다. 헤더는 내용과 함께만 선다 —
+    /// 열화 추세가 없으면 제목만 남은 빈 섹션이 된다.
+    @ViewBuilder private var batterySection: some View {
+        if !healthViewModel.trendSegments.isEmpty {
+            VStack(spacing: 12) {
+                HStack {
+                    Text("🔋 배터리")
+                        .font(.subheadline)
+                        .fontWeight(.heavy)
+                        .foregroundStyle(VehicleTheme.textPrimary)
+                    Spacer(minLength: 0)
+                }
+                .padding(.top, 4)
+
+                DegradationTrendChart(segments: healthViewModel.trendSegments,
+                                      selectedKey: selectedHealthKey,
+                                      onSelect: { selectedHealthKey = $0 })
             }
         }
     }

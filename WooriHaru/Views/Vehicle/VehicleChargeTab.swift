@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// 요약 탭 — 그 달 주행·충전, 지표, 12개월 추이, 미등록 배지, 그 달 충전 목록.
-struct VehicleSummaryTab: View {
+/// 충전 탭 — 그 달 주행·충전, 지표, 12개월 추이, 미등록 배지, 그 달 충전 목록.
+struct VehicleChargeTab: View {
     @Bindable var viewModel: VehicleSummaryViewModel
     /// 상세 시트에서 금액을 저장한 뒤 부른다 — 이 탭이 들고 있지 않은 누적 집계를 부모가 다시 받는다.
     let onCostSaved: () async -> Void
@@ -17,6 +17,15 @@ struct VehicleSummaryTab: View {
             LazyVStack(spacing: 0) {
                 heroCard.padding(.top, 8)
                 metricsCard.padding(.top, 12)
+
+                if let summary = viewModel.summary,
+                   let previous = summary.previous,
+                   let breakdown = VehicleMath.costBreakdown(current: summary.month, previous: previous) {
+                    CostBreakdownCard(breakdown: breakdown,
+                                      current: summary.month,
+                                      previous: previous)
+                        .padding(.top, 12)
+                }
 
                 if let summary = viewModel.summary {
                     VehicleTrendChart(
@@ -81,30 +90,31 @@ struct VehicleSummaryTab: View {
     }
 
     private var heroCard: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        let month = viewModel.summary?.month
+        return VStack(alignment: .leading, spacing: 0) {
             Text(heroTitle)
                 .font(.caption)
                 .fontWeight(.semibold)
                 .foregroundStyle(VehicleTheme.textSecondary)
-            HStack(alignment: .firstTextBaseline, spacing: 10) {
-                Text(loaded ? VehicleFormat.distance(viewModel.summary?.month.distanceKm) : ChargeFormat.placeholder)
-                Text(loaded
-                     ? ChargeFormat.summaryTotal(viewModel.summary?.month.cost,
-                                                 count: viewModel.summary?.month.chargeCount ?? 0,
-                                                 loaded: true)
-                     : ChargeFormat.placeholder)
-            }
-            .font(.system(size: heroSize, weight: .heavy))
-            .monospacedDigit()
-            .lineLimit(1)
-            .minimumScaleFactor(0.5)
-            .foregroundStyle(VehicleTheme.textPrimary)
-            .padding(.top, 4)
+
+            // **주행거리를 뺐다.** 탭 이름이 「충전」이 되면서 주행거리가 충전 장부의
+            // 주인공 자리에 남을 이유가 없어졌고, 월별 주행거리는 통계 탭이 12개월
+            // 맥락과 함께 더 잘 그린다.
+            Text(loaded
+                 ? ChargeFormat.summaryTotal(month?.cost, count: month?.chargeCount ?? 0, loaded: true)
+                 : ChargeFormat.placeholder)
+                .font(.system(size: heroSize, weight: .heavy))
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
+                .foregroundStyle(VehicleTheme.textPrimary)
+                .padding(.top, 4)
 
             if loaded {
                 HStack(spacing: 6) {
-                    chip("\(viewModel.summary?.month.chargeCount ?? 0)회 충전")
-                    chip(ChargeFormat.energy(viewModel.summary?.month.energyAddedKwh))
+                    // 「0과 nil은 다르다」 — 기록이 아예 없는 달을 「0회」로 그리지 않는다.
+                    chip("\(DriveFormat.count(month?.chargeCount)) 충전")
+                    chip(ChargeFormat.energy(month?.energyAddedKwh))
                 }
                 .padding(.top, 12)
             }

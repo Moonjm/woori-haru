@@ -172,7 +172,7 @@ struct VehicleHealthViewModelTests {
         #expect(viewModel.errorMessage != nil)
     }
 
-    /// 배지 하나 때문에 화면을 죽이지 않는다. 요약 탭과 같은 규칙이다.
+    /// 배지 하나 때문에 화면을 죽이지 않는다. 충전 탭과 같은 규칙이다.
     @Test func 배지가_실패해도_건강_카드는_산다() async {
         let mock = MockAPIClient()
         stub(mock, [Self.sample("2026-08", "525.3")])
