@@ -55,5 +55,4 @@ struct VehicleTrendChart: View {
             }
         }
     }
-
 }

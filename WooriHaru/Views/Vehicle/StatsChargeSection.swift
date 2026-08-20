@@ -97,7 +97,6 @@ struct StatsChargeSection: View {
     private var fastSlowCard: some View {
         let fast = totalsViewModel.totals?.fast.energyAddedKwh ?? 0
         let slow = totalsViewModel.totals?.slow.energyAddedKwh ?? 0
-        let total = fast + slow
         return ChartCard(title: "급속 / 완속", callout: "전 기간") {
             VStack(alignment: .leading, spacing: 10) {
                 HStack(spacing: 16) {
@@ -106,9 +105,9 @@ struct StatsChargeSection: View {
                         .init(label: "완속", value: slow, color: VehicleTheme.accentMuted),
                     ])
                     VStack(alignment: .leading, spacing: 8) {
-                        legend("급속", fast, of: total, color: VehicleTheme.accentBright,
+                        legend("급속", fast, color: VehicleTheme.accentBright,
                                price: totalsViewModel.fastWonPerKwh)
-                        legend("완속", slow, of: total, color: VehicleTheme.accentMuted,
+                        legend("완속", slow, color: VehicleTheme.accentMuted,
                                price: totalsViewModel.slowWonPerKwh)
                     }
                     Spacer(minLength: 0)
@@ -124,7 +123,8 @@ struct StatsChargeSection: View {
         }
     }
 
-    private func legend(_ name: String, _ value: Decimal, of total: Decimal,
+    /// 비율은 도넛이 말한다 — 범례는 양과 단가만 적는다.
+    private func legend(_ name: String, _ value: Decimal,
                         color: Color, price: Decimal?) -> some View {
         HStack(spacing: 6) {
             Circle().fill(color).frame(width: 8, height: 8)
