@@ -151,6 +151,15 @@ enum DriveFormat {
         return weekdays[weekday]
     }
 
+    /// **1이 월요일이다**(ISO). `/tesla/insights`의 `weekday` 배열 전용이고,
+    /// 같은 응답의 `driveTimes`는 0=일요일이라 `weekdayLabel(_:)`을 쓴다.
+    /// 두 규약이 한 응답에 있어서 함수를 갈라 둔다 — 호출부에서 어느 쪽인지 보여야 한다.
+    static func isoWeekdayLabel(_ weekday: Int) -> String {
+        guard (1...7).contains(weekday) else { return ChargeFormat.placeholder }
+        // ISO 7(일요일)을 0번 자리로 돌린다.
+        return weekdayLabel(weekday % 7)
+    }
+
     static func hourLabel(_ hour: Int) -> String { "\(hour)시" }
 
     /// 62 → "62회"

@@ -47,6 +47,20 @@ struct VehicleService: Sendable {
         return insights
     }
 
+    /// 통계 탭 스물여섯 장이 **한 응답**에 온다. `months`는 `0`(전체)과 `1...60`이고
+    /// 응답에 되돌아 실려 온다.
+    ///
+    /// `fetchDriveInsights`는 아직 지우지 않는다 — 서버가 두 엔드포인트를 함께 내는 동안
+    /// 앱만 먼저 옮기고, 통계 탭이 이쪽만 쓰게 된 뒤에 지운다.
+    func fetchInsights(months: Int) async throws -> InsightsResponse {
+        let response: DataResponse<InsightsResponse> =
+            try await api.get("/tesla/insights", query: ["months": String(months)])
+        guard let insights = response.data else {
+            throw APIError.serverError(statusCode: 200, message: "통계 응답이 비어 있습니다")
+        }
+        return insights
+    }
+
     /// 기간이 없다. 채워 넣으려는 사람에게 필요한 것은 「빈 건 전부」다.
     func fetchMissingCost(limit: Int = 50) async throws -> MissingCostResponse {
         let response: DataResponse<MissingCostResponse> =
