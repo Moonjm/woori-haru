@@ -6,13 +6,13 @@ import SwiftUI
 /// 것은 그 달에 얼마 썼느냐다 — 여름 에어컨·겨울 히터는 금액에도 그대로 나타난다.
 ///
 /// **막대 탭은 콜아웃만 바꾼다.** 달을 옮기는 수단은 이미 셋(스와이프·화살표·피커)이다.
+/// **막대는 `MonthlyBarChart`가 그린다.** 이 파일에 남는 것은 제목과 콜아웃이다.
 struct VehicleTrendChart: View {
     let trend: [VehiclePeriod]
     let selectedKey: String?
     let onSelect: (String) -> Void
 
     var body: some View {
-        let maxValue = trend.compactMap(\.cost).max() ?? 0
         let selected = trend.first { $0.yearMonth == selectedKey }
         GlassCard {
             VStack(alignment: .leading, spacing: 12) {
@@ -45,36 +45,15 @@ struct VehicleTrendChart: View {
                     .animation(.snappy, value: selected.yearMonth)
                 }
 
-                HStack(alignment: .bottom, spacing: 5) {
-                    ForEach(trend) { period in
-                        bar(period, maxValue: maxValue)
-                    }
-                }
-                .frame(height: 96)
+                MonthlyBarChart(
+                    points: trend.map {
+                        ChartPoint(id: $0.yearMonth, label: "\($0.monthNumber)", value: $0.cost)
+                    },
+                    selectedID: selectedKey,
+                    onSelect: onSelect
+                )
             }
         }
     }
 
-    private func bar(_ period: VehiclePeriod, maxValue: Decimal) -> some View {
-        let isSelected = period.yearMonth == selectedKey
-        let ratio: CGFloat = {
-            guard let value = period.cost, maxValue > 0 else { return 0 }
-            return CGFloat(truncating: (value / maxValue) as NSDecimalNumber)
-        }()
-        return VStack(spacing: 5) {
-            Spacer(minLength: 0)
-            // 기록이 없는 달도 자리를 지킨다 — 건너뛰면 계절 비교가 어긋난다.
-            RoundedRectangle(cornerRadius: 4)
-                .fill(period.cost == nil
-                      ? AnyShapeStyle(VehicleTheme.trackFill)
-                      : AnyShapeStyle(isSelected ? VehicleTheme.accentBright : VehicleTheme.accentMuted))
-                .frame(height: max(3, ratio * 72))
-            Text("\(period.monthNumber)")
-                .font(.system(size: 9, weight: isSelected ? .heavy : .regular))
-                .foregroundStyle(isSelected ? VehicleTheme.accentBright : VehicleTheme.textTertiary)
-        }
-        .frame(maxWidth: .infinity)
-        .contentShape(.rect)
-        .onTapGesture { onSelect(period.yearMonth) }
-    }
 }
