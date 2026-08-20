@@ -99,18 +99,27 @@ struct StatsChargeSection: View {
         let slow = totalsViewModel.totals?.slow.energyAddedKwh ?? 0
         let total = fast + slow
         return ChartCard(title: "급속 / 완속", callout: "전 기간") {
-            HStack(spacing: 16) {
-                DonutChart(slices: [
-                    .init(label: "급속", value: fast, color: VehicleTheme.accentBright),
-                    .init(label: "완속", value: slow, color: VehicleTheme.accentMuted),
-                ])
-                VStack(alignment: .leading, spacing: 8) {
-                    legend("급속", fast, of: total, color: VehicleTheme.accentBright,
-                           price: totalsViewModel.fastWonPerKwh)
-                    legend("완속", slow, of: total, color: VehicleTheme.accentMuted,
-                           price: totalsViewModel.slowWonPerKwh)
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 16) {
+                    DonutChart(slices: [
+                        .init(label: "급속", value: fast, color: VehicleTheme.accentBright),
+                        .init(label: "완속", value: slow, color: VehicleTheme.accentMuted),
+                    ])
+                    VStack(alignment: .leading, spacing: 8) {
+                        legend("급속", fast, of: total, color: VehicleTheme.accentBright,
+                               price: totalsViewModel.fastWonPerKwh)
+                        legend("완속", slow, of: total, color: VehicleTheme.accentMuted,
+                               price: totalsViewModel.slowWonPerKwh)
+                    }
+                    Spacer(minLength: 0)
                 }
-                Spacer(minLength: 0)
+
+                // 한 줄에 놓인 kWh와 단가는 **분모가 다르다** — kWh는 충전량(차에 들어간 양),
+                // 단가는 사용량(벽에서 뽑은 양)이 분모다. 둘을 곱해도 비용이 안 나온다.
+                // `CostBreakdownCard`가 같은 함정에 캡션을 다는 것과 같은 이유다.
+                Text("단가는 사용량 1kWh당 금액이에요. 왼쪽 kWh는 충전량이라 분모가 달라요.")
+                    .font(.caption2)
+                    .foregroundStyle(VehicleTheme.textTertiary)
             }
         }
     }
