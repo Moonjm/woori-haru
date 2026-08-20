@@ -31,6 +31,7 @@
 		6E5B03307FE94212F65DE0EB /* VehicleChargeTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2F12F9042F52F62E68D3B63 /* VehicleChargeTab.swift */; };
 		71052B6E8FC03636B1952BCA /* VehicleTrendChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1061EE82F134CAE49735C9D5 /* VehicleTrendChart.swift */; };
 		7A2EBE0EE90236D293C9D669 /* StateTimelineModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50927D9E81F45A3172899214 /* StateTimelineModels.swift */; };
+		7B423E15D604151B4C9F61D3 /* CostBreakdownCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA3EB25C1FED0089E8CC935F /* CostBreakdownCard.swift */; };
 		81BEF6B554755A720DF556F2 /* VehicleStatsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88EBCBE73E844A5092ABC002 /* VehicleStatsViewModel.swift */; };
 		880AD4692F5F071200777742 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 880AD4682F5F071100777742 /* WidgetKit.framework */; };
 		880AD46B2F5F071200777742 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 880AD46A2F5F071200777742 /* SwiftUI.framework */; };
@@ -326,6 +327,7 @@
 		C20007 /* APIResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIResponse.swift; sourceTree = "<group>"; };
 		C3CFFE3A79B6F07B2C5605DB /* ChargeTotalsViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ChargeTotalsViewModel.swift; sourceTree = "<group>"; };
 		C85E944AC6A6BF9E0CE1543F /* ChargeCurveChart.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ChargeCurveChart.swift; path = Charge/ChargeCurveChart.swift; sourceTree = "<group>"; };
+		CA3EB25C1FED0089E8CC935F /* CostBreakdownCard.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CostBreakdownCard.swift; path = Vehicle/CostBreakdownCard.swift; sourceTree = "<group>"; };
 		D20001 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
 		D20002 /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
 		D20003 /* RecordService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordService.swift; sourceTree = "<group>"; };
@@ -603,6 +605,7 @@
 				16D251238C85460507EA66D4 /* Charts */,
 				B44EDE6DEE677F59B1D8BC0B /* StatsDriveSection.swift */,
 				503CF88FD62CD5DF10233D57 /* StatsChargeSection.swift */,
+				CA3EB25C1FED0089E8CC935F /* CostBreakdownCard.swift */,
 			);
 			name = Vehicle;
 			sourceTree = "<group>";
@@ -1345,6 +1348,7 @@
 				D0ED996CA0ABF016EE8731B0 /* ChartCard.swift in Sources */,
 				2C28D2C1699EF8B31AE6D80B /* StatsDriveSection.swift in Sources */,
 				40A969BDBA7D9F0BFF3354C6 /* StatsChargeSection.swift in Sources */,
+				7B423E15D604151B4C9F61D3 /* CostBreakdownCard.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

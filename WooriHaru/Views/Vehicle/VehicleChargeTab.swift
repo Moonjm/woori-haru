@@ -18,6 +18,15 @@ struct VehicleChargeTab: View {
                 heroCard.padding(.top, 8)
                 metricsCard.padding(.top, 12)
 
+                if let summary = viewModel.summary,
+                   let previous = summary.previous,
+                   let breakdown = VehicleMath.costBreakdown(current: summary.month, previous: previous) {
+                    CostBreakdownCard(breakdown: breakdown,
+                                      current: summary.month,
+                                      previous: previous)
+                        .padding(.top, 12)
+                }
+
                 if let summary = viewModel.summary {
                     VehicleTrendChart(
                         trend: summary.trend,
