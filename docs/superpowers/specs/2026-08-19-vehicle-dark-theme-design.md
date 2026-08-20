@@ -360,6 +360,7 @@ A·B 두 단계가 모두 `main`에 있다(`2cb21b7`). **설계를 고치지 않
   3. `LongPressGesture(0.2).sequenced(before: DragGesture(0))` — 쓸어보기는 좋아졌으나 스크롤은 그대로 막혔다.
   `UIGestureRecognizerRepresentable`(iOS 18+)로 `UILongPressGestureRecognizer`를 직접 붙인다. **이 인식기가 `UIScrollView`의 팬과 어울리는 방식은 UIKit의 오래된 표준 경로라 예측 가능하다** — `allowableMovement` 안에서 `minimumPressDuration`을 버티면 인식기가 이기고, 그 전에 움직이면 스크롤이 이긴다. SwiftUI 제스처의 중재는 밖에서 무엇을 하는지 알 수 없었다.
 - **위치를 얻는 문제도 같이 풀린다.** SwiftUI 조합에서는 긴 누름이 위치를 알려주지 않아 손가락이 움직이기 전까지 라벨을 띄울 좌표가 없었다. UIKit 인식기는 `.began`부터 위치를 준다.
+- **좌표는 `context.converter.localLocation`으로 읽는다.** `recognizer.view`는 수정 대상인 띠와 기하가 같다는 보장이 없다(`UIGestureRecognizerRepresentable`이 명시적으로 허용하는 동작이다). 그 좌표를 띠 폭으로 나누면 비율이 밀려 **지시선과 라벨이 다른 구간을 가리킨다.** `converter`가 이 문제 때문에 있는 API다.
 - `.ended`뿐 아니라 `.cancelled`·`.failed`에서도 라벨을 지운다 — 취소를 빠뜨리면 전화가 오거나 제어 센터를 내린 뒤에 구간 정보가 화면에 남는다.
 - **햅틱으로 걸린 순간을 알린다.** 긴 누름은 언제 붙잡혔는지가 눈에 안 보여서, 손끝으로 알려 주지 않으면 사람이 0.2초를 못 기다리고 손을 뗀다.
 - **탭 한 번으로는 아무 일도 일어나지 않는다.** 긴 누름과 맞바꾼 값이다.

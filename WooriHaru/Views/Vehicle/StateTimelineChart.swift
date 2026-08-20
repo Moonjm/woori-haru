@@ -298,7 +298,11 @@ private struct TimelineScrubGesture: UIGestureRecognizerRepresentable {
     func handleUIGestureRecognizerAction(_ recognizer: UILongPressGestureRecognizer, context: Context) {
         switch recognizer.state {
         case .began, .changed:
-            onChange(recognizer.location(in: recognizer.view))
+            // **`recognizer.view` 기준으로 읽지 않는다.** SwiftUI가 이 인식기를 붙이는
+            // UIKit 뷰는 수정 대상인 띠와 기하가 같다는 보장이 없다 — 그 좌표를 띠 폭으로
+            // 나누면 비율이 밀려서 지시선과 라벨이 **다른 구간**을 가리킨다.
+            // `converter`가 이 문제 때문에 있는 API다.
+            onChange(context.converter.localLocation)
         default:
             // `.ended`·`.cancelled`·`.failed` 모두 라벨을 지운다 — 취소를 빠뜨리면
             // 전화가 오거나 제어 센터를 내린 뒤에 구간 정보가 화면에 남는다.
