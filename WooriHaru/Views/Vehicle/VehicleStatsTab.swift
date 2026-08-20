@@ -50,6 +50,7 @@ struct VehicleStatsTab: View {
                 StatsDriveSection(viewModel: viewModel)
                 content
                 StatsChargeSection(viewModel: viewModel, totalsViewModel: totalsViewModel)
+                StatsParkSection(viewModel: viewModel)
                 batterySection
             }
             .padding(.horizontal, 16)

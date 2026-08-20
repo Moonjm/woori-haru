@@ -675,4 +675,84 @@ struct VehicleStatsViewModelTests {
         #expect(viewModel.chargeEndLevelPoints.last?.label == "90~100")
         #expect(viewModel.chargeEndLevelPoints.first?.label == "80")
     }
+
+    // MARK: - 주차
+
+    /// **0.0km는 「안 샜다」가 아니다** — 잴 구간이 없었다는 뜻이다. 0으로 그리면
+    /// 그 달만 완벽했던 것처럼 보인다.
+    @Test func 표본이_없는_달은_팬텀_드레인_막대를_안_그린다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 2, emptyLastMonth: true))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+        // 스텁의 마지막 달은 parkDrainSamples가 0이고 parkDrainRatedKm이 0.0이다.
+        #expect(viewModel.parkDrainPoints.last?.value == nil)
+        // 앞 달은 표본이 있으므로 그린다 — 「전부 nil」로 통과하면 안 된다.
+        #expect(viewModel.parkDrainPoints.first?.value != nil)
+    }
+
+    /// 안 탄 달은 「내내 서 있었다」다 — 다른 월별 계열과 옵셔널 여부가 다르다.
+    @Test func 정지_시간은_기록이_없는_달에도_값이_온다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 2, emptyLastMonth: true))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+        #expect(viewModel.idleMinPoints.last?.value != nil)
+        // 안 탄 달일수록 오히려 정지 시간이 크다(내내 서 있었으므로) — 빈 달 44640분.
+        #expect(viewModel.idleMinPoints.last?.value == 44640)
+    }
+
+    /// **이 차트도 하루 밀리는 위험을 안고 있다.** `weekday` 배열은 1=월요일(ISO)이라
+    /// #4·#12와 같은 쪽이고, 0=일요일인 `driveTimes`·`chargeTimes`와는 반대다.
+    @Test func 요일별_정지_시간도_ISO_요일_규약을_따른다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 1))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+        #expect(viewModel.weekdayIdlePoints.map(\.label)
+                == ["월", "화", "수", "목", "금", "토", "일"])
+        #expect(viewModel.weekdayIdlePoints.first?.value == 61200)
+    }
+
+    /// **음수를 0으로 자르지 않는다** — BMS 재보정으로 정격거리가 늘어난 구간이
+    /// 부호 그대로 섞여 있다. 자르면 월 합이 위로 편향된다.
+    @Test func 대기_중_소모는_음수를_0으로_자르지_않는다() async {
+        let mock = MockAPIClient()
+        stub(mock, Self.response(monthly: [
+            Self.month("2026-06", parkDrainRatedKm: Decimal(string: "-12.4")!, parkDrainSamples: 5),
+        ]))
+        let viewModel = makeViewModel(mock)
+
+        await viewModel.load()
+
+        #expect(viewModel.parkDrainPoints.first?.value == Decimal(string: "-12.4")!)
+    }
+
+    /// `monthly`가 정말로 빈 배열이면(그 기간에 행 자체가 안 옴) 주차 섹션도 헤더만
+    /// 남지 않고 통째로 감춰야 한다 — 다른 두 섹션과 같은 「헤더는 내용과 함께만 선다」 규칙.
+    @Test func 월이_전부_비면_주차_섹션도_없다() async {
+        let mock = MockAPIClient()
+        stub(mock, Self.response(monthly: []))
+        let viewModel = makeViewModel(mock)
+
+        await viewModel.load()
+
+        #expect(!viewModel.hasParkMonths)
+    }
+
+    /// **주행도 충전도 없는 달이라도 주차 섹션은 선다** — `idleMin`이 non-null이라
+    /// 행이 있으면 값도 있다. 주행·충전 게이트와 갈리는 지점을 못박는다.
+    @Test func 주행도_충전도_없는_달도_주차_섹션은_선다() async {
+        let mock = MockAPIClient()
+        stub(mock, Self.response(monthly: [
+            Self.month("2026-06"), Self.month("2026-07"), Self.month("2026-08"),
+        ]))
+        let viewModel = makeViewModel(mock)
+
+        await viewModel.load()
+
+        #expect(viewModel.hasParkMonths)
+        #expect(!viewModel.hasDriveMonths)
+        #expect(!viewModel.hasChargeMonths)
+    }
 }

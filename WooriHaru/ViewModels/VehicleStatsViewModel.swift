@@ -144,6 +144,15 @@ final class VehicleStatsViewModel {
     /// 내는가」를 함께 가리고 있었는데, 후자는 새 계약에서 거짓이 될 수 없어 사라졌다.
     var hasLoadedInsights: Bool { insights != nil }
 
+    /// 주차 섹션 게이트. **행의 존재를 그대로 쓴다** — 위 둘(`hasDriveMonths`·
+    /// `hasChargeMonths`)이 「행은 있어도 내용은 nil일 수 있다」를 피하려고 필드값을
+    /// 하나하나 본 것과 다르다. 이 섹션의 세 재료 중 `idleMin`은 애초에 non-null이라
+    /// 행이 있으면 값도 있다 — 필드를 따로 검사해도 결론이 같다. `hasLoadedInsights`를
+    /// 그대로 쓰지 않는 이유는, `monthly`가 정말로 빈 배열일 때(그 기간에 행 자체가
+    /// 안 온 경우) 그것까지 참으로 두면 내용 없는 헤더만 선다 — 다른 두 섹션과 같은
+    /// 「헤더는 내용과 함께만 선다」 규칙을 지키려면 `monthly`가 비지 않아야 한다.
+    var hasParkMonths: Bool { !monthly.isEmpty }
+
     private func points(_ value: (InsightsMonth) -> Decimal?) -> [ChartPoint] {
         monthly.map {
             ChartPoint(id: $0.yearMonth, label: MonthLabel.axis($0.yearMonth), value: value($0))
@@ -197,6 +206,33 @@ final class VehicleStatsViewModel {
         }
     }
 
+    /// #19 월별 정지 시간(분). **`idleMin`은 non-null이다** — 다른 월별 계열(거리·비용·
+    /// 횟수…)과 반대로 기록이 없는 달일수록 값이 크다. 기록이 없다는 것 자체가 「그 달
+    /// 내내 서 있었다」는 뜻이라, 빈 달은 44640분(31일)까지도 나온다. 여기서 nil로
+    /// 바꾸거나 0으로 뭉개면 이 계약이 사라진다.
+    var idleMinPoints: [ChartPoint] {
+        monthly.map {
+            ChartPoint(id: $0.yearMonth, label: MonthLabel.axis($0.yearMonth), value: Decimal($0.idleMin))
+        }
+    }
+
+    /// #21 월별 대기 중 소모(팬텀 드레인, rated km). **표본이 0이면 nil이다** —
+    /// `parkDrainSamples == 0`은 「안 샜다」가 아니라 「그 달에 잴 구간이 없었다」다.
+    /// `parkDrainRatedKm`이 0.0으로 와도 그대로 그리면 그 달만 완벽했던 것처럼 보인다.
+    ///
+    /// **음수를 0으로 자르지 않는다.** 충전 기록 없이 정격거리가 늘어난 구간이 부호
+    /// 그대로 섞여 있다(BMS 재보정, 또는 TeslaMate가 세션으로 못 잡은 충전 — 실측
+    /// 3,960:628). 자르면 월 합이 위로 편향된다. **다만 `ChartScale.ratio`는 음수를
+    /// 0으로 낸다**(`ChartPoint.swift`) — 실측 월 합은 전부 양수(75~169km)라 지금
+    /// 화면에서는 문제가 없지만, 훗날 월 합이 음수로 뒤집히면 그 달 막대가 조용히
+    /// 사라진다. 그때 이 주석이 원인을 찾는 유일한 단서다.
+    var parkDrainPoints: [ChartPoint] {
+        monthly.map { month in
+            ChartPoint(id: month.yearMonth, label: MonthLabel.axis(month.yearMonth),
+                       value: month.parkDrainSamples > 0 ? month.parkDrainRatedKm : nil)
+        }
+    }
+
     // MARK: - 파생 값(분포)
 
     /// #4 요일별 평균 주행거리. **`isoWeekdayLabel`을 쓴다** — 이 배열만 1=월요일이고
@@ -207,6 +243,16 @@ final class VehicleStatsViewModel {
                        label: DriveFormat.isoWeekdayLabel(day.weekday),
                        value: VehicleMath.avgPerOccurrence(total: day.distanceKm,
                                                             occurrences: day.occurrences))
+        }
+    }
+
+    /// #20 요일별 정지 시간(분). **`isoWeekdayLabel`을 쓴다**(1=월요일) — 이 응답의
+    /// `weekday` 배열 전용 규약이고, 같은 응답의 `driveTimes`·`chargeTimes`(0=일요일)와
+    /// 반대다. `weekdayDistancePoints`(#4)와 같은 쪽이니 헷갈리면 그쪽을 본다.
+    var weekdayIdlePoints: [ChartPoint] {
+        (insights?.weekday ?? []).map { day in
+            ChartPoint(id: "wi\(day.weekday)", label: DriveFormat.isoWeekdayLabel(day.weekday),
+                       value: Decimal(day.idleMin))
         }
     }
 
