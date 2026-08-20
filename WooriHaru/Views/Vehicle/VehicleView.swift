@@ -161,7 +161,11 @@ struct VehicleView: View {
         }
         .padding(6)
         // 다크에서는 유리를 쓰지 않는다 — 테두리가 형태를 만든다.
-        .background(VehicleTheme.cardFill, in: RoundedRectangle(cornerRadius: 24))
+        //
+        // **여기만 `surface`(불투명)를 쓴다.** 다른 카드는 흐름 안에 놓여 뒤에 배경밖에
+        // 없지만, 이 바는 목록 **위에 떠 있어서** 반투명하면 지나가는 글자가 아이콘에
+        // 겹쳐 비친다. 떠 있는 것은 가려야 한다.
+        .background(VehicleTheme.surface, in: RoundedRectangle(cornerRadius: 24))
         .overlay(RoundedRectangle(cornerRadius: 24).strokeBorder(VehicleTheme.cardStroke, lineWidth: 1))
         // 버튼 사이 여백 탭이 아래 목록으로 새지 않게 바 전체를 히트 영역으로 만든다.
         .contentShape(RoundedRectangle(cornerRadius: 24))

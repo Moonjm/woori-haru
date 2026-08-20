@@ -131,6 +131,29 @@ enum StateTimelineMath {
                            kind: kind)
     }
 
+    /// 손가락이 짚은 자리의 막대. 없으면 `nil`이다.
+    ///
+    /// **겹친 자리에서는 맨 위 것을 고른다.** `bars`는 이미 상태 → 주행 → 충전 순으로
+    /// 정렬돼 있고 그리는 순서가 곧 덧칠 순서이므로, 뒤에서부터 찾으면 눈에 보이는 색과
+    /// 짚어서 나오는 이름이 언제나 같다.
+    ///
+    /// **가장 가까운 것을 끌어다 붙이지 않는다.** 막대가 없는 자리는 기록이 없는 시간대이고,
+    /// 거기에 옆 구간의 이름을 찍으면 화면이 없는 사실을 말하게 된다.
+    ///
+    /// **경계는 시작을 품고 끝을 뱉는다** — 붙어 있는 두 구간의 이음매에서 둘 다 잡히면
+    /// 같은 자리를 짚었는데 나오는 값이 실행마다 달라진다.
+    ///
+    /// **오른쪽 맨 끝만 예외다.** 띠의 오른쪽 끝(「지금」)에서는 비율이 정확히 `1.0`이 되는데,
+    /// 반열린 규칙만 쓰면 `end == 1.0`인 마지막 막대까지 걸러져 **눈에는 색이 칠해져 있는
+    /// 자리에서 제목이 「최근 N시간」으로 되돌아간다.** 안쪽 이음매의 규칙은 그대로 두고
+    /// 끝점만 마지막 막대에 붙인다.
+    static func bar(atFraction fraction: Double, in bars: [TimelineBar]) -> TimelineBar? {
+        guard (0...1).contains(fraction) else { return nil }
+        if let hit = bars.last(where: { fraction >= $0.start && fraction < $0.end }) { return hit }
+        guard fraction == 1 else { return nil }
+        return bars.last { $0.end == 1 && $0.start < 1 }
+    }
+
     /// 범위 길이를 시간으로. 화면의 「최근 N시간」이 이것으로 만들어진다.
     /// **`to − from`에서 낸다** — 그려진 범위와 말하는 길이가 갈릴 자리를 두지 않는다.
     static func hours(from: Date, to: Date) -> Int {
