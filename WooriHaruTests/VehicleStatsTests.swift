@@ -73,6 +73,12 @@ struct VehicleStatsViewModelTests {
         mock.getCalls.filter { $0.path == "/tesla/drive-insights" }
     }
 
+    /// 추이(`/tesla/summary`) 호출만 걸러 본다 — 「언제 다시 받고, 언제 안 받는가」를
+    /// 못박아 두는 테스트 전용 헬퍼다.
+    private func summaryCalls(_ mock: MockAPIClient) -> [(path: String, query: [String: String])] {
+        mock.getCalls.filter { $0.path == "/tesla/summary" }
+    }
+
     /// 기본은 12개월이다.
     @Test func 기본_기간은_12개월이다() async {
         let mock = MockAPIClient()
@@ -97,6 +103,8 @@ struct VehicleStatsViewModelTests {
 
         #expect(viewModel.period == .threeMonths)
         #expect(insightsCalls(mock).map { $0.query["months"] } == ["12", "3"])
+        // 추이는 기간 칩을 따르지 않는다 — 칩을 눌러도 `/tesla/summary`를 다시 부르지 않는다.
+        #expect(summaryCalls(mock).count == 1)
     }
 
     /// 같은 기간을 다시 누르면 부르지 않는다.
@@ -438,5 +446,21 @@ struct VehicleStatsViewModelTests {
         #expect(viewModel.insights != nil)
         // 추이 실패는 배너를 세우지 않는다.
         #expect(viewModel.errorMessage == nil)
+    }
+
+    /// 당겨서 새로고침은 추이도 다시 받는다 — `reload()`가 `fetchTrend: false`로 바뀌면
+    /// 이 카운트가 깨진다.
+    @Test func 새로고침은_추이도_다시_받는다() async {
+        let mock = MockAPIClient()
+        Self.stubEmptyInsights(mock)
+        Self.stubTrend(mock)
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+        #expect(summaryCalls(mock).count == 1)
+
+        await viewModel.reload()
+
+        #expect(summaryCalls(mock).count == 2)
+        #expect(viewModel.hasTrend)
     }
 }

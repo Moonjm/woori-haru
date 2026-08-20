@@ -1,8 +1,11 @@
 import Foundation
 import Observation
 
-/// 통계 탭 — `/tesla/drive-insights` 하나만 본다. 네 카드가 한 응답에서 나오므로
-/// 호출도 하나이고, **기간 칩이 바뀌면 넷이 함께 바뀐다.**
+/// 통계 탭 — `/tesla/drive-insights`와 `/tesla/summary` 둘을 본다. 인사이트 네 카드는
+/// 한 응답에서 나오므로 **기간 칩이 바뀌면 넷이 함께 바뀐다.** 추이(월별 차트)는 따로 받는다 —
+/// 「이번 달 기준 12개월」로 고정이라 기간 칩과 무관하고, 충전 탭의 `VehicleSummaryViewModel`이
+/// 보는 창(선택한 달 기준)과도 다르기 때문이다. 그래서 `load()`/`reload()`에서만 병렬로
+/// 함께 받고, 기간 칩(`select()`)을 눌러도 추이는 다시 부르지 않는다.
 @MainActor
 @Observable
 final class VehicleStatsViewModel {
