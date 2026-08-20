@@ -24,6 +24,9 @@ struct StateTimelineChart: View {
     /// 막대만 들고 있으면 막대 안 어디를 짚었는지 알 수 없어 선이 구간 시작으로 튄다.
     @State private var touchedFraction: Double?
 
+    /// 이 제스처를 세로 스크롤로 넘겨줬는지. **한 번 포기하면 손을 뗄 때까지 돌아오지 않는다.**
+    @State private var scrubAbandoned = false
+
     init(bars: [TimelineBar], from: Date, to: Date) {
         // 입력이 이미 레이어 순으로 정렬돼 있어 그리는 순서가 곧 덧칠 순서다. 다시 정렬하지 않는다.
         self.bars = bars
@@ -83,10 +86,30 @@ struct StateTimelineChart: View {
             .contentShape(.rect)
             // **`minimumDistance: 0`이라 탭 한 번도 잡힌다.** 끌지 않고 눌렀다 떼기만 해도
             // 그 자리의 구간이 잠깐 뜬다 — 「끌어야 나온다」를 따로 배우게 하지 않는다.
-            .gesture(
+            //
+            // **`gesture`가 아니라 `simultaneousGesture`다.** 띠는 `ScrollView` 안에 있고,
+            // 배타 제스처로 걸면 띠 위에 손을 얹은 채로는 화면이 안 내려가고 당겨서
+            // 새로고침도 안 된다 — 띠가 화면 위쪽이라 새로고침하려고 손을 얹는 자리가
+            // 하필 거기다. 월 이동 스와이프가 같은 이유로 같은 선택을 했다.
+            .simultaneousGesture(
                 DragGesture(minimumDistance: 0)
-                    .onChanged { touchedFraction = width > 0 ? $0.location.x / width : nil }
-                    .onEnded { _ in touchedFraction = nil }
+                    .onChanged { value in
+                        // 세로로 굳은 제스처는 스크롤이다. **한 번 포기하면 끝까지 포기한다** —
+                        // 스크롤 도중 손가락이 가로로 흔들릴 때마다 라벨이 되살아나면
+                        // 화면을 내리는 내내 제목이 깜빡인다.
+                        guard !scrubAbandoned else { return }
+                        if StateTimelineMath.isVerticalDrag(dx: value.translation.width,
+                                                            dy: value.translation.height) {
+                            scrubAbandoned = true
+                            touchedFraction = nil
+                            return
+                        }
+                        touchedFraction = width > 0 ? value.location.x / width : nil
+                    }
+                    .onEnded { _ in
+                        touchedFraction = nil
+                        scrubAbandoned = false
+                    }
             )
         }
         .frame(height: barHeight)
