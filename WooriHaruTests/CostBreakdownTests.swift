@@ -59,4 +59,13 @@ struct CostBreakdownTests {
         #expect(breakdown.efficiency == 0)
         #expect(breakdown.unitPrice == 0)
     }
+
+    /// `wonPerAddedKwh`의 분모는 반드시 `energyAddedKwh`(차에 들어간 양)다 —
+    /// 값이 하나라도 없거나 분모가 0이면 나누지 않고 nil을 낸다.
+    @Test func 단가는_충전량으로만_나눈다() {
+        #expect(VehicleMath.wonPerAddedKwh(cost: 32700, energyAddedKwh: 153) == 32700 / Decimal(153))
+        #expect(VehicleMath.wonPerAddedKwh(cost: nil, energyAddedKwh: 153) == nil)
+        #expect(VehicleMath.wonPerAddedKwh(cost: 32700, energyAddedKwh: nil) == nil)
+        #expect(VehicleMath.wonPerAddedKwh(cost: 32700, energyAddedKwh: 0) == nil)
+    }
 }

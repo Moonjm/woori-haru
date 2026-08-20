@@ -156,6 +156,15 @@ enum VehicleMath {
                              unitPrice: unitPrice)
     }
 
+    /// 충전량 1kWh당 금액. **분모가 `energyAddedKwh`(차에 들어간 양)다** —
+    /// 누적 카드의 `wonPerKwh`는 벽에서 뽑아쓴 `energyUsedKwh`로 나누므로 값이 다르다.
+    /// 비용 = 충전량 × 단가가 정확히 성립해야 `costBreakdown`의 세 항이 남김없이 갈리므로
+    /// 이 자리의 분모는 반드시 차에 들어간 양이어야 한다.
+    static func wonPerAddedKwh(cost: Decimal?, energyAddedKwh: Decimal?) -> Decimal? {
+        guard let cost, let energyAddedKwh, energyAddedKwh > 0 else { return nil }
+        return cost / energyAddedKwh
+    }
+
     /// 증감 %. 지난달이 없거나 0이면 nil이다 — 0에서 늘었다고 말할 수 없다.
     static func deltaPercent(current: Decimal?, previous: Decimal?) -> Int? {
         guard let current, let previous, previous > 0 else { return nil }
