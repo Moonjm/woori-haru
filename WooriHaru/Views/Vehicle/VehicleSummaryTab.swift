@@ -34,7 +34,7 @@ struct VehicleSummaryTab: View {
                 if let error = viewModel.errorMessage, viewModel.summary != nil {
                     Text(error)
                         .font(.caption)
-                        .foregroundStyle(Color.red500)
+                        .foregroundStyle(VehicleTheme.danger)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.top, 8)
                 }
@@ -85,7 +85,7 @@ struct VehicleSummaryTab: View {
             Text(heroTitle)
                 .font(.caption)
                 .fontWeight(.semibold)
-                .foregroundStyle(.white.opacity(0.8))
+                .foregroundStyle(VehicleTheme.textSecondary)
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 Text(loaded ? VehicleFormat.distance(viewModel.summary?.month.distanceKm) : ChargeFormat.placeholder)
                 Text(loaded
@@ -98,7 +98,7 @@ struct VehicleSummaryTab: View {
             .monospacedDigit()
             .lineLimit(1)
             .minimumScaleFactor(0.5)
-            .foregroundStyle(.white)
+            .foregroundStyle(VehicleTheme.textPrimary)
             .padding(.top, 4)
 
             if loaded {
@@ -112,11 +112,14 @@ struct VehicleSummaryTab: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(18)
         .background(
-            LinearGradient(colors: [Color.green600, Color.blue700],
+            LinearGradient(colors: [VehicleTheme.accent.opacity(0.22), VehicleTheme.surfaceTint],
                            startPoint: .topLeading, endPoint: .bottomTrailing),
             in: RoundedRectangle(cornerRadius: 20)
         )
-        .shadow(color: Color.blue600.opacity(0.35), radius: 14, y: 8)
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .strokeBorder(VehicleTheme.cardStroke, lineWidth: 1)
+        )
     }
 
     private var loaded: Bool { viewModel.isMonthLoaded }
@@ -126,11 +129,11 @@ struct VehicleSummaryTab: View {
             .font(.caption2)
             .fontWeight(.bold)
             .monospacedDigit()
-            .foregroundStyle(.white)
+            .foregroundStyle(VehicleTheme.textPrimary)
             .fixedSize()
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
-            .background(.white.opacity(0.2), in: Capsule())
+            .background(VehicleTheme.cardStroke, in: Capsule())
     }
 
     private var metricsCard: some View {
@@ -148,11 +151,11 @@ struct VehicleSummaryTab: View {
                     Text(delta >= 0 ? "지난달보다 ▲ \(delta)%" : "지난달보다 ▼ \(-delta)%")
                         .font(.caption2)
                         .fontWeight(.bold)
-                        .foregroundStyle(delta >= 0 ? Color.red500 : Color.green600)
+                        .foregroundStyle(delta >= 0 ? VehicleTheme.danger : VehicleTheme.accent)
                 }
                 Text("그 달 주행을 그 달 충전량으로 나눈 값이라 월 경계에서 조금 흔들려요.")
                     .font(.caption2)
-                    .foregroundStyle(Color.slate400)
+                    .foregroundStyle(VehicleTheme.textTertiary)
             }
         }
     }
@@ -161,12 +164,12 @@ struct VehicleSummaryTab: View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title)
                 .font(.caption2)
-                .foregroundStyle(Color.slate500)
+                .foregroundStyle(VehicleTheme.textSecondary)
             Text(value)
                 .font(.subheadline)
                 .fontWeight(.bold)
                 .monospacedDigit()
-                .foregroundStyle(Color.slate900)
+                .foregroundStyle(VehicleTheme.textPrimary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -181,9 +184,9 @@ struct VehicleSummaryTab: View {
                 Image(systemName: "chevron.right").font(.caption)
             }
             .font(.subheadline)
-            .foregroundStyle(Color.orange700)
+            .foregroundStyle(VehicleTheme.warning)
             .padding(14)
-            .background(Color.orange100, in: RoundedRectangle(cornerRadius: 14))
+            .background(VehicleTheme.warning.opacity(0.15), in: RoundedRectangle(cornerRadius: 14))
         }
         .buttonStyle(.plain)
     }
@@ -193,7 +196,7 @@ struct VehicleSummaryTab: View {
             Text(LedgerFormat.dayHeader(section.date))
                 .font(.caption)
                 .fontWeight(.bold)
-                .foregroundStyle(Color.slate500)
+                .foregroundStyle(VehicleTheme.textSecondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 4)
                 .padding(.top, 16)
@@ -230,6 +233,7 @@ struct VehicleSummaryTab: View {
         } actions: {
             Button("다시 시도") { Task { await viewModel.reload() } }
                 .buttonStyle(.borderedProminent)
+                .foregroundStyle(VehicleTheme.background)
         }
     }
 }

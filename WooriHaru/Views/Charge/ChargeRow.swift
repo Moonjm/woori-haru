@@ -13,14 +13,14 @@ struct ChargeRow: View {
             GeometryReader { proxy in
                 let w = proxy.size.width
                 ZStack(alignment: .leading) {
-                    Capsule().fill(Color.slate200)
+                    Capsule().fill(VehicleTheme.trackFill)
                     // 시작 지점까지는 옅게 — 「원래 들어 있던 만큼」이다.
                     Capsule()
-                        .fill(Color.slate300)
+                        .fill(VehicleTheme.textTertiary)
                         .frame(width: w * CGFloat(start) / 100)
                     // 이번에 채운 구간만 진하게.
                     Capsule()
-                        .fill(Color.green600)
+                        .fill(VehicleTheme.accent)
                         .frame(width: w * CGFloat(end - start) / 100)
                         .offset(x: w * CGFloat(start) / 100)
                 }
@@ -40,7 +40,7 @@ struct ChargeRow: View {
                     Text(item.locationName ?? "장소 없음")
                         .font(.subheadline)
                         .fontWeight(.semibold)
-                        .foregroundStyle(Color.slate900)
+                        .foregroundStyle(VehicleTheme.textPrimary)
                         .lineLimit(1)
                     HStack(spacing: 6) {
                         Text(LedgerFormat.time(item.startDate))
@@ -54,7 +54,7 @@ struct ChargeRow: View {
                         }
                     }
                     .font(.caption2)
-                    .foregroundStyle(Color.slate400)
+                    .foregroundStyle(VehicleTheme.textTertiary)
                     .lineLimit(1)
                 }
                 Spacer(minLength: 8)
@@ -64,7 +64,7 @@ struct ChargeRow: View {
                         .fontWeight(.bold)
                         .monospacedDigit()
                         // 금액이 빈 건은 회색으로 죽이지 않고 따로 표시한다 — 채우러 오는 화면이다.
-                        .foregroundStyle(item.cost == nil ? Color.orange700 : Color.slate900)
+                        .foregroundStyle(item.cost == nil ? VehicleTheme.warning : VehicleTheme.textPrimary)
                         .lineLimit(1)
                     HStack(spacing: 6) {
                         Text(ChargeFormat.energy(item.energyAddedKwh))
@@ -72,7 +72,7 @@ struct ChargeRow: View {
                     }
                     .font(.caption2)
                     .monospacedDigit()
-                    .foregroundStyle(Color.slate400)
+                    .foregroundStyle(VehicleTheme.textTertiary)
                     .lineLimit(1)
                 }
             }

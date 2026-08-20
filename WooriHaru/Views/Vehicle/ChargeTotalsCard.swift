@@ -22,13 +22,13 @@ struct ChargeTotalsCard: View {
                     Text("누적")
                         .font(.caption)
                         .fontWeight(.bold)
-                        .foregroundStyle(Color.slate500)
+                        .foregroundStyle(VehicleTheme.textSecondary)
                     Spacer(minLength: 8)
                     if let since = totals?.firstChargedAt {
                         Text("\(since)부터")
                             .font(.caption2)
                             .monospacedDigit()
-                            .foregroundStyle(Color.slate400)
+                            .foregroundStyle(VehicleTheme.textTertiary)
                     }
                 }
                 HStack(spacing: 10) {
@@ -49,16 +49,16 @@ struct ChargeTotalsCard: View {
                 .font(.subheadline)
                 .fontWeight(.heavy)
                 .monospacedDigit()
-                .foregroundStyle(Color.slate900)
+                .foregroundStyle(VehicleTheme.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
             Text(label)
                 .font(.caption2)
-                .foregroundStyle(Color.slate500)
+                .foregroundStyle(VehicleTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
-        .background(Color.slate100, in: RoundedRectangle(cornerRadius: 12))
+        .background(VehicleTheme.tileFill, in: RoundedRectangle(cornerRadius: 12))
     }
 
     /// **표본 수를 함께 적는다.** 급속은 39건 중 22건이 미입력이라 17건에서만 나온 값이고,
@@ -69,28 +69,28 @@ struct ChargeTotalsCard: View {
             row("완속", slowWonPerKwh, totals?.slow.pricedCount)
             Text("kWh당")
                 .font(.caption2)
-                .foregroundStyle(Color.slate500)
+                .foregroundStyle(VehicleTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 8)
-        .background(Color.slate100, in: RoundedRectangle(cornerRadius: 12))
+        .background(VehicleTheme.tileFill, in: RoundedRectangle(cornerRadius: 12))
     }
 
     private func row(_ label: String, _ value: Decimal?, _ count: Int?) -> some View {
         HStack(spacing: 4) {
             Text(label)
                 .font(.system(size: 10))
-                .foregroundStyle(Color.slate500)
+                .foregroundStyle(VehicleTheme.textSecondary)
             Text(VehicleFormat.won(value))
                 .font(.caption)
                 .fontWeight(.bold)
                 .monospacedDigit()
-                .foregroundStyle(Color.slate900)
+                .foregroundStyle(VehicleTheme.textPrimary)
             if let count {
                 Text("\(count)건 기준")
                     .font(.system(size: 9))
                     .monospacedDigit()
-                    .foregroundStyle(Color.slate400)
+                    .foregroundStyle(VehicleTheme.textTertiary)
             }
         }
         .lineLimit(1)
@@ -124,5 +124,6 @@ struct ChargeTotalsCard: View {
         ChargeTotalsCard(totals: nil, odometerKm: nil, fastWonPerKwh: nil, slowWonPerKwh: nil)
     }
     .padding(16)
-    .background(Color.slate50)
+    .background(VehicleTheme.background)
+    .environment(\.vehicleDark, true)
 }
