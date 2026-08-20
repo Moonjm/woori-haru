@@ -10,11 +10,13 @@ struct StatsDriveSection: View {
 
     @State private var selectedID: String?
 
+    /// **헤더는 내용과 함께만 선다.** 추이를 못 받으면 「섹션이 조용히 빠질 뿐이다」라는
+    /// `VehicleStatsViewModel.load` 주석의 약속을 뷰가 지켜야 한다 — 헤더만 남으면
+    /// 첫 로딩 중에 빈 제목 둘이 나란히 서고, 실패는 「제목만 있고 아무것도 없다」로 보인다.
     var body: some View {
         VStack(spacing: 12) {
-            header
-
             if viewModel.hasTrend {
+                header
                 monthlyDistanceCard
                 drivingTimeCard
                 cumulativeDistanceCard

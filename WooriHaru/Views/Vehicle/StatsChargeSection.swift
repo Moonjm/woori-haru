@@ -10,9 +10,14 @@ struct StatsChargeSection: View {
 
     @State private var selectedID: String?
 
+    /// **헤더는 내용과 함께만 선다**(`StatsDriveSection`과 같은 규칙). 다만 이 섹션은
+    /// 창이 둘이라 게이트도 둘이다 — 월별 차트 셋은 12개월 추이에서, 도넛은 전 기간
+    /// 집계에서 온다. **둘 중 하나만 살아도 헤더는 선다.**
     var body: some View {
         VStack(spacing: 12) {
-            header
+            if viewModel.hasTrend || totalsViewModel.hasTotals {
+                header
+            }
             if viewModel.hasTrend {
                 monthlyEnergyCard
                 chargeCountCard
