@@ -93,4 +93,15 @@ struct InsightsModelsTests {
         #expect(DriveFormat.isoWeekdayLabel(7) == "일")
         #expect(DriveFormat.isoWeekdayLabel(8) == ChargeFormat.placeholder)
     }
+
+    /// **회귀 방지**: `InsightsStub.response`가 한때 `"2026-" + max(1, month)`로 `yearMonth`를
+    /// 지어서, 60개월(전체 기간) 창에서 절반 넘게 `"2026-01"`로 뭉개졌다(`id`가 `yearMonth`라
+    /// `Identifiable` 충돌까지 났다). 개수만 세는 단언으로는 이 결함이 안 잡혀 따로 둔다.
+    @Test func 스텁_60개월치는_해를_넘겨_모두_유일하다() {
+        let monthly = InsightsStub.response(months: 0, monthlyCount: 60).monthly
+        let yearMonths = monthly.map(\.yearMonth)
+        #expect(Set(yearMonths).count == 60)
+        #expect(yearMonths.first == "2021-09")
+        #expect(yearMonths.last == "2026-08")
+    }
 }

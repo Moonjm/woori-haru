@@ -4,6 +4,11 @@ import Foundation
 /// 통계 응답 스텁 한 벌. **열한 태스크가 같은 것을 쓴다** — 태스크마다 만들면 필드를
 /// 하나 더할 때 열한 군데를 고치게 된다.
 enum InsightsStub {
+    /// 기준 달(2026-08)의 절대 개월 수(연×12+월-1). `response(monthlyCount:)`가 여기서
+    /// 거슬러 올라가 연·월을 다시 푼다 — `monthlyCount`가 60(전체 기간)까지 커질 수 있어
+    /// `"2026-"` 접두어를 고정하면 해를 못 넘긴다.
+    private static let baseTotalMonths = 2026 * 12 + (8 - 1)
+
     /// `monthlyCount`개월치를 만든다. 노브는 **각각 하나의 경계**를 연다.
     /// - `emptyLastMonth`: 마지막 달이 기록 없는 달(값은 nil, `parkDrainSamples`는 0)
     /// - `emptyPlaces`: `places`·`chargers`가 빈 배열, `regions`가 전부 0
@@ -15,9 +20,13 @@ enum InsightsStub {
                          emptyRecords: Bool = false) -> InsightsResponse {
         let monthly = (0..<monthlyCount).map { index -> InsightsMonth in
             let isEmpty = emptyLastMonth && index == monthlyCount - 1
-            // 2026-08에서 거슬러 올라간다. 자릿수를 두 자리로 맞춘다.
-            let month = 8 - (monthlyCount - 1 - index)
-            let yearMonth = String(format: "2026-%02d", max(1, month))
+            // 절대 개월 수로 뺀 뒤 다시 연·월로 푼다 — 60개월(전체 기간) 창이 5년을
+            // 덮어서 해를 넘겨야 한다(실제 데이터 범위 2021-09~2026-08과 맞춘다).
+            let offset = monthlyCount - 1 - index
+            let totalMonths = baseTotalMonths - offset
+            let year = totalMonths / 12
+            let month = totalMonths % 12 + 1
+            let yearMonth = String(format: "%04d-%02d", year, month)
             return InsightsMonth(
                 yearMonth: yearMonth,
                 distanceKm: isEmpty ? nil : 780,
