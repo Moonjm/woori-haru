@@ -152,7 +152,10 @@ extension VehicleMath {
 
 // MARK: - 표기
 
-/// 주행 화면 전용 표기.
+/// 통계 탭의 시간·횟수 표기. **이름은 주행에서 왔지만 주행 전용이 아니다** —
+/// 요일·시각·「N회」는 단위와 무관해 충전 쪽도 그대로 쓴다(`StatsChargeSection`,
+/// 그리고 충전 히트맵이 쓸 `HeatmapGrid`). 이름을 바꾸지 않는 것은 호출부가 흩어져
+/// 있어 개명의 값이 비용을 못 넘기 때문이고, 그 사실을 여기 적어 둔다.
 enum DriveFormat {
     private static let weekdays = ["일", "월", "화", "수", "목", "금", "토"]
 
