@@ -159,8 +159,22 @@ final class VehicleStatsViewModel {
 
     /// 전비(km/kWh). **`VehiclePeriod.efficiency`가 하던 계산을 여기로 옮겼다** —
     /// `InsightsMonth`에는 그 계산 속성이 없다. 분모는 1단계와 같은 충전량이다.
+    ///
+    /// **선의 공식은 이것으로 고정이다.** 계획 문서는 한때 이 선을 정격거리 기반으로
+    /// 바꾸라고 적었는데 스펙(`vehicle-insights-tabs-design.md:190`)과 어긋나 기각됐다 —
+    /// 정격 대비 비율은 선이 아니라 `overallEfficiencyRatio`로 카드 머리에 한 줄만 얹는다.
     var efficiencyPoints: [ChartPoint] {
         points { VehicleMath.kmPerKwh(energyAddedKwh: $0.energyAddedKwh, distanceKm: $0.distanceKm) }
+    }
+
+    /// 기간 전체의 정격 대비 실주행. **합끼리 나눈다** — 월별 비율의 평균은 짧은 달을
+    /// 과대평가한다(주행이 사흘뿐인 달의 100% 비율이 꽉 찬 달과 같은 무게를 갖는다).
+    /// 개요 누적 타일에서 옮겨온 자리다.
+    var overallEfficiencyRatio: Decimal? {
+        let distance = monthly.compactMap(\.distanceKm).reduce(0, +)
+        let rated = monthly.compactMap(\.ratedRangeUsedKm).reduce(0, +)
+        guard distance > 0, rated > 0 else { return nil }
+        return distance / rated
     }
 
     /// **누적은 뷰가 아니라 여기서 낸다.** 뷰에서 다시 더하면 테스트하는 값과 화면 값이 갈린다.

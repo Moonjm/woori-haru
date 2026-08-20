@@ -534,4 +534,37 @@ struct VehicleStatsViewModelTests {
         // **0이 아니라 nil이다** — 기록이 없는 달은 「전비 0」이 아니라 「모른다」다.
         #expect(viewModel.efficiencyPoints[1].value == nil)
     }
+
+    // MARK: - 종합 효율(정격 대비)
+
+    /// 100km를 정격 50km로, 10km를 정격 100km로 갔다면 월별 비율은 2.0과 0.1이지만
+    /// **합끼리 나눠야** 110÷150 ≈ 0.733이다. 월별 평균(1.05)과 다른 값이어야
+    /// 「합끼리 나눈다」는 계약이 실제로 지켜지는지 가른다.
+    @Test func 종합_효율은_거리와_정격_합끼리_나눈다() async {
+        let mock = MockAPIClient()
+        stub(mock, Self.response(monthly: [
+            Self.month("2026-06", distanceKm: 100, ratedRangeUsedKm: 50),
+            Self.month("2026-07", distanceKm: 10, ratedRangeUsedKm: 100),
+        ]))
+        let viewModel = makeViewModel(mock)
+
+        await viewModel.load()
+
+        let ratio = try! #require(viewModel.overallEfficiencyRatio)
+        let expected = Decimal(110) / Decimal(150)
+        #expect(abs(ratio - expected) < Decimal(string: "0.0001")!)
+    }
+
+    /// 정격거리 소모가 한 달도 없으면(분모 0) nil이다 — 0으로 나누지 않는다.
+    @Test func 정격_소모가_없으면_종합_효율도_nil이다() async {
+        let mock = MockAPIClient()
+        stub(mock, Self.response(monthly: [
+            Self.month("2026-06", distanceKm: 100),
+        ]))
+        let viewModel = makeViewModel(mock)
+
+        await viewModel.load()
+
+        #expect(viewModel.overallEfficiencyRatio == nil)
+    }
 }

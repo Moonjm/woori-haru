@@ -87,15 +87,30 @@ struct StatsDriveSection: View {
 
     /// **콜아웃을 점에서 읽는다** — 전비는 응답에 없는 값이라 뷰모델이 나눠서 낸다.
     /// 여기서 다시 나누면 차트와 콜아웃이 서로 다른 코드로 같은 값을 말하게 된다.
+    ///
+    /// **종합 효율 줄을 차트 위에 둔다.** `ChartCard.callout`(오른쪽 위)은 이미 선택한
+    /// 달의 전비를 말하고, 종합 효율은 기간 전체 한 값이라 서로 다른 질문에 답한다 —
+    /// 같은 줄에 나란히 두면 어느 쪽이 「지금 고른 달」이고 어느 쪽이 「기간 전체」인지
+    /// 헷갈린다. 차트보다 먼저 두면 「기간 전체 감」을 먼저 준 다음 달마다 추이를 읽게
+    /// 되어 순서가 자연스럽다. 값이 없으면 줄째 감춘다.
     private var efficiencyCard: some View {
         let points = viewModel.efficiencyPoints
         let anchor = anchorID(points)
         let shown = points.first { $0.id == anchor }
         return ChartCard(title: "효율 추세",
                          callout: shown.map { VehicleFormat.efficiency($0.value) }) {
-            MonthlyLineChart(points: points,
-                             selectedID: anchor,
-                             onSelect: { selectedID = $0 })
+            VStack(alignment: .leading, spacing: 6) {
+                if let ratio = viewModel.overallEfficiencyRatio {
+                    // **「전 기간」이라 쓰지 않는다** — 이 값은 기간 칩을 따르므로
+                    // 범위를 주장하지 않는 말을 쓴다.
+                    Text("정격 대비 \(ChargeFormat.percent(ratio))")
+                        .font(.caption2)
+                        .foregroundStyle(VehicleTheme.textTertiary)
+                }
+                MonthlyLineChart(points: points,
+                                 selectedID: anchor,
+                                 onSelect: { selectedID = $0 })
+            }
         }
     }
 }
