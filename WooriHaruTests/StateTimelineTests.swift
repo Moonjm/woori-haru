@@ -233,4 +233,50 @@ struct StateTimelineTests {
         #expect(visible.count == ticks.count - 1)
         #expect(!visible.contains { isClose($0.fraction, ticks.last!.fraction) })
     }
+
+    // MARK: - 짚은 자리의 막대
+
+    /// 겹친 자리에서는 **맨 위 것**을 고른다. 상태 위에 주행이, 그 위에 충전이 덧칠되므로
+    /// 눈에 보이는 색과 짚어서 나오는 이름이 갈리면 안 된다.
+    @Test func 겹친_자리에서는_맨_위_막대를_고른다() {
+        let bars = [
+            TimelineBar(start: 0.0, end: 1.0, kind: .online),
+            TimelineBar(start: 0.2, end: 0.4, kind: .driving),
+            TimelineBar(start: 0.3, end: 0.35, kind: .charging)
+        ]
+        #expect(StateTimelineMath.bar(atFraction: 0.10, in: bars)?.kind == .online)
+        #expect(StateTimelineMath.bar(atFraction: 0.25, in: bars)?.kind == .driving)
+        #expect(StateTimelineMath.bar(atFraction: 0.32, in: bars)?.kind == .charging)
+    }
+
+    /// 막대가 없는 자리는 **아무것도 아니다.** 가장 가까운 것을 끌어다 붙이면
+    /// 기록이 없는 시간대에 없는 상태가 찍힌다.
+    @Test func 막대가_없는_자리는_아무것도_고르지_않는다() {
+        let bars = [TimelineBar(start: 0.2, end: 0.4, kind: .online)]
+        #expect(StateTimelineMath.bar(atFraction: 0.1, in: bars) == nil)
+        #expect(StateTimelineMath.bar(atFraction: 0.5, in: bars) == nil)
+        #expect(StateTimelineMath.bar(atFraction: 0.3, in: bars)?.kind == .online)
+    }
+
+    /// 경계는 **시작을 품고 끝을 뱉는다.** 붙어 있는 두 구간의 이음매에서 둘 다 잡히면
+    /// 같은 자리를 짚었는데 나오는 값이 실행마다 달라진다.
+    @Test func 경계는_시작을_품고_끝을_뱉는다() {
+        let bars = [
+            TimelineBar(start: 0.0, end: 0.5, kind: .offline),
+            TimelineBar(start: 0.5, end: 1.0, kind: .online)
+        ]
+        #expect(StateTimelineMath.bar(atFraction: 0.5, in: bars)?.kind == .online)
+        #expect(StateTimelineMath.bar(atFraction: 0.499, in: bars)?.kind == .offline)
+    }
+
+    /// 띠 밖을 짚는 일은 없어야 하지만, 제스처가 손가락을 따라 폭 밖으로 나가면 생긴다.
+    @Test func 범위_밖을_짚으면_아무것도_고르지_않는다() {
+        let bars = [TimelineBar(start: 0.0, end: 1.0, kind: .online)]
+        #expect(StateTimelineMath.bar(atFraction: -0.1, in: bars) == nil)
+        #expect(StateTimelineMath.bar(atFraction: 1.5, in: bars) == nil)
+    }
+
+    @Test func 막대가_하나도_없으면_아무것도_고르지_않는다() {
+        #expect(StateTimelineMath.bar(atFraction: 0.5, in: []) == nil)
+    }
 }

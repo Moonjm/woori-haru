@@ -18,6 +18,12 @@ struct StateTimelineChart: View {
     private let barHeight: CGFloat = 24
     private let tickLabelWidth: CGFloat = 30
 
+    /// 지금 짚고 있는 자리. 손을 떼면 `nil`로 돌아간다.
+    ///
+    /// **막대가 아니라 비율을 들고 있는다.** 지시선을 손가락이 있는 곳에 그려야 하는데,
+    /// 막대만 들고 있으면 막대 안 어디를 짚었는지 알 수 없어 선이 구간 시작으로 튄다.
+    @State private var touchedFraction: Double?
+
     init(bars: [TimelineBar], from: Date, to: Date) {
         // 입력이 이미 레이어 순으로 정렬돼 있어 그리는 순서가 곧 덧칠 순서다. 다시 정렬하지 않는다.
         self.bars = bars
@@ -28,10 +34,16 @@ struct StateTimelineChart: View {
     var body: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: 8) {
-                Text("최근 \(hours)시간")
+                // **제목 자리를 빌려 쓴다.** 아래에 줄을 하나 더 두면 짚을 때마다 카드가
+                // 높아졌다 낮아져 그 밑의 카드들이 밀린다 — 짚는 동안 띠가 손가락 아래에서
+                // 움직이면 무엇을 짚고 있는지가 어긋난다.
+                Text(touchedLabel ?? "최근 \(hours)시간")
                     .font(.caption)
                     .fontWeight(.bold)
-                    .foregroundStyle(VehicleTheme.textSecondary)
+                    .monospacedDigit()
+                    .foregroundStyle(touchedLabel == nil ? VehicleTheme.textSecondary : VehicleTheme.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
                     // 띠의 접근성 이름이 같은 말을 이미 하고 있다 — 제목은 눈을 위한 장식이다.
                     .accessibilityHidden(true)
 
@@ -59,11 +71,27 @@ struct StateTimelineChart: View {
                         .frame(width: max(1 / displayScale, width * (bar.end - bar.start)))
                         .offset(x: width * bar.start)
                 }
+                if let touchedFraction {
+                    // 짚은 자리를 가리키는 선. **막대를 덮어 가리지 않게 얇고 밝게** 긋는다.
+                    Rectangle()
+                        .fill(VehicleTheme.textPrimary)
+                        .frame(width: 1.5)
+                        .offset(x: width * touchedFraction - 0.75)
+                }
             }
             .clipShape(RoundedRectangle(cornerRadius: 5))
+            .contentShape(.rect)
+            // **`minimumDistance: 0`이라 탭 한 번도 잡힌다.** 끌지 않고 눌렀다 떼기만 해도
+            // 그 자리의 구간이 잠깐 뜬다 — 「끌어야 나온다」를 따로 배우게 하지 않는다.
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { touchedFraction = width > 0 ? $0.location.x / width : nil }
+                    .onEnded { _ in touchedFraction = nil }
+            )
         }
         .frame(height: barHeight)
         // 구간을 하나씩 읽게 만들지 않는다 — 띠 전체가 한 정거장이다.
+        // **쓸어보기는 눈 전용이다** — VoiceOver는 띠 전체를 한 문장으로 듣는다.
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(stripLabel)
     }
@@ -126,6 +154,32 @@ struct StateTimelineChart: View {
     /// 그린 범위와 말하는 길이가 갈릴 자리가 아예 없다.
     private var hours: Int { StateTimelineMath.hours(from: from, to: to) }
 
+    /// 짚은 자리의 구간을 「온라인 · 18:30–19:40 · 1시간 10분」으로.
+    ///
+    /// **막대가 없는 자리를 짚으면 `nil`이다** — 제목이 「최근 N시간」으로 남는다.
+    /// 옆 구간을 끌어다 붙이면 기록이 없는 시간대에 없는 상태가 찍힌다.
+    ///
+    /// 시각은 **비율에서 되살린다**(`from + start × 범위`). 막대가 비율만 들고 있는 것은
+    /// 그리기에 필요한 것이 비율뿐이기 때문이고, 여기서 되살린 값은 원본과 초 단위로 같다.
+    private var touchedLabel: String? {
+        guard let touchedFraction,
+              let bar = StateTimelineMath.bar(atFraction: touchedFraction, in: bars) else { return nil }
+        let start = from.addingTimeInterval(bar.start * span)
+        let end = from.addingTimeInterval(bar.end * span)
+        // **분으로 반올림한다.** 초까지 세면 「1시간 9분」과 「1시간 10분」이 같은 구간에서
+        // 갈리는데, 화면이 찍는 시각은 분 단위라 사람이 그 차이를 확인할 길이 없다.
+        let minutes = Int((end.timeIntervalSince(start) / 60).rounded())
+        return [Self.stateLabel(bar.kind),
+                "\(Self.clockFormatter.string(from: start))–\(Self.clockFormatter.string(from: end))",
+                ChargeFormat.duration(minutes)].joined(separator: " · ")
+    }
+
+    /// 범례와 **같은 이름**을 쓴다. 색을 보고 범례에서 찾은 이름과 짚어서 나온 이름이
+    /// 다르면 둘 중 하나가 거짓말이 된다.
+    private static func stateLabel(_ kind: TimelineKind) -> String {
+        legendItems.first { $0.kind == kind }?.label ?? "알 수 없음"
+    }
+
     /// 띠 전체를 한 문장으로.
     ///
     /// **오프라인·잠자는 중도 온라인과 똑같이 시간으로 읽는다.** 실측상 대부분이 오프라인이라
@@ -181,6 +235,16 @@ struct StateTimelineChart: View {
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.timeZone = kst
         formatter.dateFormat = "H시"
+        return formatter
+    }()
+
+    /// 짚은 구간의 시작·끝. **눈금과 달리 분까지 찍는다** — 눈금은 4시간 정각뿐이라 시만
+    /// 있으면 되지만, 구간의 경계는 18:37 같은 임의의 시각이다.
+    private static let clockFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = kst
+        formatter.dateFormat = "HH:mm"
         return formatter
     }()
 }
