@@ -1,12 +1,11 @@
 import SwiftUI
 
-/// 통계 탭 — 「주행」 섹션(12개월 추이 차트 넷 + 온도별 전비·시간대·거리 분포·자주 가는 곳)과
+/// 통계 탭 — 「주행」 섹션(월별 차트 넷 + 온도별 전비·시간대·거리 분포·자주 가는 곳)과
 /// 「배터리」 섹션(열화 추세)을 묶는다.
 ///
-/// **`VehicleStatsViewModel`이 엔드포인트 둘을 본다.** `/tesla/drive-insights`는 기간 칩을
-/// 따라 카드 넷을 채우고, `/tesla/summary`는 늘 이번 달 기준 12개월 추이를 낸다 — 창이 달라
-/// 칩을 눌러도 추이는 다시 받지 않는다. 배터리 열화 추세(`healthViewModel`)도 전 기간을 봐야
-/// 기울기가 드러나 기간 칩과 무관하다.
+/// **`VehicleStatsViewModel`은 `/tesla/insights` 하나만 본다.** 월별 차트까지 한 응답에서
+/// 나오므로 기간 칩이 화면 전체에 먹는다. 배터리 열화 추세(`healthViewModel`)와 급속/완속
+/// 도넛(`totalsViewModel`)만 예외다 — 둘 다 전 기간을 봐야 하는 값이라 칩과 무관하다.
 ///
 /// **기간 칩은 화면 맨 위 하나다.** 카드마다 기간이 다르면 서로 비교가 안 된다.
 /// 충전 탭의 월 스와이프는 여기 걸지 않는다 — 이 탭의 기간 단위는 달이 아니다.
@@ -36,7 +35,13 @@ struct VehicleStatsTab: View {
                 // 역대 최고는 전 기간이고, 평균 둘은 전 기간을 기록이 있는 달 수로 나눈 값이다.
                 // 「이 기간에 주행이 없다」는 이유로 감추면 3개월 범위가 빈 사람에게 전 기간
                 // 평균까지 사라진다.
-                if viewModel.showsStats {
+                //
+                // **게이트가 「응답을 받았는가」 하나로 줄었다.** 1단계의 `showsStats`는
+                // 「서버가 아직 이 필드를 안 낸다」까지 함께 가리던 과도기 장치였는데,
+                // `/tesla/insights`에서는 셋이 non-null이라 그쪽 조건은 거짓이 될 수 없다.
+                // 남은 것은 아래 `content`와 같은 갈림길뿐이다 — 응답 전에 그리면 로딩
+                // 스피너 위에 「—」 셋짜리 카드가 먼저 선다.
+                if viewModel.insights != nil {
                     DriveStatsCard(maxSpeedKmh: viewModel.insights?.maxSpeedKmh,
                                    avgMonthlyKm: viewModel.avgMonthlyKm,
                                    avgYearlyKm: viewModel.avgYearlyKm)

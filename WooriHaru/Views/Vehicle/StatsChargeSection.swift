@@ -2,8 +2,9 @@ import SwiftUI
 
 /// 통계 탭 「충전」 섹션 — 월별 충전량·비용, 월별 충전횟수, 누적 충전비, 급속/완속 비율.
 ///
-/// **급속/완속만 `/tesla/charges/totals`에서 온다**(전 기간 집계). 나머지 셋은 12개월 추이다.
-/// 두 창이 다르므로 도넛 카드에 「전 기간」이라고 적어 둔다.
+/// **급속/완속만 `/tesla/charges/totals`에서 온다**(전 기간 집계). 나머지 셋은
+/// `/tesla/insights`의 `monthly`라 기간 칩을 따른다 — 두 창이 다르므로 도넛 카드에
+/// 「전 기간」이라고 적어 둔다.
 struct StatsChargeSection: View {
     @Bindable var viewModel: VehicleStatsViewModel
     @Bindable var totalsViewModel: ChargeTotalsViewModel
@@ -11,14 +12,14 @@ struct StatsChargeSection: View {
     @State private var selectedID: String?
 
     /// **헤더는 내용과 함께만 선다**(`StatsDriveSection`과 같은 규칙). 다만 이 섹션은
-    /// 창이 둘이라 게이트도 둘이다 — 월별 차트 셋은 12개월 추이에서, 도넛은 전 기간
-    /// 집계에서 온다. **둘 중 하나만 살아도 헤더는 선다.**
+    /// 창이 둘이라 게이트도 둘이다 — 월별 차트 셋은 기간 칩을 따르는 `monthly`에서,
+    /// 도넛은 전 기간 집계에서 온다. **둘 중 하나만 살아도 헤더는 선다.**
     var body: some View {
         VStack(spacing: 12) {
-            if viewModel.hasTrend || totalsViewModel.hasTotals {
+            if viewModel.hasMonthly || totalsViewModel.hasTotals {
                 header
             }
-            if viewModel.hasTrend {
+            if viewModel.hasMonthly {
                 monthlyEnergyCard
                 chargeCountCard
                 cumulativeCostCard
@@ -53,7 +54,7 @@ struct StatsChargeSection: View {
         // 슬롯을 정하는 것은 막대(충전량)라 기준도 충전량에서 잡는다.
         let points = viewModel.energyPoints
         let anchor = anchorID(points)
-        let shown = viewModel.trend.first { $0.yearMonth == anchor }
+        let shown = viewModel.monthly.first { $0.yearMonth == anchor }
         return ChartCard(title: "월별 충전량 · 비용",
                          callout: shown.map {
                              "\(ChargeFormat.energy($0.energyAddedKwh)) · \(VehicleFormat.won($0.cost))"
@@ -71,7 +72,7 @@ struct StatsChargeSection: View {
     private var chargeCountCard: some View {
         let points = viewModel.chargeCountPoints
         let anchor = anchorID(points)
-        let shown = viewModel.trend.first { $0.yearMonth == anchor }
+        let shown = viewModel.monthly.first { $0.yearMonth == anchor }
         return ChartCard(title: "월별 충전 횟수",
                          callout: shown.map { DriveFormat.count($0.chargeCount) }) {
             MonthlyBarChart(points: points,

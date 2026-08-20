@@ -2,20 +2,19 @@ import SwiftUI
 
 /// 통계 탭 「주행」 섹션 — 새 차트 넷과 기존 카드 넷.
 ///
-/// **새 차트 넷은 기간 칩을 따르지 않는다.** 12개월 추이(`trend`)에서 나오는 값이라
-/// 늘 최근 12개월이고, 기존 카드 넷만 칩을 따른다. 2단계에서 서버가 `months`를 받는
-/// `/tesla/insights`를 내면 둘이 같은 창을 보게 된다.
+/// **여덟 장이 같은 창을 본다.** 재료가 `/tesla/insights` 한 응답의 `monthly`로 옮겨져
+/// 월별 차트도 기간 칩을 따른다 — 1단계에서 이 넷만 12개월로 고정이던 것이 풀렸다.
 struct StatsDriveSection: View {
     @Bindable var viewModel: VehicleStatsViewModel
 
     @State private var selectedID: String?
 
-    /// **헤더는 내용과 함께만 선다.** 추이를 못 받으면 「섹션이 조용히 빠질 뿐이다」라는
-    /// `VehicleStatsViewModel.load` 주석의 약속을 뷰가 지켜야 한다 — 헤더만 남으면
-    /// 첫 로딩 중에 빈 제목 둘이 나란히 서고, 실패는 「제목만 있고 아무것도 없다」로 보인다.
+    /// **헤더는 내용과 함께만 선다.** 월별 표본이 없으면(아직 못 받았거나 기록이 하나도
+    /// 없거나) 섹션째 빠진다 — 헤더만 남으면 첫 로딩 중에 빈 제목 둘이 나란히 서고,
+    /// 실패는 「제목만 있고 아무것도 없다」로 보인다.
     var body: some View {
         VStack(spacing: 12) {
-            if viewModel.hasTrend {
+            if viewModel.hasMonthly {
                 header
                 monthlyDistanceCard
                 drivingTimeCard
@@ -50,7 +49,7 @@ struct StatsDriveSection: View {
         // 슬롯을 정하는 것은 막대(거리)라 기준도 거리에서 잡는다.
         let points = viewModel.distancePoints
         let anchor = anchorID(points)
-        let shown = viewModel.trend.first { $0.yearMonth == anchor }
+        let shown = viewModel.monthly.first { $0.yearMonth == anchor }
         return ChartCard(title: "월별 주행거리 · 주행횟수",
                          callout: shown.map {
                              "\(VehicleFormat.distance($0.distanceKm)) · \(DriveFormat.count($0.driveCount))"
@@ -65,7 +64,7 @@ struct StatsDriveSection: View {
     private var drivingTimeCard: some View {
         let points = viewModel.drivingMinPoints
         let anchor = anchorID(points)
-        let shown = viewModel.trend.first { $0.yearMonth == anchor }
+        let shown = viewModel.monthly.first { $0.yearMonth == anchor }
         return ChartCard(title: "월별 주행 시간",
                          callout: shown.map { ChargeFormat.duration($0.drivingMin) }) {
             MonthlyBarChart(points: points,
@@ -86,12 +85,14 @@ struct StatsDriveSection: View {
         }
     }
 
+    /// **콜아웃을 점에서 읽는다** — 전비는 응답에 없는 값이라 뷰모델이 나눠서 낸다.
+    /// 여기서 다시 나누면 차트와 콜아웃이 서로 다른 코드로 같은 값을 말하게 된다.
     private var efficiencyCard: some View {
         let points = viewModel.efficiencyPoints
         let anchor = anchorID(points)
-        let shown = viewModel.trend.first { $0.yearMonth == anchor }
+        let shown = points.first { $0.id == anchor }
         return ChartCard(title: "효율 추세",
-                         callout: shown.map { VehicleFormat.efficiency($0.efficiency) }) {
+                         callout: shown.map { VehicleFormat.efficiency($0.value) }) {
             MonthlyLineChart(points: points,
                              selectedID: anchor,
                              onSelect: { selectedID = $0 })
