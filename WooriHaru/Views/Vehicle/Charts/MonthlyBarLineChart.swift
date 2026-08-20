@@ -1,9 +1,5 @@
 import SwiftUI
 
-/// 막대·라벨 사이 간격. **HStack과 x 공식이 같은 값을 봐야 한다** —
-/// 두 곳에 따로 적으면 선의 점이 자기 막대에서 조용히 미끄러진다.
-private let slotSpacing: CGFloat = 5
-
 /// 막대 + 선 이중축. **두 축의 눈금을 화면에 적지 않는다** — 단위가 다른 두 계열을 겹치는
 /// 자리라 눈금 둘을 다 적으면 카드가 숫자로 덮인다. 정확한 값은 콜아웃이 말한다.
 ///
@@ -23,7 +19,7 @@ struct MonthlyBarLineChart: View {
             // 카드 안쪽 여백만큼 어긋나 오른쪽 끝 달이 안 잡힌다.
             GeometryReader { proxy in
                 ZStack(alignment: .bottom) {
-                    HStack(alignment: .bottom, spacing: slotSpacing) {
+                    HStack(alignment: .bottom, spacing: ChartScale.slotSpacing) {
                         ForEach(bars) { point in
                             let isSelected = point.id == selectedID
                             RoundedRectangle(cornerRadius: 4)
@@ -40,16 +36,18 @@ struct MonthlyBarLineChart: View {
                     linePath(in: proxy.size, maxValue: lineMax)
                 }
                 .contentShape(.rect)
+                // **그리는 식과 같은 식으로 받는다**(`ChartScale.slotIndex`) — 간격을 뺀
+                // 슬롯 폭을 쓰지 않으면 오른쪽 끝으로 갈수록 한 칸씩 밀린다.
                 .onTapGesture { location in
                     guard !bars.isEmpty else { return }
-                    let slot = proxy.size.width / CGFloat(bars.count)
-                    let index = min(bars.count - 1, max(0, Int(location.x / max(1, slot))))
+                    let index = ChartScale.slotIndex(atX: location.x, count: bars.count,
+                                                     width: proxy.size.width)
                     onSelect(bars[index].id)
                 }
             }
             .frame(height: height)
 
-            HStack(spacing: slotSpacing) {
+            HStack(spacing: ChartScale.slotSpacing) {
                 ForEach(bars) { point in
                     let isSelected = point.id == selectedID
                     Text(point.label)
@@ -67,12 +65,11 @@ struct MonthlyBarLineChart: View {
     private func linePath(in size: CGSize, maxValue: Decimal) -> some View {
         Path { path in
             var started = false
-            let slot = (size.width - slotSpacing * CGFloat(line.count - 1)) / CGFloat(line.count)
+            // **슬롯을 정하는 것은 막대다** — 선의 점 수로 나누면 한쪽 계열만 짧은 달에
+            // 선이 막대에서 미끄러진다. `line`은 `bars`와 같은 순서·같은 id다.
             for (index, point) in line.enumerated() {
                 guard let value = point.value else { started = false; continue }
-                let x = line.count <= 1
-                    ? size.width / 2
-                    : CGFloat(index) * (slot + slotSpacing) + slot / 2
+                let x = ChartScale.slotCenterX(index: index, count: bars.count, width: size.width)
                 let y = size.height * (1 - ChartScale.ratio(value, max: maxValue))
                 let cgPoint = CGPoint(x: x, y: y)
                 if started { path.addLine(to: cgPoint) } else { path.move(to: cgPoint); started = true }

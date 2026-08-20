@@ -13,7 +13,7 @@ struct MonthlyBarChart: View {
 
     var body: some View {
         let maxValue = ChartScale.maxValue(points)
-        HStack(alignment: .bottom, spacing: 5) {
+        HStack(alignment: .bottom, spacing: ChartScale.slotSpacing) {
             ForEach(points) { point in
                 bar(point, maxValue: maxValue)
             }
