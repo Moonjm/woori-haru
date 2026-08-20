@@ -38,51 +38,62 @@ struct StatsDriveSection: View {
 
     // MARK: - 카드
 
-    private var selected: VehiclePeriod? {
-        viewModel.trend.first { $0.yearMonth == selectedID } ?? viewModel.trend.last
+    /// **강조와 콜아웃이 같은 달을 가리키게 한다.** 아무것도 고르지 않았으면
+    /// 「마지막으로 **기록이 있는** 달」이다 — 그냥 `last`를 쓰면 달 초처럼 이번 달
+    /// 기록이 아직 없을 때 카드가 「—」를 띄운다. 카드마다 **자기 계열**로 기준을 잡는다:
+    /// 거리는 있는데 비용은 없는 달이 있어 계열마다 마지막 기록이 다르다.
+    private func anchorID(_ points: [ChartPoint]) -> String? {
+        selectedID ?? points.last(where: { $0.value != nil })?.id
     }
 
     private var monthlyDistanceCard: some View {
-        ChartCard(title: "월별 주행거리 · 주행횟수",
-                  callout: selected.map {
-                      "\(VehicleFormat.distance($0.distanceKm)) · \(DriveFormat.count($0.driveCount))"
-                  }) {
-            MonthlyBarLineChart(bars: viewModel.distancePoints,
+        // 슬롯을 정하는 것은 막대(거리)라 기준도 거리에서 잡는다.
+        let points = viewModel.distancePoints
+        let anchor = anchorID(points)
+        let shown = viewModel.trend.first { $0.yearMonth == anchor }
+        return ChartCard(title: "월별 주행거리 · 주행횟수",
+                         callout: shown.map {
+                             "\(VehicleFormat.distance($0.distanceKm)) · \(DriveFormat.count($0.driveCount))"
+                         }) {
+            MonthlyBarLineChart(bars: points,
                                 line: viewModel.driveCountPoints,
-                                selectedID: selectedID ?? viewModel.trend.last?.yearMonth,
+                                selectedID: anchor,
                                 onSelect: { selectedID = $0 })
         }
     }
 
     private var drivingTimeCard: some View {
-        ChartCard(title: "월별 주행 시간",
-                  callout: selected.map { ChargeFormat.duration($0.drivingMin) }) {
-            MonthlyBarChart(points: viewModel.drivingMinPoints,
-                            selectedID: selectedID ?? viewModel.trend.last?.yearMonth,
+        let points = viewModel.drivingMinPoints
+        let anchor = anchorID(points)
+        let shown = viewModel.trend.first { $0.yearMonth == anchor }
+        return ChartCard(title: "월별 주행 시간",
+                         callout: shown.map { ChargeFormat.duration($0.drivingMin) }) {
+            MonthlyBarChart(points: points,
+                            selectedID: anchor,
                             onSelect: { selectedID = $0 })
         }
     }
 
     private var cumulativeDistanceCard: some View {
         let points = viewModel.cumulativeDistancePoints
-        // **강조와 콜아웃이 같은 달을 가리키게 한다.** 기본값은 「마지막으로 기록이 있는 달」이라
-        // 아무것도 고르지 않은 상태에서 지금까지 총 주행거리가 그대로 보이고,
-        // 탭하면 그 달까지의 누적으로 바뀐다.
-        let anchorID = selectedID ?? points.last(where: { $0.value != nil })?.id
-        let shown = points.first { $0.id == anchorID }
+        let anchor = anchorID(points)
+        let shown = points.first { $0.id == anchor }
         return ChartCard(title: "누적 주행거리",
                           callout: shown.map { VehicleFormat.distance($0.value) }) {
             MonthlyLineChart(points: points,
-                             selectedID: anchorID,
+                             selectedID: anchor,
                              onSelect: { selectedID = $0 })
         }
     }
 
     private var efficiencyCard: some View {
-        ChartCard(title: "효율 추세",
-                  callout: selected.map { VehicleFormat.efficiency($0.efficiency) }) {
-            MonthlyLineChart(points: viewModel.efficiencyPoints,
-                             selectedID: selectedID ?? viewModel.trend.last?.yearMonth,
+        let points = viewModel.efficiencyPoints
+        let anchor = anchorID(points)
+        let shown = viewModel.trend.first { $0.yearMonth == anchor }
+        return ChartCard(title: "효율 추세",
+                         callout: shown.map { VehicleFormat.efficiency($0.efficiency) }) {
+            MonthlyLineChart(points: points,
+                             selectedID: anchor,
                              onSelect: { selectedID = $0 })
         }
     }

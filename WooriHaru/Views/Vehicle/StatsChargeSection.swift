@@ -42,18 +42,25 @@ struct StatsChargeSection: View {
 
     // MARK: - 카드
 
-    private var selected: VehiclePeriod? {
-        viewModel.trend.first { $0.yearMonth == selectedID } ?? viewModel.trend.last
+    /// **강조와 콜아웃이 같은 달을 가리키게 한다.** 규칙은 `StatsDriveSection`과 같다 —
+    /// 「마지막으로 **기록이 있는** 달」이고, 카드마다 **자기 계열**로 잡는다.
+    /// 그냥 `last`를 쓰면 달 초에 이웃 카드 셋만 「—」가 되고 하나만 지난달을 가리킨다.
+    private func anchorID(_ points: [ChartPoint]) -> String? {
+        selectedID ?? points.last(where: { $0.value != nil })?.id
     }
 
     private var monthlyEnergyCard: some View {
-        ChartCard(title: "월별 충전량 · 비용",
-                  callout: selected.map {
-                      "\(ChargeFormat.energy($0.energyAddedKwh)) · \(VehicleFormat.won($0.cost))"
-                  }) {
-            MonthlyBarLineChart(bars: viewModel.energyPoints,
+        // 슬롯을 정하는 것은 막대(충전량)라 기준도 충전량에서 잡는다.
+        let points = viewModel.energyPoints
+        let anchor = anchorID(points)
+        let shown = viewModel.trend.first { $0.yearMonth == anchor }
+        return ChartCard(title: "월별 충전량 · 비용",
+                         callout: shown.map {
+                             "\(ChargeFormat.energy($0.energyAddedKwh)) · \(VehicleFormat.won($0.cost))"
+                         }) {
+            MonthlyBarLineChart(bars: points,
                                 line: viewModel.costPoints,
-                                selectedID: selectedID ?? viewModel.trend.last?.yearMonth,
+                                selectedID: anchor,
                                 onSelect: { selectedID = $0 })
         }
     }
@@ -62,25 +69,25 @@ struct StatsChargeSection: View {
     /// `DriveFormat.count(_:)`를 그대로 쓴다. 「N회」는 단위와 무관해 충전 횟수에도 맞는
     /// 표기라 `ChargeFormat`에 한 줄짜리 포맷터를 또 두지 않는다.
     private var chargeCountCard: some View {
-        ChartCard(title: "월별 충전 횟수",
-                  callout: selected.map { DriveFormat.count($0.chargeCount) }) {
-            MonthlyBarChart(points: viewModel.chargeCountPoints,
-                            selectedID: selectedID ?? viewModel.trend.last?.yearMonth,
+        let points = viewModel.chargeCountPoints
+        let anchor = anchorID(points)
+        let shown = viewModel.trend.first { $0.yearMonth == anchor }
+        return ChartCard(title: "월별 충전 횟수",
+                         callout: shown.map { DriveFormat.count($0.chargeCount) }) {
+            MonthlyBarChart(points: points,
+                            selectedID: anchor,
                             onSelect: { selectedID = $0 })
         }
     }
 
     private var cumulativeCostCard: some View {
         let points = viewModel.cumulativeCostPoints
-        // **강조와 콜아웃이 같은 달을 가리키게 한다.** 기본값은 「마지막으로 기록이 있는 달」이라
-        // 아무것도 고르지 않은 상태에서 지금까지 누적 충전비가 그대로 보이고,
-        // 탭하면 그 달까지의 누적으로 바뀐다.
-        let anchorID = selectedID ?? points.last(where: { $0.value != nil })?.id
-        let shown = points.first { $0.id == anchorID }
+        let anchor = anchorID(points)
+        let shown = points.first { $0.id == anchor }
         return ChartCard(title: "누적 충전비",
                           callout: shown.map { VehicleFormat.won($0.value) }) {
             MonthlyLineChart(points: points,
-                             selectedID: anchorID,
+                             selectedID: anchor,
                              onSelect: { selectedID = $0 })
         }
     }
