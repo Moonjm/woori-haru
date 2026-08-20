@@ -50,6 +50,7 @@
 		897E42FFEAD38504BCF1B861 /* VehicleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 823FB1E6072082F5CCEE8AC8 /* VehicleView.swift */; };
 		8BB898B17D4BBEB63A05130F /* HeatmapGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C17B2756F0E576D57B12DB0 /* HeatmapGrid.swift */; };
 		8CB8971CA8F25A48887B5650 /* MonthGridBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECC4B98A560D4DF30F7501E2 /* MonthGridBuilder.swift */; };
+		8D0403140D65DEE3C68E2C92 /* StatsPlaceSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67B93513DEE856B6F9D4BE9B /* StatsPlaceSection.swift */; };
 		9B8FDCDA4FB0EF187F1CB0B6 /* ChargeTotalsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4A2F8E3D8868F29934E27D0 /* ChargeTotalsCard.swift */; };
 		A10001 /* WooriHaruApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20001 /* WooriHaruApp.swift */; };
 		A10002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20002 /* ContentView.swift */; };
@@ -285,6 +286,7 @@
 		5ABE2410B818951F5517EC74 /* ChargeTotalsModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ChargeTotalsModels.swift; sourceTree = "<group>"; };
 		5BBE7AB261F331755E2DC9C9 /* StatsParkSection.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = StatsParkSection.swift; path = Vehicle/StatsParkSection.swift; sourceTree = "<group>"; };
 		60574F8D44D3658931EEA927 /* InsightsModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = InsightsModels.swift; sourceTree = "<group>"; };
+		67B93513DEE856B6F9D4BE9B /* StatsPlaceSection.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = StatsPlaceSection.swift; path = Vehicle/StatsPlaceSection.swift; sourceTree = "<group>"; };
 		690A0D0A21A54E8BE01CDC21 /* VehicleModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VehicleModels.swift; sourceTree = "<group>"; };
 		6C17B2756F0E576D57B12DB0 /* HeatmapGrid.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = HeatmapGrid.swift; path = Vehicle/Charts/HeatmapGrid.swift; sourceTree = "<group>"; };
 		70222E6D42ADFB926C91C06A /* DonutChart.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DonutChart.swift; path = Vehicle/Charts/DonutChart.swift; sourceTree = "<group>"; };
@@ -620,6 +622,7 @@
 				503CF88FD62CD5DF10233D57 /* StatsChargeSection.swift */,
 				CA3EB25C1FED0089E8CC935F /* CostBreakdownCard.swift */,
 				5BBE7AB261F331755E2DC9C9 /* StatsParkSection.swift */,
+				67B93513DEE856B6F9D4BE9B /* StatsPlaceSection.swift */,
 			);
 			name = Vehicle;
 			sourceTree = "<group>";
@@ -1369,6 +1372,7 @@
 				6E61B6AF90309458C4C6D9D0 /* RankBarList.swift in Sources */,
 				8BB898B17D4BBEB63A05130F /* HeatmapGrid.swift in Sources */,
 				2DC1BF3C2B794343CF66873E /* StatsParkSection.swift in Sources */,
+				8D0403140D65DEE3C68E2C92 /* StatsPlaceSection.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

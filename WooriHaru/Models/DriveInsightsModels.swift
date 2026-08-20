@@ -94,13 +94,17 @@ struct DistanceBucket: Codable, Identifiable, Equatable {
 
 /// 자주 가는 곳. **이름만 온다** — `/tesla/status`가 좌표와 주소를 싣지 않는 방침과 같다.
 ///
-/// **`Identifiable`을 달지 않는다.** 서버는 지오펜스 **id**로 묶는데(`GROUP BY g.id, g.name`)
-/// 이 DTO에는 그 id가 없다 — `name`만으로 아이디를 삼으면, 이름이 같은 두 지오펜스가
-/// 같은 아이디를 주장하게 된다. 모델이 갖지 못한 정체성을 뷰에게 있는 척 알려주지 않는다.
-struct DrivePlace: Codable, Equatable {
+/// **`name`이 목록 안에서 유일하다.** 서버가 지오펜스 id가 아니라 **표시 이름**으로 묶기
+/// 때문이다(`GROUP BY 1`) — 주소는 재지오코딩할 때마다 행이 갈리는데, id로 묶으면 사람이
+/// 같은 곳으로 읽는 것이 두 줄로 나온다. 그래서 이름을 아이디로 쓸 수 있다 — 이전 계약
+/// (지오펜스 id로 묶고 DTO에는 그 id가 없던 시절)에서는 그렇지 않아 뷰가 `id: \.offset`으로
+/// 그렸다.
+struct DrivePlace: Codable, Identifiable, Equatable {
     let name: String
     let driveCount: Int
     let distanceKm: Decimal
+
+    var id: String { name }
 }
 
 // MARK: - 기간

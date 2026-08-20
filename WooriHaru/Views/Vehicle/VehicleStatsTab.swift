@@ -52,6 +52,7 @@ struct VehicleStatsTab: View {
                 StatsChargeSection(viewModel: viewModel, totalsViewModel: totalsViewModel)
                 StatsParkSection(viewModel: viewModel)
                 batterySection
+                StatsPlaceSection(viewModel: viewModel)
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 110)
@@ -128,45 +129,6 @@ struct VehicleStatsTab: View {
                          driveCount: viewModel.distanceDriveCount)
         DistanceDistributionCard(buckets: viewModel.insights?.distanceBuckets ?? [],
                                  driveCount: viewModel.distanceDriveCount)
-        // **지오펜스가 없는 것이 이 차량의 기본 상태다**(`geofences` 0행). 등록하기
-        // 전까지 이 카드는 늘 감춰진다 — 「가끔 비는 경우」가 아니다.
-        if viewModel.showsPlaces {
-            placesCard
-        }
-    }
-
-    private var placesCard: some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("자주 가는 곳")
-                    .font(.caption)
-                    .fontWeight(.bold)
-                    .foregroundStyle(VehicleTheme.textSecondary)
-                // 서버가 지오펜스 id로 묶어 같은 이름이 둘 올 수 있는데 응답에는 id가
-                // 없다 — 위치로 아이디를 삼는다. 서버 랭킹 그대로인 읽기 전용 목록이라
-                // (건수 내림차순 상위 10개) 선택·애니메이션 상태가 없어 위치가 안전하다.
-                ForEach(Array((viewModel.insights?.places ?? []).enumerated()), id: \.offset) { _, place in
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        // **이름만 낸다** — 주소는 서버가 싣지 않는다.
-                        Text(place.name)
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(VehicleTheme.textPrimary)
-                            .lineLimit(1)
-                        Spacer(minLength: 8)
-                        Text(DriveFormat.count(place.driveCount))
-                            .font(.caption)
-                            .monospacedDigit()
-                            .foregroundStyle(VehicleTheme.textSecondary)
-                        Text(VehicleFormat.distance(place.distanceKm))
-                            .font(.caption)
-                            .monospacedDigit()
-                            .foregroundStyle(VehicleTheme.textTertiary)
-                            .frame(width: 66, alignment: .trailing)
-                    }
-                }
-            }
-        }
     }
 
     /// 열화 추세 — 「지금 어떤가」가 아니라 「어떻게 변해왔나」라 개요가 아니라 여기다.

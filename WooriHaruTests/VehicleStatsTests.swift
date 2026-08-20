@@ -19,7 +19,8 @@ struct VehicleStatsViewModelTests {
         places: [DrivePlace] = [],
         maxSpeedKmh: Int? = 138,
         totalDistanceKm: Decimal = Decimal(string: "107257.8")!,
-        recordedMonths: Int = 60
+        recordedMonths: Int = 60,
+        regions: Regions = Regions(cities: 0, states: 0, countries: 0)
     ) -> InsightsResponse {
         InsightsResponse(
             months: months,
@@ -39,7 +40,7 @@ struct VehicleStatsViewModelTests {
             chargeStartLevels: [],
             chargeEndLevels: [],
             chargers: [],
-            regions: Regions(cities: 0, states: 0, countries: 0),
+            regions: regions,
             records: InsightsRecords(longestDistance: nil, longestDuration: nil,
                                      bestEfficiency: nil)
         )
@@ -240,17 +241,6 @@ struct VehicleStatsViewModelTests {
         #expect(viewModel.temperatureRows.allSatisfy { $0.kmPerKwh == nil })
     }
 
-    /// **지오펜스가 하나도 없는 것이 이 차량의 기본 상태다.** 「가끔 비는 경우」가 아니다.
-    @Test func 지오펜스가_없으면_자주_가는_곳을_감춘다() async {
-        let mock = MockAPIClient()
-        stub(mock, Self.insights())
-        let viewModel = makeViewModel(mock)
-
-        await viewModel.load()
-
-        #expect(!viewModel.showsPlaces)
-    }
-
     /// **계수는 있는데 모든 온도 버킷의 `ratedRangeUsedKm`이 0인 경우다** — 아주 짧은
     /// 주행만 있는 기간(실측: 447건 중 431건이 델타 정확히 0). 거리 버킷 쪽엔 주행이
     /// 있어 `hasDrives`는 참이지만, 전비 카드는 다섯 줄 다 「—」가 되어 감춰야 한다.
@@ -273,16 +263,6 @@ struct VehicleStatsViewModelTests {
 
         #expect(viewModel.hasDrives)
         #expect(!viewModel.showsEfficiency)
-    }
-
-    @Test func 지오펜스가_있으면_자주_가는_곳을_낸다() async {
-        let mock = MockAPIClient()
-        stub(mock, Self.insights(places: [DrivePlace(name: "집", driveCount: 124, distanceKm: 812)]))
-        let viewModel = makeViewModel(mock)
-
-        await viewModel.load()
-
-        #expect(viewModel.showsPlaces)
     }
 
     /// **`recordedMonths`가 non-null이 된 것은 「0이 안 온다」가 아니다.** 주행이 하나도
@@ -754,5 +734,92 @@ struct VehicleStatsViewModelTests {
         #expect(viewModel.hasParkMonths)
         #expect(!viewModel.hasDriveMonths)
         #expect(!viewModel.hasChargeMonths)
+    }
+
+    // MARK: - 위치
+
+    /// 서버가 **표시 이름으로 묶어** 주므로 목록 안에서 이름이 유일하다 —
+    /// 1단계에서 `id: \.offset`으로 그리던 이유가 사라졌다.
+    @Test func 자주_가는_곳은_이름이_유일해서_id로_쓸_수_있다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 1))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+
+        let ids = viewModel.placeRows.map(\.id)
+        #expect(ids == ["집", "회사"])
+        #expect(Set(ids).count == ids.count)
+    }
+
+    /// **막대 길이가 순위 기준과 달라지면 짧은 막대가 위에 온다.** 서버가 건수
+    /// 내림차순으로 주므로 `value`도 건수여야 한다.
+    @Test func 순위_막대는_순위_기준과_같은_값으로_길이를_정한다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 1))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+
+        // 서버가 건수 내림차순으로 준다 — 스텁: 집 302회, 회사 151회.
+        let values = viewModel.placeRows.map(\.value)
+        #expect(values == [302, 151])
+        #expect(values == values.sorted(by: >))
+    }
+
+    /// 충전소 쪽도 같은 규칙이다 — 막대 길이는 비용이 아니라 충전 횟수.
+    @Test func 충전소_순위_막대도_건수로_길이를_정한다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 1))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+
+        #expect(viewModel.chargerRows.map(\.value) == [210])
+    }
+
+    /// 미입력이 섞이면 위에 적힌 금액이 실제보다 적다 — 그 사실을 안 적으면
+    /// 순위가 조용히 뒤집힌다.
+    @Test func 금액_미입력이_섞인_충전소는_단서를_단다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 1))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+        #expect(viewModel.chargerRows.first?.note == "4건 금액 없음")
+    }
+
+    /// **0원이 아니라 「—」다.** 0원은 「공짜로 넣었다」는 거짓이다.
+    @Test func 금액이_전부_미입력인_충전소는_비용이_없다() {
+        let charger = Charger(name: "어딘가", chargeCount: 3, energyAddedKwh: 40,
+                              cost: nil, costMissingCount: 3)
+        #expect(ChargeFormat.cost(charger.cost) == "미입력")
+    }
+
+    /// **1단계의 「지오펜스가 없으면 감춘다」와 다르다** — 서버가 주소로 이름을 짓게 되어
+    /// 남은 빈 길은 「그 기간에 주행·충전이 없었다」뿐이다.
+    @Test func 배열이_비면_위치_섹션을_통째로_감춘다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 1, emptyPlaces: true))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+        #expect(!viewModel.showsPlaceSection)
+        #expect(viewModel.placeRows.isEmpty)
+        #expect(viewModel.chargerRows.isEmpty)
+    }
+
+    /// 채워져 오는 것이 이 차량의 기본 상태다 — 감추기가 기본이 되면 안 된다.
+    @Test func 주소로_이름이_붙은_곳들은_섹션을_연다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 1))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+        #expect(viewModel.showsPlaceSection)
+    }
+
+    /// **`places`·`chargers`가 비어도 `regions`만 채워지면 섹션은 열려야 한다** — 셋
+    /// 중 하나만 있어도 헤더까지 감추면 그 하나가 안 보인다.
+    @Test func 지역_수만_있어도_섹션을_연다() async {
+        let mock = MockAPIClient()
+        stub(mock, Self.response(regions: Regions(cities: 3, states: 1, countries: 1)))
+        let viewModel = makeViewModel(mock)
+        await viewModel.load()
+        #expect(viewModel.showsPlaceSection)
     }
 }

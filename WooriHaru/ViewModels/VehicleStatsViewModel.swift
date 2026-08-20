@@ -49,9 +49,46 @@ final class VehicleStatsViewModel {
         insights?.efficiencyKwhPerKm != nil && temperatureRows.contains { $0.kmPerKwh != nil }
     }
 
-    /// **지오펜스가 하나도 없는 것이 이 차량의 기본 상태다**(`geofences` 0행).
-    /// 「가끔 비는 경우」로 다루면 안 되고, 등록하기 전까지 이 카드는 늘 감춰진다.
-    var showsPlaces: Bool { !(insights?.places.isEmpty ?? true) }
+    /// #24 자주 가는 곳. **막대 길이는 건수다** — 서버가 건수 내림차순(`drive_count DESC,
+    /// distance_km DESC, name`)으로 주므로, 거리로 길이를 정하면 짧은 막대가 위에 온다.
+    var placeRows: [RankBarList.Row] {
+        (insights?.places ?? []).map { place in
+            RankBarList.Row(id: place.id, label: place.name,
+                            value: Decimal(place.driveCount),
+                            primary: DriveFormat.count(place.driveCount),
+                            secondary: VehicleFormat.distance(place.distanceKm))
+        }
+    }
+
+    /// #25 충전소별 비용 TOP. **막대 길이는 충전 횟수다**(서버 정렬 기준과 같다,
+    /// `charge_count DESC, energy_added_kwh DESC, name`) — 금액으로 정하면 금액 미입력이
+    /// 섞인 곳이 실제보다 짧게 나와 순위와 어긋난다. 금액은 `primary`에 문자열로만 싣는다.
+    var chargerRows: [RankBarList.Row] {
+        (insights?.chargers ?? []).map { charger in
+            RankBarList.Row(
+                id: charger.id, label: charger.name,
+                value: Decimal(charger.chargeCount),
+                primary: ChargeFormat.cost(charger.cost),
+                secondary: ChargeFormat.energy(charger.energyAddedKwh),
+                // 미입력이 섞이면 위 금액이 실제보다 적다 — 그 사실을 적어 순위가
+                // 조용히 뒤집히지 않게 한다.
+                note: charger.costMissingCount > 0
+                      ? "\(charger.costMissingCount)건 금액 없음" : nil)
+        }
+    }
+
+    /// 위치 섹션 게이트. 셋(`places`·`chargers`·`regions`)이 다 비면 헤더까지 감춘다 —
+    /// 제목만 남은 빈 섹션을 만들지 않는다.
+    ///
+    /// **1단계의 「지오펜스가 없으면 감춘다」와 다르다.** 그때는 이 차량의 `geofences`가
+    /// 0행이라 `places`가 늘 비었다. 서버가 지오펜스가 없으면 주소로 이름을 짓도록
+    /// 바뀌어(`COALESCE(g.name, a.name, a.road, a.city, a.display_name)`) 지오펜스
+    /// 0행이어도 배열이 채워진다. 남은 빈 길은 「그 기간에 주행·충전이 없었다」뿐이다.
+    var showsPlaceSection: Bool {
+        guard let insights else { return false }
+        return !insights.places.isEmpty || !insights.chargers.isEmpty
+            || insights.regions.cities > 0
+    }
 
     /// **뷰가 아니라 여기서 나눈다.** 뷰에서 다시 계산하면 테스트하는 값과 화면에 나오는 값이
     /// 서로 다른 코드가 된다 — 3단계에서 같은 함정을 두 번 밟았다.
