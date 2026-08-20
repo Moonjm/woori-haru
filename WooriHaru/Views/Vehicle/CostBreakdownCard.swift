@@ -76,10 +76,15 @@ struct CostBreakdownCard: View {
 
     /// 부호 있는 금액 문자열과 그 색을 **같은 반올림값**에서 함께 뽑는다.
     /// 이 카드에서 「+9,200」과 「9,200」은 다른 뜻이라 부호를 반드시 붙인다.
+    ///
+    /// **다만 0은 증가가 아니다.** 부호를 붙이고 빨강으로 칠하면 「거리는 그대로」인 줄이
+    /// 진짜 증가와 같은 색으로 서서, 색만 훑는 눈에 없는 변화가 있는 변화로 읽힌다.
+    /// 0은 부호를 떼고 중립색으로 둔다 — 라벨(「…는 그대로」)과 같은 말을 하게 된다.
     private func signedDisplay(_ value: Decimal) -> (text: String, color: Color) {
         let rounded = VehicleMath.rounded(value)
-        let sign = rounded >= 0 ? "+" : "−"
-        let color: Color = rounded >= 0 ? VehicleTheme.danger : VehicleTheme.accent
+        guard rounded != 0 else { return (VehicleFormat.won(0), VehicleTheme.textTertiary) }
+        let sign = rounded > 0 ? "+" : "−"
+        let color: Color = rounded > 0 ? VehicleTheme.danger : VehicleTheme.accent
         return (sign + VehicleFormat.won(abs(rounded)), color)
     }
 
