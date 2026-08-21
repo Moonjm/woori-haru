@@ -63,6 +63,7 @@ struct VehicleView: View {
                 // 「금액 없음」 분모에서 빠져나오기 때문이다. 배지만 갱신하면 0건이 된 배지와
                 // 낡은 누적 카드가 개요 탭 같은 화면에 나란히 남는다.
                 await totalsViewModel.reload()
+                await refreshStatsIfLoaded()
             }
         }) {
             ChargeCostQueueView()
@@ -99,7 +100,10 @@ struct VehicleView: View {
                 }
         case .charge:
             VehicleChargeTab(viewModel: summaryViewModel,
-                              onCostSaved: { await totalsViewModel.reload() }) { showingQueue = true }
+                              onCostSaved: {
+                                  await totalsViewModel.reload()
+                                  await refreshStatsIfLoaded()
+                              }) { showingQueue = true }
         }
     }
 
@@ -179,6 +183,21 @@ struct VehicleView: View {
         .onTapGesture {}
         .padding(.horizontal, 28)
         .padding(.bottom, 8)
+    }
+
+    /// 금액을 고친 뒤 통계 탭을 다시 받는다. **`load()`가 아니라 `reload()`다** —
+    /// 전자는 「이미 받아 뒀으면 아무것도 안 한다」라 낡은 값이 그대로 남는다.
+    ///
+    /// **아직 안 열어 본 탭은 그냥 둔다.** 그때는 `insights`가 nil이라 다음에 열 때
+    /// `load()`가 처음부터 받는다 — 여기서 미리 받으면 안 볼 수도 있는 화면 때문에
+    /// 요청이 하나 는다.
+    ///
+    /// 바로 위 `totalsViewModel.reload()`와 같은 이유다. 그쪽 주석이 「낡은 누적 카드가
+    /// 나란히 남는다」고 적어 둔 상황이 통계 탭에도 있다 — 월별·누적 충전비와 충전소
+    /// 순위가 전부 금액으로 만든 값이다.
+    private func refreshStatsIfLoaded() async {
+        guard statsViewModel.hasLoadedInsights else { return }
+        await statsViewModel.reload()
     }
 
     private func tabButton(_ target: Tab, icon: String, label: String) -> some View {

@@ -94,26 +94,42 @@ struct DistanceBucket: Codable, Identifiable, Equatable {
 
 /// 자주 가는 곳. **이름만 온다** — `/tesla/status`가 좌표와 주소를 싣지 않는 방침과 같다.
 ///
-/// **`Identifiable`을 달지 않는다.** 서버는 지오펜스 **id**로 묶는데(`GROUP BY g.id, g.name`)
-/// 이 DTO에는 그 id가 없다 — `name`만으로 아이디를 삼으면, 이름이 같은 두 지오펜스가
-/// 같은 아이디를 주장하게 된다. 모델이 갖지 못한 정체성을 뷰에게 있는 척 알려주지 않는다.
-struct DrivePlace: Codable, Equatable {
+/// **`name`이 목록 안에서 유일하다.** 서버가 지오펜스 id가 아니라 **표시 이름**으로 묶기
+/// 때문이다(`GROUP BY 1`) — 주소는 재지오코딩할 때마다 행이 갈리는데, id로 묶으면 사람이
+/// 같은 곳으로 읽는 것이 두 줄로 나온다. 그래서 이름을 아이디로 쓸 수 있다 — 이전 계약
+/// (지오펜스 id로 묶고 DTO에는 그 id가 없던 시절)에서는 그렇지 않아 뷰가 `id: \.offset`으로
+/// 그렸다.
+struct DrivePlace: Codable, Identifiable, Equatable {
     let name: String
     let driveCount: Int
     let distanceKm: Decimal
+
+    var id: String { name }
 }
 
 // MARK: - 기간
 
-/// 화면 맨 위 기간 칩. **네 카드가 같은 기간을 본다** — 카드마다 기간이 다르면 서로 비교가 안 된다.
-/// 서버가 받는 범위는 1~60이고, 화면은 그중 둘만 낸다.
+/// 화면 맨 위 기간 칩. **네 카드가 아니라 스물여섯 장이 같은 기간을 본다** —
+/// 카드마다 기간이 다르면 서로 비교가 안 된다.
+///
+/// **`0`은 전체 기간이다**(서버 계약). 일 단위(오늘/7일)로 내려가지 않는 이유는 이 화면
+/// 스물여섯 중 아홉이 월 단위 집계라, 짧은 기간을 고르면 그 아홉이 막대 한 개짜리가 되기
+/// 때문이다.
 enum DrivePeriod: Int, CaseIterable, Identifiable {
     case threeMonths = 3
+    case sixMonths = 6
     case twelveMonths = 12
+    case all = 0
 
     var id: Int { rawValue }
 
-    var label: String { "최근 \(rawValue)개월" }
+    /// **「최근」을 뗀다.** 칩이 넷이 되면서 「최근 12개월」이 칩 폭을 넘긴다.
+    var label: String {
+        switch self {
+        case .all: "전체"
+        default: "\(rawValue)개월"
+        }
+    }
 }
 
 // MARK: - 계산
@@ -140,7 +156,10 @@ extension VehicleMath {
 
 // MARK: - 표기
 
-/// 주행 화면 전용 표기.
+/// 통계 탭의 시간·횟수 표기. **이름은 주행에서 왔지만 주행 전용이 아니다** —
+/// 요일·시각·「N회」는 단위와 무관해 충전 쪽도 그대로 쓴다(`StatsChargeSection`,
+/// 그리고 충전 히트맵이 쓸 `HeatmapGrid`). 이름을 바꾸지 않는 것은 호출부가 흩어져
+/// 있어 개명의 값이 비용을 못 넘기 때문이고, 그 사실을 여기 적어 둔다.
 enum DriveFormat {
     private static let weekdays = ["일", "월", "화", "수", "목", "금", "토"]
 
@@ -149,6 +168,15 @@ enum DriveFormat {
     static func weekdayLabel(_ weekday: Int) -> String {
         guard weekdays.indices.contains(weekday) else { return ChargeFormat.placeholder }
         return weekdays[weekday]
+    }
+
+    /// **1이 월요일이다**(ISO). `/tesla/insights`의 `weekday` 배열 전용이고,
+    /// 같은 응답의 `driveTimes`는 0=일요일이라 `weekdayLabel(_:)`을 쓴다.
+    /// 두 규약이 한 응답에 있어서 함수를 갈라 둔다 — 호출부에서 어느 쪽인지 보여야 한다.
+    static func isoWeekdayLabel(_ weekday: Int) -> String {
+        guard (1...7).contains(weekday) else { return ChargeFormat.placeholder }
+        // ISO 7(일요일)을 0번 자리로 돌린다.
+        return weekdayLabel(weekday % 7)
     }
 
     static func hourLabel(_ hour: Int) -> String { "\(hour)시" }

@@ -73,12 +73,9 @@ struct DriveInsightsMathTests {
     }
 
     // MARK: - 기간
-
-    @Test func 기간은_두_가지다() {
-        #expect(DrivePeriod.allCases.map(\.rawValue) == [3, 12])
-        #expect(DrivePeriod.threeMonths.label == "최근 3개월")
-        #expect(DrivePeriod.twelveMonths.label == "최근 12개월")
-    }
+    //
+    // 기간 칩 자체의 값·라벨 검증은 `DrivePeriodTests`로 옮겼다 — 칩이 둘에서 넷으로
+    // 늘면서 이 자리에 남겨 두면 같은 것을 두 곳에서 서로 다르게 단언하게 된다.
 
     // MARK: - 디코딩
 

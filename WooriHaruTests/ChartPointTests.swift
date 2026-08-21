@@ -37,6 +37,81 @@ struct ChartPointTests {
         #expect(ChartScale.maxValue([]) == 0)
     }
 
+    // MARK: - 발산형(음수 보존) — #21 「월별 대기 중 소모」 전용
+
+    /// **회귀 방지.** 값이 전부 0 이상이면 `maxAbsValue`가 `maxValue`와 같은 결과를 내야
+    /// 한다 — 새 계산이 기존 스물다섯 장을 조용히 바꾸지 않는다는 것을 직접 못박는다.
+    @Test func 양수만_있으면_절댓값_최댓값이_기존_최댓값과_같다() {
+        let points = [
+            ChartPoint(id: "2026-06", label: "6", value: nil),
+            ChartPoint(id: "2026-07", label: "7", value: 42),
+            ChartPoint(id: "2026-08", label: "8", value: 17),
+        ]
+        #expect(ChartScale.maxAbsValue(points) == ChartScale.maxValue(points))
+    }
+
+    /// 음수가 섞이면 **절댓값이 큰 쪽**이 스케일을 정해야 한다 — 부호 그대로 `max()`를
+    /// 쓰면 [-50, 10]에서 10을 고르는데, 기준선에서 가장 멀리 뻗는 막대는 -50이다.
+    @Test func 절댓값_최댓값은_음수_크기도_비교한다() {
+        let points = [
+            ChartPoint(id: "2026-06", label: "6", value: -50),
+            ChartPoint(id: "2026-07", label: "7", value: 10),
+        ]
+        #expect(ChartScale.maxAbsValue(points) == 50)
+    }
+
+    /// 음수만 있는 기간에서도 스케일이 무너지지 않는다 — 절댓값 최댓값이 제대로 잡히면
+    /// 그중 가장 큰(절댓값) 달의 비율이 1.0까지 채워진다.
+    @Test func 음수만_있어도_스케일이_무너지지_않는다() {
+        let points = [
+            ChartPoint(id: "2026-06", label: "6", value: -20),
+            ChartPoint(id: "2026-07", label: "7", value: -80),
+        ]
+        let maxAbs = ChartScale.maxAbsValue(points)
+        #expect(maxAbs == 80)
+        #expect(ChartScale.divergingRatio(-80, max: maxAbs) == 1.0)
+        #expect(ChartScale.divergingRatio(-20, max: maxAbs) == 0.25)
+    }
+
+    /// **양수만 있는 기존 경우가 전과 똑같이 그려진다(회귀 방지).** 값이 0 이상이면
+    /// `divergingRatio`가 기존 `ratio`와 같은 크기를 낸다 — 발산형으로 바뀌어도 양수
+    /// 달의 비율 계산 자체는 손대지 않았다는 것을 직접 잇는다.
+    @Test func 양수만_있으면_발산형_비율이_기존_비율과_같다() {
+        for value: Decimal in [0, 17, 42, 100] {
+            #expect(ChartScale.divergingRatio(value, max: 100) == ChartScale.ratio(value, max: 100))
+        }
+    }
+
+    /// 음수 달의 막대가 **0이 아닌 크기**를 갖는다 — `ChartScale.ratio`를 그대로 썼다면
+    /// 여기서 0이 나와 3pt 최소 막대로 뭉개졌을 자리다.
+    @Test func 음수_달의_막대가_0이_아닌_크기를_갖는다() {
+        let height = ChartScale.divergingBarHeight(-36, maxAbs: 118, halfHeight: 36)
+        #expect(height != 0)
+        #expect(abs(height) > 3)
+    }
+
+    /// 양수와 음수는 **반대 방향**이다 — 부호 있는 높이의 부호로 그 방향을 확인한다.
+    /// 같은 절댓값이면 크기도 같아야 「방향만 다르다」는 것이 드러난다.
+    @Test func 양수와_음수는_반대_방향이다() {
+        let positive = ChartScale.divergingBarHeight(40, maxAbs: 80, halfHeight: 36)
+        let negative = ChartScale.divergingBarHeight(-40, maxAbs: 80, halfHeight: 36)
+        #expect(positive > 0)
+        #expect(negative < 0)
+        #expect(positive == -negative)
+    }
+
+    /// 값이 있는데 크기가 0에 가까우면(예: 0.01km) 부호는 지킨 채 최소 3pt를 보장한다 —
+    /// 「거의 없다」와 「기록이 없다」를 갈라야 하는 이유는 `ratio`와 같다.
+    @Test func 크기가_작아도_음수_부호와_최소_크기를_함께_지킨다() {
+        let height = ChartScale.divergingBarHeight(-0.01, maxAbs: 100, halfHeight: 36)
+        #expect(height == -3)
+    }
+
+    /// 값이 nil이면(기록이 없는 달) 0이다 — 그리는 쪽이 자리표시자를 고른다.
+    @Test func 발산형_높이는_기록이_없으면_0이다() {
+        #expect(ChartScale.divergingBarHeight(nil, maxAbs: 100, halfHeight: 36) == 0)
+    }
+
     // MARK: - 슬롯 기하
 
     /// **그리는 식과 탭을 받는 식이 서로의 역이어야 한다.** 점을 찍은 바로 그 자리를 눌렀는데
@@ -97,5 +172,60 @@ struct ChartPointTests {
     @Test func 폭이_없어도_인덱스가_범위_안이다() {
         #expect(ChartScale.slotIndex(atX: 10, count: 12, width: 0) == 0)
         #expect(ChartScale.slotIndex(atX: 10, count: 0, width: 329) == 0)
+    }
+
+    @Test func 칸이_많아지면_간격이_좁아진다() {
+        #expect(ChartScale.slotSpacing(count: 12) == 5)
+        // 60칸에서도 막대가 남아야 한다.
+        let spacing = ChartScale.slotSpacing(count: 60)
+        #expect(spacing < 5)
+        let width: CGFloat = 320
+        let barWidth = (width - spacing * 59) / 60
+        #expect(barWidth > 0)
+    }
+
+    @Test func 칸이_많으면_x축_라벨을_솎는다() {
+        // 12칸이면 전부 적는다.
+        #expect(MonthLabel.shows(index: 5, count: 12))
+        // 60칸이면 여섯 달에 하나만 적는다 — 다 적으면 글자가 겹친다.
+        #expect(MonthLabel.shows(index: 0, count: 60))
+        #expect(!MonthLabel.shows(index: 1, count: 60))
+        #expect(MonthLabel.shows(index: 6, count: 60))
+    }
+
+    // MARK: - ChartAnchor
+
+    /// 선택된 id가 지금 배열에 있으면 그것을 쓴다 — 기본값 계산(`fallback`)까지
+    /// 가지 않는다.
+    @Test func 선택된_id가_배열에_있으면_그것을_쓴다() {
+        let anchor = ChartAnchor.resolve(selected: "2026-08", in: ["2026-06", "2026-07", "2026-08"]) {
+            Issue.record("배열에 있는데 기본값으로 떨어졌다")
+            return "fallback"
+        }
+        #expect(anchor == "2026-08")
+    }
+
+    /// **기간을 바꿔 옛 선택이 새 배열에서 빠지면 기본값으로 떨어진다.** `StatsDriveSection`이
+    /// 12개월에서 `"2025-09"`를 고른 채 3개월로 바꾸는 시나리오가 바로 이것이다 — 존재
+    /// 검사가 없으면 강조·콜아웃이 실재하지 않는 id를 가리키게 된다.
+    @Test func 선택된_id가_배열에_없으면_기본값으로_떨어진다() {
+        let anchor = ChartAnchor.resolve(selected: "2025-09", in: ["2026-06", "2026-07", "2026-08"]) {
+            "2026-08"
+        }
+        #expect(anchor == "2026-08")
+    }
+
+    /// 아무것도 선택하지 않았으면(`nil`) 곧장 기본값이다.
+    @Test func 아무것도_선택_안했으면_기본값을_쓴다() {
+        let anchor = ChartAnchor.resolve(selected: nil, in: ["2026-06", "2026-07", "2026-08"]) {
+            "2026-08"
+        }
+        #expect(anchor == "2026-08")
+    }
+
+    /// 기본값 계산 자체가 nil을 낼 수 있다(빈 배열 등) — 그대로 nil을 돌려준다.
+    @Test func 기본값도_없으면_nil이다() {
+        let anchor = ChartAnchor.resolve(selected: nil, in: []) { nil }
+        #expect(anchor == nil)
     }
 }

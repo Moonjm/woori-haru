@@ -92,6 +92,14 @@ enum VehicleMath {
         return distanceKm / energyAddedKwh
     }
 
+    /// 두 값의 나눗셈 하나. **분모가 0 이하면 nil이다** — 서버가 그 처리를 정해 버리면
+    /// 화면이 따라야 한다. #26 명예의 전당의 최고효율(`distanceKm ÷ ratedRangeUsedKm`)이
+    /// 첫 소비자다.
+    static func ratio(_ numerator: Decimal, _ denominator: Decimal) -> Decimal? {
+        guard denominator > 0 else { return nil }
+        return numerator / denominator
+    }
+
     /// 월 평균 주행거리 = 총거리 / 기록이 있는 달 수.
     ///
     /// **분모가 0이거나 없으면 nil이다.** 서버는 주행이 하나도 없을 때 `recordedMonths: 0`을
@@ -185,6 +193,20 @@ enum VehicleMath {
     /// 기준 시각이 몇 분 전인지. 시계가 어긋나 미래 값이 와도 음수를 내지 않는다.
     static func minutesAgo(from date: Date, now: Date) -> Int {
         max(0, Int(now.timeIntervalSince(date) / 60))
+    }
+
+    /// 요일별 평균처럼 「합 ÷ 발생 횟수」꼴 평균 하나. 분모가 0이면 nil이다 — **0이 아니다.**
+    /// 그 요일이 범위에 한 번도 없었다는 것과 「평균 0km」는 다른 말이다.
+    static func avgPerOccurrence(total: Decimal, occurrences: Int) -> Decimal? {
+        guard occurrences > 0 else { return nil }
+        return total / Decimal(occurrences)
+    }
+
+    /// 팬텀 드레인 — km/시간. **표본이 없으면 nil이다** — 0km/시간은 「안 샜다」는
+    /// 거짓말이다. `hours`가 0 이하일 때도 나눗셈이 뜻을 잃으므로 nil이다.
+    static func drainPerHour(_ drain: ParkDrain) -> Decimal? {
+        guard drain.samples > 0, drain.hours > 0 else { return nil }
+        return drain.ratedKm / drain.hours
     }
 
     /// **`VehicleHealthModels.swift`의 확장도 쓴다** — 그래서 private가 아니다.
@@ -296,6 +318,14 @@ enum VehicleFormat {
             return rest == 0 ? "\(hours)시간째" : "\(hours)시간 \(rest)분째"
         }
         return "\(minutes / (60 * 24))일째"
+    }
+
+    /// 0.0435 → "0.04km/시간". 팬텀 드레인 전용 표기 — 소수 둘째 자리까지 낸다.
+    /// SOC 표기(정수 %)와 달리 시간당 스밈은 값 자체가 작아, 소수를 버리면 늘 "0km/시간"이
+    /// 되어 「샜다」와 「안 샜다」가 화면에서 구분되지 않는다.
+    static func drainRate(_ value: Decimal?) -> String {
+        guard let value else { return ChargeFormat.placeholder }
+        return "\(number(value, fraction: 2, minFraction: 2))km/시간"
     }
 
     /// **모르는 값은 원문 그대로 낸다** — 상류가 상태를 늘렸다는 사실이 숨으면 안 된다.

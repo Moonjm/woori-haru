@@ -5,13 +5,55 @@ import Testing
 @MainActor
 struct VehicleStatsViewModelTests {
 
+    /// 버킷·장소를 갈아 끼울 수 있는 응답. **`InsightsStub`을 안 쓰는 이유**는 이 파일의
+    /// 카드 테스트들이 실측 버킷(온도 939건·거리 959건)을 그대로 단언하기 때문이다 —
+    /// 공용 스텁은 그 노브를 열지 않고, 여는 순간 열한 태스크가 함께 쓰는 스텁이 커진다.
+    /// 월별 계열만 보는 테스트는 `InsightsStub`을 그대로 쓴다.
+    private nonisolated static func response(
+        months: Int = 12,
+        monthly: [InsightsMonth] = [],
+        efficiency: String? = "0.1367",
+        temperatureBuckets: [TemperatureBucket] = [],
+        driveTimes: [DriveTime] = [],
+        distanceBuckets: [DistanceBucket] = [],
+        places: [DrivePlace] = [],
+        maxSpeedKmh: Int? = 138,
+        totalDistanceKm: Decimal = Decimal(string: "107257.8")!,
+        recordedMonths: Int = 60,
+        regions: Regions = Regions(cities: 0, states: 0, countries: 0),
+        speedEnergyBuckets: [SpeedEnergyBucket] = []
+    ) -> InsightsResponse {
+        InsightsResponse(
+            months: months,
+            monthly: monthly,
+            efficiencyKwhPerKm: efficiency.flatMap { Decimal(string: $0) },
+            temperatureBuckets: temperatureBuckets,
+            driveTimes: driveTimes,
+            distanceBuckets: distanceBuckets,
+            places: places,
+            maxSpeedKmh: maxSpeedKmh,
+            totalDistanceKm: totalDistanceKm,
+            recordedMonths: recordedMonths,
+            weekday: [],
+            chargeTimes: [],
+            speedBuckets: [],
+            speedEnergyBuckets: speedEnergyBuckets,
+            chargeStartLevels: [],
+            chargeEndLevels: [],
+            chargers: [],
+            regions: regions,
+            records: InsightsRecords(longestDistance: nil, longestDuration: nil,
+                                     bestEfficiency: nil)
+        )
+    }
+
     /// 실측(2026-08-17 최근 12개월) 그대로다 — 온도 939건, 거리 959건.
     private nonisolated static func insights(
         months: Int = 12, efficiency: String? = "0.1367", places: [DrivePlace] = []
-    ) -> DriveInsightsResponse {
-        DriveInsightsResponse(
+    ) -> InsightsResponse {
+        response(
             months: months,
-            efficiencyKwhPerKm: efficiency.flatMap { Decimal(string: $0) },
+            efficiency: efficiency,
             temperatureBuckets: [
                 TemperatureBucket(fromC: nil, toC: 0, driveCount: 82,
                                   distanceKm: Decimal(string: "2424.8")!,
@@ -41,42 +83,53 @@ struct VehicleStatsViewModelTests {
                 DistanceBucket(fromKm: 50, toKm: 100, driveCount: 36, distanceKm: 2500),
                 DistanceBucket(fromKm: 100, toKm: nil, driveCount: 3, distanceKm: 412),
             ],
-            places: places,
-            maxSpeedKmh: 138,
-            totalDistanceKm: Decimal(string: "107257.8"),
-            recordedMonths: 60
+            places: places
         )
     }
 
-    private nonisolated static func empty(months: Int = 3) -> DriveInsightsResponse {
-        DriveInsightsResponse(
-            months: months, efficiencyKwhPerKm: Decimal(string: "0.1367"),
-            temperatureBuckets: [], driveTimes: [], distanceBuckets: [], places: [],
-            maxSpeedKmh: 138,
-            totalDistanceKm: Decimal(string: "107257.8"),
-            recordedMonths: 60
-        )
+    private nonisolated static func empty(months: Int = 3) -> InsightsResponse {
+        response(months: months)
+    }
+
+    /// 한 달치. 기록이 없는 달은 값 자리가 전부 nil이다 — 셋(`idleMin`·팬텀 드레인 둘)만
+    /// 그때도 값이 온다.
+    ///
+    /// **그 셋을 0으로 못박지 않는다.** 계약은 오히려 반대다 — 빈 달일수록 `idleMin`이
+    /// 크다(내내 서 있었으므로). 전부 0으로 두면 뒤 태스크가 `idleMin`·팬텀 드레인
+    /// 접근자를 더할 때 「상수 0을 돌려주는 접근자」가 조용히 통과한다. 값은 공용
+    /// `InsightsStub`과 맞추고, 노브로 덮어쓸 수 있게 연다.
+    private nonisolated static func month(
+        _ yearMonth: String, distanceKm: Decimal? = nil, drivingMin: Int? = nil,
+        driveCount: Int? = nil, energyAddedKwh: Decimal? = nil, energyUsedKwh: Decimal? = nil,
+        cost: Decimal? = nil, chargeCount: Int? = nil, chargingMin: Int? = nil,
+        ratedRangeUsedKm: Decimal? = nil,
+        idleMin: Int? = nil, parkDrainRatedKm: Decimal? = nil, parkDrainSamples: Int? = nil
+    ) -> InsightsMonth {
+        // 주행도 충전도 없는 달이면 「내내 서 있었다」 — 31일 = 44640분.
+        let isEmpty = distanceKm == nil && drivingMin == nil && driveCount == nil
+            && energyAddedKwh == nil && cost == nil && chargeCount == nil
+        return InsightsMonth(
+            yearMonth: yearMonth, distanceKm: distanceKm, driveCount: driveCount,
+            drivingMin: drivingMin, energyAddedKwh: energyAddedKwh,
+            energyUsedKwh: energyUsedKwh, cost: cost, chargeCount: chargeCount,
+            chargingMin: chargingMin, ratedRangeUsedKm: ratedRangeUsedKm,
+            idleMin: idleMin ?? (isEmpty ? 44640 : 42800),
+            parkDrainRatedKm: parkDrainRatedKm ?? (isEmpty ? 0 : Decimal(string: "18.4")!),
+            parkDrainSamples: parkDrainSamples ?? (isEmpty ? 0 : 34))
     }
 
     private func makeViewModel(_ mock: MockAPIClient) -> VehicleStatsViewModel {
         VehicleStatsViewModel(service: VehicleService(api: mock))
     }
 
-    private func stub(_ mock: MockAPIClient, _ response: DriveInsightsResponse) {
-        mock.stubGet("/tesla/drive-insights",
-                     result: DataResponse<DriveInsightsResponse>(data: response))
+    private func stub(_ mock: MockAPIClient, _ response: InsightsResponse) {
+        InsightsStub.stub(mock, response)
     }
 
-    /// `load()`/`reload()`가 추이(`/tesla/summary`)를 함께 부르므로, 인사이트 호출 횟수만
-    /// 보던 기존 단언들은 이 경로로 걸러서 봐야 한다.
+    /// 이제 이 화면이 부르는 경로는 하나다 — 그래도 걸러 보는 것은, 다른 뷰모델이 같은
+    /// 목을 쓰는 테스트가 생겨도 이 단언이 그 호출을 세지 않게 하기 위해서다.
     private func insightsCalls(_ mock: MockAPIClient) -> [(path: String, query: [String: String])] {
-        mock.getCalls.filter { $0.path == "/tesla/drive-insights" }
-    }
-
-    /// 추이(`/tesla/summary`) 호출만 걸러 본다 — 「언제 다시 받고, 언제 안 받는가」를
-    /// 못박아 두는 테스트 전용 헬퍼다.
-    private func summaryCalls(_ mock: MockAPIClient) -> [(path: String, query: [String: String])] {
-        mock.getCalls.filter { $0.path == "/tesla/summary" }
+        mock.getCalls.filter { $0.path == "/tesla/insights" }
     }
 
     /// 기본은 12개월이다.
@@ -92,7 +145,7 @@ struct VehicleStatsViewModelTests {
         #expect(viewModel.hasDrives)
     }
 
-    /// 기간을 바꾸면 다시 받는다 — 네 카드가 같은 기간을 봐야 한다.
+    /// 기간을 바꾸면 다시 받는다 — 카드가 전부 같은 기간을 봐야 한다.
     @Test func 기간을_바꾸면_다시_받는다() async {
         let mock = MockAPIClient()
         stub(mock, Self.insights())
@@ -103,8 +156,34 @@ struct VehicleStatsViewModelTests {
 
         #expect(viewModel.period == .threeMonths)
         #expect(insightsCalls(mock).map { $0.query["months"] } == ["12", "3"])
-        // 추이는 기간 칩을 따르지 않는다 — 칩을 눌러도 `/tesla/summary`를 다시 부르지 않는다.
-        #expect(summaryCalls(mock).count == 1)
+    }
+
+    /// 1단계에서는 `trend`가 12개월 고정이라 칩이 월별 차트에 안 먹었다.
+    @Test func 기간을_바꾸면_월별_계열도_함께_바뀐다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(months: 12, monthlyCount: 12))
+        let viewModel = makeViewModel(mock)
+        await viewModel.load()
+        #expect(viewModel.distancePoints.count == 12)
+
+        InsightsStub.stub(mock, InsightsStub.response(months: 3, monthlyCount: 3))
+        await viewModel.select(.threeMonths)
+
+        #expect(viewModel.distancePoints.count == 3)
+    }
+
+    /// **0이 전체 기간이다.** 칩 라벨이 「전체」라고 해서 파라미터를 빼면 서버가 기본값
+    /// 12로 답해 조용히 12개월만 나온다.
+    @Test func 전체를_고르면_개월수_0으로_부른다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(months: 0, monthlyCount: 60))
+        let viewModel = makeViewModel(mock)
+
+        await viewModel.select(.all)
+
+        let call = insightsCalls(mock).last
+        #expect(call?.query["months"] == "0")
+        #expect(viewModel.distancePoints.count == 60)
     }
 
     /// 같은 기간을 다시 누르면 부르지 않는다.
@@ -163,41 +242,22 @@ struct VehicleStatsViewModelTests {
         #expect(viewModel.temperatureRows.allSatisfy { $0.kmPerKwh == nil })
     }
 
-    /// **지오펜스가 하나도 없는 것이 이 차량의 기본 상태다.** 「가끔 비는 경우」가 아니다.
-    @Test func 지오펜스가_없으면_자주_가는_곳을_감춘다() async {
-        let mock = MockAPIClient()
-        stub(mock, Self.insights())
-        let viewModel = makeViewModel(mock)
-
-        await viewModel.load()
-
-        #expect(!viewModel.showsPlaces)
-    }
-
     /// **계수는 있는데 모든 온도 버킷의 `ratedRangeUsedKm`이 0인 경우다** — 아주 짧은
     /// 주행만 있는 기간(실측: 447건 중 431건이 델타 정확히 0). 거리 버킷 쪽엔 주행이
     /// 있어 `hasDrives`는 참이지만, 전비 카드는 다섯 줄 다 「—」가 되어 감춰야 한다.
     @Test func 전비_행이_전부_비면_카드를_감춘다() async {
         let mock = MockAPIClient()
-        let response = DriveInsightsResponse(
-            months: 12,
-            efficiencyKwhPerKm: Decimal(string: "0.1367"),
+        stub(mock, Self.response(
             temperatureBuckets: [
                 TemperatureBucket(fromC: nil, toC: 0, driveCount: 3,
                                   distanceKm: Decimal(string: "12.4")!, ratedRangeUsedKm: 0),
                 TemperatureBucket(fromC: 0, toC: 10, driveCount: 5,
                                   distanceKm: Decimal(string: "20.1")!, ratedRangeUsedKm: 0),
             ],
-            driveTimes: [],
             distanceBuckets: [
-                DistanceBucket(fromKm: 0, toKm: 5, driveCount: 8, distanceKm: Decimal(string: "32.5")!),
-            ],
-            places: [],
-            maxSpeedKmh: 138,
-            totalDistanceKm: Decimal(string: "107257.8"),
-            recordedMonths: 60
-        )
-        stub(mock, response)
+                DistanceBucket(fromKm: 0, toKm: 5, driveCount: 8,
+                               distanceKm: Decimal(string: "32.5")!),
+            ]))
         let viewModel = makeViewModel(mock)
 
         await viewModel.load()
@@ -206,71 +266,152 @@ struct VehicleStatsViewModelTests {
         #expect(!viewModel.showsEfficiency)
     }
 
-    @Test func 지오펜스가_있으면_자주_가는_곳을_낸다() async {
+    /// **`recordedMonths`가 non-null이 된 것은 「0이 안 온다」가 아니다.** 주행이 하나도
+    /// 없는 계정은 총거리 0·기록된 달 0으로 오는데, 그걸로 나누면 안 된다 —
+    /// 「월 평균 0km」가 아니라 「낼 수 없다」다.
+    @Test func 기록된_달이_0이면_평균을_내지_않는다() async {
         let mock = MockAPIClient()
-        stub(mock, Self.insights(places: [DrivePlace(name: "집", driveCount: 124, distanceKm: 812)]))
+        stub(mock, Self.response(totalDistanceKm: 0, recordedMonths: 0))
         let viewModel = makeViewModel(mock)
 
         await viewModel.load()
 
-        #expect(viewModel.showsPlaces)
+        #expect(viewModel.insights?.totalDistanceKm == 0)
+        #expect(viewModel.avgMonthlyKm == nil)
+        #expect(viewModel.avgYearlyKm == nil)
     }
 
-    /// 셋 다 없으면 서버가 아직 이 필드를 내지 않는 것이다 — 카드째 감춘다.
-    @Test func 통계_셋이_다_없으면_카드를_감춘다() async {
+    /// **총거리 0은 값이다.** 기록된 달이 있는데 그 기간에 안 탔으면 평균 0km가 옳다 —
+    /// 위 테스트의 nil과 갈리는 자리다.
+    @Test func 총거리가_0이어도_기록된_달이_있으면_평균은_0이다() async {
         let mock = MockAPIClient()
-        let response = DriveInsightsResponse(
-            months: 12, efficiencyKwhPerKm: Decimal(string: "0.1367"),
-            temperatureBuckets: [], driveTimes: [], distanceBuckets: [], places: [],
-            maxSpeedKmh: nil, totalDistanceKm: nil, recordedMonths: nil
-        )
-        stub(mock, response)
+        stub(mock, Self.response(totalDistanceKm: 0, recordedMonths: 12))
         let viewModel = makeViewModel(mock)
 
         await viewModel.load()
 
-        #expect(!viewModel.showsStats)
+        #expect(viewModel.avgMonthlyKm == 0)
+        #expect(viewModel.avgYearlyKm == 0)
     }
 
-    /// 하나라도 있으면 그린다 — 나머지 둘이 없다고 카드째 감추지 않는다.
-    @Test func 통계가_하나라도_있으면_카드를_낸다() async {
-        let mock = MockAPIClient()
-        let response = DriveInsightsResponse(
-            months: 12, efficiencyKwhPerKm: Decimal(string: "0.1367"),
-            temperatureBuckets: [], driveTimes: [], distanceBuckets: [], places: [],
-            maxSpeedKmh: 138, totalDistanceKm: nil, recordedMonths: nil
-        )
-        stub(mock, response)
-        let viewModel = makeViewModel(mock)
-
-        await viewModel.load()
-
-        #expect(viewModel.showsStats)
-    }
-
-    /// **0은 값이다.** 「총거리 0km」는 값이 없는 것이 아니라 안 탔다는 사실이라
-    /// 카드를 감추면 안 된다.
-    @Test func 총거리가_0이어도_카드를_낸다() async {
-        let mock = MockAPIClient()
-        let response = DriveInsightsResponse(
-            months: 12, efficiencyKwhPerKm: Decimal(string: "0.1367"),
-            temperatureBuckets: [], driveTimes: [], distanceBuckets: [], places: [],
-            maxSpeedKmh: nil, totalDistanceKm: 0, recordedMonths: 0
-        )
-        stub(mock, response)
-        let viewModel = makeViewModel(mock)
-
-        await viewModel.load()
-
-        #expect(viewModel.showsStats)
-    }
-
-    /// 아직 응답을 못 받은 상태(`insights == nil`)에서는 카드가 없다 — 로딩·에러 화면이
-    /// 그 상태를 이미 말하고 있어 통계 카드까지 겹쳐 나올 자리가 없다.
-    @Test func 응답을_아직_못_받으면_카드를_감춘다() {
+    /// 아직 응답을 못 받은 상태에서는 통계 카드도 섹션도 없다 —
+    /// 로딩 스피너 위에 「—」 셋짜리 카드나 빈 섹션 헤더가 먼저 서면 안 된다.
+    @Test func 응답을_아직_못_받으면_카드도_섹션도_없다() {
         let viewModel = makeViewModel(MockAPIClient())
 
-        #expect(!viewModel.showsStats)
+        #expect(!viewModel.hasLoadedInsights)
+        #expect(!viewModel.hasDriveMonths)
+        #expect(!viewModel.hasChargeMonths)
+        #expect(viewModel.distancePoints.isEmpty)
+        #expect(viewModel.cumulativeDistancePoints.isEmpty)
+    }
+
+    /// **「받았다」와 「내용이 있다」는 다르다.** 값이 하나도 없는 응답도 받은 것은 받은
+    /// 것이라 통계 카드는 선다 — 감추는 것은 응답 전뿐이다.
+    @Test func 응답을_받으면_내용이_비어도_통계_카드는_선다() async {
+        let mock = MockAPIClient()
+        stub(mock, Self.response(monthly: []))
+        let viewModel = makeViewModel(mock)
+
+        await viewModel.load()
+
+        #expect(viewModel.hasLoadedInsights)
+        #expect(!viewModel.hasDriveMonths)
+        #expect(!viewModel.hasChargeMonths)
+    }
+
+    /// **서버는 기록이 없는 달도 값이 전부 nil인 행으로 자리를 채워 보낸다.**
+    /// 행의 존재(`!monthly.isEmpty`)로 게이트를 삼으면 「이 기간에 주행 기록이 없어요」
+    /// 안내문 위아래로 빈 차트 일곱 장이 헤더까지 달고 선다.
+    @Test func 월이_전부_비면_주행도_충전도_섹션이_없다() async {
+        let mock = MockAPIClient()
+        stub(mock, Self.response(monthly: [
+            Self.month("2026-06"), Self.month("2026-07"), Self.month("2026-08"),
+        ]))
+        let viewModel = makeViewModel(mock)
+
+        await viewModel.load()
+
+        // 행은 셋이다 — 자리를 지키는 것과 내용이 있는 것은 다르다.
+        #expect(viewModel.monthly.count == 3)
+        #expect(viewModel.distancePoints.count == 3)
+        #expect(!viewModel.hasDriveMonths)
+        #expect(!viewModel.hasChargeMonths)
+        // 둘 다 거짓이면(distanceBuckets도 기본값인 빈 배열) 헤더도 안 선다.
+        #expect(!viewModel.hasDrives)
+        #expect(!viewModel.showsDriveSection)
+    }
+
+    /// **게이트를 둘로 나눈 이유가 여기다.** 충전은 주행 없이도 한다 — 하나로 묶으면
+    /// 안 타고 충전만 한 기간에 충전 카드까지 사라진다.
+    @Test func 충전만_있는_달은_충전_섹션만_세운다() async {
+        let mock = MockAPIClient()
+        stub(mock, Self.response(monthly: [
+            Self.month("2026-08", energyAddedKwh: 153, cost: 32700, chargeCount: 7),
+        ]))
+        let viewModel = makeViewModel(mock)
+
+        await viewModel.load()
+
+        #expect(viewModel.hasChargeMonths)
+        #expect(!viewModel.hasDriveMonths)
+    }
+
+    /// 반대 방향도 못박는다 — 주행만 있고 충전이 없는 달(집 충전 금액 미입력 등)에
+    /// 주행 섹션이 함께 사라지면 안 된다.
+    @Test func 주행만_있는_달은_주행_섹션만_세운다() async {
+        let mock = MockAPIClient()
+        stub(mock, Self.response(monthly: [
+            Self.month("2026-08", distanceKm: 780, drivingMin: 1120, driveCount: 41),
+        ]))
+        let viewModel = makeViewModel(mock)
+
+        await viewModel.load()
+
+        #expect(viewModel.hasDriveMonths)
+        #expect(!viewModel.hasChargeMonths)
+    }
+
+    /// **두 게이트가 다른 소스를 봐서 모순 조합이 생길 수 있다.** 서버 쪽
+    /// `distanceBuckets`는 `end_date` 기준에 `distance > 0` 필터가 있고, `monthly`는
+    /// `start_date` 기준에 그 필터가 없다 — 「거리 0인 주행만 있는 기간」이면
+    /// `hasDriveMonths=true`인데 `hasDrives=false`가 될 수 있다. `VehicleStatsTab`은 이
+    /// 조합에서 「이 기간에 주행 기록이 없어요」를 띄우면 안 된다(둘 다 거짓일 때만
+    /// 띄운다) — 그 판단은 뷰에 있어 여기서는 이 모순 조합이 실제로 나올 수 있음만
+    /// 못박는다.
+    @Test func 거리_버킷과_월별_게이트는_서로_다른_소스라_모순될_수_있다() async {
+        let mock = MockAPIClient()
+        stub(mock, Self.response(
+            monthly: [Self.month("2026-08", distanceKm: 780, drivingMin: 1120, driveCount: 41)],
+            distanceBuckets: []))
+        let viewModel = makeViewModel(mock)
+
+        await viewModel.load()
+
+        #expect(!viewModel.hasDrives)
+        #expect(viewModel.hasDriveMonths)
+        // 헤더는 둘 중 하나만 참이어도 선다 — `hasDriveMonths`가 참이니 여기서도 선다.
+        #expect(viewModel.showsDriveSection)
+    }
+
+    /// **반대 방향(Codex 결함 2).** 기간 경계를 걸친 주행 하나만 있는 기간은
+    /// `hasDrives=true`(거리 버킷, `end_date` 기준), `hasDriveMonths=false`(월별,
+    /// `start_date` 기준)로 나올 수 있다 — `distanceBuckets`는 채우고 `monthly`는
+    /// 비운 스텁으로 그 조합을 그대로 재현한다. 이때도 「🚗 주행」 헤더는 서야 한다 —
+    /// `VehicleStatsTab`의 `content`(온도별 전비·시간대 히트맵·거리 분포)가
+    /// `hasDrives`로 카드를 그리므로, 헤더가 안 서면 그 카드들이 제목 없이 뜬다.
+    @Test func 기간_경계를_걸친_주행만_있어도_헤더는_선다() async {
+        let mock = MockAPIClient()
+        stub(mock, Self.response(
+            monthly: [],
+            distanceBuckets: [DistanceBucket(fromKm: 0, toKm: 5, driveCount: 1, distanceKm: 3)]))
+        let viewModel = makeViewModel(mock)
+
+        await viewModel.load()
+
+        #expect(viewModel.hasDrives)
+        #expect(!viewModel.hasDriveMonths)
+        #expect(viewModel.showsDriveSection)
     }
 
     /// 히트맵은 성기게 온다 — 없는 칸은 0이다. `weekday` 0이 일요일이다.
@@ -293,19 +434,10 @@ struct VehicleStatsViewModelTests {
     /// 이유가 없다.
     @Test func 같은_칸이_두_번_와도_합쳐서_센다() async {
         let mock = MockAPIClient()
-        let response = DriveInsightsResponse(
-            months: 12, efficiencyKwhPerKm: Decimal(string: "0.1367"),
-            temperatureBuckets: [],
-            driveTimes: [
-                DriveTime(weekday: 1, hour: 8, count: 20),
-                DriveTime(weekday: 1, hour: 8, count: 15),
-            ],
-            distanceBuckets: [], places: [],
-            maxSpeedKmh: 138,
-            totalDistanceKm: Decimal(string: "107257.8"),
-            recordedMonths: 60
-        )
-        stub(mock, response)
+        stub(mock, Self.response(driveTimes: [
+            DriveTime(weekday: 1, hour: 8, count: 20),
+            DriveTime(weekday: 1, hour: 8, count: 15),
+        ]))
         let viewModel = makeViewModel(mock)
 
         await viewModel.load()
@@ -329,7 +461,7 @@ struct VehicleStatsViewModelTests {
 
     @Test func 실패하면_에러를_드러낸다() async {
         let mock = MockAPIClient()
-        mock.setError(MockAPIClient.MockAPIError.forced, for: "GET /tesla/drive-insights")
+        mock.setError(MockAPIClient.MockAPIError.forced, for: "GET /tesla/insights")
         let viewModel = makeViewModel(mock)
 
         await viewModel.load()
@@ -345,7 +477,7 @@ struct VehicleStatsViewModelTests {
         let viewModel = makeViewModel(mock)
         await viewModel.load()
 
-        mock.setError(MockAPIClient.MockAPIError.forced, for: "GET /tesla/drive-insights")
+        mock.setError(MockAPIClient.MockAPIError.forced, for: "GET /tesla/insights")
         await viewModel.reload()
 
         #expect(viewModel.hasDrives)
@@ -360,7 +492,7 @@ struct VehicleStatsViewModelTests {
         let viewModel = makeViewModel(mock)
         await viewModel.load()
 
-        mock.setError(MockAPIClient.MockAPIError.forced, for: "GET /tesla/drive-insights")
+        mock.setError(MockAPIClient.MockAPIError.forced, for: "GET /tesla/insights")
         await viewModel.reload()
         #expect(insightsCalls(mock).count == 2)
 
@@ -377,7 +509,7 @@ struct VehicleStatsViewModelTests {
         let viewModel = makeViewModel(mock)
         await viewModel.load()
 
-        mock.setError(MockAPIClient.MockAPIError.forced, for: "GET /tesla/drive-insights")
+        mock.setError(MockAPIClient.MockAPIError.forced, for: "GET /tesla/insights")
         await viewModel.select(.threeMonths)
 
         #expect(viewModel.period == .threeMonths)
@@ -385,42 +517,22 @@ struct VehicleStatsViewModelTests {
         #expect(viewModel.errorMessage != nil)
     }
 
-    /// 세 달 — 가운데가 기록 없는 달이다.
-    private nonisolated static func stubTrend(_ mock: MockAPIClient) {
-        let june = VehiclePeriod(yearMonth: "2026-06", distanceKm: 620, drivingMin: 880,
-                                 driveCount: 34, energyAddedKwh: 115, energyUsedKwh: 126,
-                                 cost: 22770, chargeCount: 5)
-        let july = VehiclePeriod(yearMonth: "2026-07", distanceKm: nil, drivingMin: nil,
-                                 driveCount: nil, energyAddedKwh: nil, energyUsedKwh: nil,
-                                 cost: nil, chargeCount: nil)
-        let august = VehiclePeriod(yearMonth: "2026-08", distanceKm: 780, drivingMin: 1120,
-                                   driveCount: 41, energyAddedKwh: 153, energyUsedKwh: 161,
-                                   cost: 32700, chargeCount: 7)
-        mock.stubGet("/tesla/summary", result: DataResponse<VehicleSummaryResponse>(
-            data: VehicleSummaryResponse(month: august, previous: june,
-                                         trend: [june, july, august], charges: [])
-        ))
-    }
-
-    private nonisolated static func stubEmptyInsights(_ mock: MockAPIClient) {
-        mock.stubGet("/tesla/drive-insights", result: DataResponse<DriveInsightsResponse>(
-            data: DriveInsightsResponse(months: 12, efficiencyKwhPerKm: nil,
-                                        temperatureBuckets: [], driveTimes: [],
-                                        distanceBuckets: [], places: [], maxSpeedKmh: nil,
-                                        totalDistanceKm: nil, recordedMonths: nil)
-        ))
-    }
-
-    /// 통계 탭은 주행 인사이트와 12개월 추이를 **둘 다** 받는다.
-    @Test func 추이를_받아_월별_점으로_바꾼다() async {
+    /// 세 달 — 가운데가 기록 없는 달이다. **자리는 지키되 막대를 안 그리고, 누적은
+    /// 끊기지 않는다.**
+    @Test func 월별_점은_기록_없는_달도_자리를_지킨다() async {
         let mock = MockAPIClient()
-        Self.stubEmptyInsights(mock)
-        Self.stubTrend(mock)
-        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        stub(mock, Self.response(monthly: [
+            Self.month("2026-06", distanceKm: 620, drivingMin: 880, driveCount: 34,
+                       energyAddedKwh: 115, energyUsedKwh: 126, cost: 22770, chargeCount: 5),
+            Self.month("2026-07"),
+            Self.month("2026-08", distanceKm: 780, drivingMin: 1120, driveCount: 41,
+                       energyAddedKwh: 153, energyUsedKwh: 161, cost: 32700, chargeCount: 7),
+        ]))
+        let viewModel = makeViewModel(mock)
 
         await viewModel.load()
 
-        #expect(viewModel.hasTrend)
+        #expect(viewModel.hasDriveMonths)
         #expect(viewModel.distancePoints.count == 3)
         #expect(viewModel.distancePoints[0].label == "6")
         #expect(viewModel.distancePoints[1].value == nil)      // 기록 없는 달은 nil로 남는다
@@ -431,36 +543,431 @@ struct VehicleStatsViewModelTests {
         #expect(cumulative[1].value == nil)
     }
 
-    /// 추이를 못 받아도 주행 카드는 그린다 —
-    /// 「못 받음」을 「기록 없음」으로 뭉개지 않는 관례를 두 응답 사이에도 지킨다.
-    @Test func 추이를_못_받아도_주행_섹션은_산다() async {
+    /// **전비는 응답에 없다** — 1단계에서 `VehiclePeriod.efficiency`가 하던 나눗셈이
+    /// 뷰모델로 옮겨왔다. 분모는 충전량이라 620÷115 = 5.39km/kWh다.
+    @Test func 월별_전비는_충전량으로_나눈다() async {
         let mock = MockAPIClient()
-        Self.stubEmptyInsights(mock)
-        mock.setError(MockAPIClient.MockAPIError.forced, for: "GET /tesla/summary")
-        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        stub(mock, Self.response(monthly: [
+            Self.month("2026-06", distanceKm: 620, energyAddedKwh: 115),
+            Self.month("2026-07"),
+        ]))
+        let viewModel = makeViewModel(mock)
 
         await viewModel.load()
 
-        #expect(!viewModel.hasTrend)
-        #expect(viewModel.distancePoints.isEmpty)
-        #expect(viewModel.insights != nil)
-        // 추이 실패는 배너를 세우지 않는다.
-        #expect(viewModel.errorMessage == nil)
+        let june = try! #require(viewModel.efficiencyPoints.first?.value)
+        #expect(abs(june - Decimal(string: "5.3913")!) < Decimal(string: "0.001")!)
+        // **0이 아니라 nil이다** — 기록이 없는 달은 「전비 0」이 아니라 「모른다」다.
+        #expect(viewModel.efficiencyPoints[1].value == nil)
     }
 
-    /// 당겨서 새로고침은 추이도 다시 받는다 — `reload()`가 `fetchTrend: false`로 바뀌면
-    /// 이 카운트가 깨진다.
-    @Test func 새로고침은_추이도_다시_받는다() async {
+    /// #12 월별 충전 시간. **막대 값은 분 그대로 둔다** — `drivingMinPoints`와 같다.
+    /// 시·분 표기(`ChargeFormat.duration`)는 콜아웃에서만 쓴다.
+    @Test func 월별_충전_시간은_분_그대로_점으로_옮긴다() async {
         let mock = MockAPIClient()
-        Self.stubEmptyInsights(mock)
-        Self.stubTrend(mock)
+        stub(mock, Self.response(monthly: [
+            Self.month("2026-06", chargingMin: 257),
+            Self.month("2026-07"),
+        ]))
+        let viewModel = makeViewModel(mock)
+
+        await viewModel.load()
+
+        #expect(viewModel.chargingMinPoints[0].value == 257)
+        // 기록 없는 달은 0분이 아니라 nil이다.
+        #expect(viewModel.chargingMinPoints[1].value == nil)
+    }
+
+    // MARK: - 종합 효율(정격 대비)
+
+    /// 100km를 정격 50km로, 10km를 정격 100km로 갔다면 월별 비율은 2.0과 0.1이지만
+    /// **합끼리 나눠야** 110÷150 ≈ 0.733이다. 월별 평균(1.05)과 다른 값이어야
+    /// 「합끼리 나눈다」는 계약이 실제로 지켜지는지 가른다.
+    @Test func 종합_효율은_거리와_정격_합끼리_나눈다() async {
+        let mock = MockAPIClient()
+        stub(mock, Self.response(monthly: [
+            Self.month("2026-06", distanceKm: 100, ratedRangeUsedKm: 50),
+            Self.month("2026-07", distanceKm: 10, ratedRangeUsedKm: 100),
+        ]))
+        let viewModel = makeViewModel(mock)
+
+        await viewModel.load()
+
+        let ratio = try! #require(viewModel.overallEfficiencyRatio)
+        let expected = Decimal(110) / Decimal(150)
+        #expect(abs(ratio - expected) < Decimal(string: "0.0001")!)
+    }
+
+    /// 정격거리 소모가 한 달도 없으면(분모 0) nil이다 — 0으로 나누지 않는다.
+    @Test func 정격_소모가_없으면_종합_효율도_nil이다() async {
+        let mock = MockAPIClient()
+        stub(mock, Self.response(monthly: [
+            Self.month("2026-06", distanceKm: 100),
+        ]))
+        let viewModel = makeViewModel(mock)
+
+        await viewModel.load()
+
+        #expect(viewModel.overallEfficiencyRatio == nil)
+    }
+
+    // MARK: - 분포(요일·속도)
+
+    /// 월요일 52번에 612km면 11.77km.
+    @Test func 요일별_평균은_그_요일이_몇_번_있었나로_나눈다() {
+        let value = VehicleMath.avgPerOccurrence(total: 612, occurrences: 52)
+        let unwrapped = try! #require(value)
+        #expect(abs(unwrapped - Decimal(string: "11.769")!) < Decimal(string: "0.01")!)
+    }
+
+    @Test func 그_요일이_한_번도_없으면_nil이다() {
+        #expect(VehicleMath.avgPerOccurrence(total: 0, occurrences: 0) == nil)
+    }
+
+    /// **이 차트가 하루 밀리는 것이 이 태스크의 가장 큰 위험이다.** 같은 응답의
+    /// `driveTimes`는 0=일요일인데 `weekday`는 1=월요일이다.
+    @Test func 요일_라벨이_ISO_규약을_따른다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 1))
         let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
         await viewModel.load()
-        #expect(summaryCalls(mock).count == 1)
+        // 스텁의 weekday는 1...7이 월~일 순서다.
+        #expect(viewModel.weekdayDistancePoints.map(\.label)
+                == ["월", "화", "수", "목", "금", "토", "일"])
+    }
 
-        await viewModel.reload()
+    /// #7은 버킷 건수를 그대로 점으로 옮긴다 — 나눗셈이 없다.
+    @Test func 최고속도_분포는_버킷_건수를_그대로_점으로_옮긴다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 1))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+        let point = try! #require(viewModel.speedPoints.first)
+        #expect(point.id == "sp120")
+        #expect(point.label == "120+")
+        #expect(point.value == 3)
+    }
 
-        #expect(summaryCalls(mock).count == 2)
-        #expect(viewModel.hasTrend)
+    /// #8은 정격거리 소모를 kWh로 환산해 나눈다 — `VehicleMath.kmPerKwh`와 같은 식이다.
+    /// 스텁: 302km, 정격 소모 410km, 계수 0.168kWh/km → 소비 68.88kWh →
+    /// 302÷68.88 = 4.384436...km/kWh(직접 검산).
+    @Test func 속도별_전비는_정격거리_소모를_kWh로_환산해_나눈다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 1))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+        let point = try! #require(viewModel.speedEfficiencyPoints.first)
+        #expect(point.id == "se0")
+        let value = try! #require(point.value)
+        #expect(abs(value - Decimal(string: "4.3844")!) < Decimal(string: "0.001")!)
+    }
+
+    /// **#8은 `showsEfficiency`(온도 전용 판정)를 재사용하지 않는다.** 온도 버킷이
+    /// 하나도 없어 `showsEfficiency`는 거짓이어도, 속도별 전비 재료(`speedEnergyBuckets`)가
+    /// 있으면 #8은 따로 참이어야 한다 — 같은 결측에 두 카드가 다르게 반응하던 결함의
+    /// 반대쪽(정상 데이터가 있는데 온도 판정에 끌려 숨는 경우)을 못박는다.
+    @Test func 속도별_전비는_온도_카드_게이트와_따로_판단한다() async {
+        let mock = MockAPIClient()
+        stub(mock, Self.response(
+            temperatureBuckets: [],
+            speedEnergyBuckets: [
+                SpeedEnergyBucket(fromKmh: 0, toKmh: 20, distanceKm: 302, ratedRangeUsedKm: 410),
+            ]))
+        let viewModel = makeViewModel(mock)
+
+        await viewModel.load()
+
+        #expect(!viewModel.showsEfficiency)
+        #expect(viewModel.showsSpeedEfficiency)
+    }
+
+    /// `cars.efficiency`가 없으면 #8의 모든 점이 nil이 되어 막대 없는 빈 차트만 남는다 —
+    /// #9와 같은 이유로 카드째 감춘다.
+    @Test func 효율_계수가_없으면_속도별_전비_카드도_감춘다() async {
+        let mock = MockAPIClient()
+        stub(mock, Self.response(
+            efficiency: nil,
+            speedEnergyBuckets: [
+                SpeedEnergyBucket(fromKmh: 0, toKmh: 20, distanceKm: 302, ratedRangeUsedKm: 410),
+            ]))
+        let viewModel = makeViewModel(mock)
+
+        await viewModel.load()
+
+        #expect(!viewModel.showsSpeedEfficiency)
+        #expect(viewModel.speedEfficiencyPoints.allSatisfy { $0.value == nil })
+    }
+
+    /// 계수는 있어도 모든 속도 버킷의 `ratedRangeUsedKm`이 0이면(아주 짧은 주행만 있는
+    /// 기간) 점이 전부 nil이라 마찬가지로 감춘다 — `전비_행이_전부_비면_카드를_감춘다`
+    /// (#9)와 같은 경계다.
+    @Test func 속도별_전비_점이_전부_비면_카드를_감춘다() async {
+        let mock = MockAPIClient()
+        stub(mock, Self.response(
+            speedEnergyBuckets: [
+                SpeedEnergyBucket(fromKmh: 0, toKmh: 20, distanceKm: 12, ratedRangeUsedKm: 0),
+            ]))
+        let viewModel = makeViewModel(mock)
+
+        await viewModel.load()
+
+        #expect(!viewModel.showsSpeedEfficiency)
+    }
+
+    // MARK: - 분포(충전)
+
+    /// **`chargeTimes`는 0=일요일이다** — `weekday` 배열(1=월요일)과 섞으면 밀린다.
+    @Test func 충전_시간대는_0이_일요일이다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 1))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+        // 스텁의 chargeTimes에 weekday 0, hour 23이 4건 있다.
+        #expect(viewModel.chargeHeatCount(weekday: 0, hour: 23) == 4)
+        #expect(viewModel.maxChargeHeatCount == 4)
+        // 총합도 뷰모델이 낸다 — 뷰가 다시 더지 않는다.
+        #expect(viewModel.totalChargeHeatCount == 4)
+        // 표본이 없는 칸은 0이다.
+        #expect(viewModel.chargeHeatCount(weekday: 1, hour: 8) == 0)
+    }
+
+    /// #16 시작 SoC는 예외 없이 모든 칸이 「미만」이다 — #17의 마지막 칸 예외가 없다.
+    @Test func 시작_SoC_분포는_버킷_건수를_그대로_점으로_옮긴다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 1))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+        let point = try! #require(viewModel.chargeStartLevelPoints.first)
+        #expect(point.id == "cs0")
+        #expect(point.label == "0")
+        #expect(point.value == 3)
+    }
+
+    @Test func 종료_SoC_마지막_칸만_100을_품는다() async throws {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 1))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+
+        let last = try #require(viewModel.insights?.chargeEndLevels.last)
+        #expect(last.fromPct == 90 && last.toPct == 100)
+        // 마지막 칸만 라벨이 다르다 — 양끝이 닫힘을 글자로 드러낸다.
+        #expect(viewModel.chargeEndLevelPoints.last?.label == "90~100")
+        #expect(viewModel.chargeEndLevelPoints.first?.label == "80")
+    }
+
+    // MARK: - 주차
+
+    /// **0.0km는 「안 샜다」가 아니다** — 잴 구간이 없었다는 뜻이다. 0으로 그리면
+    /// 그 달만 완벽했던 것처럼 보인다.
+    @Test func 표본이_없는_달은_팬텀_드레인_막대를_안_그린다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 2, emptyLastMonth: true))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+        // 스텁의 마지막 달은 parkDrainSamples가 0이고 parkDrainRatedKm이 0.0이다.
+        #expect(viewModel.parkDrainPoints.last?.value == nil)
+        // 앞 달은 표본이 있으므로 그린다 — 「전부 nil」로 통과하면 안 된다.
+        #expect(viewModel.parkDrainPoints.first?.value != nil)
+    }
+
+    /// 안 탄 달은 「내내 서 있었다」다 — 다른 월별 계열과 옵셔널 여부가 다르다.
+    @Test func 정지_시간은_기록이_없는_달에도_값이_온다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 2, emptyLastMonth: true))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+        #expect(viewModel.idleMinPoints.last?.value != nil)
+        // 안 탄 달일수록 오히려 정지 시간이 크다(내내 서 있었으므로) — 빈 달 44640분.
+        #expect(viewModel.idleMinPoints.last?.value == 44640)
+    }
+
+    /// **이 차트도 하루 밀리는 위험을 안고 있다.** `weekday` 배열은 1=월요일(ISO)이라
+    /// #4·#12와 같은 쪽이고, 0=일요일인 `driveTimes`·`chargeTimes`와는 반대다.
+    @Test func 요일별_정지_시간도_ISO_요일_규약을_따른다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 1))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+        #expect(viewModel.weekdayIdlePoints.map(\.label)
+                == ["월", "화", "수", "목", "금", "토", "일"])
+        #expect(viewModel.weekdayIdlePoints.first?.value == 61200)
+    }
+
+    /// **음수를 0으로 자르지 않는다** — BMS 재보정으로 정격거리가 늘어난 구간이
+    /// 부호 그대로 섞여 있다. 자르면 월 합이 위로 편향된다.
+    @Test func 대기_중_소모는_음수를_0으로_자르지_않는다() async {
+        let mock = MockAPIClient()
+        stub(mock, Self.response(monthly: [
+            Self.month("2026-06", parkDrainRatedKm: Decimal(string: "-12.4")!, parkDrainSamples: 5),
+        ]))
+        let viewModel = makeViewModel(mock)
+
+        await viewModel.load()
+
+        #expect(viewModel.parkDrainPoints.first?.value == Decimal(string: "-12.4")!)
+    }
+
+    /// `monthly`가 정말로 빈 배열이면(그 기간에 행 자체가 안 옴) 주차 섹션도 헤더만
+    /// 남지 않고 통째로 감춰야 한다 — 다른 두 섹션과 같은 「헤더는 내용과 함께만 선다」 규칙.
+    @Test func 월이_전부_비면_주차_섹션도_없다() async {
+        let mock = MockAPIClient()
+        stub(mock, Self.response(monthly: []))
+        let viewModel = makeViewModel(mock)
+
+        await viewModel.load()
+
+        #expect(!viewModel.hasParkMonths)
+    }
+
+    /// **주행도 충전도 없는 달이라도 주차 섹션은 선다** — `idleMin`이 non-null이라
+    /// 행이 있으면 값도 있다. 주행·충전 게이트와 갈리는 지점을 못박는다.
+    @Test func 주행도_충전도_없는_달도_주차_섹션은_선다() async {
+        let mock = MockAPIClient()
+        stub(mock, Self.response(monthly: [
+            Self.month("2026-06"), Self.month("2026-07"), Self.month("2026-08"),
+        ]))
+        let viewModel = makeViewModel(mock)
+
+        await viewModel.load()
+
+        #expect(viewModel.hasParkMonths)
+        #expect(!viewModel.hasDriveMonths)
+        #expect(!viewModel.hasChargeMonths)
+    }
+
+    // MARK: - 위치
+
+    /// 서버가 **표시 이름으로 묶어** 주므로 목록 안에서 이름이 유일하다 —
+    /// 1단계에서 `id: \.offset`으로 그리던 이유가 사라졌다.
+    @Test func 자주_가는_곳은_이름이_유일해서_id로_쓸_수_있다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 1))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+
+        let ids = viewModel.placeRows.map(\.id)
+        #expect(ids == ["집", "회사"])
+        #expect(Set(ids).count == ids.count)
+    }
+
+    /// **막대 길이가 순위 기준과 달라지면 짧은 막대가 위에 온다.** 서버가 건수
+    /// 내림차순으로 주므로 `value`도 건수여야 한다.
+    @Test func 순위_막대는_순위_기준과_같은_값으로_길이를_정한다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 1))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+
+        // 서버가 건수 내림차순으로 준다 — 스텁: 집 302회, 회사 151회.
+        let values = viewModel.placeRows.map(\.value)
+        #expect(values == [302, 151])
+        #expect(values == values.sorted(by: >))
+    }
+
+    /// 충전소 쪽도 같은 규칙이다 — 막대 길이는 비용이 아니라 충전 횟수.
+    @Test func 충전소_순위_막대도_건수로_길이를_정한다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 1))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+
+        #expect(viewModel.chargerRows.map(\.value) == [210])
+    }
+
+    /// 미입력이 섞이면 위에 적힌 금액이 실제보다 적다 — 그 사실을 안 적으면
+    /// 순위가 조용히 뒤집힌다.
+    @Test func 금액_미입력이_섞인_충전소는_단서를_단다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 1))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+        #expect(viewModel.chargerRows.first?.note == "4건 금액 없음")
+    }
+
+    /// **0원이 아니라 「—」다.** 0원은 「공짜로 넣었다」는 거짓이다.
+    @Test func 금액이_전부_미입력인_충전소는_비용이_없다() {
+        let charger = Charger(name: "어딘가", chargeCount: 3, energyAddedKwh: 40,
+                              cost: nil, costMissingCount: 3)
+        #expect(ChargeFormat.cost(charger.cost) == "미입력")
+    }
+
+    /// **1단계의 「지오펜스가 없으면 감춘다」와 다르다** — 서버가 주소로 이름을 짓게 되어
+    /// 남은 빈 길은 「그 기간에 주행·충전이 없었다」뿐이다.
+    @Test func 배열이_비면_위치_섹션을_통째로_감춘다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 1, emptyPlaces: true))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+        #expect(!viewModel.showsPlaceSection)
+        #expect(viewModel.placeRows.isEmpty)
+        #expect(viewModel.chargerRows.isEmpty)
+    }
+
+    /// 채워져 오는 것이 이 차량의 기본 상태다 — 감추기가 기본이 되면 안 된다.
+    @Test func 주소로_이름이_붙은_곳들은_섹션을_연다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 1))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+        #expect(viewModel.showsPlaceSection)
+    }
+
+    /// **`places`·`chargers`가 비어도 `regions`만 채워지면 섹션은 열려야 한다** — 셋
+    /// 중 하나만 있어도 헤더까지 감추면 그 하나가 안 보인다.
+    @Test func 지역_수만_있어도_섹션을_연다() async {
+        let mock = MockAPIClient()
+        stub(mock, Self.response(regions: Regions(cities: 3, states: 1, countries: 1)))
+        let viewModel = makeViewModel(mock)
+        await viewModel.load()
+        #expect(viewModel.showsPlaceSection)
+    }
+
+    /// **`cities`가 0이어도 `states`·`countries`가 있으면 섹션이 열려야 한다** — 역지오코딩이
+    /// 시골길·경계 지역에서 `city`만 NULL이고 `state`는 채우는 행이 실제로 나온다.
+    /// `regions.cities > 0` 하나로만 게이트를 걸면 그런 기간이 통째로 숨는다.
+    @Test func 도시가_0이어도_시도가_있으면_섹션을_연다() async {
+        let mock = MockAPIClient()
+        stub(mock, Self.response(places: [], regions: Regions(cities: 0, states: 2, countries: 1)))
+        let viewModel = makeViewModel(mock)
+        await viewModel.load()
+        #expect(viewModel.showsPlaceSection)
+    }
+
+    // MARK: - #26 명예의 전당
+
+    /// 최고효율의 비율은 서버가 안 낸다 — 앱이 `VehicleMath.ratio`로 낸다.
+    @Test func 최고효율은_분자와_분모로_앱이_낸다() {
+        let record = EfficiencyRecord(driveId: 1, startedAt: "2026-05-02T14:20:00",
+                                      distanceKm: 26.7, ratedRangeUsedKm: 15.3)
+        let ratio = try! #require(VehicleMath.ratio(record.distanceKm, record.ratedRangeUsedKm))
+        #expect(abs(ratio - Decimal(string: "1.745")!) < Decimal(string: "0.01")!)
+    }
+
+    /// 분모가 0 이하면 nil이다 — 서버가 그 처리를 정해 버리면 화면이 따라야 한다.
+    @Test func 분모가_0이면_비율은_nil이다() {
+        #expect(VehicleMath.ratio(10, 0) == nil)
+        #expect(VehicleMath.ratio(10, -5) == nil)
+    }
+
+    /// **셋이 따로 nil일 수 있다** — `bestEfficiency`만 nil인 길이 따로 있다.
+    @Test func 기록_셋이_따로_비어도_나머지는_그린다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 1))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+
+        // 스텁은 longestDuration만 nil이다.
+        #expect(viewModel.showsRecords)
+        #expect(viewModel.insights?.records.longestDuration == nil)
+        #expect(viewModel.insights?.records.longestDistance != nil)
+    }
+
+    @Test func 셋_다_비면_기록_섹션을_감춘다() async {
+        let mock = MockAPIClient()
+        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 1, emptyRecords: true))
+        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+        #expect(!viewModel.showsRecords)
     }
 }
