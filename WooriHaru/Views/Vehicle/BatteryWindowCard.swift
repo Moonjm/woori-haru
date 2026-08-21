@@ -3,7 +3,7 @@ import SwiftUI
 /// 최근 48시간 배터리 추이 — `/tesla/battery-window`. 손으로 그린 선이다
 /// (`DegradationTrendChart`와 같은 관례로, Swift Charts를 들이지 않는다).
 ///
-/// **y축을 0에서 시작하지 않는다.** SOC 62%와 20%의 차이를 보여야 하는 자리라, 0부터
+/// y축을 0에서 시작하지 않는다. SOC 62%와 20%의 차이를 보여야 하는 자리라, 0부터
 /// 그리면 변화가 선 굵기에 묻힌다. `MonthlyLineChart`(y축이 0에서 시작하는 것이 명시된
 /// 원형)는 여기 쓰지 않는다.
 struct BatteryWindowCard: View {
@@ -45,7 +45,7 @@ struct BatteryWindowCard: View {
                 .fontWeight(.bold)
                 .foregroundStyle(VehicleTheme.textSecondary)
             Spacer(minLength: 0)
-            // **범위 칩.** 아래 요약 줄이 「최근 7일」을 말하므로, 이 칩이 실제로 그리는
+            // 범위 칩. 아래 요약 줄이 「최근 7일」을 말하므로, 이 칩이 실제로 그리는
             // 구간(`hours`)을 밝혀 둬야 둘이 서로 다른 기간을 말한다는 것이 헷갈리지 않는다.
             Text("최근 \(window.hours)시간")
                 .font(.caption2)
@@ -77,7 +77,7 @@ struct BatteryWindowCard: View {
 
     private func plot(in size: CGSize, from start: Date, span: TimeInterval) -> some View {
         ZStack(alignment: .topLeading) {
-            // 충전 구간을 선 아래 다른 색으로 깐다. **이미 범위 경계로 잘려서 온다** —
+            // 충전 구간을 선 아래 다른 색으로 깐다. 이미 범위 경계로 잘려서 온다 —
             // 앱이 다시 자르지 않는다.
             ForEach(Array(window.charges.enumerated()), id: \.offset) { _, segment in
                 if let rect = chargeRect(segment, in: size, from: start, span: span) {
@@ -88,7 +88,7 @@ struct BatteryWindowCard: View {
                 }
             }
 
-            // 주 계열 — `batteryLevel`. **절대 끊지 않는다.** `usableBatteryLevel`과 달리
+            // 주 계열 — `batteryLevel`. 절대 끊지 않는다. `usableBatteryLevel`과 달리
             // 거의 모든 표본에 값이 있다.
             Path { path in
                 let points = socPoints(in: size, from: start, span: span)
@@ -98,8 +98,8 @@ struct BatteryWindowCard: View {
             }
             .stroke(VehicleTheme.accent, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
 
-            // 보조 계열 — `usableBatteryLevel`. **실측 3%만 채워져 있어 선으로 이으면
-            // 거의 다 끊긴다** — 있을 때만 점을 찍는다.
+            // 보조 계열 — `usableBatteryLevel`. 실측 3%만 채워져 있어 선으로 이으면
+            // 거의 다 끊긴다 — 있을 때만 점을 찍는다.
             ForEach(window.samples.filter { $0.usableBatteryLevel != nil }) { sample in
                 if let point = usablePosition(sample, in: size, from: start, span: span) {
                     Circle()
@@ -151,7 +151,7 @@ struct BatteryWindowCard: View {
     }
 
     /// y축 범위 — 이번 창의 SOC·사용 가능 표본을 모두 담고 위아래로 조금 띄운다.
-    /// **0이나 100으로 고정하지 않는다** — 그러면 20~62% 같은 좁은 구간이 화면 가운데
+    /// 0이나 100으로 고정하지 않는다 — 그러면 20~62% 같은 좁은 구간이 화면 가운데
     /// 띠 하나로 뭉개진다. 다만 퍼센트 값이라 범위를 0...100 밖으로는 내보내지 않는다.
     private var domain: (low: Decimal, high: Decimal) {
         let levels = window.samples.map { Decimal($0.batteryLevel) }
@@ -171,8 +171,8 @@ struct BatteryWindowCard: View {
 
     // MARK: - 아래 줄
 
-    /// 「최근 7일 대기 소모 0.04km/시간」. **`hours`와 다른 기간(최근 7일)이라 문구에
-    /// 박아 둔다** — 위 범위 칩과 다른 기간임을 숨기지 않는다.
+    /// 「최근 7일 대기 소모 0.04km/시간」. `hours`와 다른 기간(최근 7일)이라 문구에
+    /// 박아 둔다 — 위 범위 칩과 다른 기간임을 숨기지 않는다.
     ///
     /// `VehicleMath.drainPerHour`가 표본이 없을 때 `nil`을 내므로 그 경우 줄 자체를
     /// 지운다 — 0km/시간은 「안 샜다」는 거짓말이다.
