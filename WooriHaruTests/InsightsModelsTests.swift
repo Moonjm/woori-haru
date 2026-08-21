@@ -31,7 +31,9 @@ struct InsightsModelsTests {
       "totalDistanceKm": 107258.4,
       "recordedMonths": 59,
       "weekday": [{"weekday": 1, "driveCount": 38, "distanceKm": 612.0,
-                   "drivingMin": 940, "occurrences": 52, "idleMin": 61200}],
+                   "drivingMin": 940, "occurrences": 52, "idleMin": 61200},
+                  {"weekday": 2, "driveCount": 0, "distanceKm": 0.0,
+                   "drivingMin": null, "occurrences": 52, "idleMin": 74880}],
       "chargeTimes": [{"weekday": 1, "hour": 23, "count": 4}],
       "speedBuckets": [{"fromKmh": 120, "toKmh": null, "driveCount": 3}],
       "speedEnergyBuckets": [{"fromKmh": 0, "toKmh": 20,
@@ -88,6 +90,18 @@ struct InsightsModelsTests {
         #expect(DriveFormat.isoWeekdayLabel(response.weekday[0].weekday) == "월")
     }
 
+    /// **회귀 방지**: `InsightsWeekday.drivingMin`이 한때 `Int`였다 — 고른 기간에 한
+    /// 번도 안 탄 요일이 하나라도 있으면 서버가 그 요일의 `drivingMin`을 null로 내고
+    /// (`driveCount`와 달리 `?: 0`이 없다), `Int`로는 `valueNotFound`가 나 응답 전체가
+    /// 깨졌다. 이 테스트는 그 응답이 지금도 정상 디코딩되는지 못박는다.
+    @Test func 요일_주행이_없으면_drivingMin이_null로_와도_디코딩된다() throws {
+        let response = try decoded()
+        let noDriveDay = try #require(response.weekday.first { $0.weekday == 2 })
+        #expect(noDriveDay.drivingMin == nil)
+        #expect(noDriveDay.driveCount == 0)
+        #expect(noDriveDay.distanceKm == 0.0)
+    }
+
     @Test func ISO_요일_라벨은_범위_밖에서_빈값을_낸다() {
         #expect(DriveFormat.isoWeekdayLabel(0) == ChargeFormat.placeholder)
         #expect(DriveFormat.isoWeekdayLabel(7) == "일")
@@ -103,5 +117,17 @@ struct InsightsModelsTests {
         #expect(Set(yearMonths).count == 60)
         #expect(yearMonths.first == "2021-09")
         #expect(yearMonths.last == "2026-08")
+    }
+
+    /// `InsightsStub`도 「주행이 없는 요일」을 표현할 수 있어야 한다 — 그러지 못하면
+    /// 이 결함(`drivingMin`이 `Int?`여야 하는데 `Int`였던 것)을 재현하는 테스트를
+    /// 공용 스텁으로는 쓸 수 없었다.
+    @Test func 스텁으로_주행_없는_요일을_표현할_수_있다() {
+        let weekday = InsightsStub.response(monthlyCount: 1, emptyWeekday: true).weekday
+        let noDriveDay = weekday.first { $0.weekday == 2 }
+        #expect(noDriveDay?.drivingMin == nil)
+        #expect(noDriveDay?.driveCount == 0)
+        // 다른 요일은 그대로 값이 있다 — 노브가 화요일 하나만 연다.
+        #expect(weekday.first { $0.weekday == 1 }?.drivingMin == 940)
     }
 }

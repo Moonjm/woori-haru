@@ -67,7 +67,15 @@ struct InsightsWeekday: Codable, Identifiable, Equatable {
     let weekday: Int
     let driveCount: Int
     let distanceKm: Decimal
-    let drivingMin: Int
+    /// **서버가 `Int?`로 낸다** — 고른 기간에 그 요일에 한 번도 안 탔으면
+    /// `drive?.drivingMin`이 `?: 0` 없이 그대로 nil을 낸다(형제 필드 `driveCount`와 다르다).
+    /// `Int`로 두면 그 응답 하나에 `valueNotFound` 디코딩 실패가 나 통계 탭 전체가 빈다.
+    ///
+    /// **앱은 이 필드를 읽지 않는다**(`grep -rn "\.drivingMin" WooriHaru/`로 나오는 둘은
+    /// 전부 `InsightsMonth` 쪽이다). 그래도 지우지 않고 옵셔널로 남기는 것은 서버 계약을
+    /// 그대로 보존해 디코딩이 필드 하나 때문에 깨지지 않게 하기 위해서다 — 안 읽는 필드도
+    /// 타입이 틀리면 응답 전체를 무너뜨린다.
+    let drivingMin: Int?
     /// 범위 안에 그 요일이 며칠 있었나 — **요일 평균의 분모다.**
     let occurrences: Int
     let idleMin: Int

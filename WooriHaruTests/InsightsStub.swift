@@ -13,11 +13,14 @@ enum InsightsStub {
     /// - `emptyLastMonth`: 마지막 달이 기록 없는 달(값은 nil, `parkDrainSamples`는 0)
     /// - `emptyPlaces`: `places`·`chargers`가 빈 배열, `regions`가 전부 0
     /// - `emptyRecords`: `records` 셋 다 nil
+    /// - `emptyWeekday`: `weekday` 배열의 화요일(2) 칸이 「그 요일에 한 번도 안 탔다」다 —
+    ///   `drivingMin`이 `Int?`인 이유(서버가 `?: 0` 없이 그대로 null을 낸다)를 재현한다.
     static func response(months: Int = 12,
                          monthlyCount: Int = 12,
                          emptyLastMonth: Bool = false,
                          emptyPlaces: Bool = false,
-                         emptyRecords: Bool = false) -> InsightsResponse {
+                         emptyRecords: Bool = false,
+                         emptyWeekday: Bool = false) -> InsightsResponse {
         let monthly = (0..<monthlyCount).map { index -> InsightsMonth in
             let isEmpty = emptyLastMonth && index == monthlyCount - 1
             // 절대 개월 수로 뺀 뒤 다시 연·월로 푼다 — 60개월(전체 기간) 창이 5년을
@@ -44,9 +47,15 @@ enum InsightsStub {
                 parkDrainSamples: isEmpty ? 0 : 34)
         }
         // **1 = 월요일**(ISO)로 일곱 개. 순서가 곧 월~일이다.
-        let weekday = (1...7).map { day in
-            InsightsWeekday(weekday: day, driveCount: 38, distanceKm: 612,
-                            drivingMin: 940, occurrences: 52, idleMin: 61200)
+        let weekday = (1...7).map { day -> InsightsWeekday in
+            let isEmptyDay = emptyWeekday && day == 2
+            return InsightsWeekday(
+                weekday: day,
+                driveCount: isEmptyDay ? 0 : 38,
+                distanceKm: isEmptyDay ? 0 : 612,
+                drivingMin: isEmptyDay ? nil : 940,
+                occurrences: 52,
+                idleMin: isEmptyDay ? 74880 : 61200)
         }
         return InsightsResponse(
             months: months, monthly: monthly,
