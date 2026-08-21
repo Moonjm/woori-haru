@@ -144,7 +144,7 @@ struct VehicleStatsTab: View {
         DriveTimeHeatmap(count: { viewModel.heatCount(weekday: $0, hour: $1) },
                          maxCount: viewModel.maxHeatCount,
                          driveCount: viewModel.distanceDriveCount)
-        DistanceDistributionCard(buckets: viewModel.insights?.distanceBuckets ?? [],
+        DistanceDistributionCard(slices: viewModel.distanceSlices,
                                  driveCount: viewModel.distanceDriveCount)
     }
 

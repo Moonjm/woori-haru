@@ -228,6 +228,34 @@ struct VehicleStatsViewModelTests {
         #expect(viewModel.distanceDriveCount == 959)
     }
 
+    /// #22 거리 분포 도넛의 퍼센트 — 전체 건수(959) 대비 버킷 건수를 나눈다.
+    @Test func 거리_버킷마다_전체_대비_퍼센트를_낸다() async {
+        let mock = MockAPIClient()
+        stub(mock, Self.insights())
+        let viewModel = makeViewModel(mock)
+
+        await viewModel.load()
+
+        let slices = viewModel.distanceSlices
+        #expect(slices.count == 5)
+        #expect(slices[0].bucket.driveCount == 620)
+        let expected = try! #require(VehicleMath.ratio(620, 959))
+        #expect(slices[0].percent == expected)
+    }
+
+    /// 총 건수가 0이면 나눗셈이 막혀야 한다 — `VehicleMath.ratio`의 분모 방어를 그대로 탄다.
+    @Test func 거리_버킷_총건수가_0이면_퍼센트도_nil이다() async {
+        let mock = MockAPIClient()
+        stub(mock, Self.response(distanceBuckets: [
+            DistanceBucket(fromKm: 0, toKm: 5, driveCount: 0, distanceKm: 0),
+        ]))
+        let viewModel = makeViewModel(mock)
+
+        await viewModel.load()
+
+        #expect(viewModel.distanceSlices.allSatisfy { $0.percent == nil })
+    }
+
     /// TeslaMate가 `cars.efficiency`를 아직 못 채운 경우다 — 전비 카드를 감춘다.
     /// 나머지 카드는 그대로 그린다.
     @Test func 효율_계수가_없으면_전비_카드를_감춘다() async {

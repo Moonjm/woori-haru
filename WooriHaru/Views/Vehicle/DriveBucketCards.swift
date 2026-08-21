@@ -68,49 +68,90 @@ struct TemperatureEfficiencyCard: View {
     }
 }
 
-/// 한 번에 얼마나 — 건수 분포. **여기는 0에서 시작한다.** 건수는 절대량이라
-/// 「0~5km가 압도적으로 많다」가 이 카드가 보여 줘야 하는 사실이다.
+/// 한 번에 얼마나 — 건수 분포. 도넛 + 범례로 그린다.
+///
+/// 다섯 조각은 각도만으로 크기를 못 견주므로(`DonutChart` doc) **범례마다 라벨·퍼센트·
+/// 건수를 글자로 적는다** — 퍼센트가 각도의 부담을 대신 지고, 건수는 「52%가 몇 번인지」를
+/// 잃지 않으려 남긴다. 범례는 도넛 옆에 붙인다 — 급속/완속 도넛(`StatsChargeSection`)과
+/// 같은 모양이라 다른 카드로 눈이 옮겨가도 읽는 법이 안 바뀐다.
+///
+/// **0인 버킷도 범례 자리를 지킨다** — 도넛에는 안 그려지지만(각도 0) 목록에서 빠지면
+/// 분포가 어긋나 보인다는 것은 막대 시절과 같은 이유다.
 struct DistanceDistributionCard: View {
-    let buckets: [DistanceBucket]
+    let slices: [VehicleStatsViewModel.DistanceSlice]
     /// **전비 카드와 다른 수다.** 여기선 걸러 내는 주행이 없다.
     let driveCount: Int
+
+    /// 새 색을 안 쓴다 — 강조색 하나를 다섯 단계 투명도로 나눠 조각을 가른다.
+    private static let colors: [Color] = [
+        VehicleTheme.accent,
+        VehicleTheme.accent.opacity(0.75),
+        VehicleTheme.accent.opacity(0.55),
+        VehicleTheme.accent.opacity(0.38),
+        VehicleTheme.accent.opacity(0.24),
+    ]
+
+    private func color(at index: Int) -> Color { Self.colors[index % Self.colors.count] }
+
+    private var donutSlices: [DonutChart.Slice] {
+        slices.enumerated().map { index, slice in
+            DonutChart.Slice(label: slice.bucket.label,
+                             value: Decimal(slice.bucket.driveCount),
+                             color: color(at: index))
+        }
+    }
 
     var body: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: 10) {
                 header("한 번에 얼마나", "\(driveCount)회 기준")
-                ForEach(buckets) { bucket in
-                    bar(bucket)
+                HStack(alignment: .center, spacing: 16) {
+                    DonutChart(slices: donutSlices)
+                        .overlay {
+                            // 범례가 조각 각각을 말하니, 가운데는 전체를 말한다.
+                            VStack(spacing: 0) {
+                                Text("\(driveCount)")
+                                    .font(.subheadline)
+                                    .fontWeight(.heavy)
+                                    .monospacedDigit()
+                                    .foregroundStyle(VehicleTheme.textPrimary)
+                                Text("회")
+                                    .font(.caption2)
+                                    .foregroundStyle(VehicleTheme.textTertiary)
+                            }
+                        }
+                    VStack(alignment: .leading, spacing: 6) {
+                        ForEach(Array(slices.enumerated()), id: \.element.id) { index, slice in
+                            legendRow(slice, color: color(at: index))
+                        }
+                    }
                 }
             }
         }
     }
 
-    private var maxCount: Int { buckets.map(\.driveCount).max() ?? 0 }
-
-    private func bar(_ bucket: DistanceBucket) -> some View {
-        let ratio = maxCount > 0 ? CGFloat(bucket.driveCount) / CGFloat(maxCount) : 0
-        return HStack(spacing: 8) {
-            Text(bucket.label)
+    private func legendRow(_ slice: VehicleStatsViewModel.DistanceSlice, color: Color) -> some View {
+        let percentText = ChargeFormat.percent(slice.percent)
+        return HStack(spacing: 6) {
+            Circle().fill(color).frame(width: 8, height: 8)
+            Text(slice.bucket.label)
                 .font(.caption2)
                 .foregroundStyle(VehicleTheme.textSecondary)
-                .frame(width: 66, alignment: .leading)
-            GeometryReader { proxy in
-                RoundedRectangle(cornerRadius: 4)
-                    // 0인 버킷도 자리를 지킨다 — 건너뛰면 분포가 어긋나 보인다.
-                    .fill(bucket.driveCount == 0 ? VehicleTheme.trackFill : VehicleTheme.accent)
-                    .frame(width: max(3, proxy.size.width * ratio))
-            }
-            .frame(height: 14)
-            Text(DriveFormat.count(bucket.driveCount))
+                .frame(width: 60, alignment: .leading)
+            Text(percentText)
                 .font(.caption2)
                 .fontWeight(.bold)
                 .monospacedDigit()
                 .foregroundStyle(VehicleTheme.textPrimary)
-                .frame(width: 56, alignment: .trailing)
+                .frame(width: 36, alignment: .trailing)
+            Text(DriveFormat.count(slice.bucket.driveCount))
+                .font(.caption2)
+                .monospacedDigit()
+                .foregroundStyle(VehicleTheme.textTertiary)
+                .frame(width: 40, alignment: .trailing)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(bucket.label) \(DriveFormat.count(bucket.driveCount))")
+        .accessibilityLabel("\(slice.bucket.label) \(percentText), \(DriveFormat.count(slice.bucket.driveCount))")
     }
 }
 
@@ -157,16 +198,23 @@ private func header(_ title: String, _ trailing: String) -> some View {
                                            efficiencyKwhPerKm: efficiency)
         )
     }
+    let distanceBuckets = [
+        DistanceBucket(fromKm: 0, toKm: 5, driveCount: 620, distanceKm: 1802),
+        DistanceBucket(fromKm: 5, toKm: 20, driveCount: 210, distanceKm: 2400),
+        DistanceBucket(fromKm: 20, toKm: 50, driveCount: 90, distanceKm: 2700),
+        DistanceBucket(fromKm: 50, toKm: 100, driveCount: 36, distanceKm: 2500),
+        DistanceBucket(fromKm: 100, toKm: nil, driveCount: 3, distanceKm: 412),
+    ]
+    let distanceTotal = distanceBuckets.reduce(0) { $0 + $1.driveCount }
+    let distanceSlices = distanceBuckets.map { bucket in
+        VehicleStatsViewModel.DistanceSlice(
+            bucket: bucket,
+            percent: VehicleMath.ratio(Decimal(bucket.driveCount), Decimal(distanceTotal)))
+    }
     return ScrollView {
         VStack(spacing: 12) {
             TemperatureEfficiencyCard(rows: rows, driveCount: 939)
-            DistanceDistributionCard(buckets: [
-                DistanceBucket(fromKm: 0, toKm: 5, driveCount: 620, distanceKm: 1802),
-                DistanceBucket(fromKm: 5, toKm: 20, driveCount: 210, distanceKm: 2400),
-                DistanceBucket(fromKm: 20, toKm: 50, driveCount: 90, distanceKm: 2700),
-                DistanceBucket(fromKm: 50, toKm: 100, driveCount: 36, distanceKm: 2500),
-                DistanceBucket(fromKm: 100, toKm: nil, driveCount: 3, distanceKm: 412),
-            ], driveCount: 959)
+            DistanceDistributionCard(slices: distanceSlices, driveCount: distanceTotal)
         }
         .padding(16)
     }

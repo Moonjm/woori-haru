@@ -140,6 +140,25 @@ final class VehicleStatsViewModel {
         (insights?.distanceBuckets ?? []).reduce(0) { $0 + $1.driveCount }
     }
 
+    /// #22 거리 분포 도넛. **버킷 + 전체 대비 퍼센트**를 한 짝으로 묶는다 — 조각이 다섯
+    /// 개라 각도만으로는 크기를 못 견주므로(`DonutChart` doc), 조각마다 글자로 퍼센트를
+    /// 적어야 한다. 나눗셈은 `VehicleMath.ratio`로 여기서 낸다.
+    struct DistanceSlice: Identifiable {
+        let bucket: DistanceBucket
+        /// 총 건수가 0이면 nil이다 — 화면은 그때 도넛 자체를 안 그린다(`hasDrives` 게이트).
+        let percent: Decimal?
+
+        var id: String { bucket.id }
+    }
+
+    var distanceSlices: [DistanceSlice] {
+        let total = distanceDriveCount
+        return (insights?.distanceBuckets ?? []).map { bucket in
+            DistanceSlice(bucket: bucket,
+                          percent: VehicleMath.ratio(Decimal(bucket.driveCount), Decimal(total)))
+        }
+    }
+
     /// 요일×시각 조회표. **응답을 받을 때 한 번만 편다.**
     ///
     /// 계산 속성으로 두면 히트맵이 한 번 그려질 때마다 168칸이 각자 딕셔너리를 새로 만든다 —
