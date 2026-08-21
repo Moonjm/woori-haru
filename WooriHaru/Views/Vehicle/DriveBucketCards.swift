@@ -81,15 +81,6 @@ struct DistanceDistributionCard: View {
     /// **전비 카드와 다른 수다.** 여기선 걸러 내는 주행이 없다.
     let driveCount: Int
 
-    /// 새 색을 안 쓴다 — 강조색 하나를 다섯 단계 투명도로 나눠 조각을 가른다.
-    private static let colors: [Color] = [
-        VehicleTheme.accent,
-        VehicleTheme.accent.opacity(0.75),
-        VehicleTheme.accent.opacity(0.55),
-        VehicleTheme.accent.opacity(0.38),
-        VehicleTheme.accent.opacity(0.24),
-    ]
-
     private static let donutSize: CGFloat = 128
     private static let chartHeight: CGFloat = 220
     private static let edgeRadius = donutSize / 2 + 3
@@ -99,7 +90,9 @@ struct DistanceDistributionCard: View {
     private static let bendX = donutSize / 2 + 22
     private static let labelX = donutSize / 2 + 32
 
-    private func color(at index: Int) -> Color { Self.colors[index % Self.colors.count] }
+    private func color(at index: Int) -> Color {
+        VehicleTheme.chartCategories[index % VehicleTheme.chartCategories.count]
+    }
 
     private var donutSlices: [DonutChart.Slice] {
         slices.enumerated().map { index, slice in
