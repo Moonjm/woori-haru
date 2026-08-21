@@ -81,4 +81,16 @@ struct VehicleService: Sendable {
         }
         return timeline
     }
+
+    /// 최근 `hours`시간의 SOC 표본·충전 구간·최근 7일 팬텀 드레인. `hours`는 1~168, 기본 48.
+    ///
+    /// **캐시하지 않는다** — 「최근 48시간」이 계속 움직인다. `fetchStateTimeline`과 같은 이유다.
+    func fetchBatteryWindow(hours: Int = 48) async throws -> BatteryWindowResponse {
+        let response: DataResponse<BatteryWindowResponse> =
+            try await api.get("/tesla/battery-window", query: ["hours": String(hours)])
+        guard let window = response.data else {
+            throw APIError.serverError(statusCode: 200, message: "배터리 추이 응답이 비어 있습니다")
+        }
+        return window
+    }
 }

@@ -202,6 +202,13 @@ enum VehicleMath {
         return total / Decimal(occurrences)
     }
 
+    /// 팬텀 드레인 — km/시간. **표본이 없으면 nil이다** — 0km/시간은 「안 샜다」는
+    /// 거짓말이다. `hours`가 0 이하일 때도 나눗셈이 뜻을 잃으므로 nil이다.
+    static func drainPerHour(_ drain: ParkDrain) -> Decimal? {
+        guard drain.samples > 0, drain.hours > 0 else { return nil }
+        return drain.ratedKm / drain.hours
+    }
+
     /// **`VehicleHealthModels.swift`의 확장도 쓴다** — 그래서 private가 아니다.
     /// 반올림 규칙을 두 벌 두면 잔존율과 열화가 화면에서 101%가 되는 달이 나온다.
     static func rounded(_ value: Decimal) -> Decimal {
@@ -311,6 +318,14 @@ enum VehicleFormat {
             return rest == 0 ? "\(hours)시간째" : "\(hours)시간 \(rest)분째"
         }
         return "\(minutes / (60 * 24))일째"
+    }
+
+    /// 0.0435 → "0.04km/시간". 팬텀 드레인 전용 표기 — 소수 둘째 자리까지 낸다.
+    /// SOC 표기(정수 %)와 달리 시간당 스밈은 값 자체가 작아, 소수를 버리면 늘 "0km/시간"이
+    /// 되어 「샜다」와 「안 샜다」가 화면에서 구분되지 않는다.
+    static func drainRate(_ value: Decimal?) -> String {
+        guard let value else { return ChargeFormat.placeholder }
+        return "\(number(value, fraction: 2, minFraction: 2))km/시간"
     }
 
     /// **모르는 값은 원문 그대로 낸다** — 상류가 상태를 늘렸다는 사실이 숨으면 안 된다.
