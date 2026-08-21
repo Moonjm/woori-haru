@@ -20,7 +20,8 @@ struct VehicleStatsViewModelTests {
         maxSpeedKmh: Int? = 138,
         totalDistanceKm: Decimal = Decimal(string: "107257.8")!,
         recordedMonths: Int = 60,
-        regions: Regions = Regions(cities: 0, states: 0, countries: 0)
+        regions: Regions = Regions(cities: 0, states: 0, countries: 0),
+        speedEnergyBuckets: [SpeedEnergyBucket] = []
     ) -> InsightsResponse {
         InsightsResponse(
             months: months,
@@ -36,7 +37,7 @@ struct VehicleStatsViewModelTests {
             weekday: [],
             chargeTimes: [],
             speedBuckets: [],
-            speedEnergyBuckets: [],
+            speedEnergyBuckets: speedEnergyBuckets,
             chargeStartLevels: [],
             chargeEndLevels: [],
             chargers: [],
@@ -368,6 +369,26 @@ struct VehicleStatsViewModelTests {
         #expect(!viewModel.hasChargeMonths)
     }
 
+    /// **두 게이트가 다른 소스를 봐서 모순 조합이 생길 수 있다.** 서버 쪽
+    /// `distanceBuckets`는 `end_date` 기준에 `distance > 0` 필터가 있고, `monthly`는
+    /// `start_date` 기준에 그 필터가 없다 — 「거리 0인 주행만 있는 기간」이면
+    /// `hasDriveMonths=true`인데 `hasDrives=false`가 될 수 있다. `VehicleStatsTab`은 이
+    /// 조합에서 「이 기간에 주행 기록이 없어요」를 띄우면 안 된다(둘 다 거짓일 때만
+    /// 띄운다) — 그 판단은 뷰에 있어 여기서는 이 모순 조합이 실제로 나올 수 있음만
+    /// 못박는다.
+    @Test func 거리_버킷과_월별_게이트는_서로_다른_소스라_모순될_수_있다() async {
+        let mock = MockAPIClient()
+        stub(mock, Self.response(
+            monthly: [Self.month("2026-08", distanceKm: 780, drivingMin: 1120, driveCount: 41)],
+            distanceBuckets: []))
+        let viewModel = makeViewModel(mock)
+
+        await viewModel.load()
+
+        #expect(!viewModel.hasDrives)
+        #expect(viewModel.hasDriveMonths)
+    }
+
     /// 히트맵은 성기게 온다 — 없는 칸은 0이다. `weekday` 0이 일요일이다.
     @Test func 히트맵의_없는_칸은_0이다() async {
         let mock = MockAPIClient()
@@ -614,6 +635,58 @@ struct VehicleStatsViewModelTests {
         #expect(point.id == "se0")
         let value = try! #require(point.value)
         #expect(abs(value - Decimal(string: "4.3844")!) < Decimal(string: "0.001")!)
+    }
+
+    /// **#8은 `showsEfficiency`(온도 전용 판정)를 재사용하지 않는다.** 온도 버킷이
+    /// 하나도 없어 `showsEfficiency`는 거짓이어도, 속도별 전비 재료(`speedEnergyBuckets`)가
+    /// 있으면 #8은 따로 참이어야 한다 — 같은 결측에 두 카드가 다르게 반응하던 결함의
+    /// 반대쪽(정상 데이터가 있는데 온도 판정에 끌려 숨는 경우)을 못박는다.
+    @Test func 속도별_전비는_온도_카드_게이트와_따로_판단한다() async {
+        let mock = MockAPIClient()
+        stub(mock, Self.response(
+            temperatureBuckets: [],
+            speedEnergyBuckets: [
+                SpeedEnergyBucket(fromKmh: 0, toKmh: 20, distanceKm: 302, ratedRangeUsedKm: 410),
+            ]))
+        let viewModel = makeViewModel(mock)
+
+        await viewModel.load()
+
+        #expect(!viewModel.showsEfficiency)
+        #expect(viewModel.showsSpeedEfficiency)
+    }
+
+    /// `cars.efficiency`가 없으면 #8의 모든 점이 nil이 되어 막대 없는 빈 차트만 남는다 —
+    /// #9와 같은 이유로 카드째 감춘다.
+    @Test func 효율_계수가_없으면_속도별_전비_카드도_감춘다() async {
+        let mock = MockAPIClient()
+        stub(mock, Self.response(
+            efficiency: nil,
+            speedEnergyBuckets: [
+                SpeedEnergyBucket(fromKmh: 0, toKmh: 20, distanceKm: 302, ratedRangeUsedKm: 410),
+            ]))
+        let viewModel = makeViewModel(mock)
+
+        await viewModel.load()
+
+        #expect(!viewModel.showsSpeedEfficiency)
+        #expect(viewModel.speedEfficiencyPoints.allSatisfy { $0.value == nil })
+    }
+
+    /// 계수는 있어도 모든 속도 버킷의 `ratedRangeUsedKm`이 0이면(아주 짧은 주행만 있는
+    /// 기간) 점이 전부 nil이라 마찬가지로 감춘다 — `전비_행이_전부_비면_카드를_감춘다`
+    /// (#9)와 같은 경계다.
+    @Test func 속도별_전비_점이_전부_비면_카드를_감춘다() async {
+        let mock = MockAPIClient()
+        stub(mock, Self.response(
+            speedEnergyBuckets: [
+                SpeedEnergyBucket(fromKmh: 0, toKmh: 20, distanceKm: 12, ratedRangeUsedKm: 0),
+            ]))
+        let viewModel = makeViewModel(mock)
+
+        await viewModel.load()
+
+        #expect(!viewModel.showsSpeedEfficiency)
     }
 
     // MARK: - 분포(충전)

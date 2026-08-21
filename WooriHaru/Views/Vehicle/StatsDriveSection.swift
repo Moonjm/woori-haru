@@ -32,7 +32,11 @@ struct StatsDriveSection: View {
                 weekdayDistanceCard
                 efficiencyCard
                 speedCard
-                speedEfficiencyCard
+                // #9 온도별 전비와 같은 재료 결측(cars.efficiency 없음)에 같은 방식으로
+                // 반응하게 게이트를 건다 — `showsSpeedEfficiency` 문서 참고.
+                if viewModel.showsSpeedEfficiency {
+                    speedEfficiencyCard
+                }
             }
         }
     }

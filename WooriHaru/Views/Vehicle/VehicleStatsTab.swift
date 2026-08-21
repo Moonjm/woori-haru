@@ -110,7 +110,22 @@ struct VehicleStatsTab: View {
             ProgressView().padding(.top, 60)
         } else if let error = viewModel.errorMessage, viewModel.insights == nil {
             errorState(error).padding(.top, 48)
-        } else if !viewModel.hasDrives {
+        } else if !viewModel.hasDrives && !viewModel.hasDriveMonths {
+            // **둘 다 거짓일 때만 안내를 띄운다.** `hasDrives`(거리 버킷)와
+            // `hasDriveMonths`(월별 값)는 서로 다른 소스를 본다 — 서버 쪽 `distanceBuckets`는
+            // `end_date` 기준에 `distance > 0` 필터가 있고, `monthly`는 `start_date` 기준에
+            // 그 필터가 없다(서버 DTO 자체 주석: 자정을 걸친 주행만큼 둘의 합이 다를 수
+            // 있다). 그래서 「거리 0인 주행만 있는 기간」이면 `hasDriveMonths=true`인데
+            // `hasDrives=false`가 되는 모순 조합이 생긴다 — 어느 한쪽만 보고 게이트를
+            // 걸면 「🚗 주행」 카드 일곱 장 아래에 「이 기간에 주행 기록이 없어요」가
+            // 뜨는 자기모순 화면이 나온다. 둘 다 거짓일 때만 안내를 띄우면 그 조합
+            // 자체가 화면에 나올 수 없다.
+            //
+            // **다음 사람에게:** 이 둘을 하나로 합치고 싶어질 수 있다 — 합치지 않는다.
+            // 각자 다른 카드 셋의 게이트다(`hasDrives`는 이 파일의 `content`, `hasDriveMonths`는
+            // `StatsDriveSection`의 월별 차트 넷) — 여기서는 「안내문을 띄울지」만 판단할 뿐,
+            // 두 섹션의 존재 여부를 대신 정하지 않는다.
+            //
             // 카드마다 비우지 않고 화면 하나로 말한다.
             ContentUnavailableView {
                 Label("이 기간에 주행 기록이 없어요", systemImage: "car")

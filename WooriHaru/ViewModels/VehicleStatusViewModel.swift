@@ -16,7 +16,6 @@ final class VehicleStatusViewModel {
     /// 실패해도 다른 카드는 그린다는 이 저장소의 규칙(`fetchBatteryHealth`가
     /// `/tesla/status`와 독립인 것과 같다)을 여기서는 같은 뷰모델 안의 두 프로퍼티로 지킨다.
     private(set) var batteryWindow: BatteryWindowResponse?
-    private(set) var isBatteryWindowLoading = false
     var batteryWindowErrorMessage: String?
 
     private let service: VehicleService
@@ -80,10 +79,6 @@ final class VehicleStatusViewModel {
     }
 
     private func reloadBatteryWindow(generation current: Int) async {
-        isBatteryWindowLoading = true
-        defer {
-            if current == generation { isBatteryWindowLoading = false }
-        }
         do {
             let loaded = try await service.fetchBatteryWindow()
             guard current == generation else { return }

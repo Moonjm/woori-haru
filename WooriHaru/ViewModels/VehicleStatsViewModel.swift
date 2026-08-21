@@ -49,6 +49,18 @@ final class VehicleStatsViewModel {
         insights?.efficiencyKwhPerKm != nil && temperatureRows.contains { $0.kmPerKwh != nil }
     }
 
+    /// #8 속도별 전비 카드 게이트. **`showsEfficiency`를 그대로 쓰지 않는다** — 그것은
+    /// `temperatureRows`(#9 온도별 전비)를 보는 온도 전용 판정이라, 재료가 다른 이 카드에
+    /// 그대로 물리면 우연히 같은 결측에만 맞는다. 모양은 같다 — 계수가 있고 값이 하나라도
+    /// 있어야 한다 — 재료만 `speedEfficiencyPoints`로 바꿔 나란히 둔다.
+    ///
+    /// **왜 필요한가:** `cars.efficiency`가 없으면 `VehicleMath.kmPerKwh`가 이 카드의 점도
+    /// 전부 nil로 낸다. 게이트 없이 그리면 #9는 `showsEfficiency`로 감춰지는데 같은 결측이
+    /// #8만 막대 하나 없는 빈 차트로 세워 두 카드가 서로 다르게 반응한다.
+    var showsSpeedEfficiency: Bool {
+        insights?.efficiencyKwhPerKm != nil && speedEfficiencyPoints.contains { $0.value != nil }
+    }
+
     /// #24 자주 가는 곳. **막대 길이는 건수다** — 서버가 건수 내림차순(`drive_count DESC,
     /// distance_km DESC, name`)으로 주므로, 거리로 길이를 정하면 짧은 막대가 위에 온다.
     var placeRows: [RankBarList.Row] {

@@ -31,12 +31,21 @@ struct StatsRecordSection: View {
     }
 
     private var header: some View {
-        HStack {
+        HStack(alignment: .firstTextBaseline) {
             Text("🏆 기록")
                 .font(.subheadline)
                 .fontWeight(.heavy)
                 .foregroundStyle(VehicleTheme.textPrimary)
-            Spacer(minLength: 0)
+            Spacer(minLength: 8)
+            // **`records`는 `months`를 안 따른다** — 서버가 파라미터 없이 전 기간을
+            // 조회한다(범위마다 1등이 바뀌면 기록이 아니다). 급속/완속 도넛
+            // (`StatsChargeSection.fastSlowCard`)과 같은 이유로 글자로 범위를 드러낸다 —
+            // 안 그러면 주행 없는 기간을 골랐을 때 「기록 없음」 안내 바로 아래에
+            // 몇 년 전 기록 타일이 떠서 어느 기간 이야기인지 헷갈린다.
+            Text("전 기간")
+                .font(.caption)
+                .fontWeight(.bold)
+                .foregroundStyle(VehicleTheme.textTertiary)
         }
         .padding(.top, 4)
     }
