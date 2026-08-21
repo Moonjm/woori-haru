@@ -151,9 +151,8 @@ struct Regions: Codable, Equatable {
 /// 명예의 전당. **셋이 각각 nil일 수 있다** — `bestEfficiency`만 nil인 길이 따로 있다
 /// (20km 넘는 주행이 없을 때).
 ///
-/// **`months`를 안 따른다** — 서버가 파라미터 없이 전 기간을 조회한다(`maxSpeedKmh`와
-/// 같다). 범위마다 1등이 바뀌면 기록이 아니기 때문이다. 화면은 이 사실을 글자로
-/// 드러낸다(`StatsRecordSection`의 「전 기간」).
+/// **`months`를 안 따른다** — 서버가 파라미터 없이 전 기간을 조회한다(`maxSpeedKmh`와 같다).
+/// 범위마다 1등이 바뀌면 기록이 아니기 때문이다.
 struct InsightsRecords: Codable, Equatable {
     let longestDistance: DistanceRecord?
     let longestDuration: DurationRecord?

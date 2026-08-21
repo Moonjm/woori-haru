@@ -14,14 +14,10 @@ struct BatteryWindowResponse: Codable, Equatable {
     /// 기록이 없으면 빈 배열이다.
     let samples: [BatterySample]
     /// 이 범위 안의 충전 구간, **범위 경계로 잘려서 온다.**
-    ///
-    /// **`TimeSegment`를 그대로 쓴다** — `StateTimelineModels.swift:32`에 이미 있는
-    /// 「주행·충전은 상태 이름이 없다」는 타입과 같은 값이라, 다시 정의하면 같은 값이
-    /// 두 이름을 갖게 된다.
+    /// `TimeSegment`를 그대로 쓴다 — `StateTimelineModels.swift:32`의 같은 값을 다시 정의하지 않는다.
     let charges: [TimeSegment]
-    /// **`hours`와 무관한 최근 7일 고정이다** — 48시간 안에 순수 주차 구간이 하나도 없는
-    /// 날이 흔해서, 범위를 따르게 하면 숫자가 자주 사라진다. 카드에는 「최근 7일」이라고
-    /// 적어 범위 칩(「최근 48시간」)과 어긋나 보이지 않게 한다.
+    /// **`hours`와 무관한 최근 7일 고정이다** — 48시간 범위를 따르면 순수 주차 구간이 없는 날이
+    /// 흔해 숫자가 자주 사라진다. 카드 라벨은 「최근 7일」로 두어 범위 칩과 다름을 드러낸다.
     let parkDrain: ParkDrain
 }
 
