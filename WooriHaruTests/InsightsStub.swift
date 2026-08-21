@@ -12,14 +12,12 @@ enum InsightsStub {
     /// `monthlyCount`개월치를 만든다. 노브는 **각각 하나의 경계**를 연다.
     /// - `emptyLastMonth`: 마지막 달이 기록 없는 달(값은 nil, `parkDrainSamples`는 0)
     /// - `emptyPlaces`: `places`·`chargers`가 빈 배열, `regions`가 전부 0
-    /// - `emptyRecords`: `records` 셋 다 nil
     /// - `emptyWeekday`: `weekday` 배열의 화요일(2) 칸이 「그 요일에 한 번도 안 탔다」다 —
     ///   `drivingMin`이 `Int?`인 이유(서버가 `?: 0` 없이 그대로 null을 낸다)를 재현한다.
     static func response(months: Int = 12,
                          monthlyCount: Int = 12,
                          emptyLastMonth: Bool = false,
                          emptyPlaces: Bool = false,
-                         emptyRecords: Bool = false,
                          emptyWeekday: Bool = false) -> InsightsResponse {
         let monthly = (0..<monthlyCount).map { index -> InsightsMonth in
             let isEmpty = emptyLastMonth && index == monthlyCount - 1
@@ -82,17 +80,15 @@ enum InsightsStub {
             regions: Regions(cities: emptyPlaces ? 0 : 34,
                              states: emptyPlaces ? 0 : 8,
                              countries: emptyPlaces ? 0 : 1),
-            // **`longestDuration`만 nil이다** — 셋이 따로 빌 수 있음을 기본 스텁이 드러낸다.
-            records: emptyRecords
-                ? InsightsRecords(longestDistance: nil, longestDuration: nil, bestEfficiency: nil)
-                : InsightsRecords(
-                    longestDistance: DistanceRecord(driveId: 4821,
-                                                    startedAt: "2025-09-13T07:12:00",
-                                                    distanceKm: 412),
-                    longestDuration: nil,
-                    bestEfficiency: EfficiencyRecord(driveId: 5002,
-                                                     startedAt: "2026-05-02T14:20:00",
-                                                     distanceKm: 88, ratedRangeUsedKm: 71)))
+            // **`longestDuration`만 nil이다** — 셋이 따로 빌 수 있다는 서버 계약을 스텁도 지킨다.
+            records: InsightsRecords(
+                longestDistance: DistanceRecord(driveId: 4821,
+                                                startedAt: "2025-09-13T07:12:00",
+                                                distanceKm: 412),
+                longestDuration: nil,
+                bestEfficiency: EfficiencyRecord(driveId: 5002,
+                                                 startedAt: "2026-05-02T14:20:00",
+                                                 distanceKm: 88, ratedRangeUsedKm: 71)))
     }
 
     /// `months`마다 다른 응답을 물릴 수 있다 — 기간 칩 테스트가 그것을 본다.

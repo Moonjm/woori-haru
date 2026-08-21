@@ -18,6 +18,11 @@ final class VehicleStatusViewModel {
     private(set) var batteryWindow: BatteryWindowResponse?
     var batteryWindowErrorMessage: String?
 
+    /// **값은 있는데 마지막 새로고침이 실패했나.** 값을 nil로 지우지 않으므로(위 주석) 카드는
+    /// 낡은 값을 계속 보여줄 수 있는데, 그 값이 낡았다는 사실은 이 접근자로만 알 수 있다 —
+    /// 뷰가 `batteryWindowErrorMessage`의 유무로 직접 상태를 추론하지 않게 한다.
+    var batteryWindowIsStale: Bool { batteryWindowErrorMessage != nil }
+
     private let service: VehicleService
     private let now: @Sendable () -> Date
 

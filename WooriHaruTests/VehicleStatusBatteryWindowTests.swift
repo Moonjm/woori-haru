@@ -128,4 +128,60 @@ struct VehicleStatusViewModelBatteryWindowTests {
         await windowGate.open()
         await task.value
     }
+
+    // MARK: - 낡음(값은 있는데 새로고침이 실패한 상태)
+
+    /// 한 번 성공해 값을 얻은 뒤 다음 새로고침이 실패하면, 값은 그대로 남고
+    /// `batteryWindowIsStale`이 참이 된다 — 카드가 낡은 값을 「최근 48시간」이라고
+    /// 계속 우기지 않도록 뷰가 이 접근자로 물어볼 수 있어야 한다.
+    @Test func 성공한_뒤_실패하면_값은_남고_낡음이_참이_된다() async {
+        let mock = MockAPIClient()
+        mock.stubGet("/tesla/status", result: DataResponse(data: Self.status()))
+        mock.stubGet("/tesla/battery-window", result: DataResponse(data: Self.window()))
+        let viewModel = VehicleStatusViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+        #expect(viewModel.batteryWindowIsStale == false)
+
+        mock.setError(MockAPIClient.MockAPIError.forced, for: "GET /tesla/battery-window")
+        await viewModel.reload()
+
+        #expect(viewModel.batteryWindow == Self.window())
+        #expect(viewModel.batteryWindowIsStale == true)
+    }
+
+    /// 낡은 뒤 다시 성공하면 낡음이 다시 거짓으로 돌아간다 — 「낡음」이 한 번 참이 되면
+    /// 영영 참으로 눌어붙지 않는다.
+    @Test func 낡은_뒤_다시_성공하면_낡음이_거짓이_된다() async {
+        let mock = MockAPIClient()
+        mock.stubGet("/tesla/status", result: DataResponse(data: Self.status()))
+        mock.setError(MockAPIClient.MockAPIError.forced, for: "GET /tesla/battery-window")
+        let viewModel = VehicleStatusViewModel(service: VehicleService(api: mock))
+        await viewModel.load()
+        #expect(viewModel.batteryWindowIsStale == true)
+
+        // 이전 실패를 지워야 한다 — `MockAPIClient.get`은 `errors`에 값이 남아 있으면
+        // `getResults` 스텁을 무시하고 계속 던진다.
+        mock.setError(nil, for: "GET /tesla/battery-window")
+        mock.stubGet("/tesla/battery-window", result: DataResponse(data: Self.window()))
+        await viewModel.reload()
+
+        #expect(viewModel.batteryWindow == Self.window())
+        #expect(viewModel.batteryWindowIsStale == false)
+    }
+
+    /// 한 번도 받은 적이 없으면(값이 nil) 「낡음」 여부와 무관하게 `batteryWindow`는 nil로
+    /// 남는다 — `VehicleOverviewTab.batteryWindowSection`이 `if let window = ...`로만
+    /// 카드를 세우므로, 이 전제가 그대로여야 「기록 없음」과 「못 받음」을 뭉개지 않는
+    /// 기존 동작(카드가 아예 안 뜬다)이 유지된다.
+    @Test func 한번도_못_받으면_값이_nil로_남아_카드가_설_전제가_없다() async {
+        let mock = MockAPIClient()
+        mock.stubGet("/tesla/status", result: DataResponse(data: Self.status()))
+        mock.setError(MockAPIClient.MockAPIError.forced, for: "GET /tesla/battery-window")
+        let viewModel = VehicleStatusViewModel(service: VehicleService(api: mock))
+
+        await viewModel.load()
+
+        #expect(viewModel.batteryWindow == nil)
+        #expect(viewModel.batteryWindowErrorMessage != nil)
+    }
 }

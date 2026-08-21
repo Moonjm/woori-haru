@@ -21,9 +21,9 @@ struct DriveStatsCard: View {
     var body: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: 6) {
-                // 셋 다 `months`를 안 따른다 — `StatsRecordSection`의 「전 기간」과 같은
-                // 이유로 범위를 글자로 드러낸다. 이 카드는 기간 칩 위에 그려져 있어(늘
-                // 보인다) 라벨이 없으면 「지금 고른 기간」 값으로 오해하기 쉽다.
+                // 셋 다 `months`를 안 따른다 — 전 기간 값이라 범위를 글자로 드러낸다.
+                // 이 카드는 기간 칩 위에 그려져 있어(늘 보인다) 라벨이 없으면
+                // 「지금 고른 기간」 값으로 오해하기 쉽다.
                 HStack {
                     Spacer(minLength: 0)
                     Text("전 기간")

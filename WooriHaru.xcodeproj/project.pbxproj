@@ -22,6 +22,7 @@
 		40A969BDBA7D9F0BFF3354C6 /* StatsChargeSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 503CF88FD62CD5DF10233D57 /* StatsChargeSection.swift */; };
 		453AA4BE6F7BD87A2E9F53F2 /* DispatchModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = D49A101711DCAF5B5FAFD364 /* DispatchModels.swift */; };
 		468DD679EA4A32218274D9DA /* DonutChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70222E6D42ADFB926C91C06A /* DonutChart.swift */; };
+		50EE45F7F324407B832DF8CF /* DonutLeaderLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = C79C757DB0FE40F39F3AB813 /* DonutLeaderLayout.swift */; };
 		49C42CBC990E95F9BF593C0F /* BatteryWindowModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81E0B46A3062F87E70EB3688 /* BatteryWindowModels.swift */; };
 		4BBAF07594578B59BCED2771 /* DriveBucketCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43CBFE3ABE85FBB0C5FB8DBF /* DriveBucketCards.swift */; };
 		526879331CA284F16F93357E /* DriveTimeHeatmap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33C282968375906893CFAD99 /* DriveTimeHeatmap.swift */; };
@@ -53,7 +54,6 @@
 		8BB898B17D4BBEB63A05130F /* HeatmapGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C17B2756F0E576D57B12DB0 /* HeatmapGrid.swift */; };
 		8CB8971CA8F25A48887B5650 /* MonthGridBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECC4B98A560D4DF30F7501E2 /* MonthGridBuilder.swift */; };
 		8D0403140D65DEE3C68E2C92 /* StatsPlaceSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67B93513DEE856B6F9D4BE9B /* StatsPlaceSection.swift */; };
-		973C89B2AE3A45085C65C05A /* StatsRecordSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F3EF82E5ECFEDC8C992FFDF /* StatsRecordSection.swift */; };
 		9B8FDCDA4FB0EF187F1CB0B6 /* ChargeTotalsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4A2F8E3D8868F29934E27D0 /* ChargeTotalsCard.swift */; };
 		A10001 /* WooriHaruApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20001 /* WooriHaruApp.swift */; };
 		A10002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20002 /* ContentView.swift */; };
@@ -290,12 +290,12 @@
 		55393AF69906229CC877CA9B /* BatteryHealthCard.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = BatteryHealthCard.swift; path = Vehicle/BatteryHealthCard.swift; sourceTree = "<group>"; };
 		5ABE2410B818951F5517EC74 /* ChargeTotalsModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ChargeTotalsModels.swift; sourceTree = "<group>"; };
 		5BBE7AB261F331755E2DC9C9 /* StatsParkSection.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = StatsParkSection.swift; path = Vehicle/StatsParkSection.swift; sourceTree = "<group>"; };
-		5F3EF82E5ECFEDC8C992FFDF /* StatsRecordSection.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = StatsRecordSection.swift; path = Vehicle/StatsRecordSection.swift; sourceTree = "<group>"; };
 		60574F8D44D3658931EEA927 /* InsightsModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = InsightsModels.swift; sourceTree = "<group>"; };
 		67B93513DEE856B6F9D4BE9B /* StatsPlaceSection.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = StatsPlaceSection.swift; path = Vehicle/StatsPlaceSection.swift; sourceTree = "<group>"; };
 		690A0D0A21A54E8BE01CDC21 /* VehicleModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VehicleModels.swift; sourceTree = "<group>"; };
 		6C17B2756F0E576D57B12DB0 /* HeatmapGrid.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = HeatmapGrid.swift; path = Vehicle/Charts/HeatmapGrid.swift; sourceTree = "<group>"; };
 		70222E6D42ADFB926C91C06A /* DonutChart.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DonutChart.swift; path = Vehicle/Charts/DonutChart.swift; sourceTree = "<group>"; };
+		C79C757DB0FE40F39F3AB813 /* DonutLeaderLayout.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DonutLeaderLayout.swift; path = Vehicle/Charts/DonutLeaderLayout.swift; sourceTree = "<group>"; };
 		77EA0C38FD701A857D17DCF5 /* VehicleStatsTab.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = VehicleStatsTab.swift; path = Vehicle/VehicleStatsTab.swift; sourceTree = "<group>"; };
 		78050D87EA38A6611E1D3DED /* MonthlyBarLineChart.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MonthlyBarLineChart.swift; path = Vehicle/Charts/MonthlyBarLineChart.swift; sourceTree = "<group>"; };
 		7EE2658BE836DAFED195B3A5 /* DispatchReviewView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DispatchReviewView.swift; path = Dispatch/DispatchReviewView.swift; sourceTree = "<group>"; };
@@ -562,6 +562,7 @@
 				928AF4C8D9E51E1F78D6D88C /* MonthlyLineChart.swift */,
 				78050D87EA38A6611E1D3DED /* MonthlyBarLineChart.swift */,
 				70222E6D42ADFB926C91C06A /* DonutChart.swift */,
+				C79C757DB0FE40F39F3AB813 /* DonutLeaderLayout.swift */,
 				91FF808F31A8E2E333C035E5 /* ChartCard.swift */,
 				2F5C927A43E15178A5FF6653 /* DistributionBarChart.swift */,
 				1F98D63C2CC1AFA4FA2AA471 /* RankBarList.swift */,
@@ -632,7 +633,6 @@
 				CA3EB25C1FED0089E8CC935F /* CostBreakdownCard.swift */,
 				5BBE7AB261F331755E2DC9C9 /* StatsParkSection.swift */,
 				67B93513DEE856B6F9D4BE9B /* StatsPlaceSection.swift */,
-				5F3EF82E5ECFEDC8C992FFDF /* StatsRecordSection.swift */,
 				31E35F0A8552B9B837195D2F /* BatteryWindowCard.swift */,
 			);
 			name = Vehicle;
@@ -1375,6 +1375,7 @@
 				A8156A2E0E58AEF21CD71611 /* MonthlyLineChart.swift in Sources */,
 				F33F620CD4368B122B01E979 /* MonthlyBarLineChart.swift in Sources */,
 				468DD679EA4A32218274D9DA /* DonutChart.swift in Sources */,
+				50EE45F7F324407B832DF8CF /* DonutLeaderLayout.swift in Sources */,
 				D0ED996CA0ABF016EE8731B0 /* ChartCard.swift in Sources */,
 				2C28D2C1699EF8B31AE6D80B /* StatsDriveSection.swift in Sources */,
 				40A969BDBA7D9F0BFF3354C6 /* StatsChargeSection.swift in Sources */,
@@ -1385,7 +1386,6 @@
 				8BB898B17D4BBEB63A05130F /* HeatmapGrid.swift in Sources */,
 				2DC1BF3C2B794343CF66873E /* StatsParkSection.swift in Sources */,
 				8D0403140D65DEE3C68E2C92 /* StatsPlaceSection.swift in Sources */,
-				973C89B2AE3A45085C65C05A /* StatsRecordSection.swift in Sources */,
 				49C42CBC990E95F9BF593C0F /* BatteryWindowModels.swift in Sources */,
 				64BE5535BDC86A3B9C696F82 /* BatteryWindowCard.swift in Sources */,
 				D0C9138A67CB999FDBD11F1E /* DivergingMonthlyBarChart.swift in Sources */,

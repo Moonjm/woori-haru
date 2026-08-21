@@ -40,9 +40,12 @@ enum ChartScale {
     }
 
     /// 발산형 막대의 **부호 있는** 픽셀 높이 — 양수는 위(+), 음수는 아래(-)로 뻗을 양이다.
-    /// 크기가 0에 가까워도 부호는 지킨 채 최소 3pt를 보장한다(「거의 없다」 ≠ 「기록이 없다」).
+    ///
+    /// 셋이 갈린다. `nil`은 0을 내고 부르는 쪽이 트랙 색 자리표시자를 그린다(기록 없음).
+    /// **정확히 0도 0을 낸다** — 재 봤는데 0이었다는 뜻이라 기준선에 머물러야 한다.
+    /// 0이 아닌 작은 값만 부호를 지킨 채 최소 3pt를 받는다(「거의 없다」 ≠ 「0이었다」).
     static func divergingBarHeight(_ value: Decimal?, maxAbs: Decimal, halfHeight: CGFloat) -> CGFloat {
-        guard let value else { return 0 }
+        guard let value, value != 0 else { return 0 }
         let magnitude = max(3, divergingRatio(value, max: maxAbs) * halfHeight)
         return value < 0 ? -magnitude : magnitude
     }

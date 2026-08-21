@@ -8,6 +8,9 @@ import SwiftUI
 /// 원형)는 여기 쓰지 않는다.
 struct BatteryWindowCard: View {
     let window: BatteryWindowResponse
+    /// 이 `window`가 마지막으로 성공한 값이 아니라 갱신 실패 뒤에도 남아 있는 낡은 값인가.
+    /// 기본값 `false` — 기존 `#Preview`·호출부가 이 파라미터 없이도 그대로 컴파일된다.
+    var isStale: Bool = false
 
     private static let chartHeight: CGFloat = 120
 
@@ -45,12 +48,20 @@ struct BatteryWindowCard: View {
                 .fontWeight(.bold)
                 .foregroundStyle(VehicleTheme.textSecondary)
             Spacer(minLength: 0)
-            // 범위 칩. 아래 요약 줄이 「최근 7일」을 말하므로, 이 칩이 실제로 그리는
+            // 범위 칩. 아래 요약 줄이 「최근 7일」을 말하므로, 평소에는 이 칩이 실제로 그리는
             // 구간(`hours`)을 밝혀 둬야 둘이 서로 다른 기간을 말한다는 것이 헷갈리지 않는다.
-            Text("최근 \(window.hours)시간")
+            Text(rangeLabel)
                 .font(.caption2)
                 .foregroundStyle(VehicleTheme.textTertiary)
         }
+    }
+
+    /// 갱신이 실패해 `window`가 낡았을 때는 「최근 N시간」이 거짓이 된다 — 화면이 지금 그리는
+    /// 창은 더 이상 최근이 아니다. 그때는 이 창이 실제로 어디서 끝나는지(`window.to`)를
+    /// 「HH:mm 기준」으로 밝혀, 칩이 무엇을 말하든 사실이게 한다.
+    private var rangeLabel: String {
+        guard isStale, let end = windowEnd else { return "최근 \(window.hours)시간" }
+        return "\(VehicleFormat.clockTime(end)) 기준"
     }
 
     @ViewBuilder private var callout: some View {

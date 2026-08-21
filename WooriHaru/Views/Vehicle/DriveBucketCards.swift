@@ -68,49 +68,150 @@ struct TemperatureEfficiencyCard: View {
     }
 }
 
-/// 한 번에 얼마나 — 건수 분포. **여기는 0에서 시작한다.** 건수는 절대량이라
-/// 「0~5km가 압도적으로 많다」가 이 카드가 보여 줘야 하는 사실이다.
+/// 한 번에 얼마나 — 건수 분포. 지시선 라벨 도넛으로 그린다.
+///
+/// **범례가 없다.** 조각마다 바깥으로 지시선을 뻗어 구간 이름을 적는다 — 이 카드가
+/// 답하는 건 「짧은 주행이 대부분인가」라는 대략의 모양이라 이름으로 충분하다(`DonutChart` doc).
+/// 배치 계산(좌우 갈림·겹침 방지)은 `DonutLeaderLayout`이 순수 함수로 낸다.
+///
+/// **0인 버킷은 화면에서 빠진다** — 범례가 없으니 조각도 지시선도 안 남는다(각도 0).
+/// 접근성 라벨에는 남긴다.
 struct DistanceDistributionCard: View {
-    let buckets: [DistanceBucket]
+    let slices: [VehicleStatsViewModel.DistanceSlice]
     /// **전비 카드와 다른 수다.** 여기선 걸러 내는 주행이 없다.
     let driveCount: Int
+
+    private static let donutSize: CGFloat = 128
+    private static let chartHeight: CGFloat = 220
+    private static let edgeRadius = donutSize / 2 + 3
+    /// 방사형 토막 — 가장자리에서 이만큼 각도를 유지한 채 뻗은 뒤에야 가로로 꺾인다.
+    /// 위·아래 조각의 선이 겹치지 않는 건 이 부챗살 구간 덕분이다.
+    private static let stubLength: CGFloat = 14
+    private static let bendX = donutSize / 2 + 22
+    private static let labelX = donutSize / 2 + 32
+
+    private func color(at index: Int) -> Color {
+        VehicleTheme.chartCategories[index % VehicleTheme.chartCategories.count]
+    }
+
+    private var donutSlices: [DonutChart.Slice] {
+        slices.enumerated().map { index, slice in
+            DonutChart.Slice(label: slice.bucket.label,
+                             value: Decimal(slice.bucket.driveCount),
+                             color: color(at: index))
+        }
+    }
+
+    /// 0건 버킷은 뺀다 — 각도가 0이라 지시선을 그릴 가장자리 점이 없다.
+    private var visibleSlices: [(index: Int, slice: VehicleStatsViewModel.DistanceSlice)] {
+        slices.enumerated().filter { $0.element.bucket.driveCount > 0 }
+            .map { ($0.offset, $0.element) }
+    }
+
+    private struct LeaderItem: Identifiable {
+        let label: String
+        let color: Color
+        let placement: DonutLeaderLayout.Placement
+        var id: String { placement.id }
+    }
+
+    /// `DonutLeaderLayout.place`가 `visibleSlices`와 같은 개수·순서로 돌려주니 그대로 짝짓는다.
+    private var leaderItems: [LeaderItem] {
+        let leaderSlices = visibleSlices.map { _, slice in
+            DonutLeaderLayout.Slice(label: slice.bucket.label,
+                                     fraction: CGFloat(truncating: (slice.percent ?? 0) as NSDecimalNumber))
+        }
+        let placements = DonutLeaderLayout.place(leaderSlices, radius: Self.edgeRadius,
+                                                  stubLength: Self.stubLength,
+                                                  bendX: Self.bendX, labelX: Self.labelX)
+        return zip(visibleSlices, placements).map { item, placement in
+            LeaderItem(label: item.slice.bucket.label, color: color(at: item.index), placement: placement)
+        }
+    }
 
     var body: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: 10) {
-                header("한 번에 얼마나", "\(driveCount)회 기준")
-                ForEach(buckets) { bucket in
-                    bar(bucket)
-                }
+                Text("한 번에 얼마나")
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .foregroundStyle(VehicleTheme.textSecondary)
+                leaderDonut
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(accessibilitySummary)
             }
         }
     }
 
-    private var maxCount: Int { buckets.map(\.driveCount).max() ?? 0 }
+    private var leaderDonut: some View {
+        GeometryReader { proxy in
+            let center = CGPoint(x: proxy.size.width / 2, y: proxy.size.height / 2)
+            ZStack {
+                DonutChart(slices: donutSlices, size: Self.donutSize)
+                    .position(center)
+                    // 지시선이 각각을 말하니, 가운데는 전체를 말한다.
+                    .overlay {
+                        VStack(spacing: 0) {
+                            Text("\(driveCount)")
+                                .font(.subheadline)
+                                .fontWeight(.heavy)
+                                .monospacedDigit()
+                                .foregroundStyle(VehicleTheme.textPrimary)
+                            Text("회")
+                                .font(.caption2)
+                                .foregroundStyle(VehicleTheme.textTertiary)
+                        }
+                        .position(center)
+                    }
 
-    private func bar(_ bucket: DistanceBucket) -> some View {
-        let ratio = maxCount > 0 ? CGFloat(bucket.driveCount) / CGFloat(maxCount) : 0
-        return HStack(spacing: 8) {
-            Text(bucket.label)
-                .font(.caption2)
-                .foregroundStyle(VehicleTheme.textSecondary)
-                .frame(width: 66, alignment: .leading)
-            GeometryReader { proxy in
-                RoundedRectangle(cornerRadius: 4)
-                    // 0인 버킷도 자리를 지킨다 — 건너뛰면 분포가 어긋나 보인다.
-                    .fill(bucket.driveCount == 0 ? VehicleTheme.trackFill : VehicleTheme.accent)
-                    .frame(width: max(3, proxy.size.width * ratio))
+                // 조각마다 따로 그려 각자 색을 준다 — 라벨에서 점을 없앤 대신, 선 색 자체가
+                // 「어느 조각인지」를 말한다.
+                ForEach(leaderItems) { item in
+                    Path { path in
+                        path.move(to: point(item.placement.edgePoint, from: center))
+                        path.addLine(to: point(item.placement.stubPoint, from: center))
+                        path.addLine(to: point(item.placement.bendPoint, from: center))
+                        path.addLine(to: point(item.placement.labelPoint, from: center))
+                    }
+                    .stroke(item.color, lineWidth: 1)
+                }
+
+                ForEach(leaderItems) { item in
+                    leaderLabel(item.label, placement: item.placement, center: center)
+                }
             }
-            .frame(height: 14)
-            Text(DriveFormat.count(bucket.driveCount))
-                .font(.caption2)
-                .fontWeight(.bold)
-                .monospacedDigit()
-                .foregroundStyle(VehicleTheme.textPrimary)
-                .frame(width: 56, alignment: .trailing)
         }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(bucket.label) \(DriveFormat.count(bucket.driveCount))")
+        .frame(height: Self.chartHeight)
+    }
+
+    private func point(_ offset: CGPoint, from center: CGPoint) -> CGPoint {
+        CGPoint(x: center.x + offset.x, y: center.y + offset.y)
+    }
+
+    /// 점을 따로 안 찍는다 — 지시선 자체가 조각 색이라 정체성은 선이 이미 담당한다.
+    private func leaderLabel(_ label: String, placement: DonutLeaderLayout.Placement,
+                              center: CGPoint) -> some View {
+        // **`overlay`가 `position`보다 먼저다.** 뒤에 붙이면 `position`이 가용 공간 전체로
+        // 펼쳐진 뷰에 정렬돼, 라벨 다섯이 전부 카드 좌우 끝·세로 가운데로 몰린다.
+        Color.clear
+            .frame(width: 0, height: 0)
+            .overlay(alignment: placement.side == .right ? .leading : .trailing) {
+                Text(label)
+                    .font(.caption)
+                    .foregroundStyle(VehicleTheme.textSecondary)
+                    .fixedSize()
+                    // 선 끝(labelPoint)과 글자 사이 여백 — 붙어 있으면 선이 글자를 파고드는 것처럼 보인다.
+                    .padding(placement.side == .right ? .leading : .trailing, 5)
+            }
+            .position(point(placement.labelPoint, from: center))
+    }
+
+    /// 화면에는 이름만 남으니, 퍼센트·건수는 이 요약 하나로만 전해진다 — 0건 버킷도 담는다.
+    private var accessibilitySummary: String {
+        let rows = slices.map { slice in
+            "\(slice.bucket.label) \(ChargeFormat.percent(slice.percent)), \(DriveFormat.count(slice.bucket.driveCount))"
+        }
+        return (["한 번에 얼마나, 총 \(DriveFormat.count(driveCount))"] + rows).joined(separator: ". ")
     }
 }
 
@@ -157,19 +258,47 @@ private func header(_ title: String, _ trailing: String) -> some View {
                                            efficiencyKwhPerKm: efficiency)
         )
     }
+    let distanceBuckets = [
+        DistanceBucket(fromKm: 0, toKm: 5, driveCount: 620, distanceKm: 1802),
+        DistanceBucket(fromKm: 5, toKm: 20, driveCount: 210, distanceKm: 2400),
+        DistanceBucket(fromKm: 20, toKm: 50, driveCount: 90, distanceKm: 2700),
+        DistanceBucket(fromKm: 50, toKm: 100, driveCount: 36, distanceKm: 2500),
+        DistanceBucket(fromKm: 100, toKm: nil, driveCount: 3, distanceKm: 412),
+    ]
+    let distanceTotal = distanceBuckets.reduce(0) { $0 + $1.driveCount }
+    let distanceSlices = distanceBuckets.map { bucket in
+        VehicleStatsViewModel.DistanceSlice(
+            bucket: bucket,
+            percent: VehicleMath.ratio(Decimal(bucket.driveCount), Decimal(distanceTotal)))
+    }
     return ScrollView {
         VStack(spacing: 12) {
             TemperatureEfficiencyCard(rows: rows, driveCount: 939)
-            DistanceDistributionCard(buckets: [
-                DistanceBucket(fromKm: 0, toKm: 5, driveCount: 620, distanceKm: 1802),
-                DistanceBucket(fromKm: 5, toKm: 20, driveCount: 210, distanceKm: 2400),
-                DistanceBucket(fromKm: 20, toKm: 50, driveCount: 90, distanceKm: 2700),
-                DistanceBucket(fromKm: 50, toKm: 100, driveCount: 36, distanceKm: 2500),
-                DistanceBucket(fromKm: 100, toKm: nil, driveCount: 3, distanceKm: 412),
-            ], driveCount: 959)
+            DistanceDistributionCard(slices: distanceSlices, driveCount: distanceTotal)
         }
         .padding(16)
     }
     .background(VehicleTheme.background)
     .environment(\.vehicleDark, true)
+}
+
+#Preview("도넛 — 작은 조각 몰림") {
+    // 지시선이 겹치기 가장 쉬운 분포(50/24/15/8/3%) — 작은 조각 셋이 왼쪽 위쪽에 몰린다.
+    let buckets = [
+        DistanceBucket(fromKm: 0, toKm: 5, driveCount: 500, distanceKm: 1200),
+        DistanceBucket(fromKm: 5, toKm: 20, driveCount: 240, distanceKm: 2600),
+        DistanceBucket(fromKm: 20, toKm: 50, driveCount: 150, distanceKm: 4500),
+        DistanceBucket(fromKm: 50, toKm: 100, driveCount: 80, distanceKm: 5600),
+        DistanceBucket(fromKm: 100, toKm: nil, driveCount: 30, distanceKm: 4100),
+    ]
+    let total = buckets.reduce(0) { $0 + $1.driveCount }
+    let slices = buckets.map { bucket in
+        VehicleStatsViewModel.DistanceSlice(
+            bucket: bucket,
+            percent: VehicleMath.ratio(Decimal(bucket.driveCount), Decimal(total)))
+    }
+    return DistanceDistributionCard(slices: slices, driveCount: total)
+        .padding(16)
+        .background(VehicleTheme.background)
+        .environment(\.vehicleDark, true)
 }
