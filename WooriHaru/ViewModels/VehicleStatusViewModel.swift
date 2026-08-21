@@ -53,13 +53,12 @@ final class VehicleStatusViewModel {
     /// 다루게 해서, 하나가 실패해도 다른 쪽 값은 그대로 반영된다 — 여기서 던지고 밖에서
     /// 한 번에 잡으면 먼저 실패한 쪽이 나중에 도착한 성공까지 함께 삼킨다.
     ///
-    /// **`isLoading`은 상태(`reloadStatus`) 전용이다.** 배터리 추이는 원래부터 「실패하면
-    /// 조용히 자리를 비운다」는 자기만의 표시 규칙이 있고 로딩 스피너를 갖지 않는다
-    /// (`isBatteryWindowLoading`을 죽은 코드로 지운 적이 있다 — 되살리지 않는다). 예전에는
-    /// `isLoading`을 둘 다 끝난 뒤에야 내렸는데, `/tesla/status`가 먼저 실패하고
-    /// `/tesla/battery-window`가 오래 걸리면 `errorMessage`는 채워졌는데 `isLoading`만 참으로
-    /// 남아 `VehicleOverviewTab`이 (로딩이 오류보다 먼저인 그 화면의 규칙 때문에) 이미 끝난
-    /// 실패를 가리고 배터리 요청이 끝날 때까지 「불러오는 중」만 계속 보여줬다.
+    /// **`isLoading`은 상태(`reloadStatus`) 전용이다.** 배터리 추이는 「실패하면 조용히 자리를
+    /// 비운다」는 자기만의 표시 규칙이라 로딩 스피너가 없다.
+    ///
+    /// 둘 다 끝난 뒤에 `isLoading`을 내리면, `/tesla/status`가 먼저 실패하고
+    /// `/tesla/battery-window`가 오래 걸릴 때 `errorMessage`는 채워졌는데 `isLoading`만 참으로
+    /// 남아 `VehicleOverviewTab`이 이미 끝난 실패를 가리고 「불러오는 중」만 계속 보여준다.
     func reload() async {
         generation += 1
         let current = generation

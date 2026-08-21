@@ -4,10 +4,6 @@ import Observation
 /// 통계 탭 — `/tesla/insights` **하나만** 본다. 화면의 카드가 전부 한 응답에서 나오므로
 /// **기간 칩이 바뀌면 월별 차트까지 함께 바뀐다.**
 ///
-/// 1단계에서는 `/tesla/drive-insights`와 `/tesla/summary`를 병렬로 받았다 — 후자는 오직
-/// 「이번 달 기준 12개월」 추이 때문이었고, 그래서 기간 칩이 월별 차트에 먹지 않았다.
-/// 이제 `monthly`가 그 자리를 채운다.
-///
 /// **배터리 열화(`VehicleHealthViewModel`)와 급속/완속 도넛(`ChargeTotalsViewModel`)은
 /// 여전히 다른 응답이다** — 둘 다 전 기간 집계라 기간 칩과 무관하다.
 @MainActor
@@ -32,9 +28,7 @@ final class VehicleStatsViewModel {
     // MARK: - 파생 값
 
     /// 오래된 달부터 이번 달까지. **기록이 없는 달도 자리를 지킨다** — 건너뛰면 x축이 어긋난다.
-    ///
-    /// **기간 칩을 따른다.** 1단계의 `trend`가 12개월 고정이었던 것과 다른 점이고,
-    /// 이 화면에서 칩이 실제로 먹는다는 사실이 여기서 나온다.
+    /// **기간 칩을 따른다.**
     var monthly: [InsightsMonth] { insights?.monthly ?? [] }
 
     /// 거리 버킷 기준이다 — 시간대 카드와 같은 모수를 쓴다.
@@ -92,10 +86,8 @@ final class VehicleStatsViewModel {
     /// 위치 섹션 게이트. 셋(`places`·`chargers`·`regions`)이 다 비면 헤더까지 감춘다 —
     /// 제목만 남은 빈 섹션을 만들지 않는다.
     ///
-    /// **1단계의 「지오펜스가 없으면 감춘다」와 다르다.** 그때는 이 차량의 `geofences`가
-    /// 0행이라 `places`가 늘 비었다. 서버가 지오펜스가 없으면 주소로 이름을 짓도록
-    /// 바뀌어(`COALESCE(g.name, a.name, a.road, a.city, a.display_name)`) 지오펜스
-    /// 0행이어도 배열이 채워진다. 남은 빈 길은 「그 기간에 주행·충전이 없었다」뿐이다.
+    /// 서버는 지오펜스가 없으면 주소로 이름을 지어(`COALESCE(g.name, a.name, a.road, a.city,
+    /// a.display_name)`) 채우므로, `places`가 비는 것은 「그 기간에 주행·충전이 없었다」뿐이다.
     ///
     /// **`regions`는 `cities`만 보지 않는다.** 역지오코딩이 시골길·경계 지역에서
     /// `city`만 NULL이고 `state`·`country`는 채우는 행이 실제로 나온다 — `cities`
@@ -117,11 +109,10 @@ final class VehicleStatsViewModel {
     }
 
     /// **뷰가 아니라 여기서 나눈다.** 뷰에서 다시 계산하면 테스트하는 값과 화면에 나오는 값이
-    /// 서로 다른 코드가 된다 — 3단계에서 같은 함정을 두 번 밟았다.
+    /// 서로 다른 코드가 된다.
     ///
-    /// **`recordedMonths`가 0으로 올 수 있다**(주행이 하나도 없는 계정). 새 계약에서
-    /// non-null이 된 것은 「없음」이 사라졌다는 뜻이지 「0이 안 온다」가 아니므로,
-    /// 0 분모 방어는 `VehicleMath` 쪽에 그대로 남는다.
+    /// **`recordedMonths`는 0으로 올 수 있다**(주행이 하나도 없는 계정) — non-null이라고
+    /// 「0이 안 온다」는 뜻은 아니므로, 0 분모 방어는 `VehicleMath` 쪽에 그대로 남는다.
     var avgMonthlyKm: Decimal? {
         VehicleMath.avgMonthlyDistanceKm(totalKm: insights?.totalDistanceKm,
                                          months: insights?.recordedMonths)
@@ -189,9 +180,6 @@ final class VehicleStatsViewModel {
     /// 달도 값이 전부 nil인 행으로 자리를 채워 보내므로(`InsightsMonth` 참고)
     /// `!monthly.isEmpty`는 「그 기간에 하나도 안 탔다」일 때도 참이다. 그것으로 게이트를
     /// 삼으면 「이 기간에 주행 기록이 없어요」 안내문 위아래로 빈 차트가 헤더까지 달고 선다.
-    ///
-    /// **기간 칩이 월별에 먹게 되면서 이 경로가 실제로 열렸다** — 1단계에서는 월별이
-    /// 12개월 고정이라 이 조합이 나오지 않았다.
     var hasDriveMonths: Bool {
         monthly.contains { $0.distanceKm != nil || $0.drivingMin != nil || $0.driveCount != nil }
     }
@@ -220,8 +208,7 @@ final class VehicleStatsViewModel {
     }
 
     /// 「응답을 받았는가」 하나만 말한다. **내용 게이트 둘과 다르다** — 값이 하나도 없는
-    /// 응답도 받은 것은 받은 것이다. 1단계 `showsStats`가 이것과 「서버가 그 필드를
-    /// 내는가」를 함께 가리고 있었는데, 후자는 새 계약에서 거짓이 될 수 없어 사라졌다.
+    /// 응답도 받은 것은 받은 것이다.
     var hasLoadedInsights: Bool { insights != nil }
 
     /// 주차 섹션 게이트. **행의 존재를 그대로 쓴다** — 위 둘(`hasDriveMonths`·
@@ -252,11 +239,11 @@ final class VehicleStatsViewModel {
     var chargingMinPoints: [ChartPoint] { points { $0.chargingMin.map { Decimal($0) } } }
 
     /// 전비(km/kWh). **`VehiclePeriod.efficiency`가 하던 계산을 여기로 옮겼다** —
-    /// `InsightsMonth`에는 그 계산 속성이 없다. 분모는 1단계와 같은 충전량이다.
+    /// `InsightsMonth`에는 그 계산 속성이 없다. 분모는 충전량(`energyAddedKwh`)이다.
     ///
-    /// **선의 공식은 이것으로 고정이다.** 계획 문서는 한때 이 선을 정격거리 기반으로
-    /// 바꾸라고 적었는데 스펙(`vehicle-insights-tabs-design.md:190`)과 어긋나 기각됐다 —
-    /// 정격 대비 비율은 선이 아니라 `overallEfficiencyRatio`로 카드 머리에 한 줄만 얹는다.
+    /// **선의 공식은 이것으로 고정이다** — 정격거리 기반으로 바꾸지 않는다
+    /// (`vehicle-insights-tabs-design.md:190`). 정격 대비 비율은 선이 아니라
+    /// `overallEfficiencyRatio`로 카드 머리에 한 줄만 얹는다.
     var efficiencyPoints: [ChartPoint] {
         points { VehicleMath.kmPerKwh(energyAddedKwh: $0.energyAddedKwh, distanceKm: $0.distanceKm) }
     }
@@ -357,9 +344,8 @@ final class VehicleStatsViewModel {
     }
 
     /// #15 충전 히트맵. **`chargeTimes`는 0=일요일이다** — `driveTimes`와 같고
-    /// 같은 응답의 `weekday` 배열(1=월요일, ISO)과 다르다. 직전 태스크가 `weekday`를 썼다고
-    /// 여기서도 `isoWeekdayLabel`을 따라가면 안 된다 — `HeatmapGrid`는 이미 `weekdayLabel`
-    /// (0=일요일)을 쓰므로 이 접근자를 그대로 넘기면 맞는다.
+    /// 같은 응답의 `weekday` 배열(1=월요일, ISO)과 다르다. `HeatmapGrid`는 `weekdayLabel`
+    /// (0=일요일)을 쓰므로 `isoWeekdayLabel`로 바꾸면 안 된다.
     ///
     /// 없는 칸이 서버에서 아예 빠지므로(성기게 옴) 매번 선형 탐색한다 — `chargeTimes`는
     /// `driveTimes`처럼 168칸을 자주 훑는 히트맵 전용 사전(`heatMap`)을 따로 둘 만큼
@@ -405,7 +391,7 @@ final class VehicleStatsViewModel {
         await fetch(period, isPeriodChange: false)
     }
 
-    /// 당겨서 새로고침. **실패해도 있던 값을 지우지 않는다** — 1단계 건강 화면과 같은 규칙이다.
+    /// 당겨서 새로고침. **실패해도 있던 값을 지우지 않는다** — `VehicleHealthViewModel`과 같은 규칙이다.
     func reload() async {
         await fetch(period, isPeriodChange: false)
     }
