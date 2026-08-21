@@ -1,7 +1,8 @@
 import SwiftUI
 
-/// 두어 조각짜리 비율 도넛. **조각이 셋을 넘으면 쓰지 말 것** — 각도로 크기를 견주는 것은
-/// 사람이 잘 못한다. 급속/완속처럼 「둘 중 어느 쪽이 큰가」에만 쓴다.
+/// 비율 도넛. **조각이 셋을 넘으면 조각마다 이름을 붙일 것** — 각도만으로는 크기를 못 견준다.
+/// 이 카드가 답하는 건 「대략 어떤 모양인가」라 이름으로 충분하다 — 정확한 비교가 필요한
+/// 도넛이 생기면 그때는 값도 함께 적어야 한다.
 ///
 /// 가운데를 비우고 그 자리에 총계를 적는 것은 부르는 쪽이 `overlay`로 얹는다.
 struct DonutChart: View {
@@ -16,6 +17,11 @@ struct DonutChart: View {
     var lineWidth: CGFloat = 18
     var size: CGFloat = 96
 
+    /// 조각 사이 간격(전체 각도에 대한 비율). 각도 비율로 고정해 조각 수·크기가 달라도
+    /// 간격의 「느낌」이 같다. 급속/완속(조각 둘)에서도 시험해 봤다 — 두 조각 다 여전히
+    /// 넉넉해서 이상해 보이지 않아, 조각 둘·다섯 구분 없이 컴포넌트 전체에 넣었다.
+    private static let sliceGap: CGFloat = 0.012
+
     private var total: Decimal { slices.reduce(0) { $0 + $1.value } }
 
     var body: some View {
@@ -26,8 +32,12 @@ struct DonutChart: View {
 
             if total > 0 {
                 ForEach(Array(offsets.enumerated()), id: \.offset) { _, item in
+                    // 양끝을 절반씩 당겨 옆 조각과의 경계에 어두운 틈을 낸다. 조각이 간격보다
+                    // 작으면(0건 버킷 등) start가 end를 넘지 않게 막아 사라지기만 하고 안 터진다.
+                    let start = min(item.start + Self.sliceGap / 2, item.end)
+                    let end = max(item.end - Self.sliceGap / 2, start)
                     Circle()
-                        .trim(from: item.start, to: item.end)
+                        .trim(from: start, to: end)
                         .stroke(item.slice.color,
                                 style: StrokeStyle(lineWidth: lineWidth, lineCap: .butt))
                         .rotationEffect(.degrees(-90)) // 12시에서 시작한다

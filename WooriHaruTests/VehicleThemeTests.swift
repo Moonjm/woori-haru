@@ -80,6 +80,22 @@ struct VehicleThemeTests {
         #expect(luminance(VehicleTheme.textSecondary) > luminance(VehicleTheme.accentBright))
     }
 
+    /// 차트 카테고리 팔레트 — 다섯이 서로 다른 색이어야 조각이 갈린다.
+    @Test func 차트_카테고리_다섯이_서로_다른_색이다() {
+        #expect(Set(VehicleTheme.chartCategories).count == VehicleTheme.chartCategories.count)
+    }
+
+    /// 첫 자리는 기존 강조색이어야 앱 톤과 이어진다.
+    @Test func 차트_카테고리_첫_색은_강조색이다() {
+        #expect(VehicleTheme.chartCategories.first == VehicleTheme.accent)
+    }
+
+    /// `warning`·`danger`는 이미 「주의」·「위험」 뜻을 가지므로 카테고리 색으로 재사용하지 않는다.
+    @Test func 차트_카테고리는_경고_위험_색을_재사용하지_않는다() {
+        #expect(!VehicleTheme.chartCategories.contains(VehicleTheme.warning))
+        #expect(!VehicleTheme.chartCategories.contains(VehicleTheme.danger))
+    }
+
     /// 밝기로만 갈리는 넷은 **고른 사다리**여야 한다 — 이웃끼리 최소 1.8배씩 벌어진다.
     ///
     /// **서로 다르기만 해서는 부족하다.** `타임라인_다섯_상태가_서로_다른_색이다`는 값이

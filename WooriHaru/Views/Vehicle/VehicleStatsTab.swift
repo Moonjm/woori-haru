@@ -41,7 +41,7 @@ struct VehicleStatsTab: View {
                                    avgYearlyKm: viewModel.avgYearlyKm)
                 }
 
-                // 섹션 순서는 고정이다: 주행 → 충전 → 주차 → 배터리 → 위치 → 기록.
+                // 섹션 순서는 고정이다: 주행 → 충전 → 주차 → 배터리 → 위치.
                 // `content`(거리 분포·히트맵·온도별 전비, 주행 없음 안내)는 「주행」
                 // 섹션의 나머지 카드라 `StatsDriveSection` 바로 뒤에 둔다.
                 //
@@ -57,12 +57,19 @@ struct VehicleStatsTab: View {
                 StatsParkSection(viewModel: viewModel)
                 batterySection
                 StatsPlaceSection(viewModel: viewModel)
-                StatsRecordSection(viewModel: viewModel)
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 110)
         }
-        .refreshable { await viewModel.reload() }
+        // **셋을 다 다시 받는다.** 이 화면은 엔드포인트 셋을 그리는데(통계·열화 추세·
+        // 급속/완속), 하나만 갱신하면 당긴 사람은 전체가 새로워졌다고 믿는다.
+        // 두 뷰모델의 `load()`는 이미 받아 둔 값을 재사용하므로 `reload()`여야 한다.
+        .refreshable {
+            async let stats: Void = viewModel.reload()
+            async let health: Void = healthViewModel.reload()
+            async let totals: Void = totalsViewModel.reload()
+            _ = await (stats, health, totals)
+        }
     }
 
     private var periodChips: some View {
@@ -145,7 +152,7 @@ struct VehicleStatsTab: View {
         DriveTimeHeatmap(count: { viewModel.heatCount(weekday: $0, hour: $1) },
                          maxCount: viewModel.maxHeatCount,
                          driveCount: viewModel.distanceDriveCount)
-        DistanceDistributionCard(buckets: viewModel.insights?.distanceBuckets ?? [],
+        DistanceDistributionCard(slices: viewModel.distanceSlices,
                                  driveCount: viewModel.distanceDriveCount)
     }
 

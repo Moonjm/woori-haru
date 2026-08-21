@@ -196,12 +196,17 @@ struct VehicleOverviewTab: View {
     }
 
     /// 최근 48시간 배터리 추이. `/tesla/status`와 독립인 호출이다 — `statusSection`이
-    /// 실패하거나 아직 로딩 중이어도, 배터리 추이가 먼저 도착했으면 그린다. 값이 없을
-    /// 때는 조용히 자리를 비운다 — 못 받은 사실까지 한 줄 배너로 알릴 만큼 무겁게
-    /// 다루지 않는다.
+    /// 실패하거나 아직 로딩 중이어도, 배터리 추이가 먼저 도착했으면 그린다. **한 번도 못
+    /// 받아 값이 없을** 때는 조용히 자리를 비운다 — 못 받은 사실까지 한 줄 배너로 알릴 만큼
+    /// 무겁게 다루지 않는다.
+    ///
+    /// 값은 있는데 그 뒤 새로고침이 실패했을 때는 자리를 비우지 않는다 — 카드는 남되
+    /// `isStale`을 넘겨, 카드 안 범위 칩이 「최근 48시간」 대신 실제 기준 시각을 말하게 한다
+    /// (`BatteryWindowCard.rangeLabel`). 값이 아예 없는 것과 낡은 값이 남아 있는 것은
+    /// 다른 상황이라 이 두 경우를 같은 방식으로 다루지 않는다.
     @ViewBuilder private var batteryWindowSection: some View {
         if let window = statusViewModel.batteryWindow {
-            BatteryWindowCard(window: window)
+            BatteryWindowCard(window: window, isStale: statusViewModel.batteryWindowIsStale)
         }
     }
 

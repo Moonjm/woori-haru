@@ -241,6 +241,20 @@ enum VehicleFormat {
         return nil
     }
 
+    /// `parseKST`가 읽은 값을 되찍을 때 쓴다. **`LedgerFormat.time`을 대신 쓰지 않는다** —
+    /// 그쪽은 기기 시간대(`.current`)로 찍어서, `parseKST`가 KST 벽시계로 읽은 값을 그대로
+    /// 되돌려 찍으면 기기가 한국 밖에 있을 때 시각이 어긋난다.
+    private static let kstClockFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(identifier: "Asia/Seoul") ?? .current
+        formatter.dateFormat = "HH:mm"
+        return formatter
+    }()
+
+    /// 2026-08-20T13:05:00(KST) → "13:05"
+    static func clockTime(_ date: Date) -> String { kstClockFormatter.string(from: date) }
+
     /// **`VehicleHealthModels.swift`의 확장도 쓴다** — 그래서 private가 아니다.
     /// `minFraction`은 기본 0이라 기존 호출부(`distance`·`odometer`·`againstBaseline` 등)는
     /// 그대로다 — 소수점 끝자리 0을 지금처럼 잘라낸다. `efficiency`만 1을 넘겨 예외를 둔다.

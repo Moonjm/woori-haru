@@ -93,15 +93,6 @@ final class VehicleStatsViewModel {
             || regions.cities > 0 || regions.states > 0 || regions.countries > 0
     }
 
-    /// #26 명예의 전당 게이트. **셋이 각각 nil일 수 있다** — `bestEfficiency`만 nil인
-    /// 길이 따로 있다(20km 넘는 주행이 없을 때). 하나라도 있으면 섹션을 그리고,
-    /// 셋 다 없으면 헤더까지 감춘다(다른 섹션들과 같은 「헤더는 내용과 함께만 선다」 규칙).
-    var showsRecords: Bool {
-        guard let records = insights?.records else { return false }
-        return records.longestDistance != nil || records.longestDuration != nil
-            || records.bestEfficiency != nil
-    }
-
     /// **뷰가 아니라 여기서 나눈다.** 뷰에서 다시 계산하면 테스트하는 값과 화면에 나오는 값이
     /// 서로 다른 코드가 된다.
     ///
@@ -147,6 +138,25 @@ final class VehicleStatsViewModel {
 
     var distanceDriveCount: Int {
         (insights?.distanceBuckets ?? []).reduce(0) { $0 + $1.driveCount }
+    }
+
+    /// #22 거리 분포 도넛. **버킷 + 전체 대비 퍼센트**를 한 짝으로 묶는다 — 조각이 다섯
+    /// 개라 각도만으로는 크기를 못 견주므로(`DonutChart` doc), 조각마다 글자로 퍼센트를
+    /// 적어야 한다. 나눗셈은 `VehicleMath.ratio`로 여기서 낸다.
+    struct DistanceSlice: Identifiable {
+        let bucket: DistanceBucket
+        /// 총 건수가 0이면 nil이다 — 화면은 그때 도넛 자체를 안 그린다(`hasDrives` 게이트).
+        let percent: Decimal?
+
+        var id: String { bucket.id }
+    }
+
+    var distanceSlices: [DistanceSlice] {
+        let total = distanceDriveCount
+        return (insights?.distanceBuckets ?? []).map { bucket in
+            DistanceSlice(bucket: bucket,
+                          percent: VehicleMath.ratio(Decimal(bucket.driveCount), Decimal(total)))
+        }
     }
 
     /// 요일×시각 조회표. **응답을 받을 때 한 번만 편다.**
