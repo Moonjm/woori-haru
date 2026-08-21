@@ -77,6 +77,25 @@ enum ChartScale {
     }
 }
 
+/// 강조·콜아웃이 가리킬 id를 고른다. **네 섹션(`StatsDriveSection`·`StatsChargeSection`·
+/// `StatsParkSection`·`StatsPlaceSection`)이 공유한다** — 「선택된 id가 지금 배열에
+/// 있으면 그것을 쓰고, 없으면 기본값으로 떨어진다」는 규칙 자체는 같고 **기본값을
+/// 고르는 식만 다르다**(월별은 마지막 값 있는 점, 분포는 최댓값 칸, 순위는 1등).
+///
+/// **`@State`로 든 선택은 뷰가 다시 그려져도 살아남는다.** 기간 칩을 바꾸거나
+/// 새로고침으로 상위 N 목록이 갈리면 그 id가 새 배열에 없을 수 있는데, 존재 여부를
+/// 안 보고 그대로 돌려주면 강조는 「어느 막대도 아님」이 되어 카드 전체가 흐려지고
+/// 콜아웃은 `nil`이 되어 사라진다. **원인은 안 가린다** — 기간이 바뀌었든, 다른
+/// 이유로 그 id가 빠졌든 규칙은 하나다.
+enum ChartAnchor {
+    static func resolve(selected: String?, in ids: [String], fallback: () -> String?) -> String? {
+        if let selected, ids.contains(selected) {
+            return selected
+        }
+        return fallback()
+    }
+}
+
 /// x축 월 라벨. **칸이 많으면 솎는다** — 60칸을 다 적으면 글자가 서로 덮는다.
 enum MonthLabel {
     /// 라벨 하나가 최소 이만큼은 떨어져 있어야 읽힌다(9pt 글자 두 자리 기준).

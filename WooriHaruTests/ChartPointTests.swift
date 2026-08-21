@@ -117,4 +117,40 @@ struct ChartPointTests {
         #expect(!MonthLabel.shows(index: 1, count: 60))
         #expect(MonthLabel.shows(index: 6, count: 60))
     }
+
+    // MARK: - ChartAnchor
+
+    /// 선택된 id가 지금 배열에 있으면 그것을 쓴다 — 기본값 계산(`fallback`)까지
+    /// 가지 않는다.
+    @Test func 선택된_id가_배열에_있으면_그것을_쓴다() {
+        let anchor = ChartAnchor.resolve(selected: "2026-08", in: ["2026-06", "2026-07", "2026-08"]) {
+            Issue.record("배열에 있는데 기본값으로 떨어졌다")
+            return "fallback"
+        }
+        #expect(anchor == "2026-08")
+    }
+
+    /// **기간을 바꿔 옛 선택이 새 배열에서 빠지면 기본값으로 떨어진다.** `StatsDriveSection`이
+    /// 12개월에서 `"2025-09"`를 고른 채 3개월로 바꾸는 시나리오가 바로 이것이다 — 존재
+    /// 검사가 없으면 강조·콜아웃이 실재하지 않는 id를 가리키게 된다.
+    @Test func 선택된_id가_배열에_없으면_기본값으로_떨어진다() {
+        let anchor = ChartAnchor.resolve(selected: "2025-09", in: ["2026-06", "2026-07", "2026-08"]) {
+            "2026-08"
+        }
+        #expect(anchor == "2026-08")
+    }
+
+    /// 아무것도 선택하지 않았으면(`nil`) 곧장 기본값이다.
+    @Test func 아무것도_선택_안했으면_기본값을_쓴다() {
+        let anchor = ChartAnchor.resolve(selected: nil, in: ["2026-06", "2026-07", "2026-08"]) {
+            "2026-08"
+        }
+        #expect(anchor == "2026-08")
+    }
+
+    /// 기본값 계산 자체가 nil을 낼 수 있다(빈 배열 등) — 그대로 nil을 돌려준다.
+    @Test func 기본값도_없으면_nil이다() {
+        let anchor = ChartAnchor.resolve(selected: nil, in: []) { nil }
+        #expect(anchor == nil)
+    }
 }

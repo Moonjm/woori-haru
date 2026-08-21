@@ -54,12 +54,19 @@ struct StatsDriveSection: View {
 
     // MARK: - 카드
 
-    /// **강조와 콜아웃이 같은 달을 가리키게 한다.** 아무것도 고르지 않았으면
-    /// 「마지막으로 **기록이 있는** 달」이다 — 그냥 `last`를 쓰면 달 초처럼 이번 달
-    /// 기록이 아직 없을 때 카드가 「—」를 띄운다. 카드마다 **자기 계열**로 기준을 잡는다:
-    /// 거리는 있는데 비용은 없는 달이 있어 계열마다 마지막 기록이 다르다.
+    /// **강조와 콜아웃이 같은 달을 가리키게 한다.** 기본값은 「마지막으로 **기록이 있는**
+    /// 달」이다 — 그냥 `last`를 쓰면 달 초처럼 이번 달 기록이 아직 없을 때 카드가 「—」를
+    /// 띄운다. 카드마다 **자기 계열**로 기준을 잡는다: 거리는 있는데 비용은 없는 달이
+    /// 있어 계열마다 마지막 기록이 다르다.
+    ///
+    /// **선택된 id가 지금 배열에 있을 때만 쓴다**(`ChartAnchor.resolve`) — 기간 칩을
+    /// 바꾸면 `selectedID`는 옛 기간의 달을 그대로 든 채 남는데(`@State`는 뷰모델의
+    /// 기간 변경을 모른다), 존재 여부를 안 보고 돌려주면 그 섹션의 월별 카드 전부가
+    /// 동시에 강조를 잃고 콜아웃이 사라진다.
     private func anchorID(_ points: [ChartPoint]) -> String? {
-        selectedID ?? points.last(where: { $0.value != nil })?.id
+        ChartAnchor.resolve(selected: selectedID, in: points.map(\.id)) {
+            points.last(where: { $0.value != nil })?.id
+        }
     }
 
     private var monthlyDistanceCard: some View {
@@ -136,8 +143,13 @@ struct StatsDriveSection: View {
     /// 분포 세 장의 기본 선택. **월별 `anchorID`의 「마지막 값 있는 점」 규칙이 안 맞는다** —
     /// 분포에는 시간 순서가 없어 「마지막」이 아무 뜻도 없다. 대신 **가장 큰 칸**을
     /// 기본으로 보여 준다 — 처음 볼 때 가장 궁금한 것은 「어디가 두드러지나」이기 때문이다.
+    /// 존재 검사는 `anchorID`와 같은 규칙(`ChartAnchor.resolve`)이다 — 분포 칸의 id는
+    /// 기간과 무관하게 고정이라 실질 위험은 낮지만, 같은 헬퍼는 같은 규칙을 따라야
+    /// 다음 사람이 어느 쪽이 옳은지 헷갈리지 않는다.
     private func distributionAnchor(_ points: [ChartPoint], selected: String?) -> String? {
-        selected ?? points.max { ($0.value ?? -1) < ($1.value ?? -1) }?.id
+        ChartAnchor.resolve(selected: selected, in: points.map(\.id)) {
+            points.max { ($0.value ?? -1) < ($1.value ?? -1) }?.id
+        }
     }
 
     /// `ChartPoint.value`가 `Decimal?`로 고정된 원형이라, 건수를 실어 온 점을 도로

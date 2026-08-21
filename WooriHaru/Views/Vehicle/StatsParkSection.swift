@@ -45,14 +45,19 @@ struct StatsParkSection: View {
 
     /// **강조와 콜아웃이 같은 달을 가리키게 한다.** 규칙은 다른 두 섹션과 같다 —
     /// 「마지막으로 **기록이 있는** 달」이고, 카드마다 **자기 계열**로 잡는다.
+    /// 존재 검사도 `StatsDriveSection.anchorID`와 같다(`ChartAnchor.resolve`).
     private func anchorID(_ points: [ChartPoint]) -> String? {
-        selectedID ?? points.last(where: { $0.value != nil })?.id
+        ChartAnchor.resolve(selected: selectedID, in: points.map(\.id)) {
+            points.last(where: { $0.value != nil })?.id
+        }
     }
 
     /// 분포 카드의 기본 선택. 시간 순서가 없어 「마지막」이 아무 뜻도 없다 —
     /// 아무것도 안 골랐으면 **가장 큰 칸**을 기본으로 보여 준다.
     private func distributionAnchor(_ points: [ChartPoint], selected: String?) -> String? {
-        selected ?? points.max { ($0.value ?? -1) < ($1.value ?? -1) }?.id
+        ChartAnchor.resolve(selected: selected, in: points.map(\.id)) {
+            points.max { ($0.value ?? -1) < ($1.value ?? -1) }?.id
+        }
     }
 
     /// `ChartPoint.value`가 `Decimal?`로 고정된 원형이라, 분 단위 정수를 도로 `Int?`로

@@ -59,8 +59,11 @@ struct StatsChargeSection: View {
     /// **강조와 콜아웃이 같은 달을 가리키게 한다.** 규칙은 `StatsDriveSection`과 같다 —
     /// 「마지막으로 **기록이 있는** 달」이고, 카드마다 **자기 계열**로 잡는다.
     /// 그냥 `last`를 쓰면 달 초에 이웃 카드 셋만 「—」가 되고 하나만 지난달을 가리킨다.
+    /// 존재 검사도 `StatsDriveSection.anchorID`와 같다(`ChartAnchor.resolve`).
     private func anchorID(_ points: [ChartPoint]) -> String? {
-        selectedID ?? points.last(where: { $0.value != nil })?.id
+        ChartAnchor.resolve(selected: selectedID, in: points.map(\.id)) {
+            points.last(where: { $0.value != nil })?.id
+        }
     }
 
     private var monthlyEnergyCard: some View {
@@ -126,7 +129,9 @@ struct StatsChargeSection: View {
     /// 순서가 없어 「마지막」이 아무 뜻도 없다. `StatsDriveSection.distributionAnchor`와
     /// 같은 규칙: 아무것도 안 골랐으면 **가장 큰 칸**을 기본으로 보여 준다.
     private func distributionAnchor(_ points: [ChartPoint], selected: String?) -> String? {
-        selected ?? points.max { ($0.value ?? -1) < ($1.value ?? -1) }?.id
+        ChartAnchor.resolve(selected: selected, in: points.map(\.id)) {
+            points.max { ($0.value ?? -1) < ($1.value ?? -1) }?.id
+        }
     }
 
     /// `ChartPoint.value`가 `Decimal?`로 고정된 원형이라, 건수를 실어 온 점을 도로

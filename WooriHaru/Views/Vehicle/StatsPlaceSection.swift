@@ -91,8 +91,15 @@ struct StatsPlaceSection: View {
 
     /// 아무것도 안 골랐으면 **1등**을 기본으로 보여 준다 — 서버가 이미 건수 내림차순으로
     /// 주므로 목록의 첫 행이 곧 1등이다.
+    ///
+    /// **id가 실재하는지 검사한다**(`ChartAnchor.resolve`). 여기 id는 장소·충전소
+    /// **이름**이라 다른 세 섹션의 달·분포 칸과 달리 상위 N 목록 자체가 기간에 따라
+    /// 바뀐다 — 기간을 바꿔 옛 1등이 목록에서 빠지면 `selected`를 그대로 쓰던 예전
+    /// 코드는 강조·콜아웃을 잃은 채로 남았다.
     private func rankAnchor(_ rows: [RankBarList.Row], selected: String?) -> String? {
-        selected ?? rows.first?.id
+        ChartAnchor.resolve(selected: selected, in: rows.map(\.id)) {
+            rows.first?.id
+        }
     }
 
     /// #24 자주 가는 곳. **행이 비면 카드째 감춘다** — `showsPlaceSection`이 참이어도
