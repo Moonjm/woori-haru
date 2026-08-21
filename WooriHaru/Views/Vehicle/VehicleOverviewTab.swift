@@ -27,6 +27,7 @@ struct VehicleOverviewTab: View {
                 // 「지금 어떤가」를 전부 위로 올린다 — 순서가 한 가지 뜻을 갖게 한다.
                 // 「지금 → 최근」이 한 방향으로 읽혀야 하므로 타이어·실내는 타임라인 뒤로 뺀다.
                 statusSection
+                batteryWindowSection
                 timelineSection
                 statusDetailSection
 
@@ -193,6 +194,16 @@ struct VehicleOverviewTab: View {
             BatteryNowPlaceholderCard(icon: "car",
                                       title: "불러오는 중",
                                       message: "차량 상태를 받고 있어요")
+        }
+    }
+
+    /// 최근 48시간 배터리 추이. **`/tesla/status`와 독립인 호출이다** — `statusSection`이
+    /// 실패하거나 아직 로딩 중이어도, 배터리 추이가 먼저 도착했으면 그린다. 값이 없을
+    /// 때는 조용히 자리를 비운다 — 이 카드는 화면의 중심이 아니라, 못 받은 사실까지
+    /// 한 줄 배너로 알릴 만큼 무겁게 다루지 않는다.
+    @ViewBuilder private var batteryWindowSection: some View {
+        if let window = statusViewModel.batteryWindow {
+            BatteryWindowCard(window: window)
         }
     }
 
