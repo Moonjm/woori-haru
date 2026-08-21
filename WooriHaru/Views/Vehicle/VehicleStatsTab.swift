@@ -41,7 +41,7 @@ struct VehicleStatsTab: View {
                                    avgYearlyKm: viewModel.avgYearlyKm)
                 }
 
-                // 섹션 순서는 고정이다: 주행 → 충전 → 주차 → 배터리 → 위치 → 기록.
+                // 섹션 순서는 고정이다: 주행 → 충전 → 주차 → 배터리 → 위치.
                 // `content`(거리 분포·히트맵·온도별 전비, 주행 없음 안내)는 「주행」
                 // 섹션의 나머지 카드라 `StatsDriveSection` 바로 뒤에 둔다.
                 //
@@ -57,7 +57,6 @@ struct VehicleStatsTab: View {
                 StatsParkSection(viewModel: viewModel)
                 batterySection
                 StatsPlaceSection(viewModel: viewModel)
-                StatsRecordSection(viewModel: viewModel)
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 110)

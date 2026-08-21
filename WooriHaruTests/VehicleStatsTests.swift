@@ -934,13 +934,12 @@ struct VehicleStatsViewModelTests {
         #expect(viewModel.showsPlaceSection)
     }
 
-    // MARK: - #26 명예의 전당
+    // MARK: - VehicleMath.ratio
 
-    /// 최고효율의 비율은 서버가 안 낸다 — 앱이 `VehicleMath.ratio`로 낸다.
-    @Test func 최고효율은_분자와_분모로_앱이_낸다() {
-        let record = EfficiencyRecord(driveId: 1, startedAt: "2026-05-02T14:20:00",
-                                      distanceKm: 26.7, ratedRangeUsedKm: 15.3)
-        let ratio = try! #require(VehicleMath.ratio(record.distanceKm, record.ratedRangeUsedKm))
+    /// 기록 섹션은 빠졌지만 `VehicleMath.ratio`는 레코드 전용이 아니라 두 값을 나누는
+    /// 일반 함수다 — 함수 자체를 검증하는 테스트라 남긴다.
+    @Test func 분자를_분모로_나눈다() {
+        let ratio = try! #require(VehicleMath.ratio(26.7, 15.3))
         #expect(abs(ratio - Decimal(string: "1.745")!) < Decimal(string: "0.01")!)
     }
 
@@ -948,26 +947,5 @@ struct VehicleStatsViewModelTests {
     @Test func 분모가_0이면_비율은_nil이다() {
         #expect(VehicleMath.ratio(10, 0) == nil)
         #expect(VehicleMath.ratio(10, -5) == nil)
-    }
-
-    /// **셋이 따로 nil일 수 있다** — `bestEfficiency`만 nil인 길이 따로 있다.
-    @Test func 기록_셋이_따로_비어도_나머지는_그린다() async {
-        let mock = MockAPIClient()
-        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 1))
-        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
-        await viewModel.load()
-
-        // 스텁은 longestDuration만 nil이다.
-        #expect(viewModel.showsRecords)
-        #expect(viewModel.insights?.records.longestDuration == nil)
-        #expect(viewModel.insights?.records.longestDistance != nil)
-    }
-
-    @Test func 셋_다_비면_기록_섹션을_감춘다() async {
-        let mock = MockAPIClient()
-        InsightsStub.stub(mock, InsightsStub.response(monthlyCount: 1, emptyRecords: true))
-        let viewModel = VehicleStatsViewModel(service: VehicleService(api: mock))
-        await viewModel.load()
-        #expect(!viewModel.showsRecords)
     }
 }
