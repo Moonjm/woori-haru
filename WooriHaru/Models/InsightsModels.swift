@@ -1,9 +1,7 @@
 import Foundation
 
 /// 통계 탭 한 장을 채우는 한 응답. **나누면 화면 하나가 열 번 넘게 부른다.**
-///
-/// `/tesla/drive-insights`가 내던 여덟 필드를 이름까지 그대로 싣고 하위 타입도 같은 것을
-/// 쓴다 — 그래서 기존 카드 넷(온도·시간대·거리 분포·자주 가는 곳)은 매핑 없이 옮겨 온다.
+/// `/tesla/drive-insights`의 여덟 필드를 이름까지 그대로 실어, 기존 카드 넷은 매핑 없이 옮겨 온다.
 struct InsightsResponse: Codable, Equatable {
     /// 받은 범위가 되돌아 온다. **0은 전체 기간이다.**
     let months: Int
@@ -35,11 +33,9 @@ struct InsightsResponse: Codable, Equatable {
     let records: InsightsRecords
 }
 
-/// 한 달치. **기록이 없는 필드는 0이 아니라 nil이다.**
-///
-/// 예외가 셋이다. `idleMin`·`parkDrainRatedKm`·`parkDrainSamples`는 기록이 없어도 값이
-/// 온다 — 정지 시간은 기록 없음이 곧 「내내 서 있었다」이고, 팬텀 드레인은 표본 수 0이
-/// 이미 「잴 구간이 없었다」를 말하기 때문이다.
+/// 한 달치. **기록이 없는 필드는 0이 아니라 nil이다.** 예외 셋(`idleMin`·
+/// `parkDrainRatedKm`·`parkDrainSamples`)은 기록 없어도 값이 온다 — 정지 시간은
+/// 「내내 서 있었다」, 팬텀 드레인은 표본 0이 「잴 구간 없었다」를 뜻해서다.
 struct InsightsMonth: Codable, Identifiable, Equatable {
     let yearMonth: String
     let distanceKm: Decimal?
@@ -67,14 +63,11 @@ struct InsightsWeekday: Codable, Identifiable, Equatable {
     let weekday: Int
     let driveCount: Int
     let distanceKm: Decimal
-    /// **서버가 `Int?`로 낸다** — 고른 기간에 그 요일에 한 번도 안 탔으면
-    /// `drive?.drivingMin`이 `?: 0` 없이 그대로 nil을 낸다(형제 필드 `driveCount`와 다르다).
-    /// `Int`로 두면 그 응답 하나에 `valueNotFound` 디코딩 실패가 나 통계 탭 전체가 빈다.
+    /// **서버가 `Int?`로 낸다** — 그 요일에 한 번도 안 탔으면 `?: 0` 없이 nil이 온다
+    /// (`driveCount`와 다르다). `Int`로 두면 `valueNotFound`로 통계 탭 전체가 빈다.
     ///
-    /// **앱은 이 필드를 읽지 않는다**(`grep -rn "\.drivingMin" WooriHaru/`로 나오는 둘은
-    /// 전부 `InsightsMonth` 쪽이다). 그래도 지우지 않고 옵셔널로 남기는 것은 서버 계약을
-    /// 그대로 보존해 디코딩이 필드 하나 때문에 깨지지 않게 하기 위해서다 — 안 읽는 필드도
-    /// 타입이 틀리면 응답 전체를 무너뜨린다.
+    /// **앱은 이 필드를 읽지 않지만 옵셔널로 남긴다** — 안 읽는 필드도 타입이 틀리면
+    /// 응답 전체를 무너뜨린다.
     let drivingMin: Int?
     /// 범위 안에 그 요일이 며칠 있었나 — **요일 평균의 분모다.**
     let occurrences: Int
@@ -148,12 +141,8 @@ struct Regions: Codable, Equatable {
     let countries: Int
 }
 
-/// 명예의 전당. **셋이 각각 nil일 수 있다** — `bestEfficiency`만 nil인 길이 따로 있다
-/// (20km 넘는 주행이 없을 때).
-///
-/// **`months`를 안 따른다** — 서버가 파라미터 없이 전 기간을 조회한다(`maxSpeedKmh`와
-/// 같다). 범위마다 1등이 바뀌면 기록이 아니기 때문이다. 화면은 이 사실을 글자로
-/// 드러낸다(`StatsRecordSection`의 「전 기간」).
+/// 명예의 전당. **셋 다 각각 nil일 수 있다**(`bestEfficiency`는 20km 하한 때문에 따로 빈다).
+/// **`months`를 안 따른다** — 서버가 전 기간을 조회한다(`maxSpeedKmh`와 같다).
 struct InsightsRecords: Codable, Equatable {
     let longestDistance: DistanceRecord?
     let longestDuration: DurationRecord?

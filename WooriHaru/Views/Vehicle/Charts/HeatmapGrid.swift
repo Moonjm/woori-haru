@@ -60,10 +60,8 @@ struct HeatmapGrid: View {
     /// 그 칸의 진하기 비율(0~1) — `count / maxCount`.
     ///
     /// **`maxCount`가 0이면 나누지 않고 0을 돌려준다** — 표본이 아예 없다는 뜻이다.
-    /// 0인 칸이 「빈칸」이어야 한다는 규칙은 여기가 아니라 `color(for:)`가 지킨다: 이 함수는
-    /// 순수 비율만 계산하고(0회는 자연히 0), 「0에 최소 진하기를 주지 않는다」는 판단은
-    /// `color(for:)`의 `value > 0` 가드가 맡는다. 테스트가 이 함수에 바로 닿을 수 있도록
-    /// `static`으로 둔다.
+    /// 「0에 최소 진하기를 주지 않는다」는 판단은 이 함수가 아니라 `color(for:)`의
+    /// `value > 0` 가드가 맡는다. 테스트가 바로 닿을 수 있도록 `static`으로 둔다.
     static func intensity(count: Int, maxCount: Int) -> Double {
         guard maxCount > 0 else { return 0 }
         return Double(count) / Double(maxCount)
