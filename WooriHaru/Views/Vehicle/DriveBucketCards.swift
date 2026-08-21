@@ -190,9 +190,10 @@ struct DistanceDistributionCard: View {
 
     private func leaderLabel(_ label: String, color: Color, placement: DonutLeaderLayout.Placement,
                               center: CGPoint) -> some View {
+        // **`overlay`가 `position`보다 먼저다.** 뒤에 붙이면 `position`이 가용 공간 전체로
+        // 펼쳐진 뷰에 정렬돼, 라벨 다섯이 전부 카드 좌우 끝·세로 가운데로 몰린다.
         Color.clear
             .frame(width: 0, height: 0)
-            .position(point(placement.labelPoint, from: center))
             .overlay(alignment: placement.side == .right ? .leading : .trailing) {
                 HStack(spacing: 4) {
                     if placement.side == .left {
@@ -205,6 +206,7 @@ struct DistanceDistributionCard: View {
                 }
                 .fixedSize()
             }
+            .position(point(placement.labelPoint, from: center))
     }
 
     /// 화면에는 이름만 남으니, 퍼센트·건수는 이 요약 하나로만 전해진다 — 0건 버킷도 담는다.
