@@ -196,11 +196,16 @@ final class VehicleStatsViewModel {
         monthly.contains { $0.distanceKm != nil || $0.drivingMin != nil || $0.driveCount != nil }
     }
 
-    /// 「🚗 주행」 헤더 게이트. **두 카드 묶음 중 하나라도 있으면 선다.** 월별 카드 넷
-    /// (`StatsDriveSection`)은 `hasDriveMonths`를, `content`의 카드 셋(온도별 전비·시간대
-    /// 히트맵·거리 분포, `VehicleStatsTab`)은 `hasDrives`를 **각자** 게이트로 쓴다 — 그
-    /// 둘은 합치지 않는다(`VehicleStatsTab`의 주석 참고, `end_date` 대 `start_date`라 서로
-    /// 다른 소스다).
+    /// 「🚗 주행」 헤더 게이트. **두 카드 묶음 중 하나라도 있으면 선다.**
+    ///
+    /// 두 묶음의 게이트가 서로 다르다. 월별 카드 넷(`StatsDriveSection`)은 `hasDriveMonths`
+    /// **하나만** 보고, `content`의 카드 셋(온도별 전비·시간대 히트맵·거리 분포,
+    /// `VehicleStatsTab`)은 「안내문을 띄우지 않는 모든 경우」에 뜬다 — 즉 **이 프로퍼티와
+    /// 같은 OR이다**(`!(!hasDrives && !hasDriveMonths)`). 그래서 헤더와 `content`는 늘 함께
+    /// 서고 함께 빠진다.
+    ///
+    /// **`hasDrives`와 `hasDriveMonths`를 합치지 않는다** — `end_date` 대 `start_date`라
+    /// 서로 다른 소스이고, 각자 답하는 질문이 다르다(`VehicleStatsTab`의 주석 참고).
     ///
     /// **헤더만은 OR을 봐야 한다.** 기간 경계를 걸친 주행 하나만 있는 기간(직전에
     /// 시작해 기간 안에서 끝남)이면 `hasDrives=true`, `hasDriveMonths=false`가 실제로
