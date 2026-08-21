@@ -1740,6 +1740,12 @@ git add -A && git commit -m "feat: 자주 가는 곳과 충전소를 순위 막�
 
 ### Task 13: 기록 섹션 (#26)과 배터리 이동 (#22), 섹션 조립
 
+> **⚠️ 기록 섹션(#26)은 나중에 제거됐다.** 화면에 세워 본 뒤 사용자가 안 쓰겠다고 해서
+> `StatsRecordSection`을 지웠다(커밋 `8df1c86`). **서버 계약(`InsightsRecords`·`DistanceRecord`·
+> `DurationRecord`·`EfficiencyRecord`)은 모델에 남아 있다** — 응답이 계속 그 필드를 싣고,
+> 지우면 나중에 되살릴 때 계약을 다시 맞춰야 하기 때문이다. 그래서 **디코딩만 되고 뷰가
+> 쓰지 않는 것은 결함이 아니라 의도다.** 아래 본문은 그 시점의 기록으로 남긴다.
+
 **Files:**
 - Create: `WooriHaru/Views/Vehicle/StatsRecordSection.swift`
 - Modify: `WooriHaru/ViewModels/VehicleStatsViewModel.swift`

@@ -100,6 +100,16 @@ struct ChartPointTests {
         #expect(positive == -negative)
     }
 
+    /// **정확히 0은 기준선에 머문다.** 최소 3pt를 그대로 먹이면 콜아웃은 0km라고 하는데
+    /// 막대는 위로 뻗어 「조금 샜다」로 읽힌다. `nil`(기록 없음)과는 부르는 쪽이 트랙 색
+    /// 자리표시자로 따로 가른다.
+    @Test func 정확히_0은_막대를_그리지_않는다() {
+        #expect(ChartScale.divergingBarHeight(0, maxAbs: 80, halfHeight: 36) == 0)
+        // 0이 아닌 아주 작은 값은 여전히 최소 높이를 받는다 — 둘이 갈려야 한다.
+        #expect(ChartScale.divergingBarHeight(Decimal(string: "0.01")!,
+                                              maxAbs: 80, halfHeight: 36) == 3)
+    }
+
     /// 값이 있는데 크기가 0에 가까우면(예: 0.01km) 부호는 지킨 채 최소 3pt를 보장한다 —
     /// 「거의 없다」와 「기록이 없다」를 갈라야 하는 이유는 `ratio`와 같다.
     @Test func 크기가_작아도_음수_부호와_최소_크기를_함께_지킨다() {
