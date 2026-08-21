@@ -14,7 +14,6 @@
 ## Global Constraints
 
 - **테스트 명령:** `xcodebuild -project WooriHaru.xcodeproj -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPhone 17' test`. 현재 **671**건 통과.
-- **앱 타겟은 파일 자동 인식이 안 된다.** `WooriHaru/` 아래 새 `.swift`를 만들면 `ruby scripts/xcode-add-files.rb <경로>`로 등록하고 `project.pbxproj` 변경을 그 커밋에 포함한다. 테스트 타겟은 폴더 동기화라 등록이 필요 없다.
 - **증분 빌드가 변경을 놓치는 일이 있다.** 마지막 테스트 실행 전에 바꾼 파일을 `touch`하고, 마지막 태스크는 `clean test`로 확인한다.
 - **1·2단계 화면을 건드리지 않는다.** `VehicleHealthTab`·`BatteryHealthCard`·`DegradationTrendChart`·`TirePressureCard`·`VehicleHealthViewModel`·`VehicleDriveTab`·`DriveBucketCards`·`DriveTimeHeatmap`·`VehicleDriveViewModel`은 한 줄도 수정하지 않는다. 예외는 Task 3이 건강 화면에 타일 카드 **한 줄을 얹는 것**뿐이다.
 - **금액 입력 경로를 건드리지 않는다.** `ChargeCostQueueView`·`ChargeService`의 금액 수정 경로는 diff 0줄이어야 한다.
@@ -250,10 +249,9 @@ extension VehicleFormat {
 > `VehicleMath.rounded`·`VehicleFormat.number`는 1단계에서 이미 파일 밖으로 열려 있다.
 > `LedgerFormat.amount`는 `VehicleFormat.costPerKm`이 쓰는 것과 같다.
 
-- [ ] **Step 4: 앱 타겟에 등록하고 테스트를 통과시킨다**
+- [ ] **Step 4: 테스트를 통과시킨다**
 
 ```bash
-ruby scripts/xcode-add-files.rb WooriHaru/Models/ChargeTotalsModels.swift
 touch WooriHaru/Models/ChargeTotalsModels.swift
 xcodebuild -project WooriHaru.xcodeproj -scheme WooriHaru \
   -destination 'platform=iOS Simulator,name=iPhone 17' test 2>&1 | tail -40
@@ -748,11 +746,9 @@ struct ChargeTotalsCard: View {
 > **누적 카드는 실패해도 조용하다.** 별도 오류 배너를 두지 않는다 — 값이 없으면 「—」로 남는다.
 > 건강 화면의 주인공은 배터리 카드이고, 곁가지 하나 때문에 배너를 늘리지 않는다.
 
-- [ ] **Step 6: 등록·테스트·커밋**
+- [ ] **Step 6: 테스트·커밋**
 
 ```bash
-ruby scripts/xcode-add-files.rb WooriHaru/ViewModels/ChargeTotalsViewModel.swift \
-                                WooriHaru/Views/Vehicle/ChargeTotalsCard.swift
 touch WooriHaru/ViewModels/ChargeTotalsViewModel.swift WooriHaru/Views/Vehicle/ChargeTotalsCard.swift \
       WooriHaru/Views/Vehicle/VehicleHealthTab.swift WooriHaru/Views/Vehicle/VehicleView.swift
 xcodebuild -project WooriHaru.xcodeproj -scheme WooriHaru \
@@ -1112,10 +1108,9 @@ struct ChargeCurveChart: View {
                 }
 ```
 
-- [ ] **Step 5: 등록·`clean test`·커밋**
+- [ ] **Step 5: `clean test`·커밋**
 
 ```bash
-ruby scripts/xcode-add-files.rb WooriHaru/Views/Charge/ChargeCurveChart.swift
 xcodebuild -project WooriHaru.xcodeproj -scheme WooriHaru \
   -destination 'platform=iOS Simulator,name=iPhone 17' clean test 2>&1 | tail -50
 ```

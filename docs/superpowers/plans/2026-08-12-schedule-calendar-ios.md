@@ -12,7 +12,6 @@
 
 - 설계 문서: `docs/superpowers/specs/2026-08-12-schedule-calendar-design.md`
 - **서버 계획이 먼저 끝나야 한다** — `toy-back/docs/superpowers/plans/2026-08-12-schedule-yearmonth-server.md`. Task 1과 Task 5가 그 응답 모양(`yearMonth: String?`)에 의존한다
-- **새 Swift 파일은 `ruby scripts/xcode-add-files.rb <경로...>`로 앱 타겟에 등록한다.** 앱 타겟은 폴더 동기화가 아니라 파일만 만들면 **컴파일 대상에 잡히지 않는다.** 테스트 타겟은 자동으로 잡히므로 「테스트는 컴파일되는데 본 코드가 없다」는 형태로 드러난다
 - 커밋 메시지는 **한국어**
 - 색은 `Color+Extensions.swift`에 있는 것만 쓴다. 아빠 `blue500`, 엄마 `purple400`, 공휴일은 기본 달력과 같은 `Color.red.opacity(0.1)` 배경 + `red500` 글자
 - 달력에 `note`를 쓰지 않는다 — 무인증 응답에 실려 나가는 자유 입력이다
@@ -353,13 +352,7 @@ enum MonthGridBuilder {
 
 **주의:** 위 코드의 마지막 블록(다음 달 채우기)은 `CalendarViewModel.buildMonthData`의 해당 부분과 **글자 그대로 같아야 한다.** 옮기기 전에 그 파일의 `// 다음 월 날짜` 이후를 열어 id 형식과 반복 범위를 확인하고, 다르면 원본 쪽을 따른다. Step 1의 `기본_달력과_같은_칸을_만든다`가 이 차이를 잡는다.
 
-- [ ] **Step 4: 앱 타겟에 등록한다**
-
-```bash
-ruby scripts/xcode-add-files.rb WooriHaru/Views/Calendar/MonthGridBuilder.swift
-```
-
-- [ ] **Step 5: 기본 달력이 빌더를 쓰게 한다**
+- [ ] **Step 4: 기본 달력이 빌더를 쓰게 한다**
 
 `CalendarViewModel.buildMonthData`의 칸 생성 부분을 지우고 한 줄로 바꾼다. `year`·`month`·`id` 계산과 반환은 그대로 둔다.
 
@@ -377,12 +370,12 @@ ruby scripts/xcode-add-files.rb WooriHaru/Views/Calendar/MonthGridBuilder.swift
 
 `MonthData`의 나머지 필드는 기본값(`[:]`)이 있으므로 생략된다.
 
-- [ ] **Step 6: 통과를 확인한다**
+- [ ] **Step 5: 통과를 확인한다**
 
 Run: `xcodebuild test ... -only-testing:WooriHaruTests/CalendarMonthTests` 그리고 `-only-testing:WooriHaruTests/MonthGridBuilderTests`
 Expected: PASS — `CalendarMonthTests`의 기존 그리드 불변식이 그대로 통과해야 한다. 하나라도 깨지면 옮기면서 규칙이 바뀐 것이다.
 
-- [ ] **Step 7: 커밋**
+- [ ] **Step 6: 커밋**
 
 ```bash
 git add WooriHaru/Views/Calendar/MonthGridBuilder.swift WooriHaru/ViewModels/CalendarViewModel.swift \
@@ -768,18 +761,12 @@ final class ScheduleViewModel {
 
 `MockAPIClient`에는 이미 `setError(_:for:)`가 있다 — 새로 만들지 않는다.
 
-- [ ] **Step 4: 앱 타겟에 등록한다**
-
-```bash
-ruby scripts/xcode-add-files.rb WooriHaru/ViewModels/ScheduleViewModel.swift
-```
-
-- [ ] **Step 5: 통과를 확인한다**
+- [ ] **Step 4: 통과를 확인한다**
 
 Run: `xcodebuild test ... -only-testing:WooriHaruTests/ScheduleViewModelTests`
 Expected: PASS
 
-- [ ] **Step 6: 커밋**
+- [ ] **Step 5: 커밋**
 
 ```bash
 git add WooriHaru/ViewModels/ScheduleViewModel.swift WooriHaruTests/ScheduleTests.swift \
@@ -993,13 +980,7 @@ struct ScheduleView: View {
 
 **`navPath.count == 1`인 이유:** 드로어에서 `.schedule`을 넣으면 깊이가 1이고, 그 위에 업로드·검수가 쌓인다. 다시 1로 줄었다는 것은 업로드 쪽에서 돌아왔다는 뜻이다.
 
-- [ ] **Step 3: 앱 타겟에 등록한다**
-
-```bash
-ruby scripts/xcode-add-files.rb WooriHaru/Views/Schedule/ScheduleView.swift WooriHaru/Views/Schedule/ScheduleDayCellView.swift
-```
-
-- [ ] **Step 4: 라우팅을 바꾼다**
+- [ ] **Step 3: 라우팅을 바꾼다**
 
 `ContentView.swift`의 `AppDestination`에서 `case dispatch`를 두 개로 나눈다.
 
@@ -1024,12 +1005,12 @@ ruby scripts/xcode-add-files.rb WooriHaru/Views/Schedule/ScheduleView.swift Woor
                 }
 ```
 
-- [ ] **Step 5: 빌드와 전체 테스트**
+- [ ] **Step 4: 빌드와 전체 테스트**
 
 Run: `xcodebuild test -project WooriHaru.xcodeproj -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPhone 17 Pro'`
 Expected: PASS — 뷰는 테스트가 없으므로 컴파일과 기존 테스트 통과가 기준이다
 
-- [ ] **Step 6: 커밋**
+- [ ] **Step 5: 커밋**
 
 ```bash
 git add WooriHaru/Views/Schedule/ WooriHaru/ContentView.swift \

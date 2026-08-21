@@ -16,7 +16,6 @@
 
 ## Global Constraints
 
-- **새 파일은 반드시 Xcode 앱 타겟에 등록한다:** `ruby scripts/xcode-add-files.rb <경로...>`. `WooriHaru/` 아래는 폴더 동기화가 **걸려 있지 않아** 파일만 만들면 컴파일 대상에서 빠진다. `WooriHaruTests/`는 동기화되므로 등록이 필요 없다.
 - 전체 테스트: `xcodebuild test -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPhone 17 Pro'`. 단일 스위트: 뒤에 `-only-testing:WooriHaruTests/<스위트이름>`을 붙인다.
 - **Swift Charts를 쓰지 않는다.** `GeometryReader`·`Rectangle`·`Path`·`Circle().trim`으로 그린다.
 - **진한 패널은 화면에서 하나뿐이다.** 이 계획이 끝난 뒤에도 하나여야 한다.
@@ -339,19 +338,13 @@ enum StateTimelineMath {
 }
 ```
 
-- [ ] **Step 4: Xcode 타겟에 등록한다**
-
-```bash
-ruby scripts/xcode-add-files.rb WooriHaru/Models/StateTimelineModels.swift
-```
-
-- [ ] **Step 5: 테스트가 통과하는지 확인한다**
+- [ ] **Step 4: 테스트가 통과하는지 확인한다**
 
 Run: `xcodebuild test -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -only-testing:WooriHaruTests/StateTimelineTests`
 
 Expected: PASS (9 tests)
 
-- [ ] **Step 6: 커밋한다**
+- [ ] **Step 5: 커밋한다**
 
 ```bash
 git add WooriHaru/Models/StateTimelineModels.swift WooriHaruTests/StateTimelineTests.swift WooriHaru.xcodeproj/project.pbxproj
@@ -563,19 +556,13 @@ final class StateTimelineViewModel {
 }
 ```
 
-- [ ] **Step 5: Xcode 타겟에 등록한다**
-
-```bash
-ruby scripts/xcode-add-files.rb WooriHaru/ViewModels/StateTimelineViewModel.swift
-```
-
-- [ ] **Step 6: 테스트가 통과하는지 확인한다**
+- [ ] **Step 5: 테스트가 통과하는지 확인한다**
 
 Run: `xcodebuild test -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -only-testing:WooriHaruTests/StateTimelineViewModelTests`
 
 Expected: PASS (6 tests)
 
-- [ ] **Step 7: 커밋한다**
+- [ ] **Step 6: 커밋한다**
 
 ```bash
 git add WooriHaru/Services/VehicleService.swift WooriHaru/ViewModels/StateTimelineViewModel.swift WooriHaruTests/StateTimelineViewModelTests.swift WooriHaru.xcodeproj/project.pbxproj
@@ -1064,13 +1051,7 @@ struct BatteryHealthPlaceholderCard: View {
 }
 ```
 
-- [ ] **Step 6: Xcode 타겟에 등록한다**
-
-```bash
-ruby scripts/xcode-add-files.rb WooriHaru/Views/Vehicle/BatteryNowCard.swift
-```
-
-- [ ] **Step 7: 진한 패널이 하나뿐인지 확인한다**
+- [ ] **Step 6: 진한 패널이 하나뿐인지 확인한다**
 
 ```bash
 grep -rn "batteryPanelBackground\|BatteryPanelBackground" WooriHaru/
@@ -1078,13 +1059,13 @@ grep -rn "batteryPanelBackground\|BatteryPanelBackground" WooriHaru/
 
 Expected: `BatteryNowCard.swift`에서만 나온다. `BatteryHealthCard.swift`에 남아 있으면 중복 선언으로 컴파일이 깨진다.
 
-- [ ] **Step 8: 테스트가 통과하는지 확인한다**
+- [ ] **Step 7: 테스트가 통과하는지 확인한다**
 
 Run: `xcodebuild test -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -only-testing:WooriHaruTests/VehicleHealthTests`
 
 Expected: PASS
 
-- [ ] **Step 9: 커밋한다**
+- [ ] **Step 8: 커밋한다**
 
 ```bash
 git add WooriHaru/Models/VehicleHealthModels.swift WooriHaru/Views/Vehicle/BatteryNowCard.swift WooriHaru/Views/Vehicle/BatteryHealthCard.swift WooriHaruTests/VehicleHealthTests.swift WooriHaru.xcodeproj/project.pbxproj
@@ -1302,19 +1283,13 @@ struct StateTimelineChart: View {
 }
 ```
 
-- [ ] **Step 2: Xcode 타겟에 등록한다**
-
-```bash
-ruby scripts/xcode-add-files.rb WooriHaru/Views/Vehicle/StateTimelineChart.swift
-```
-
-- [ ] **Step 3: 빌드가 되는지 확인한다**
+- [ ] **Step 2: 빌드가 되는지 확인한다**
 
 Run: `xcodebuild build -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPhone 17 Pro'`
 
 Expected: BUILD SUCCEEDED
 
-- [ ] **Step 4: 커밋한다**
+- [ ] **Step 3: 커밋한다**
 
 ```bash
 git add WooriHaru/Views/Vehicle/StateTimelineChart.swift WooriHaru.xcodeproj/project.pbxproj
@@ -1721,19 +1696,13 @@ struct DriveStatsCard: View {
     }
 ```
 
-- [ ] **Step 8: Xcode 타겟에 등록한다**
-
-```bash
-ruby scripts/xcode-add-files.rb WooriHaru/Views/Vehicle/DriveStatsCard.swift
-```
-
-- [ ] **Step 9: 전체 테스트를 돌린다**
+- [ ] **Step 8: 전체 테스트를 돌린다**
 
 Run: `xcodebuild test -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPhone 17 Pro'`
 
 Expected: 전 스위트 PASS
 
-- [ ] **Step 10: 커밋한다**
+- [ ] **Step 9: 커밋한다**
 
 ```bash
 git add WooriHaru/Models/DriveInsightsModels.swift WooriHaru/Models/VehicleModels.swift WooriHaru/Views/Vehicle/DriveStatsCard.swift WooriHaru/Views/Vehicle/VehicleDriveTab.swift WooriHaruTests/VehicleMathTests.swift WooriHaruTests/VehicleDriveTests.swift WooriHaruTests/VehicleServiceTests.swift WooriHaru.xcodeproj/project.pbxproj

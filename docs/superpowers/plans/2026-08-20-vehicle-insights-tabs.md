@@ -19,9 +19,6 @@
 - **`nil`과 `0`을 갈라 그린다.** `nil`은 「기록이 없다」라 막대를 안 그리고(트랙만 남긴다), `0`은 「안 탔다」라 높이 3pt의 막대를 그린다.
 - **차트 탭 제스처는 콜아웃만 바꾼다.** 달을 옮기거나 화면을 이동시키지 않는다.
 - **나눗셈은 뷰가 아니라 `VehicleMath`나 뷰모델에서 한다.** 뷰에서 다시 계산하면 테스트하는 값과 화면 값이 갈린다.
-- **새 Swift 파일은 반드시 Xcode 타겟에 등록한다.** `WooriHaru/` 아래 파일은 폴더 동기화가 안 걸려 있어 만들기만 하면 컴파일되지 않는다:
-  `ruby scripts/xcode-add-files.rb <경로...>`
-  (`WooriHaruTests/` 아래는 자동으로 잡히므로 등록하지 않는다.)
 - **기간 칩은 1단계에서 3개월/12개월 둘 그대로 둔다.** 넷으로 늘리는 것은 서버가 `months=0`을 받는 2단계다.
 - **지도·차계부·자율주행(FSD)·주유비 절감액을 넣지 않는다.**
 - 테스트 실행:
@@ -375,13 +372,7 @@ enum ChartScale {
 }
 ```
 
-- [ ] **Step 4: Xcode 타겟에 등록한다**
-
-```bash
-ruby scripts/xcode-add-files.rb WooriHaru/Views/Vehicle/Charts/ChartPoint.swift
-```
-
-- [ ] **Step 5: 테스트가 통과하는지 확인한다**
+- [ ] **Step 4: 테스트가 통과하는지 확인한다**
 
 ```bash
 xcodebuild -project WooriHaru.xcodeproj -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPhone 17' test 2>&1 | grep -E "error:|TEST (SUCCEEDED|FAILED)" | head
@@ -389,7 +380,7 @@ xcodebuild -project WooriHaru.xcodeproj -scheme WooriHaru -destination 'platform
 
 기대: `TEST SUCCEEDED`.
 
-- [ ] **Step 6: 커밋**
+- [ ] **Step 5: 커밋**
 
 ```bash
 git add WooriHaru/Views/Vehicle/Charts/ChartPoint.swift WooriHaruTests/ChartPointTests.swift WooriHaru.xcodeproj/project.pbxproj
@@ -475,13 +466,7 @@ struct MonthlyBarChart: View {
 }
 ```
 
-- [ ] **Step 2: Xcode 타겟에 등록한다**
-
-```bash
-ruby scripts/xcode-add-files.rb WooriHaru/Views/Vehicle/Charts/MonthlyBarChart.swift
-```
-
-- [ ] **Step 3: `VehicleTrendChart`를 원형 위에 얹는다**
+- [ ] **Step 2: `VehicleTrendChart`를 원형 위에 얹는다**
 
 `WooriHaru/Views/Vehicle/VehicleTrendChart.swift`의 `body` 안 `HStack(alignment: .bottom, spacing: 5) { ... }.frame(height: 96)` 블록과 `private func bar(...)` 전체를 지우고 원형 호출로 바꾼다.
 
@@ -501,7 +486,7 @@ ruby scripts/xcode-add-files.rb WooriHaru/Views/Vehicle/Charts/MonthlyBarChart.s
 /// **막대는 `MonthlyBarChart`가 그린다.** 이 파일에 남는 것은 제목과 콜아웃이다.
 ```
 
-- [ ] **Step 4: 기존 동작이 그대로인지 확인한다**
+- [ ] **Step 3: 기존 동작이 그대로인지 확인한다**
 
 ```bash
 xcodebuild -project WooriHaru.xcodeproj -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPhone 17' test 2>&1 | grep -E "error:|TEST (SUCCEEDED|FAILED)" | head
@@ -509,7 +494,7 @@ xcodebuild -project WooriHaru.xcodeproj -scheme WooriHaru -destination 'platform
 
 기대: `TEST SUCCEEDED`. 막대 높이가 `96`에서 `72 + 24`로 계산이 바뀌었지만 총 높이는 같다.
 
-- [ ] **Step 5: 커밋**
+- [ ] **Step 4: 커밋**
 
 ```bash
 git add -A
@@ -644,13 +629,7 @@ struct MonthlyLineChart: View {
 }
 ```
 
-- [ ] **Step 2: Xcode 타겟에 등록한다**
-
-```bash
-ruby scripts/xcode-add-files.rb WooriHaru/Views/Vehicle/Charts/MonthlyLineChart.swift
-```
-
-- [ ] **Step 3: 빌드가 통과하는지 확인한다**
+- [ ] **Step 2: 빌드가 통과하는지 확인한다**
 
 ```bash
 xcodebuild -project WooriHaru.xcodeproj -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPhone 17' test 2>&1 | grep -E "error:|TEST (SUCCEEDED|FAILED)" | head
@@ -658,7 +637,7 @@ xcodebuild -project WooriHaru.xcodeproj -scheme WooriHaru -destination 'platform
 
 기대: `TEST SUCCEEDED`.
 
-- [ ] **Step 4: 커밋**
+- [ ] **Step 3: 커밋**
 
 ```bash
 git add -A
@@ -854,15 +833,7 @@ struct DonutChart: View {
 }
 ```
 
-- [ ] **Step 3: Xcode 타겟에 등록한다**
-
-```bash
-ruby scripts/xcode-add-files.rb \
-  WooriHaru/Views/Vehicle/Charts/MonthlyBarLineChart.swift \
-  WooriHaru/Views/Vehicle/Charts/DonutChart.swift
-```
-
-- [ ] **Step 4: 빌드가 통과하는지 확인한다**
+- [ ] **Step 3: 빌드가 통과하는지 확인한다**
 
 ```bash
 xcodebuild -project WooriHaru.xcodeproj -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPhone 17' test 2>&1 | grep -E "error:|TEST (SUCCEEDED|FAILED)" | head
@@ -870,7 +841,7 @@ xcodebuild -project WooriHaru.xcodeproj -scheme WooriHaru -destination 'platform
 
 기대: `TEST SUCCEEDED`.
 
-- [ ] **Step 5: 커밋**
+- [ ] **Step 4: 커밋**
 
 ```bash
 git add -A
@@ -1375,13 +1346,7 @@ struct StatsDriveSection: View {
 }
 ```
 
-- [ ] **Step 2: Xcode 타겟에 등록한다**
-
-```bash
-ruby scripts/xcode-add-files.rb WooriHaru/Views/Vehicle/StatsDriveSection.swift
-```
-
-- [ ] **Step 3: 통계 탭에 섹션을 끼운다**
+- [ ] **Step 2: 통계 탭에 섹션을 끼운다**
 
 `WooriHaru/Views/Vehicle/VehicleStatsTab.swift`의 `content`에서, 기존 카드 넷을 그리던 자리 **위에** 새 섹션을 놓는다. 기존 카드 넷은 그대로 아래에 남아 같은 「주행」 섹션에 속한다.
 
@@ -1391,7 +1356,7 @@ ruby scripts/xcode-add-files.rb WooriHaru/Views/Vehicle/StatsDriveSection.swift
 
 `DriveStatsCard`(역대 최고 속도·평균 월/연 주행거리)는 **섹션 헤더 위**, 기간 칩 바로 아래에 그대로 둔다 — 기간 칩을 따르지 않는 값이라 이미 그 자리에 있다.
 
-- [ ] **Step 4: 빌드와 테스트**
+- [ ] **Step 3: 빌드와 테스트**
 
 ```bash
 xcodebuild -project WooriHaru.xcodeproj -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPhone 17' test 2>&1 | grep -E "error:|TEST (SUCCEEDED|FAILED)" | head
@@ -1399,7 +1364,7 @@ xcodebuild -project WooriHaru.xcodeproj -scheme WooriHaru -destination 'platform
 
 기대: `TEST SUCCEEDED`.
 
-- [ ] **Step 5: 시뮬레이터에서 눈으로 확인한다**
+- [ ] **Step 4: 시뮬레이터에서 눈으로 확인한다**
 
 ```bash
 xcodebuild -project WooriHaru.xcodeproj -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPhone 17' build 2>&1 | grep -E "error:|BUILD" | head
@@ -1407,7 +1372,7 @@ xcodebuild -project WooriHaru.xcodeproj -scheme WooriHaru -destination 'platform
 
 앱을 띄워 차량 → 통계 탭에서 차트 넷이 그려지는지, 기록이 없는 달이 트랙 색으로 남는지, 막대를 탭하면 콜아웃만 바뀌는지 본다.
 
-- [ ] **Step 6: 커밋**
+- [ ] **Step 5: 커밋**
 
 ```bash
 git add -A
@@ -1581,11 +1546,7 @@ struct StatsChargeSection: View {
 
 > `chartCard`가 Task 9와 똑같다. **두 섹션을 다 만든 뒤 하나로 뽑는다** — 지금 뽑으면 Task 9와 10이 같은 파일을 건드려 서로를 기다려야 한다. Step 4에서 정리한다.
 
-- [ ] **Step 2: Xcode 타겟에 등록하고 통계 탭에 끼운다**
-
-```bash
-ruby scripts/xcode-add-files.rb WooriHaru/Views/Vehicle/StatsChargeSection.swift
-```
+- [ ] **Step 2: 통계 탭에 끼운다**
 
 `VehicleStatsTab.swift`에 프로퍼티를 더한다.
 
@@ -1660,10 +1621,6 @@ struct ChartCard<Content: View>: View {
         }
     }
 }
-```
-
-```bash
-ruby scripts/xcode-add-files.rb WooriHaru/Views/Vehicle/Charts/ChartCard.swift
 ```
 
 두 섹션에서 `chartCard("제목", callout: X) { ... }` 호출을 `ChartCard(title: "제목", callout: X) { ... }`로 바꾼다.
@@ -1860,13 +1817,7 @@ struct CostBreakdownCard: View {
 
 `VehicleFormat.won(_:)`은 `Decimal?`을 받고 `ChargeTotalsModels.swift:64`에 있다 — 옵셔널 승격이 되므로 `won(abs(rounded))`가 그대로 컴파일된다. `abs(_:)`는 `Decimal`이 `SignedNumeric`이라 쓸 수 있다.
 
-- [ ] **Step 2: Xcode 타겟에 등록한다**
-
-```bash
-ruby scripts/xcode-add-files.rb WooriHaru/Views/Vehicle/CostBreakdownCard.swift
-```
-
-- [ ] **Step 3: 충전 탭에 끼운다**
+- [ ] **Step 2: 충전 탭에 끼운다**
 
 `VehicleChargeTab.swift`의 `body`에서 `metricsCard` 바로 아래에 놓는다.
 
@@ -1883,7 +1834,7 @@ ruby scripts/xcode-add-files.rb WooriHaru/Views/Vehicle/CostBreakdownCard.swift
 
 **재료가 없으면 카드째 사라진다** — 기록이 없는 달과 견줘 「+32,700원 전부 거리 때문」 같은 거짓말을 하지 않는다.
 
-- [ ] **Step 4: 빌드와 테스트**
+- [ ] **Step 3: 빌드와 테스트**
 
 ```bash
 xcodebuild -project WooriHaru.xcodeproj -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPhone 17' test 2>&1 | grep -E "error:|TEST (SUCCEEDED|FAILED)" | head
@@ -1891,11 +1842,11 @@ xcodebuild -project WooriHaru.xcodeproj -scheme WooriHaru -destination 'platform
 
 기대: `TEST SUCCEEDED`.
 
-- [ ] **Step 5: 시뮬레이터에서 눈으로 확인한다**
+- [ ] **Step 4: 시뮬레이터에서 눈으로 확인한다**
 
 차량 → 충전 탭에서 카드가 뜨는지, 세 줄의 합이 머리의 총 증감과 눈으로 맞는지, 지난달 기록이 없는 달로 옮기면 카드가 사라지는지 본다.
 
-- [ ] **Step 6: 커밋**
+- [ ] **Step 5: 커밋**
 
 ```bash
 git add -A

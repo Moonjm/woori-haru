@@ -179,8 +179,6 @@ ScheduleView 진입 / ‹ › 이동
 | `Views/Dispatch/DispatchReviewView.swift` | 연월 칸 추가 |
 | `ContentView.swift`, `SideDrawerView.swift` | `.dispatch` → `.schedule`, 라벨 변경 |
 
-새 Swift 파일은 `scripts/xcode-add-files.rb`로 앱 타겟에 등록해야 한다. 앱 타겟은 폴더 동기화가 아니라서 파일만 만들어 두면 **컴파일 대상에 잡히지 않는다.**
-
 ---
 
 ## 오류 처리

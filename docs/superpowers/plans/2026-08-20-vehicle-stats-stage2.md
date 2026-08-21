@@ -15,7 +15,6 @@
 
 - **서버는 손대지 않는다.** `/tesla/insights`·`/tesla/battery-window`는 이미 배포돼 있다. 계약이 모자라 보이면 앱에서 파생시키고, 계약을 바꿔야 한다고 판단되면 멈추고 보고한다.
 - **테스트는 Swift Testing이다** — `import Testing`, `@Test`, `#expect`, `try #require`. XCTest를 새로 쓰지 않는다.
-- **`WooriHaru/`에 새 파일을 만들면 `ruby scripts/xcode-add-files.rb`를 돌린다.** 이 디렉터리는 `PBXFileSystemSynchronizedRootGroup`이 아니라 파일이 자동으로 타깃에 안 붙는다. `WooriHaruTests/`는 동기화되므로 안 돌려도 된다.
 - **`nil`은 `0`이 아니다.** `nil` = 기록 없음, `0` = 안 탔다/안 썼다. 차트에서 `nil` 칸은 트랙 색으로 남기고 값 칸과 갈린다.
 - **나눗셈은 뷰가 아니라 `VehicleMath` 또는 뷰모델에서 한다.** 뷰에서 다시 계산하면 테스트하는 값과 화면 값이 다른 코드가 된다.
 - **차트 탭은 콜아웃만 바꾼다.** 화면을 옮기거나 기간을 바꾸지 않는다.
@@ -471,7 +470,7 @@ enum InsightsStub {
 (Task 3)는 `select` 전후로 스텁을 갈아 끼우고, 무엇을 요청했는지는 `mock.getCalls`
 (`MockAPIClient.swift:100`)로 본다.
 
-- [ ] **Step 5: 서비스에 `fetchInsights`를 더한다**
+- [ ] **Step 6: 서비스에 `fetchInsights`를 더한다**
 
 `WooriHaru/Services/VehicleService.swift`, `fetchDriveInsights` 바로 아래:
 
@@ -491,10 +490,9 @@ enum InsightsStub {
     }
 ```
 
-- [ ] **Step 7: 타깃에 붙이고 테스트가 통과하는지 본다**
+- [ ] **Step 7: 테스트가 통과하는지 본다**
 
 ```bash
-ruby scripts/xcode-add-files.rb
 xcodebuild test -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPhone 17' -only-testing:WooriHaruTests/InsightsModelsTests
 ```
 Expected: PASS (5개)
@@ -845,10 +843,9 @@ struct DistributionBarChart: View {
 }
 ```
 
-- [ ] **Step 4: 타깃에 붙이고 빌드한다**
+- [ ] **Step 4: 빌드한다**
 
 ```bash
-ruby scripts/xcode-add-files.rb
 xcodebuild build -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
 Expected: BUILD SUCCEEDED
@@ -1015,7 +1012,6 @@ struct RankBarList: View {
 - [ ] **Step 4: 테스트 통과를 확인한다**
 
 ```bash
-ruby scripts/xcode-add-files.rb
 xcodebuild test -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPhone 17' -only-testing:WooriHaruTests/RankBarListTests
 ```
 Expected: PASS (3개)
@@ -1080,7 +1076,7 @@ Expected: 컴파일 실패
 
 - [ ] **Step 4: 테스트와 전체 스위트를 돌린다**
 
-Run: `ruby scripts/xcode-add-files.rb && xcodebuild test -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPhone 17'`
+Run: `xcodebuild test -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPhone 17'`
 Expected: 전부 PASS — 기존 `DriveTimeHeatmap` 테스트가 있으면 그것도 그대로 통과해야 한다.
 
 - [ ] **Step 5: 커밋**
@@ -1544,10 +1540,9 @@ git add -A && git commit -m "feat: 충전 시간대와 SoC 분포 둘을 그린�
 
 `VehicleStatsTab.swift`의 `body`에서 `StatsChargeSection` 다음에 끼운다.
 
-- [ ] **Step 5: 타깃에 붙이고 전체 스위트**
+- [ ] **Step 5: 전체 스위트**
 
 ```bash
-ruby scripts/xcode-add-files.rb
 xcodebuild test -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
 
@@ -1722,10 +1717,9 @@ struct DrivePlace: Codable, Identifiable, Equatable {
 
 **`VehicleStatsTab.swift`에서 `placesCard`와 `showsPlaces`를 지운다.** 이 태스크의 요점이 그 카드를 대체하는 것이므로, 남겨 두면 같은 내용이 두 번 나온다.
 
-- [ ] **Step 6: 타깃에 붙이고 전체 스위트**
+- [ ] **Step 6: 전체 스위트**
 
 ```bash
-ruby scripts/xcode-add-files.rb
 xcodebuild test -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
 Expected: 전부 PASS. **`showsPlaces`를 참조하던 기존 테스트가 있으면 함께 지운다.**
@@ -1832,10 +1826,9 @@ DriveStatsCard                     ← 기간 칩과 무관한 전 기간 값 �
 🏆 기록 (StatsRecordSection)         1장
 ```
 
-- [ ] **Step 5: 타깃에 붙이고 전체 스위트**
+- [ ] **Step 5: 전체 스위트**
 
 ```bash
-ruby scripts/xcode-add-files.rb
 xcodebuild test -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
 
@@ -1991,10 +1984,9 @@ struct ParkDrain: Codable, Equatable {
 
 `VehicleOverviewTab.swift`에서 `BatteryNowCard` 다음에 놓는다. 뷰모델은 `VehicleStatusViewModel`에 `batteryWindow` 프로퍼티를 더해 개요 로딩과 함께 병렬로 받는다 — **하나가 실패해도 다른 카드는 그린다**는 기존 규칙을 지킨다.
 
-- [ ] **Step 5: 타깃에 붙이고 전체 스위트**
+- [ ] **Step 5: 전체 스위트**
 
 ```bash
-ruby scripts/xcode-add-files.rb
 xcodebuild test -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
 Expected: 전부 PASS

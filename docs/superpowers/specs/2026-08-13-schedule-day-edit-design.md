@@ -176,8 +176,6 @@ PUT /dispatch/shifts/2026-08-15
 | `Views/Schedule/ScheduleView.swift` | 칸 탭 → 시트, 저장 결과 반영 |
 | `Views/Schedule/ScheduleDayCellView.swift` | 엄마 밴드에 `slotCode` 표시, 접근성 문구, 탭 대상 |
 
-새 Swift 파일은 `scripts/xcode-add-files.rb`로 앱 타겟에 등록해야 한다. 앱 타겟은 폴더 동기화가 아니라서 파일만 만들어 두면 **컴파일 대상에 잡히지 않는다.**
-
 ---
 
 ## 데이터 흐름

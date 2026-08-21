@@ -14,7 +14,6 @@
 ## Global Constraints
 
 - **백엔드는 이 계획의 범위가 아니다.** 서버는 별도 작업으로 진행 중이고, 앱은 스펙에 적힌 계약을 그대로 믿는다. 서버가 아직 없어도 이 계획의 모든 테스트는 `MockAPIClient`로 통과한다.
-- **앱 타겟은 파일 자동 인식이 안 된다.** `WooriHaru/` 아래 새 `.swift`를 만들면 반드시 `ruby scripts/xcode-add-files.rb <경로…>`로 등록한다. 테스트 타겟(`WooriHaruTests/`)은 폴더 동기화라 등록이 필요 없다.
 - **증분 빌드가 변경을 놓치는 일이 있다.** 각 태스크의 마지막 테스트 실행 전에 바꾼 파일을 `touch`하고, 태스크 9의 최종 확인은 `clean test`로 한다.
 - 테스트 명령: `xcodebuild -project WooriHaru.xcodeproj -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPhone 17' test`
 - **없는 값은 0이 아니라 「—」다.** 0은 「그렇게 측정됐다」는 뜻이라 「모른다」와 구분되지 않는다.
@@ -317,10 +316,9 @@ enum VehicleFormat {
 }
 ```
 
-- [ ] **Step 4: Xcode 타겟에 등록하고 테스트가 통과하는지 본다**
+- [ ] **Step 4: 테스트가 통과하는지 본다**
 
 ```bash
-ruby scripts/xcode-add-files.rb WooriHaru/Models/VehicleModels.swift
 touch WooriHaru/Models/VehicleModels.swift
 xcodebuild -project WooriHaru.xcodeproj -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPhone 17' test 2>&1 | grep -E "error:|TEST (SUCCEEDED|FAILED)" | head
 ```
@@ -478,10 +476,9 @@ struct VehicleService: Sendable {
 }
 ```
 
-- [ ] **Step 4: 등록하고 통과를 확인한다**
+- [ ] **Step 4: 통과를 확인한다**
 
 ```bash
-ruby scripts/xcode-add-files.rb WooriHaru/Services/VehicleService.swift
 touch WooriHaru/Services/VehicleService.swift
 xcodebuild -project WooriHaru.xcodeproj -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPhone 17' test 2>&1 | grep -E "error:|TEST (SUCCEEDED|FAILED)" | head
 ```
@@ -793,10 +790,9 @@ final class VehicleSummaryViewModel {
 }
 ```
 
-- [ ] **Step 4: 등록하고 통과를 확인한다**
+- [ ] **Step 4: 통과를 확인한다**
 
 ```bash
-ruby scripts/xcode-add-files.rb WooriHaru/ViewModels/VehicleSummaryViewModel.swift
 touch WooriHaru/ViewModels/VehicleSummaryViewModel.swift
 xcodebuild -project WooriHaru.xcodeproj -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPhone 17' test 2>&1 | grep -E "error:|TEST (SUCCEEDED|FAILED)" | head
 ```
@@ -984,10 +980,9 @@ final class VehicleStatusViewModel {
 }
 ```
 
-- [ ] **Step 4: 등록하고 통과를 확인한다**
+- [ ] **Step 4: 통과를 확인한다**
 
 ```bash
-ruby scripts/xcode-add-files.rb WooriHaru/ViewModels/VehicleStatusViewModel.swift
 touch WooriHaru/ViewModels/VehicleStatusViewModel.swift
 xcodebuild -project WooriHaru.xcodeproj -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPhone 17' test 2>&1 | grep -E "error:|TEST (SUCCEEDED|FAILED)" | head
 ```
@@ -1245,10 +1240,9 @@ final class ChargeCostQueueViewModel {
 }
 ```
 
-- [ ] **Step 4: 등록하고 통과를 확인한다**
+- [ ] **Step 4: 통과를 확인한다**
 
 ```bash
-ruby scripts/xcode-add-files.rb WooriHaru/ViewModels/ChargeCostQueueViewModel.swift
 touch WooriHaru/ViewModels/ChargeCostQueueViewModel.swift
 xcodebuild -project WooriHaru.xcodeproj -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPhone 17' test 2>&1 | grep -E "error:|TEST (SUCCEEDED|FAILED)" | head
 ```
@@ -1590,10 +1584,9 @@ struct VehicleSummaryTab: View {
 }
 ```
 
-- [ ] **Step 3: 등록하고 빌드한다**
+- [ ] **Step 3: 빌드한다**
 
 ```bash
-ruby scripts/xcode-add-files.rb WooriHaru/Views/Vehicle/VehicleSummaryTab.swift WooriHaru/Views/Vehicle/VehicleTrendChart.swift
 touch WooriHaru/Views/Vehicle/*.swift
 xcodebuild -project WooriHaru.xcodeproj -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPhone 17' build 2>&1 | grep -E "error:|BUILD" | head
 ```
@@ -1769,10 +1762,9 @@ struct VehicleStatusTab: View {
 }
 ```
 
-- [ ] **Step 2: 등록하고 빌드한다**
+- [ ] **Step 2: 빌드한다**
 
 ```bash
-ruby scripts/xcode-add-files.rb WooriHaru/Views/Vehicle/VehicleStatusTab.swift
 touch WooriHaru/Views/Vehicle/VehicleStatusTab.swift
 xcodebuild -project WooriHaru.xcodeproj -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPhone 17' build 2>&1 | grep -E "error:|BUILD" | head
 ```
@@ -1946,10 +1938,9 @@ struct ChargeCostQueueView: View {
 }
 ```
 
-- [ ] **Step 2: 등록하고 빌드한다**
+- [ ] **Step 2: 빌드한다**
 
 ```bash
-ruby scripts/xcode-add-files.rb WooriHaru/Views/Vehicle/ChargeCostQueueView.swift
 touch WooriHaru/Views/Vehicle/ChargeCostQueueView.swift
 xcodebuild -project WooriHaru.xcodeproj -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPhone 17' build 2>&1 | grep -E "error:|BUILD" | head
 ```
@@ -2187,10 +2178,9 @@ grep -c "ChargeListView" WooriHaru.xcodeproj/project.pbxproj
 ```
 Expected: 첫 명령은 출력 없음, 두 번째는 `0`
 
-- [ ] **Step 5: 등록하고 전체를 깨끗하게 돌린다**
+- [ ] **Step 5: 전체를 깨끗하게 돌린다**
 
 ```bash
-ruby scripts/xcode-add-files.rb WooriHaru/Views/Vehicle/VehicleView.swift
 xcodebuild -project WooriHaru.xcodeproj -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPhone 17' clean test 2>&1 | grep -E "error:|TEST (SUCCEEDED|FAILED)" | head
 ```
 Expected: `** TEST SUCCEEDED **` (증분 빌드가 변경을 놓치는 일이 있어 여기서만은 `clean`을 쓴다)

@@ -7,229 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		01E5347F6D87126F3B0EEDF0 /* DispatchReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EE2658BE836DAFED195B3A5 /* DispatchReviewView.swift */; };
-		02C05E2522888FC9FA1914FE /* ScheduleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F178E8439FA7AF1E8234A2B /* ScheduleView.swift */; };
-		0FE415DE0482F63A481ADDE6 /* ChargeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26AE34FD1C4248D055A63A49 /* ChargeService.swift */; };
-		135C407B4A2788482CAC5AB4 /* BatteryHealthCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55393AF69906229CC877CA9B /* BatteryHealthCard.swift */; };
-		1634F29B8B1A65276DEFCC09 /* DispatchUploadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6BB6AAFBAB44DCD1635C839 /* DispatchUploadView.swift */; };
-		1B362266C00662B998F7BD46 /* ChargeCostQueueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E35541B5F9426977FDBBE648 /* ChargeCostQueueView.swift */; };
-		22B1CD41D5FC96447160F8DE /* VehicleSummaryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC8A90FDD89774BFAF064AA2 /* VehicleSummaryViewModel.swift */; };
-		2C28D2C1699EF8B31AE6D80B /* StatsDriveSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B44EDE6DEE677F59B1D8BC0B /* StatsDriveSection.swift */; };
-		2C5AD835581BB34B0C4D2A1D /* VehicleOverviewTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B389E9541F66717EB0D7392 /* VehicleOverviewTab.swift */; };
-		2DC1BF3C2B794343CF66873E /* StatsParkSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BBE7AB261F331755E2DC9C9 /* StatsParkSection.swift */; };
-		2E857A7404304B09C194DE32 /* VehicleHealthModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08E59B5B0855655231B8D1EE /* VehicleHealthModels.swift */; };
-		3ABE1D81C2171ADDA771C858 /* BatteryNowCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1290DDC78D6B77BC67BF5EFC /* BatteryNowCard.swift */; };
-		40A969BDBA7D9F0BFF3354C6 /* StatsChargeSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 503CF88FD62CD5DF10233D57 /* StatsChargeSection.swift */; };
-		453AA4BE6F7BD87A2E9F53F2 /* DispatchModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = D49A101711DCAF5B5FAFD364 /* DispatchModels.swift */; };
-		468DD679EA4A32218274D9DA /* DonutChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70222E6D42ADFB926C91C06A /* DonutChart.swift */; };
-		50EE45F7F324407B832DF8CF /* DonutLeaderLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = C79C757DB0FE40F39F3AB813 /* DonutLeaderLayout.swift */; };
-		49C42CBC990E95F9BF593C0F /* BatteryWindowModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81E0B46A3062F87E70EB3688 /* BatteryWindowModels.swift */; };
-		4BBAF07594578B59BCED2771 /* DriveBucketCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43CBFE3ABE85FBB0C5FB8DBF /* DriveBucketCards.swift */; };
-		526879331CA284F16F93357E /* DriveTimeHeatmap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33C282968375906893CFAD99 /* DriveTimeHeatmap.swift */; };
-		5C5516406BA9FF99BA05D27C /* ChargeModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BE34C241CBA8854FC3246DE /* ChargeModels.swift */; };
-		5F2C227D2377263FA664B89B /* VehicleStatusViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B34192AF4757E913DF4D0FA4 /* VehicleStatusViewModel.swift */; };
-		64BE5535BDC86A3B9C696F82 /* BatteryWindowCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31E35F0A8552B9B837195D2F /* BatteryWindowCard.swift */; };
-		64FC2509D0DC00E50F76B330 /* TirePressureCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C9DA97EA2D7E94602135D9 /* TirePressureCard.swift */; };
-		66815BE79E2D79EC1E9415DC /* DegradationTrendChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8E190C9E72954D3FC527E56 /* DegradationTrendChart.swift */; };
-		6D123C9F2258DDCB2EA6E76F /* ChargeTotalsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3CFFE3A79B6F07B2C5605DB /* ChargeTotalsViewModel.swift */; };
-		6E5B03307FE94212F65DE0EB /* VehicleChargeTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2F12F9042F52F62E68D3B63 /* VehicleChargeTab.swift */; };
-		6E61B6AF90309458C4C6D9D0 /* RankBarList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F98D63C2CC1AFA4FA2AA471 /* RankBarList.swift */; };
-		71052B6E8FC03636B1952BCA /* VehicleTrendChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1061EE82F134CAE49735C9D5 /* VehicleTrendChart.swift */; };
-		7A2EBE0EE90236D293C9D669 /* StateTimelineModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50927D9E81F45A3172899214 /* StateTimelineModels.swift */; };
-		7B423E15D604151B4C9F61D3 /* CostBreakdownCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA3EB25C1FED0089E8CC935F /* CostBreakdownCard.swift */; };
-		81BEF6B554755A720DF556F2 /* VehicleStatsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88EBCBE73E844A5092ABC002 /* VehicleStatsViewModel.swift */; };
 		880AD4692F5F071200777742 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 880AD4682F5F071100777742 /* WidgetKit.framework */; };
 		880AD46B2F5F071200777742 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 880AD46A2F5F071200777742 /* SwiftUI.framework */; };
 		880AD47C2F5F071300777742 /* StudyTimerWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 880AD4662F5F071100777742 /* StudyTimerWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		880AD4842F5F088400777742 /* StudyTimerAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = L20005 /* StudyTimerAttributes.swift */; };
-		880AD4862F5F0C6100777742 /* StudyDeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 880AD4852F5F0C6100777742 /* StudyDeepLink.swift */; };
-		880AD4872F5F0C6100777742 /* StudyDeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 880AD4852F5F0C6100777742 /* StudyDeepLink.swift */; };
-		8825C7532F5B148A00E46B14 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8825C7512F5B148A00E46B14 /* ProfileView.swift */; };
-		8825C7572F5B1A1E00E46B14 /* UserManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8825C7552F5B1A1E00E46B14 /* UserManagementView.swift */; };
-		8825C7582F5B1A1E00E46B14 /* AdminView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8825C7542F5B1A1E00E46B14 /* AdminView.swift */; };
-		8825C75A2F5B1A4400E46B14 /* UserManagementViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8825C7592F5B1A4400E46B14 /* UserManagementViewModel.swift */; };
-		8825C75C2F5B1A4C00E46B14 /* UserService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8825C75B2F5B1A4C00E46B14 /* UserService.swift */; };
-		88DD96ED2F61B3A900E60283 /* StudyRecordView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88DD96EC2F61B3A900E60283 /* StudyRecordView.swift */; };
-		897E42FFEAD38504BCF1B861 /* VehicleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 823FB1E6072082F5CCEE8AC8 /* VehicleView.swift */; };
-		8BB898B17D4BBEB63A05130F /* HeatmapGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C17B2756F0E576D57B12DB0 /* HeatmapGrid.swift */; };
-		8CB8971CA8F25A48887B5650 /* MonthGridBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECC4B98A560D4DF30F7501E2 /* MonthGridBuilder.swift */; };
-		8D0403140D65DEE3C68E2C92 /* StatsPlaceSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67B93513DEE856B6F9D4BE9B /* StatsPlaceSection.swift */; };
-		9B8FDCDA4FB0EF187F1CB0B6 /* ChargeTotalsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4A2F8E3D8868F29934E27D0 /* ChargeTotalsCard.swift */; };
-		A10001 /* WooriHaruApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20001 /* WooriHaruApp.swift */; };
-		A10002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20002 /* ContentView.swift */; };
-		A10003 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20003 /* Assets.xcassets */; };
-		A10004 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20004 /* Preview Assets.xcassets */; };
-		A10AD40468D182F380D2EDED /* ScheduleViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2969E3F2EAA5A9B4E033CC8F /* ScheduleViewModel.swift */; };
-		A454F886AE329C10E8408C58 /* ScheduleDayEditSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5946F8BE2411A7B092525B6 /* ScheduleDayEditSheet.swift */; };
-		A4AE9B9A3DE1AA33DD7F5E0A /* DriveInsightsModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = D80FDE88B927023C50D1C62C /* DriveInsightsModels.swift */; };
-		A8156A2E0E58AEF21CD71611 /* MonthlyLineChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = 928AF4C8D9E51E1F78D6D88C /* MonthlyLineChart.swift */; };
-		A96AC1C7074B35DF261C1958 /* DispatchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD3CE59E8DF1F82DF405E788 /* DispatchService.swift */; };
-		AA100001 /* PairStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200001 /* PairStore.swift */; };
-		AA100002 /* CategoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200002 /* CategoryStore.swift */; };
-		AA100003 /* SubjectStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200003 /* SubjectStore.swift */; };
-		AA100004 /* PauseTypeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200004 /* PauseTypeStore.swift */; };
-		AA100005 /* Logger+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200005 /* Logger+Extensions.swift */; };
-		AA100006 /* SessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA200006 /* SessionManager.swift */; };
-		ACC163F6EC88007072F01938 /* ChargeTotalsModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ABE2410B818951F5517EC74 /* ChargeTotalsModels.swift */; };
-		B10001 /* DDayBadgeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20001 /* DDayBadgeService.swift */; };
-		B266A4283E345D5B46CD51CA /* DispatchReviewViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A1655D9FB504D22636292C1 /* DispatchReviewViewModel.swift */; };
-		C10001 /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20001 /* User.swift */; };
-		C10002 /* Category.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20002 /* Category.swift */; };
-		C10003 /* DailyRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20003 /* DailyRecord.swift */; };
-		C10004 /* OvereatLevel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20004 /* OvereatLevel.swift */; };
-		C10005 /* PairInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20005 /* PairInfo.swift */; };
-		C10006 /* PairEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20006 /* PairEvent.swift */; };
-		C10007 /* APIResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20007 /* APIResponse.swift */; };
-		C357EE1396A9C735D6DCBB57 /* StateTimelineChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = E54EE8F06DA8FCE8902A9684 /* StateTimelineChart.swift */; };
-		CDA451B131462A81C4C81CEE /* InsightsModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60574F8D44D3658931EEA927 /* InsightsModels.swift */; };
-		D0C9138A67CB999FDBD11F1E /* DivergingMonthlyBarChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5F4676817AD0CAD839E0430 /* DivergingMonthlyBarChart.swift */; };
-		D0ED996CA0ABF016EE8731B0 /* ChartCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91FF808F31A8E2E333C035E5 /* ChartCard.swift */; };
-		D10001 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20001 /* APIClient.swift */; };
-		D10002 /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20002 /* AuthService.swift */; };
-		D10003 /* RecordService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20003 /* RecordService.swift */; };
-		D10004 /* CategoryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20004 /* CategoryService.swift */; };
-		D10005 /* PairService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20005 /* PairService.swift */; };
-		D10006 /* PairEventService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20006 /* PairEventService.swift */; };
-		D10007 /* HolidayService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20007 /* HolidayService.swift */; };
-		D29BC72FA25A011F29E78D93 /* VehicleStatsTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77EA0C38FD701A857D17DCF5 /* VehicleStatsTab.swift */; };
-		D4675DAC74C1146DB7179E37 /* ChargeCurveChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = C85E944AC6A6BF9E0CE1543F /* ChargeCurveChart.swift */; };
-		D4A14506B36EE336E3DF1100 /* VehicleTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 500C8A449D7289022605592E /* VehicleTheme.swift */; };
-		D5F2677FF07AC04CED770A52 /* VehicleHealthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 046B106EAA5F4B74F6C937EF /* VehicleHealthViewModel.swift */; };
-		D93142B6B70EAFEFD1D4A4F4 /* MonthlyBarChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50285BAA6308B5D509F6F401 /* MonthlyBarChart.swift */; };
-		DA93828D80FD5DBC1FEBF0F2 /* DriveStatsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3969DDF508574526929B164 /* DriveStatsCard.swift */; };
-		DBF548CE86E57030B0252CD1 /* DistributionBarChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F5C927A43E15178A5FF6653 /* DistributionBarChart.swift */; };
-		DT10001 /* UIImage+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20001 /* UIImage+Extensions.swift */; };
-		DT10002 /* DietErrorCode.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20002 /* DietErrorCode.swift */; };
-		DT10003 /* Diet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20003 /* Diet.swift */; };
-		DT10004 /* MealAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20004 /* MealAnalysis.swift */; };
-		DT10005 /* NutritionProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20005 /* NutritionProfile.swift */; };
-		DT10006 /* Food.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20006 /* Food.swift */; };
-		DT10007 /* FrequentItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20007 /* FrequentItem.swift */; };
-		DT10008 /* DietStats.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20008 /* DietStats.swift */; };
-		DT10009 /* NutritionMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20009 /* NutritionMath.swift */; };
-		DT10010 /* DietService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20010 /* DietService.swift */; };
-		DT10011 /* NutritionProfileViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20011 /* NutritionProfileViewModel.swift */; };
-		DT10012 /* NutritionProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20012 /* NutritionProfileView.swift */; };
-		DT10013 /* DietDayViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20013 /* DietDayViewModel.swift */; };
-		DT10014 /* DietScoreRing.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20014 /* DietScoreRing.swift */; };
-		DT10015 /* MacroBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20015 /* MacroBar.swift */; };
-		DT10016 /* ScoreBasisCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20016 /* ScoreBasisCard.swift */; };
-		DT10017 /* NutrientLimitRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20017 /* NutrientLimitRow.swift */; };
-		DT10018 /* DietHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20018 /* DietHomeView.swift */; };
-		DT10019 /* MealCaptureViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20019 /* MealCaptureViewModel.swift */; };
-		DT10020 /* MealCaptureSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20020 /* MealCaptureSheet.swift */; };
-		DT10021 /* PhotoStrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20021 /* PhotoStrip.swift */; };
-		DT10022 /* MealConfirmViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20022 /* MealConfirmViewModel.swift */; };
-		DT10023 /* MealConfirmView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20023 /* MealConfirmView.swift */; };
-		DT10024 /* FrequentItemList.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20024 /* FrequentItemList.swift */; };
-		DT10025 /* MealItemEditView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20025 /* MealItemEditView.swift */; };
-		DT10026 /* MealDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20026 /* MealDetailViewModel.swift */; };
-		DT10027 /* MealDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20027 /* MealDetailView.swift */; };
-		DT10028 /* DietStatsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20028 /* DietStatsViewModel.swift */; };
-		DT10029 /* DietStatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20029 /* DietStatsView.swift */; };
-		DT10030 /* FoodPickSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20030 /* FoodPickSource.swift */; };
-		DT10031 /* FoodPickRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20031 /* FoodPickRow.swift */; };
-		DT10032 /* FoodDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20032 /* FoodDetailViewModel.swift */; };
-		DT10033 /* FoodDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20033 /* FoodDetailSheet.swift */; };
-		DT10034 /* MealItemPickViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20034 /* MealItemPickViewModel.swift */; };
-		DT10035 /* PhotoLibrarySaver.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20035 /* PhotoLibrarySaver.swift */; };
-		DT10036 /* PhotoViewerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20036 /* PhotoViewerViewModel.swift */; };
-		DT10037 /* PhotoViewerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20037 /* PhotoViewerSheet.swift */; };
-		DT10040 /* NutrientRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20040 /* NutrientRow.swift */; };
-		DT10041 /* GramStepper.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20041 /* GramStepper.swift */; };
-		DT10042 /* MealItemQuantityViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20042 /* MealItemQuantityViewModel.swift */; };
-		DT10043 /* MealItemQuantitySheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20043 /* MealItemQuantitySheet.swift */; };
-		DT10044 /* PhotoDragDismiss.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20044 /* PhotoDragDismiss.swift */; };
-		DT10099 /* DietInputLimits.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT20099 /* DietInputLimits.swift */; };
-		DT1CH01 /* DietChat.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT2CH01 /* DietChat.swift */; };
-		DT1CH02 /* DietChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT2CH02 /* DietChatViewModel.swift */; };
-		DT1CH03 /* DietChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT2CH03 /* DietChatView.swift */; };
-		DT1CH04 /* ChatBubble.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT2CH04 /* ChatBubble.swift */; };
-		DT1CH05 /* ChatMealCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT2CH05 /* ChatMealCardView.swift */; };
-		DT1CH06 /* ChatDayCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT2CH06 /* ChatDayCardView.swift */; };
-		DT1CH07 /* MacroStackBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = DT2CH07 /* MacroStackBar.swift */; };
-		E10001 /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20001 /* AuthViewModel.swift */; };
-		E10002 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20002 /* LoginView.swift */; };
-		E10003 /* RecordViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20003 /* RecordViewModel.swift */; };
-		E10004 /* CalendarViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20004 /* CalendarViewModel.swift */; };
-		E10005 /* StatsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20005 /* StatsViewModel.swift */; };
-		E10006 /* SearchViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20006 /* SearchViewModel.swift */; };
-		E10007 /* CategoriesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20007 /* CategoriesViewModel.swift */; };
-		E258883E63844B231847FCF0 /* ChargeDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16A698C7EEF686C57695DBA8 /* ChargeDetailView.swift */; };
-		E388FF0F4AE279B6C9099FEE /* ScheduleDayCellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 813FA531B52FC382C20B699F /* ScheduleDayCellView.swift */; };
-		E574D8B442A50FE739D2797E /* ChargeCostQueueViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2752001B1F1C6B23D62A759B /* ChargeCostQueueViewModel.swift */; };
-		E79FC13D69A9C1D841B88449 /* ChargeRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CC3CC54FB4A7E913816594F /* ChargeRow.swift */; };
-		E9ED799BF0F12E5D22DA0296 /* ChartPoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 961A0AFE42DC5F675D6EF817 /* ChartPoint.swift */; };
-		EAD60DE46F1B149DA45D02A0 /* VehicleModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 690A0D0A21A54E8BE01CDC21 /* VehicleModels.swift */; };
-		EB02C36F09E042FBA560DB49 /* ScheduleDayEditViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27B9109A23976C3D60DF063E /* ScheduleDayEditViewModel.swift */; };
-		EB0B5D92B892DFD790210BC3 /* StateTimelineViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09020C369FEE3FA5F7F7D34F /* StateTimelineViewModel.swift */; };
-		F10001 /* Date+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20001 /* Date+Extensions.swift */; };
-		F10002 /* Color+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20002 /* Color+Extensions.swift */; };
-		F10003 /* Double+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20003 /* Double+Extensions.swift */; };
-		F33F620CD4368B122B01E979 /* MonthlyBarLineChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78050D87EA38A6611E1D3DED /* MonthlyBarLineChart.swift */; };
-		F9751C4B6B5D1C95A3710733 /* VehicleService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20B6114D2ABD214EB18A5C1 /* VehicleService.swift */; };
-		FA164F9609CE37556A81E26A /* DispatchUploadViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B580B47689143646299A23EE /* DispatchUploadViewModel.swift */; };
-		G10001 /* WeekdayHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = G20001 /* WeekdayHeaderView.swift */; };
-		G10002 /* DayCellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = G20002 /* DayCellView.swift */; };
-		G10003 /* CalendarHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = G20003 /* CalendarHeaderView.swift */; };
-		GLS10001 /* GlassTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = GLS20001 /* GlassTokens.swift */; };
-		GLS10002 /* GlassCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = GLS20002 /* GlassCard.swift */; };
-		GLS10003 /* GlassButtonStyles.swift in Sources */ = {isa = PBXBuildFile; fileRef = GLS20003 /* GlassButtonStyles.swift */; };
-		GLS10004 /* GlassBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = GLS20004 /* GlassBackground.swift */; };
-		H10001 /* OvereatSelectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = H20001 /* OvereatSelectorView.swift */; };
-		H10002 /* RecordListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = H20002 /* RecordListView.swift */; };
-		H10003 /* RecordFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = H20003 /* RecordFormView.swift */; };
-		H10004 /* RecordSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = H20004 /* RecordSheetView.swift */; };
-		I10001 /* MonthGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = I20001 /* MonthGridView.swift */; };
-		I10002 /* CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = I20002 /* CalendarView.swift */; };
-		I10003 /* CalendarScrollLock.swift in Sources */ = {isa = PBXBuildFile; fileRef = I20003 /* CalendarScrollLock.swift */; };
-		I10004 /* SideDrawerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = I20004 /* SideDrawerView.swift */; };
-		I10005 /* EmojiIconView.swift in Sources */ = {isa = PBXBuildFile; fileRef = I20005 /* EmojiIconView.swift */; };
-		J10001 /* StatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = J20001 /* StatsView.swift */; };
-		J10002 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = J20002 /* SearchView.swift */; };
-		J10003 /* CategoriesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = J20003 /* CategoriesView.swift */; };
-		K10002 /* PairEventsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = K20002 /* PairEventsViewModel.swift */; };
-		K10003 /* PairView.swift in Sources */ = {isa = PBXBuildFile; fileRef = K20003 /* PairView.swift */; };
-		K10004 /* PairEventsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = K20004 /* PairEventsView.swift */; };
-		L10001 /* StudyModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = L20001 /* StudyModels.swift */; };
-		L10002 /* StudyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = L20002 /* StudyService.swift */; };
-		L10003 /* StudyTimerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = L20003 /* StudyTimerViewModel.swift */; };
-		L10004 /* StudyTimerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = L20004 /* StudyTimerView.swift */; };
-		L10005 /* StudyTimerAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = L20005 /* StudyTimerAttributes.swift */; };
-		L10006 /* StudyRecordViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = L20006 /* StudyRecordViewModel.swift */; };
-		L10007 /* WeeklyStudyRecordSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = L20007 /* WeeklyStudyRecordSection.swift */; };
-		L10010 /* StudyTimerCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = L20010 /* StudyTimerCardView.swift */; };
-		L10011 /* StudySubjectPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = L20011 /* StudySubjectPicker.swift */; };
-		L10012 /* StudyWeeklyGoalCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = L20012 /* StudyWeeklyGoalCard.swift */; };
-		L10013 /* StudyTodayTimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = L20013 /* StudyTodayTimelineView.swift */; };
-		LG10001 /* LedgerModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20001 /* LedgerModels.swift */; };
-		LG10002 /* LedgerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20002 /* LedgerService.swift */; };
-		LG10003 /* LedgerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20003 /* LedgerViewModel.swift */; };
-		LG10004 /* LedgerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20004 /* LedgerView.swift */; };
-		LG10005 /* LedgerEntryFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20005 /* LedgerEntryFormView.swift */; };
-		LG10006 /* LedgerEntryDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20006 /* LedgerEntryDetailView.swift */; };
-		LG10007 /* LedgerRecurringView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20007 /* LedgerRecurringView.swift */; };
-		LG10008 /* LedgerApiKeysView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20008 /* LedgerApiKeysView.swift */; };
-		LG10009 /* LedgerStatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20009 /* LedgerStatsView.swift */; };
-		LG10010 /* LedgerSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20010 /* LedgerSearchView.swift */; };
-		LG10011 /* LedgerInboundFailuresView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20011 /* LedgerInboundFailuresView.swift */; };
-		LG10020 /* LedgerStatsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20020 /* LedgerStatsViewModel.swift */; };
-		LG10021 /* LedgerStatsSummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20021 /* LedgerStatsSummaryCard.swift */; };
-		LG10022 /* LedgerStatsChartCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20022 /* LedgerStatsChartCard.swift */; };
-		LG10023 /* LedgerStatsListCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20023 /* LedgerStatsListCards.swift */; };
-		LG10024 /* YearPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = LG20024 /* YearPickerSheet.swift */; };
-		MC10001 /* MembershipCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = MC20001 /* MembershipCardView.swift */; };
-		MPS10001 /* MonthPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = MPS20001 /* MonthPickerSheet.swift */; };
-		N10001 /* NotificationScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = N20001 /* NotificationScheduler.swift */; };
-		N10002 /* LiveActivityCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = N20002 /* LiveActivityCoordinator.swift */; };
-		QA10001 /* QuickActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = QA20001 /* QuickActions.swift */; };
-		SW10001 /* SwimWorkout.swift in Sources */ = {isa = PBXBuildFile; fileRef = SW20001 /* SwimWorkout.swift */; };
-		SW10002 /* HealthKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = SW20002 /* HealthKitService.swift */; };
-		SW10003 /* SwimRecordViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = SW20003 /* SwimRecordViewModel.swift */; };
-		SW10004 /* SwimRecordListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SW20004 /* SwimRecordListView.swift */; };
-		SW10005 /* SwimLap.swift in Sources */ = {isa = PBXBuildFile; fileRef = SW20005 /* SwimLap.swift */; };
-		SW10006 /* SwimWorkoutDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SW20006 /* SwimWorkoutDetailView.swift */; };
-		SW10007 /* SwimSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = SW20007 /* SwimSet.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -264,230 +44,10 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		046B106EAA5F4B74F6C937EF /* VehicleHealthViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VehicleHealthViewModel.swift; sourceTree = "<group>"; };
-		08E59B5B0855655231B8D1EE /* VehicleHealthModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VehicleHealthModels.swift; sourceTree = "<group>"; };
-		09020C369FEE3FA5F7F7D34F /* StateTimelineViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StateTimelineViewModel.swift; sourceTree = "<group>"; };
-		0B389E9541F66717EB0D7392 /* VehicleOverviewTab.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = VehicleOverviewTab.swift; path = Vehicle/VehicleOverviewTab.swift; sourceTree = "<group>"; };
-		1061EE82F134CAE49735C9D5 /* VehicleTrendChart.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = VehicleTrendChart.swift; path = Vehicle/VehicleTrendChart.swift; sourceTree = "<group>"; };
-		1290DDC78D6B77BC67BF5EFC /* BatteryNowCard.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = BatteryNowCard.swift; path = Vehicle/BatteryNowCard.swift; sourceTree = "<group>"; };
-		16A698C7EEF686C57695DBA8 /* ChargeDetailView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ChargeDetailView.swift; path = Charge/ChargeDetailView.swift; sourceTree = "<group>"; };
-		1F98D63C2CC1AFA4FA2AA471 /* RankBarList.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = RankBarList.swift; path = Vehicle/Charts/RankBarList.swift; sourceTree = "<group>"; };
-		26AE34FD1C4248D055A63A49 /* ChargeService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ChargeService.swift; sourceTree = "<group>"; };
-		2752001B1F1C6B23D62A759B /* ChargeCostQueueViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ChargeCostQueueViewModel.swift; sourceTree = "<group>"; };
-		27B9109A23976C3D60DF063E /* ScheduleDayEditViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ScheduleDayEditViewModel.swift; sourceTree = "<group>"; };
-		2969E3F2EAA5A9B4E033CC8F /* ScheduleViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ScheduleViewModel.swift; sourceTree = "<group>"; };
-		2A1655D9FB504D22636292C1 /* DispatchReviewViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DispatchReviewViewModel.swift; sourceTree = "<group>"; };
-		2CC3CC54FB4A7E913816594F /* ChargeRow.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ChargeRow.swift; path = Charge/ChargeRow.swift; sourceTree = "<group>"; };
-		2F5C927A43E15178A5FF6653 /* DistributionBarChart.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DistributionBarChart.swift; path = Vehicle/Charts/DistributionBarChart.swift; sourceTree = "<group>"; };
-		31E35F0A8552B9B837195D2F /* BatteryWindowCard.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = BatteryWindowCard.swift; path = Vehicle/BatteryWindowCard.swift; sourceTree = "<group>"; };
-		33C282968375906893CFAD99 /* DriveTimeHeatmap.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DriveTimeHeatmap.swift; path = Vehicle/DriveTimeHeatmap.swift; sourceTree = "<group>"; };
-		3BE34C241CBA8854FC3246DE /* ChargeModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ChargeModels.swift; sourceTree = "<group>"; };
-		43CBFE3ABE85FBB0C5FB8DBF /* DriveBucketCards.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DriveBucketCards.swift; path = Vehicle/DriveBucketCards.swift; sourceTree = "<group>"; };
-		500C8A449D7289022605592E /* VehicleTheme.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VehicleTheme.swift; sourceTree = "<group>"; };
-		50285BAA6308B5D509F6F401 /* MonthlyBarChart.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MonthlyBarChart.swift; path = Vehicle/Charts/MonthlyBarChart.swift; sourceTree = "<group>"; };
-		503CF88FD62CD5DF10233D57 /* StatsChargeSection.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = StatsChargeSection.swift; path = Vehicle/StatsChargeSection.swift; sourceTree = "<group>"; };
-		50927D9E81F45A3172899214 /* StateTimelineModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StateTimelineModels.swift; sourceTree = "<group>"; };
-		55393AF69906229CC877CA9B /* BatteryHealthCard.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = BatteryHealthCard.swift; path = Vehicle/BatteryHealthCard.swift; sourceTree = "<group>"; };
-		5ABE2410B818951F5517EC74 /* ChargeTotalsModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ChargeTotalsModels.swift; sourceTree = "<group>"; };
-		5BBE7AB261F331755E2DC9C9 /* StatsParkSection.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = StatsParkSection.swift; path = Vehicle/StatsParkSection.swift; sourceTree = "<group>"; };
-		60574F8D44D3658931EEA927 /* InsightsModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = InsightsModels.swift; sourceTree = "<group>"; };
-		67B93513DEE856B6F9D4BE9B /* StatsPlaceSection.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = StatsPlaceSection.swift; path = Vehicle/StatsPlaceSection.swift; sourceTree = "<group>"; };
-		690A0D0A21A54E8BE01CDC21 /* VehicleModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VehicleModels.swift; sourceTree = "<group>"; };
-		6C17B2756F0E576D57B12DB0 /* HeatmapGrid.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = HeatmapGrid.swift; path = Vehicle/Charts/HeatmapGrid.swift; sourceTree = "<group>"; };
-		70222E6D42ADFB926C91C06A /* DonutChart.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DonutChart.swift; path = Vehicle/Charts/DonutChart.swift; sourceTree = "<group>"; };
-		C79C757DB0FE40F39F3AB813 /* DonutLeaderLayout.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DonutLeaderLayout.swift; path = Vehicle/Charts/DonutLeaderLayout.swift; sourceTree = "<group>"; };
-		77EA0C38FD701A857D17DCF5 /* VehicleStatsTab.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = VehicleStatsTab.swift; path = Vehicle/VehicleStatsTab.swift; sourceTree = "<group>"; };
-		78050D87EA38A6611E1D3DED /* MonthlyBarLineChart.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MonthlyBarLineChart.swift; path = Vehicle/Charts/MonthlyBarLineChart.swift; sourceTree = "<group>"; };
-		7EE2658BE836DAFED195B3A5 /* DispatchReviewView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DispatchReviewView.swift; path = Dispatch/DispatchReviewView.swift; sourceTree = "<group>"; };
-		7F178E8439FA7AF1E8234A2B /* ScheduleView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ScheduleView.swift; path = Schedule/ScheduleView.swift; sourceTree = "<group>"; };
-		813FA531B52FC382C20B699F /* ScheduleDayCellView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ScheduleDayCellView.swift; path = Schedule/ScheduleDayCellView.swift; sourceTree = "<group>"; };
-		81E0B46A3062F87E70EB3688 /* BatteryWindowModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BatteryWindowModels.swift; sourceTree = "<group>"; };
-		823FB1E6072082F5CCEE8AC8 /* VehicleView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = VehicleView.swift; path = Vehicle/VehicleView.swift; sourceTree = "<group>"; };
 		880AD4662F5F071100777742 /* StudyTimerWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = StudyTimerWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		880AD4682F5F071100777742 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		880AD46A2F5F071200777742 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
-		880AD4852F5F0C6100777742 /* StudyDeepLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyDeepLink.swift; sourceTree = "<group>"; };
-		8825C7512F5B148A00E46B14 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
-		8825C7542F5B1A1E00E46B14 /* AdminView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminView.swift; sourceTree = "<group>"; };
-		8825C7552F5B1A1E00E46B14 /* UserManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserManagementView.swift; sourceTree = "<group>"; };
-		8825C7592F5B1A4400E46B14 /* UserManagementViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserManagementViewModel.swift; sourceTree = "<group>"; };
-		8825C75B2F5B1A4C00E46B14 /* UserService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserService.swift; sourceTree = "<group>"; };
-		88C2E2B22F557CCD001249F8 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
-		88DD96EC2F61B3A900E60283 /* StudyRecordView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyRecordView.swift; sourceTree = "<group>"; };
-		88EBCBE73E844A5092ABC002 /* VehicleStatsViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VehicleStatsViewModel.swift; sourceTree = "<group>"; };
-		91FF808F31A8E2E333C035E5 /* ChartCard.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ChartCard.swift; path = Vehicle/Charts/ChartCard.swift; sourceTree = "<group>"; };
-		928AF4C8D9E51E1F78D6D88C /* MonthlyLineChart.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MonthlyLineChart.swift; path = Vehicle/Charts/MonthlyLineChart.swift; sourceTree = "<group>"; };
-		961A0AFE42DC5F675D6EF817 /* ChartPoint.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ChartPoint.swift; path = Vehicle/Charts/ChartPoint.swift; sourceTree = "<group>"; };
-		A1C9DA97EA2D7E94602135D9 /* TirePressureCard.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TirePressureCard.swift; path = Vehicle/TirePressureCard.swift; sourceTree = "<group>"; };
-		A20001 /* WooriHaruApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WooriHaruApp.swift; sourceTree = "<group>"; };
-		A20002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		A20003 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		A20004 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		A20005 /* WooriHaru.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WooriHaru.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		A8E190C9E72954D3FC527E56 /* DegradationTrendChart.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DegradationTrendChart.swift; path = Vehicle/DegradationTrendChart.swift; sourceTree = "<group>"; };
-		AA200001 /* PairStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairStore.swift; sourceTree = "<group>"; };
-		AA200002 /* CategoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryStore.swift; sourceTree = "<group>"; };
-		AA200003 /* SubjectStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjectStore.swift; sourceTree = "<group>"; };
-		AA200004 /* PauseTypeStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PauseTypeStore.swift; sourceTree = "<group>"; };
-		AA200005 /* Logger+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Logger+Extensions.swift"; sourceTree = "<group>"; };
-		AA200006 /* SessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionManager.swift; sourceTree = "<group>"; };
-		B20001 /* DDayBadgeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DDayBadgeService.swift; sourceTree = "<group>"; };
-		B34192AF4757E913DF4D0FA4 /* VehicleStatusViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VehicleStatusViewModel.swift; sourceTree = "<group>"; };
-		B44EDE6DEE677F59B1D8BC0B /* StatsDriveSection.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = StatsDriveSection.swift; path = Vehicle/StatsDriveSection.swift; sourceTree = "<group>"; };
-		B580B47689143646299A23EE /* DispatchUploadViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DispatchUploadViewModel.swift; sourceTree = "<group>"; };
-		B6BB6AAFBAB44DCD1635C839 /* DispatchUploadView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DispatchUploadView.swift; path = Dispatch/DispatchUploadView.swift; sourceTree = "<group>"; };
-		BC8A90FDD89774BFAF064AA2 /* VehicleSummaryViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VehicleSummaryViewModel.swift; sourceTree = "<group>"; };
-		C20001 /* User.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = User.swift; sourceTree = "<group>"; };
-		C20002 /* Category.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Category.swift; sourceTree = "<group>"; };
-		C20003 /* DailyRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyRecord.swift; sourceTree = "<group>"; };
-		C20004 /* OvereatLevel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OvereatLevel.swift; sourceTree = "<group>"; };
-		C20005 /* PairInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairInfo.swift; sourceTree = "<group>"; };
-		C20006 /* PairEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairEvent.swift; sourceTree = "<group>"; };
-		C20007 /* APIResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIResponse.swift; sourceTree = "<group>"; };
-		C3CFFE3A79B6F07B2C5605DB /* ChargeTotalsViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ChargeTotalsViewModel.swift; sourceTree = "<group>"; };
-		C85E944AC6A6BF9E0CE1543F /* ChargeCurveChart.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ChargeCurveChart.swift; path = Charge/ChargeCurveChart.swift; sourceTree = "<group>"; };
-		CA3EB25C1FED0089E8CC935F /* CostBreakdownCard.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CostBreakdownCard.swift; path = Vehicle/CostBreakdownCard.swift; sourceTree = "<group>"; };
-		D20001 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
-		D20002 /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
-		D20003 /* RecordService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordService.swift; sourceTree = "<group>"; };
-		D20004 /* CategoryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryService.swift; sourceTree = "<group>"; };
-		D20005 /* PairService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairService.swift; sourceTree = "<group>"; };
-		D20006 /* PairEventService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairEventService.swift; sourceTree = "<group>"; };
-		D20007 /* HolidayService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HolidayService.swift; sourceTree = "<group>"; };
-		D20B6114D2ABD214EB18A5C1 /* VehicleService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VehicleService.swift; sourceTree = "<group>"; };
-		D2F12F9042F52F62E68D3B63 /* VehicleChargeTab.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = VehicleChargeTab.swift; path = Vehicle/VehicleChargeTab.swift; sourceTree = "<group>"; };
-		D3969DDF508574526929B164 /* DriveStatsCard.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DriveStatsCard.swift; path = Vehicle/DriveStatsCard.swift; sourceTree = "<group>"; };
-		D49A101711DCAF5B5FAFD364 /* DispatchModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DispatchModels.swift; sourceTree = "<group>"; };
-		D4A2F8E3D8868F29934E27D0 /* ChargeTotalsCard.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ChargeTotalsCard.swift; path = Vehicle/ChargeTotalsCard.swift; sourceTree = "<group>"; };
-		D5946F8BE2411A7B092525B6 /* ScheduleDayEditSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ScheduleDayEditSheet.swift; path = Schedule/ScheduleDayEditSheet.swift; sourceTree = "<group>"; };
-		D80FDE88B927023C50D1C62C /* DriveInsightsModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DriveInsightsModels.swift; sourceTree = "<group>"; };
-		DT20001 /* UIImage+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIImage+Extensions.swift"; sourceTree = "<group>"; };
-		DT20002 /* DietErrorCode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DietErrorCode.swift; sourceTree = "<group>"; };
-		DT20003 /* Diet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Diet.swift; sourceTree = "<group>"; };
-		DT20004 /* MealAnalysis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealAnalysis.swift; sourceTree = "<group>"; };
-		DT20005 /* NutritionProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionProfile.swift; sourceTree = "<group>"; };
-		DT20006 /* Food.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Food.swift; sourceTree = "<group>"; };
-		DT20007 /* FrequentItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrequentItem.swift; sourceTree = "<group>"; };
-		DT20008 /* DietStats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DietStats.swift; sourceTree = "<group>"; };
-		DT20009 /* NutritionMath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionMath.swift; sourceTree = "<group>"; };
-		DT20010 /* DietService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DietService.swift; sourceTree = "<group>"; };
-		DT20011 /* NutritionProfileViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionProfileViewModel.swift; sourceTree = "<group>"; };
-		DT20012 /* NutritionProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionProfileView.swift; sourceTree = "<group>"; };
-		DT20013 /* DietDayViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DietDayViewModel.swift; sourceTree = "<group>"; };
-		DT20014 /* DietScoreRing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DietScoreRing.swift; sourceTree = "<group>"; };
-		DT20015 /* MacroBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacroBar.swift; sourceTree = "<group>"; };
-		DT20016 /* ScoreBasisCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScoreBasisCard.swift; sourceTree = "<group>"; };
-		DT20017 /* NutrientLimitRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutrientLimitRow.swift; sourceTree = "<group>"; };
-		DT20018 /* DietHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DietHomeView.swift; sourceTree = "<group>"; };
-		DT20019 /* MealCaptureViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealCaptureViewModel.swift; sourceTree = "<group>"; };
-		DT20020 /* MealCaptureSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealCaptureSheet.swift; sourceTree = "<group>"; };
-		DT20021 /* PhotoStrip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoStrip.swift; sourceTree = "<group>"; };
-		DT20022 /* MealConfirmViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealConfirmViewModel.swift; sourceTree = "<group>"; };
-		DT20023 /* MealConfirmView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealConfirmView.swift; sourceTree = "<group>"; };
-		DT20024 /* FrequentItemList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrequentItemList.swift; sourceTree = "<group>"; };
-		DT20025 /* MealItemEditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealItemEditView.swift; sourceTree = "<group>"; };
-		DT20026 /* MealDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealDetailViewModel.swift; sourceTree = "<group>"; };
-		DT20027 /* MealDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealDetailView.swift; sourceTree = "<group>"; };
-		DT20028 /* DietStatsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DietStatsViewModel.swift; sourceTree = "<group>"; };
-		DT20029 /* DietStatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DietStatsView.swift; sourceTree = "<group>"; };
-		DT20030 /* FoodPickSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodPickSource.swift; sourceTree = "<group>"; };
-		DT20031 /* FoodPickRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodPickRow.swift; sourceTree = "<group>"; };
-		DT20032 /* FoodDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodDetailViewModel.swift; sourceTree = "<group>"; };
-		DT20033 /* FoodDetailSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodDetailSheet.swift; sourceTree = "<group>"; };
-		DT20034 /* MealItemPickViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealItemPickViewModel.swift; sourceTree = "<group>"; };
-		DT20035 /* PhotoLibrarySaver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoLibrarySaver.swift; sourceTree = "<group>"; };
-		DT20036 /* PhotoViewerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoViewerViewModel.swift; sourceTree = "<group>"; };
-		DT20037 /* PhotoViewerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoViewerSheet.swift; sourceTree = "<group>"; };
-		DT20040 /* NutrientRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutrientRow.swift; sourceTree = "<group>"; };
-		DT20041 /* GramStepper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GramStepper.swift; sourceTree = "<group>"; };
-		DT20042 /* MealItemQuantityViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealItemQuantityViewModel.swift; sourceTree = "<group>"; };
-		DT20043 /* MealItemQuantitySheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealItemQuantitySheet.swift; sourceTree = "<group>"; };
-		DT20044 /* PhotoDragDismiss.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoDragDismiss.swift; sourceTree = "<group>"; };
-		DT20099 /* DietInputLimits.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DietInputLimits.swift; sourceTree = "<group>"; };
-		DT2CH01 /* DietChat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DietChat.swift; sourceTree = "<group>"; };
-		DT2CH02 /* DietChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DietChatViewModel.swift; sourceTree = "<group>"; };
-		DT2CH03 /* DietChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DietChatView.swift; sourceTree = "<group>"; };
-		DT2CH04 /* ChatBubble.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatBubble.swift; sourceTree = "<group>"; };
-		DT2CH05 /* ChatMealCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatMealCardView.swift; sourceTree = "<group>"; };
-		DT2CH06 /* ChatDayCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatDayCardView.swift; sourceTree = "<group>"; };
-		DT2CH07 /* MacroStackBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacroStackBar.swift; sourceTree = "<group>"; };
-		E20001 /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
-		E20002 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
-		E20003 /* RecordViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordViewModel.swift; sourceTree = "<group>"; };
-		E20004 /* CalendarViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarViewModel.swift; sourceTree = "<group>"; };
-		E20005 /* StatsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsViewModel.swift; sourceTree = "<group>"; };
-		E20006 /* SearchViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchViewModel.swift; sourceTree = "<group>"; };
-		E20007 /* CategoriesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoriesViewModel.swift; sourceTree = "<group>"; };
-		E35541B5F9426977FDBBE648 /* ChargeCostQueueView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ChargeCostQueueView.swift; path = Vehicle/ChargeCostQueueView.swift; sourceTree = "<group>"; };
-		E54EE8F06DA8FCE8902A9684 /* StateTimelineChart.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = StateTimelineChart.swift; path = Vehicle/StateTimelineChart.swift; sourceTree = "<group>"; };
-		ECC4B98A560D4DF30F7501E2 /* MonthGridBuilder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MonthGridBuilder.swift; sourceTree = "<group>"; };
-		F20001 /* Date+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Date+Extensions.swift"; sourceTree = "<group>"; };
-		F20002 /* Color+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Extensions.swift"; sourceTree = "<group>"; };
-		F20003 /* Double+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Double+Extensions.swift"; sourceTree = "<group>"; };
-		F5F4676817AD0CAD839E0430 /* DivergingMonthlyBarChart.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DivergingMonthlyBarChart.swift; path = Vehicle/Charts/DivergingMonthlyBarChart.swift; sourceTree = "<group>"; };
-		FD3CE59E8DF1F82DF405E788 /* DispatchService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DispatchService.swift; sourceTree = "<group>"; };
-		G20001 /* WeekdayHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekdayHeaderView.swift; sourceTree = "<group>"; };
-		G20002 /* DayCellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayCellView.swift; sourceTree = "<group>"; };
-		G20003 /* CalendarHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarHeaderView.swift; sourceTree = "<group>"; };
-		GLS20001 /* GlassTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassTokens.swift; sourceTree = "<group>"; };
-		GLS20002 /* GlassCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassCard.swift; sourceTree = "<group>"; };
-		GLS20003 /* GlassButtonStyles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassButtonStyles.swift; sourceTree = "<group>"; };
-		GLS20004 /* GlassBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassBackground.swift; sourceTree = "<group>"; };
-		H20001 /* OvereatSelectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OvereatSelectorView.swift; sourceTree = "<group>"; };
-		H20002 /* RecordListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordListView.swift; sourceTree = "<group>"; };
-		H20003 /* RecordFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordFormView.swift; sourceTree = "<group>"; };
-		H20004 /* RecordSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordSheetView.swift; sourceTree = "<group>"; };
-		I20001 /* MonthGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonthGridView.swift; sourceTree = "<group>"; };
-		I20002 /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarView.swift; sourceTree = "<group>"; };
-		I20003 /* CalendarScrollLock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarScrollLock.swift; sourceTree = "<group>"; };
-		I20004 /* SideDrawerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SideDrawerView.swift; sourceTree = "<group>"; };
-		I20005 /* EmojiIconView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmojiIconView.swift; sourceTree = "<group>"; };
-		J20001 /* StatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsView.swift; sourceTree = "<group>"; };
-		J20002 /* SearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchView.swift; sourceTree = "<group>"; };
-		J20003 /* CategoriesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoriesView.swift; sourceTree = "<group>"; };
-		K20002 /* PairEventsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairEventsViewModel.swift; sourceTree = "<group>"; };
-		K20003 /* PairView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairView.swift; sourceTree = "<group>"; };
-		K20004 /* PairEventsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairEventsView.swift; sourceTree = "<group>"; };
-		L20001 /* StudyModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyModels.swift; sourceTree = "<group>"; };
-		L20002 /* StudyService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyService.swift; sourceTree = "<group>"; };
-		L20003 /* StudyTimerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyTimerViewModel.swift; sourceTree = "<group>"; };
-		L20004 /* StudyTimerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyTimerView.swift; sourceTree = "<group>"; };
-		L20005 /* StudyTimerAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyTimerAttributes.swift; sourceTree = "<group>"; };
-		L20006 /* StudyRecordViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyRecordViewModel.swift; sourceTree = "<group>"; };
-		L20007 /* WeeklyStudyRecordSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyStudyRecordSection.swift; sourceTree = "<group>"; };
-		L20010 /* StudyTimerCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyTimerCardView.swift; sourceTree = "<group>"; };
-		L20011 /* StudySubjectPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudySubjectPicker.swift; sourceTree = "<group>"; };
-		L20012 /* StudyWeeklyGoalCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyWeeklyGoalCard.swift; sourceTree = "<group>"; };
-		L20013 /* StudyTodayTimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyTodayTimelineView.swift; sourceTree = "<group>"; };
-		LG20001 /* LedgerModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerModels.swift; sourceTree = "<group>"; };
-		LG20002 /* LedgerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerService.swift; sourceTree = "<group>"; };
-		LG20003 /* LedgerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerViewModel.swift; sourceTree = "<group>"; };
-		LG20004 /* LedgerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerView.swift; sourceTree = "<group>"; };
-		LG20005 /* LedgerEntryFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerEntryFormView.swift; sourceTree = "<group>"; };
-		LG20006 /* LedgerEntryDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerEntryDetailView.swift; sourceTree = "<group>"; };
-		LG20007 /* LedgerRecurringView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerRecurringView.swift; sourceTree = "<group>"; };
-		LG20008 /* LedgerApiKeysView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerApiKeysView.swift; sourceTree = "<group>"; };
-		LG20009 /* LedgerStatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerStatsView.swift; sourceTree = "<group>"; };
-		LG20010 /* LedgerSearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerSearchView.swift; sourceTree = "<group>"; };
-		LG20011 /* LedgerInboundFailuresView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerInboundFailuresView.swift; sourceTree = "<group>"; };
-		LG20020 /* LedgerStatsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerStatsViewModel.swift; sourceTree = "<group>"; };
-		LG20021 /* LedgerStatsSummaryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerStatsSummaryCard.swift; sourceTree = "<group>"; };
-		LG20022 /* LedgerStatsChartCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerStatsChartCard.swift; sourceTree = "<group>"; };
-		LG20023 /* LedgerStatsListCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerStatsListCards.swift; sourceTree = "<group>"; };
-		LG20024 /* YearPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YearPickerSheet.swift; sourceTree = "<group>"; };
-		MC20001 /* MembershipCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MembershipCardView.swift; sourceTree = "<group>"; };
-		MPS20001 /* MonthPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonthPickerSheet.swift; sourceTree = "<group>"; };
-		N20001 /* NotificationScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationScheduler.swift; sourceTree = "<group>"; };
-		N20002 /* LiveActivityCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityCoordinator.swift; sourceTree = "<group>"; };
-		QA20001 /* QuickActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActions.swift; sourceTree = "<group>"; };
-		SW20001 /* SwimWorkout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwimWorkout.swift; sourceTree = "<group>"; };
-		SW20002 /* HealthKitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitService.swift; sourceTree = "<group>"; };
-		SW20003 /* SwimRecordViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwimRecordViewModel.swift; sourceTree = "<group>"; };
-		SW20004 /* SwimRecordListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwimRecordListView.swift; sourceTree = "<group>"; };
-		SW20005 /* SwimLap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwimLap.swift; sourceTree = "<group>"; };
-		SW20006 /* SwimWorkoutDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwimWorkoutDetailView.swift; sourceTree = "<group>"; };
-		SW20007 /* SwimSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwimSet.swift; sourceTree = "<group>"; };
-		SW30001 /* WooriHaru.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = WooriHaru.entitlements; sourceTree = "<group>"; };
 		TT100002 /* WooriHaruTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WooriHaruTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -498,6 +58,14 @@
 				Info.plist,
 			);
 			target = 880AD4652F5F071100777742 /* StudyTimerWidgetExtension */;
+		};
+		FS100002 /* Exceptions for "WooriHaru" folder in "WooriHaru" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+				WooriHaru.entitlements,
+			);
+			target = A50001 /* WooriHaru */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -523,6 +91,29 @@
 			explicitFolders = (
 			);
 			path = WooriHaruTests;
+			sourceTree = "<group>";
+		};
+		FS100001 /* WooriHaru */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				FS100002 /* Exceptions for "WooriHaru" folder in "WooriHaru" target */,
+			);
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = WooriHaru;
+			sourceTree = "<group>";
+		};
+		FS100003 /* Shared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = Shared;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -554,34 +145,6 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		16D251238C85460507EA66D4 /* Charts */ = {
-			isa = PBXGroup;
-			children = (
-				961A0AFE42DC5F675D6EF817 /* ChartPoint.swift */,
-				50285BAA6308B5D509F6F401 /* MonthlyBarChart.swift */,
-				928AF4C8D9E51E1F78D6D88C /* MonthlyLineChart.swift */,
-				78050D87EA38A6611E1D3DED /* MonthlyBarLineChart.swift */,
-				70222E6D42ADFB926C91C06A /* DonutChart.swift */,
-				C79C757DB0FE40F39F3AB813 /* DonutLeaderLayout.swift */,
-				91FF808F31A8E2E333C035E5 /* ChartCard.swift */,
-				2F5C927A43E15178A5FF6653 /* DistributionBarChart.swift */,
-				1F98D63C2CC1AFA4FA2AA471 /* RankBarList.swift */,
-				6C17B2756F0E576D57B12DB0 /* HeatmapGrid.swift */,
-				F5F4676817AD0CAD839E0430 /* DivergingMonthlyBarChart.swift */,
-			);
-			name = Charts;
-			sourceTree = "<group>";
-		};
-		4D87006A40CD34B77177903D /* Charge */ = {
-			isa = PBXGroup;
-			children = (
-				16A698C7EEF686C57695DBA8 /* ChargeDetailView.swift */,
-				2CC3CC54FB4A7E913816594F /* ChargeRow.swift */,
-				C85E944AC6A6BF9E0CE1543F /* ChargeCurveChart.swift */,
-			);
-			name = Charge;
-			sourceTree = "<group>";
-		};
 		880AD4672F5F071100777742 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
@@ -591,92 +154,16 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		8825C7522F5B148A00E46B14 /* Profile */ = {
-			isa = PBXGroup;
-			children = (
-				8825C7512F5B148A00E46B14 /* ProfileView.swift */,
-				MC20001 /* MembershipCardView.swift */,
-			);
-			path = Profile;
-			sourceTree = "<group>";
-		};
-		8825C7562F5B1A1E00E46B14 /* Admin */ = {
-			isa = PBXGroup;
-			children = (
-				8825C7542F5B1A1E00E46B14 /* AdminView.swift */,
-				8825C7552F5B1A1E00E46B14 /* UserManagementView.swift */,
-			);
-			path = Admin;
-			sourceTree = "<group>";
-		};
-		88335FBEFD39AF0F8B02F432 /* Vehicle */ = {
-			isa = PBXGroup;
-			children = (
-				D2F12F9042F52F62E68D3B63 /* VehicleChargeTab.swift */,
-				1061EE82F134CAE49735C9D5 /* VehicleTrendChart.swift */,
-				0B389E9541F66717EB0D7392 /* VehicleOverviewTab.swift */,
-				E35541B5F9426977FDBBE648 /* ChargeCostQueueView.swift */,
-				823FB1E6072082F5CCEE8AC8 /* VehicleView.swift */,
-				55393AF69906229CC877CA9B /* BatteryHealthCard.swift */,
-				A8E190C9E72954D3FC527E56 /* DegradationTrendChart.swift */,
-				A1C9DA97EA2D7E94602135D9 /* TirePressureCard.swift */,
-				43CBFE3ABE85FBB0C5FB8DBF /* DriveBucketCards.swift */,
-				33C282968375906893CFAD99 /* DriveTimeHeatmap.swift */,
-				77EA0C38FD701A857D17DCF5 /* VehicleStatsTab.swift */,
-				D4A2F8E3D8868F29934E27D0 /* ChargeTotalsCard.swift */,
-				1290DDC78D6B77BC67BF5EFC /* BatteryNowCard.swift */,
-				E54EE8F06DA8FCE8902A9684 /* StateTimelineChart.swift */,
-				D3969DDF508574526929B164 /* DriveStatsCard.swift */,
-				16D251238C85460507EA66D4 /* Charts */,
-				B44EDE6DEE677F59B1D8BC0B /* StatsDriveSection.swift */,
-				503CF88FD62CD5DF10233D57 /* StatsChargeSection.swift */,
-				CA3EB25C1FED0089E8CC935F /* CostBreakdownCard.swift */,
-				5BBE7AB261F331755E2DC9C9 /* StatsParkSection.swift */,
-				67B93513DEE856B6F9D4BE9B /* StatsPlaceSection.swift */,
-				31E35F0A8552B9B837195D2F /* BatteryWindowCard.swift */,
-			);
-			name = Vehicle;
-			sourceTree = "<group>";
-		};
-		9030C9537F5D37B0A62F1A9D /* Schedule */ = {
-			isa = PBXGroup;
-			children = (
-				7F178E8439FA7AF1E8234A2B /* ScheduleView.swift */,
-				813FA531B52FC382C20B699F /* ScheduleDayCellView.swift */,
-				D5946F8BE2411A7B092525B6 /* ScheduleDayEditSheet.swift */,
-			);
-			name = Schedule;
-			sourceTree = "<group>";
-		};
 		A40001 = {
 			isa = PBXGroup;
 			children = (
-				A40002 /* WooriHaru */,
+				FS100001 /* WooriHaru */,
+				FS100003 /* Shared */,
 				880AD46C2F5F071200777742 /* StudyTimerWidget */,
 				TT100001 /* WooriHaruTests */,
 				880AD4672F5F071100777742 /* Frameworks */,
 				A40003 /* Products */,
 			);
-			sourceTree = "<group>";
-		};
-		A40002 /* WooriHaru */ = {
-			isa = PBXGroup;
-			children = (
-				88C2E2B22F557CCD001249F8 /* Info.plist */,
-				SW30001 /* WooriHaru.entitlements */,
-				A20001 /* WooriHaruApp.swift */,
-				A20002 /* ContentView.swift */,
-				QA20001 /* QuickActions.swift */,
-				B40001 /* Models */,
-				B40002 /* Services */,
-				AA400001 /* Stores */,
-				B40003 /* ViewModels */,
-				B40004 /* Views */,
-				B40015 /* Extensions */,
-				A20003 /* Assets.xcassets */,
-				A40004 /* Preview Content */,
-			);
-			path = WooriHaru;
 			sourceTree = "<group>";
 		};
 		A40003 /* Products */ = {
@@ -687,352 +174,6 @@
 				TT100002 /* WooriHaruTests.xctest */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		A40004 /* Preview Content */ = {
-			isa = PBXGroup;
-			children = (
-				A20004 /* Preview Assets.xcassets */,
-			);
-			path = "Preview Content";
-			sourceTree = "<group>";
-		};
-		AA400001 /* Stores */ = {
-			isa = PBXGroup;
-			children = (
-				AA200001 /* PairStore.swift */,
-				AA200002 /* CategoryStore.swift */,
-				AA200003 /* SubjectStore.swift */,
-				AA200004 /* PauseTypeStore.swift */,
-			);
-			path = Stores;
-			sourceTree = "<group>";
-		};
-		B2DCD63DCF31A7775D50544D /* Dispatch */ = {
-			isa = PBXGroup;
-			children = (
-				B6BB6AAFBAB44DCD1635C839 /* DispatchUploadView.swift */,
-				7EE2658BE836DAFED195B3A5 /* DispatchReviewView.swift */,
-			);
-			name = Dispatch;
-			sourceTree = "<group>";
-		};
-		B40001 /* Models */ = {
-			isa = PBXGroup;
-			children = (
-				880AD4852F5F0C6100777742 /* StudyDeepLink.swift */,
-				C20007 /* APIResponse.swift */,
-				C20001 /* User.swift */,
-				C20002 /* Category.swift */,
-				C20003 /* DailyRecord.swift */,
-				C20004 /* OvereatLevel.swift */,
-				C20005 /* PairInfo.swift */,
-				C20006 /* PairEvent.swift */,
-				L20001 /* StudyModels.swift */,
-				L20005 /* StudyTimerAttributes.swift */,
-				LG20001 /* LedgerModels.swift */,
-				SW20001 /* SwimWorkout.swift */,
-				SW20005 /* SwimLap.swift */,
-				SW20007 /* SwimSet.swift */,
-				DT20002 /* DietErrorCode.swift */,
-				DT20003 /* Diet.swift */,
-				DT2CH01 /* DietChat.swift */,
-				DT20004 /* MealAnalysis.swift */,
-				DT20005 /* NutritionProfile.swift */,
-				DT20006 /* Food.swift */,
-				DT20007 /* FrequentItem.swift */,
-				DT20008 /* DietStats.swift */,
-				DT20009 /* NutritionMath.swift */,
-				DT20099 /* DietInputLimits.swift */,
-				DT20030 /* FoodPickSource.swift */,
-				DT20041 /* GramStepper.swift */,
-				DT20040 /* NutrientRow.swift */,
-				DT20044 /* PhotoDragDismiss.swift */,
-				D49A101711DCAF5B5FAFD364 /* DispatchModels.swift */,
-				3BE34C241CBA8854FC3246DE /* ChargeModels.swift */,
-				690A0D0A21A54E8BE01CDC21 /* VehicleModels.swift */,
-				08E59B5B0855655231B8D1EE /* VehicleHealthModels.swift */,
-				D80FDE88B927023C50D1C62C /* DriveInsightsModels.swift */,
-				5ABE2410B818951F5517EC74 /* ChargeTotalsModels.swift */,
-				50927D9E81F45A3172899214 /* StateTimelineModels.swift */,
-				60574F8D44D3658931EEA927 /* InsightsModels.swift */,
-				81E0B46A3062F87E70EB3688 /* BatteryWindowModels.swift */,
-			);
-			path = Models;
-			sourceTree = "<group>";
-		};
-		B40002 /* Services */ = {
-			isa = PBXGroup;
-			children = (
-				DT20035 /* PhotoLibrarySaver.swift */,
-				8825C75B2F5B1A4C00E46B14 /* UserService.swift */,
-				D20001 /* APIClient.swift */,
-				D20002 /* AuthService.swift */,
-				D20003 /* RecordService.swift */,
-				D20004 /* CategoryService.swift */,
-				D20005 /* PairService.swift */,
-				D20006 /* PairEventService.swift */,
-				D20007 /* HolidayService.swift */,
-				L20002 /* StudyService.swift */,
-				N20001 /* NotificationScheduler.swift */,
-				B20001 /* DDayBadgeService.swift */,
-				N20002 /* LiveActivityCoordinator.swift */,
-				AA200006 /* SessionManager.swift */,
-				LG20002 /* LedgerService.swift */,
-				SW20002 /* HealthKitService.swift */,
-				DT20010 /* DietService.swift */,
-				FD3CE59E8DF1F82DF405E788 /* DispatchService.swift */,
-				26AE34FD1C4248D055A63A49 /* ChargeService.swift */,
-				D20B6114D2ABD214EB18A5C1 /* VehicleService.swift */,
-			);
-			path = Services;
-			sourceTree = "<group>";
-		};
-		B40003 /* ViewModels */ = {
-			isa = PBXGroup;
-			children = (
-				DT20036 /* PhotoViewerViewModel.swift */,
-				8825C7592F5B1A4400E46B14 /* UserManagementViewModel.swift */,
-				E20001 /* AuthViewModel.swift */,
-				E20004 /* CalendarViewModel.swift */,
-				E20003 /* RecordViewModel.swift */,
-				E20005 /* StatsViewModel.swift */,
-				E20006 /* SearchViewModel.swift */,
-				E20007 /* CategoriesViewModel.swift */,
-				K20002 /* PairEventsViewModel.swift */,
-				L20003 /* StudyTimerViewModel.swift */,
-				L20006 /* StudyRecordViewModel.swift */,
-				LG20003 /* LedgerViewModel.swift */,
-				LG20020 /* LedgerStatsViewModel.swift */,
-				SW20003 /* SwimRecordViewModel.swift */,
-				DT20011 /* NutritionProfileViewModel.swift */,
-				DT20013 /* DietDayViewModel.swift */,
-				DT2CH02 /* DietChatViewModel.swift */,
-				DT20022 /* MealConfirmViewModel.swift */,
-				DT20019 /* MealCaptureViewModel.swift */,
-				DT20026 /* MealDetailViewModel.swift */,
-				DT20042 /* MealItemQuantityViewModel.swift */,
-				DT20028 /* DietStatsViewModel.swift */,
-				DT20032 /* FoodDetailViewModel.swift */,
-				DT20034 /* MealItemPickViewModel.swift */,
-				B580B47689143646299A23EE /* DispatchUploadViewModel.swift */,
-				2A1655D9FB504D22636292C1 /* DispatchReviewViewModel.swift */,
-				2969E3F2EAA5A9B4E033CC8F /* ScheduleViewModel.swift */,
-				27B9109A23976C3D60DF063E /* ScheduleDayEditViewModel.swift */,
-				BC8A90FDD89774BFAF064AA2 /* VehicleSummaryViewModel.swift */,
-				B34192AF4757E913DF4D0FA4 /* VehicleStatusViewModel.swift */,
-				2752001B1F1C6B23D62A759B /* ChargeCostQueueViewModel.swift */,
-				046B106EAA5F4B74F6C937EF /* VehicleHealthViewModel.swift */,
-				88EBCBE73E844A5092ABC002 /* VehicleStatsViewModel.swift */,
-				C3CFFE3A79B6F07B2C5605DB /* ChargeTotalsViewModel.swift */,
-				09020C369FEE3FA5F7F7D34F /* StateTimelineViewModel.swift */,
-			);
-			path = ViewModels;
-			sourceTree = "<group>";
-		};
-		B40004 /* Views */ = {
-			isa = PBXGroup;
-			children = (
-				8825C7562F5B1A1E00E46B14 /* Admin */,
-				8825C7522F5B148A00E46B14 /* Profile */,
-				B40005 /* Calendar */,
-				B40006 /* Record */,
-				B40007 /* Stats */,
-				B40008 /* Search */,
-				B40009 /* Pair */,
-				B40010 /* Category */,
-				B40011 /* Auth */,
-				B40012 /* Components */,
-				L40001 /* Study */,
-				LG40001 /* Ledger */,
-				SW40001 /* Swim */,
-				DT40001 /* Diet */,
-				B2DCD63DCF31A7775D50544D /* Dispatch */,
-				9030C9537F5D37B0A62F1A9D /* Schedule */,
-				4D87006A40CD34B77177903D /* Charge */,
-				88335FBEFD39AF0F8B02F432 /* Vehicle */,
-			);
-			path = Views;
-			sourceTree = "<group>";
-		};
-		B40005 /* Calendar */ = {
-			isa = PBXGroup;
-			children = (
-				I20002 /* CalendarView.swift */,
-				I20003 /* CalendarScrollLock.swift */,
-				G20003 /* CalendarHeaderView.swift */,
-				G20002 /* DayCellView.swift */,
-				I20001 /* MonthGridView.swift */,
-				G20001 /* WeekdayHeaderView.swift */,
-				MPS20001 /* MonthPickerSheet.swift */,
-				ECC4B98A560D4DF30F7501E2 /* MonthGridBuilder.swift */,
-			);
-			path = Calendar;
-			sourceTree = "<group>";
-		};
-		B40006 /* Record */ = {
-			isa = PBXGroup;
-			children = (
-				H20001 /* OvereatSelectorView.swift */,
-				H20002 /* RecordListView.swift */,
-				H20003 /* RecordFormView.swift */,
-				H20004 /* RecordSheetView.swift */,
-			);
-			path = Record;
-			sourceTree = "<group>";
-		};
-		B40007 /* Stats */ = {
-			isa = PBXGroup;
-			children = (
-				J20001 /* StatsView.swift */,
-			);
-			path = Stats;
-			sourceTree = "<group>";
-		};
-		B40008 /* Search */ = {
-			isa = PBXGroup;
-			children = (
-				J20002 /* SearchView.swift */,
-			);
-			path = Search;
-			sourceTree = "<group>";
-		};
-		B40009 /* Pair */ = {
-			isa = PBXGroup;
-			children = (
-				K20003 /* PairView.swift */,
-				K20004 /* PairEventsView.swift */,
-			);
-			path = Pair;
-			sourceTree = "<group>";
-		};
-		B40010 /* Category */ = {
-			isa = PBXGroup;
-			children = (
-				J20003 /* CategoriesView.swift */,
-			);
-			path = Category;
-			sourceTree = "<group>";
-		};
-		B40011 /* Auth */ = {
-			isa = PBXGroup;
-			children = (
-				E20002 /* LoginView.swift */,
-			);
-			path = Auth;
-			sourceTree = "<group>";
-		};
-		B40012 /* Components */ = {
-			isa = PBXGroup;
-			children = (
-				I20004 /* SideDrawerView.swift */,
-				I20005 /* EmojiIconView.swift */,
-				GLS40001 /* Glass */,
-			);
-			path = Components;
-			sourceTree = "<group>";
-		};
-		B40015 /* Extensions */ = {
-			isa = PBXGroup;
-			children = (
-				F20001 /* Date+Extensions.swift */,
-				F20002 /* Color+Extensions.swift */,
-				F20003 /* Double+Extensions.swift */,
-				AA200005 /* Logger+Extensions.swift */,
-				DT20001 /* UIImage+Extensions.swift */,
-			);
-			path = Extensions;
-			sourceTree = "<group>";
-		};
-		DT40001 /* Diet */ = {
-			isa = PBXGroup;
-			children = (
-				DT20037 /* PhotoViewerSheet.swift */,
-				DT40002 /* Components */,
-				DT20012 /* NutritionProfileView.swift */,
-				DT20018 /* DietHomeView.swift */,
-				DT2CH03 /* DietChatView.swift */,
-				DT20025 /* MealItemEditView.swift */,
-				DT20043 /* MealItemQuantitySheet.swift */,
-				DT20023 /* MealConfirmView.swift */,
-				DT20020 /* MealCaptureSheet.swift */,
-				DT20027 /* MealDetailView.swift */,
-				DT20029 /* DietStatsView.swift */,
-				DT20033 /* FoodDetailSheet.swift */,
-			);
-			path = Diet;
-			sourceTree = "<group>";
-		};
-		DT40002 /* Components */ = {
-			isa = PBXGroup;
-			children = (
-				DT20014 /* DietScoreRing.swift */,
-				DT20015 /* MacroBar.swift */,
-				DT2CH04 /* ChatBubble.swift */,
-				DT2CH05 /* ChatMealCardView.swift */,
-				DT2CH06 /* ChatDayCardView.swift */,
-				DT2CH07 /* MacroStackBar.swift */,
-				DT20016 /* ScoreBasisCard.swift */,
-				DT20017 /* NutrientLimitRow.swift */,
-				DT20024 /* FrequentItemList.swift */,
-				DT20021 /* PhotoStrip.swift */,
-				DT20031 /* FoodPickRow.swift */,
-			);
-			path = Components;
-			sourceTree = "<group>";
-		};
-		GLS40001 /* Glass */ = {
-			isa = PBXGroup;
-			children = (
-				GLS20001 /* GlassTokens.swift */,
-				GLS20002 /* GlassCard.swift */,
-				GLS20003 /* GlassButtonStyles.swift */,
-				GLS20004 /* GlassBackground.swift */,
-				500C8A449D7289022605592E /* VehicleTheme.swift */,
-			);
-			path = Glass;
-			sourceTree = "<group>";
-		};
-		L40001 /* Study */ = {
-			isa = PBXGroup;
-			children = (
-				88DD96EC2F61B3A900E60283 /* StudyRecordView.swift */,
-				L20004 /* StudyTimerView.swift */,
-				L20010 /* StudyTimerCardView.swift */,
-				L20011 /* StudySubjectPicker.swift */,
-				L20012 /* StudyWeeklyGoalCard.swift */,
-				L20013 /* StudyTodayTimelineView.swift */,
-				L20007 /* WeeklyStudyRecordSection.swift */,
-			);
-			path = Study;
-			sourceTree = "<group>";
-		};
-		LG40001 /* Ledger */ = {
-			isa = PBXGroup;
-			children = (
-				LG20004 /* LedgerView.swift */,
-				LG20005 /* LedgerEntryFormView.swift */,
-				LG20006 /* LedgerEntryDetailView.swift */,
-				LG20007 /* LedgerRecurringView.swift */,
-				LG20008 /* LedgerApiKeysView.swift */,
-				LG20009 /* LedgerStatsView.swift */,
-				LG20021 /* LedgerStatsSummaryCard.swift */,
-				LG20022 /* LedgerStatsChartCard.swift */,
-				LG20023 /* LedgerStatsListCards.swift */,
-				LG20024 /* YearPickerSheet.swift */,
-				LG20010 /* LedgerSearchView.swift */,
-				LG20011 /* LedgerInboundFailuresView.swift */,
-			);
-			path = Ledger;
-			sourceTree = "<group>";
-		};
-		SW40001 /* Swim */ = {
-			isa = PBXGroup;
-			children = (
-				SW20004 /* SwimRecordListView.swift */,
-				SW20006 /* SwimWorkoutDetailView.swift */,
-			);
-			path = Swim;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -1052,6 +193,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				880AD46C2F5F071200777742 /* StudyTimerWidget */,
+				FS100003 /* Shared */,
 			);
 			name = StudyTimerWidgetExtension;
 			productName = StudyTimerWidgetExtension;
@@ -1071,6 +213,10 @@
 			);
 			dependencies = (
 				880AD47B2F5F071300777742 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				FS100001 /* WooriHaru */,
+				FS100003 /* Shared */,
 			);
 			name = WooriHaru;
 			productName = WooriHaru;
@@ -1152,8 +298,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A10004 /* Preview Assets.xcassets in Resources */,
-				A10003 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1164,8 +308,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				880AD4842F5F088400777742 /* StudyTimerAttributes.swift in Sources */,
-				880AD4862F5F0C6100777742 /* StudyDeepLink.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1173,222 +315,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				DT10037 /* PhotoViewerSheet.swift in Sources */,
-				DT10036 /* PhotoViewerViewModel.swift in Sources */,
-				DT10035 /* PhotoLibrarySaver.swift in Sources */,
-				A10002 /* ContentView.swift in Sources */,
-				A10001 /* WooriHaruApp.swift in Sources */,
-				QA10001 /* QuickActions.swift in Sources */,
-				C10001 /* User.swift in Sources */,
-				C10002 /* Category.swift in Sources */,
-				C10003 /* DailyRecord.swift in Sources */,
-				8825C7572F5B1A1E00E46B14 /* UserManagementView.swift in Sources */,
-				8825C7582F5B1A1E00E46B14 /* AdminView.swift in Sources */,
-				C10004 /* OvereatLevel.swift in Sources */,
-				C10005 /* PairInfo.swift in Sources */,
-				C10006 /* PairEvent.swift in Sources */,
-				C10007 /* APIResponse.swift in Sources */,
-				D10001 /* APIClient.swift in Sources */,
-				D10002 /* AuthService.swift in Sources */,
-				D10003 /* RecordService.swift in Sources */,
-				8825C75A2F5B1A4400E46B14 /* UserManagementViewModel.swift in Sources */,
-				D10004 /* CategoryService.swift in Sources */,
-				D10005 /* PairService.swift in Sources */,
-				D10006 /* PairEventService.swift in Sources */,
-				LG10001 /* LedgerModels.swift in Sources */,
-				LG10002 /* LedgerService.swift in Sources */,
-				LG10003 /* LedgerViewModel.swift in Sources */,
-				LG10004 /* LedgerView.swift in Sources */,
-				LG10005 /* LedgerEntryFormView.swift in Sources */,
-				LG10006 /* LedgerEntryDetailView.swift in Sources */,
-				LG10007 /* LedgerRecurringView.swift in Sources */,
-				LG10008 /* LedgerApiKeysView.swift in Sources */,
-				LG10009 /* LedgerStatsView.swift in Sources */,
-				LG10020 /* LedgerStatsViewModel.swift in Sources */,
-				LG10021 /* LedgerStatsSummaryCard.swift in Sources */,
-				LG10022 /* LedgerStatsChartCard.swift in Sources */,
-				LG10023 /* LedgerStatsListCards.swift in Sources */,
-				LG10024 /* YearPickerSheet.swift in Sources */,
-				LG10010 /* LedgerSearchView.swift in Sources */,
-				LG10011 /* LedgerInboundFailuresView.swift in Sources */,
-				MC10001 /* MembershipCardView.swift in Sources */,
-				B10001 /* DDayBadgeService.swift in Sources */,
-				D10007 /* HolidayService.swift in Sources */,
-				E10001 /* AuthViewModel.swift in Sources */,
-				E10003 /* RecordViewModel.swift in Sources */,
-				880AD4872F5F0C6100777742 /* StudyDeepLink.swift in Sources */,
-				E10004 /* CalendarViewModel.swift in Sources */,
-				E10005 /* StatsViewModel.swift in Sources */,
-				8825C7532F5B148A00E46B14 /* ProfileView.swift in Sources */,
-				E10006 /* SearchViewModel.swift in Sources */,
-				E10007 /* CategoriesViewModel.swift in Sources */,
-				E10002 /* LoginView.swift in Sources */,
-				F10001 /* Date+Extensions.swift in Sources */,
-				F10002 /* Color+Extensions.swift in Sources */,
-				F10003 /* Double+Extensions.swift in Sources */,
-				DT10001 /* UIImage+Extensions.swift in Sources */,
-				DT10002 /* DietErrorCode.swift in Sources */,
-				DT10003 /* Diet.swift in Sources */,
-				DT1CH01 /* DietChat.swift in Sources */,
-				DT1CH02 /* DietChatViewModel.swift in Sources */,
-				DT1CH03 /* DietChatView.swift in Sources */,
-				DT1CH04 /* ChatBubble.swift in Sources */,
-				DT1CH05 /* ChatMealCardView.swift in Sources */,
-				DT1CH06 /* ChatDayCardView.swift in Sources */,
-				DT1CH07 /* MacroStackBar.swift in Sources */,
-				DT10004 /* MealAnalysis.swift in Sources */,
-				DT10005 /* NutritionProfile.swift in Sources */,
-				DT10006 /* Food.swift in Sources */,
-				DT10007 /* FrequentItem.swift in Sources */,
-				DT10008 /* DietStats.swift in Sources */,
-				DT10009 /* NutritionMath.swift in Sources */,
-				DT10099 /* DietInputLimits.swift in Sources */,
-				DT10030 /* FoodPickSource.swift in Sources */,
-				DT10041 /* GramStepper.swift in Sources */,
-				DT10040 /* NutrientRow.swift in Sources */,
-				DT10044 /* PhotoDragDismiss.swift in Sources */,
-				DT10031 /* FoodPickRow.swift in Sources */,
-				DT10032 /* FoodDetailViewModel.swift in Sources */,
-				DT10033 /* FoodDetailSheet.swift in Sources */,
-				DT10034 /* MealItemPickViewModel.swift in Sources */,
-				DT10010 /* DietService.swift in Sources */,
-				DT10011 /* NutritionProfileViewModel.swift in Sources */,
-				DT10012 /* NutritionProfileView.swift in Sources */,
-				DT10013 /* DietDayViewModel.swift in Sources */,
-				DT10014 /* DietScoreRing.swift in Sources */,
-				DT10015 /* MacroBar.swift in Sources */,
-				DT10016 /* ScoreBasisCard.swift in Sources */,
-				DT10017 /* NutrientLimitRow.swift in Sources */,
-				DT10018 /* DietHomeView.swift in Sources */,
-				DT10024 /* FrequentItemList.swift in Sources */,
-				DT10025 /* MealItemEditView.swift in Sources */,
-				DT10043 /* MealItemQuantitySheet.swift in Sources */,
-				DT10021 /* PhotoStrip.swift in Sources */,
-				DT10022 /* MealConfirmViewModel.swift in Sources */,
-				DT10023 /* MealConfirmView.swift in Sources */,
-				DT10019 /* MealCaptureViewModel.swift in Sources */,
-				DT10020 /* MealCaptureSheet.swift in Sources */,
-				DT10026 /* MealDetailViewModel.swift in Sources */,
-				DT10042 /* MealItemQuantityViewModel.swift in Sources */,
-				DT10027 /* MealDetailView.swift in Sources */,
-				DT10028 /* DietStatsViewModel.swift in Sources */,
-				DT10029 /* DietStatsView.swift in Sources */,
-				G10001 /* WeekdayHeaderView.swift in Sources */,
-				G10002 /* DayCellView.swift in Sources */,
-				MPS10001 /* MonthPickerSheet.swift in Sources */,
-				G10003 /* CalendarHeaderView.swift in Sources */,
-				H10001 /* OvereatSelectorView.swift in Sources */,
-				H10002 /* RecordListView.swift in Sources */,
-				H10003 /* RecordFormView.swift in Sources */,
-				H10004 /* RecordSheetView.swift in Sources */,
-				I10001 /* MonthGridView.swift in Sources */,
-				I10002 /* CalendarView.swift in Sources */,
-				I10003 /* CalendarScrollLock.swift in Sources */,
-				88DD96ED2F61B3A900E60283 /* StudyRecordView.swift in Sources */,
-				I10004 /* SideDrawerView.swift in Sources */,
-				GLS10001 /* GlassTokens.swift in Sources */,
-				GLS10002 /* GlassCard.swift in Sources */,
-				GLS10003 /* GlassButtonStyles.swift in Sources */,
-				GLS10004 /* GlassBackground.swift in Sources */,
-				I10005 /* EmojiIconView.swift in Sources */,
-				J10001 /* StatsView.swift in Sources */,
-				J10002 /* SearchView.swift in Sources */,
-				J10003 /* CategoriesView.swift in Sources */,
-				8825C75C2F5B1A4C00E46B14 /* UserService.swift in Sources */,
-				K10002 /* PairEventsViewModel.swift in Sources */,
-				K10003 /* PairView.swift in Sources */,
-				K10004 /* PairEventsView.swift in Sources */,
-				L10001 /* StudyModels.swift in Sources */,
-				L10002 /* StudyService.swift in Sources */,
-				L10003 /* StudyTimerViewModel.swift in Sources */,
-				L10004 /* StudyTimerView.swift in Sources */,
-				L10010 /* StudyTimerCardView.swift in Sources */,
-				L10011 /* StudySubjectPicker.swift in Sources */,
-				L10012 /* StudyWeeklyGoalCard.swift in Sources */,
-				L10013 /* StudyTodayTimelineView.swift in Sources */,
-				L10005 /* StudyTimerAttributes.swift in Sources */,
-				L10006 /* StudyRecordViewModel.swift in Sources */,
-				L10007 /* WeeklyStudyRecordSection.swift in Sources */,
-				N10001 /* NotificationScheduler.swift in Sources */,
-				N10002 /* LiveActivityCoordinator.swift in Sources */,
-				AA100001 /* PairStore.swift in Sources */,
-				AA100002 /* CategoryStore.swift in Sources */,
-				AA100003 /* SubjectStore.swift in Sources */,
-				AA100004 /* PauseTypeStore.swift in Sources */,
-				AA100005 /* Logger+Extensions.swift in Sources */,
-				AA100006 /* SessionManager.swift in Sources */,
-				SW10001 /* SwimWorkout.swift in Sources */,
-				SW10002 /* HealthKitService.swift in Sources */,
-				SW10003 /* SwimRecordViewModel.swift in Sources */,
-				SW10004 /* SwimRecordListView.swift in Sources */,
-				SW10005 /* SwimLap.swift in Sources */,
-				SW10006 /* SwimWorkoutDetailView.swift in Sources */,
-				SW10007 /* SwimSet.swift in Sources */,
-				453AA4BE6F7BD87A2E9F53F2 /* DispatchModels.swift in Sources */,
-				A96AC1C7074B35DF261C1958 /* DispatchService.swift in Sources */,
-				FA164F9609CE37556A81E26A /* DispatchUploadViewModel.swift in Sources */,
-				B266A4283E345D5B46CD51CA /* DispatchReviewViewModel.swift in Sources */,
-				1634F29B8B1A65276DEFCC09 /* DispatchUploadView.swift in Sources */,
-				01E5347F6D87126F3B0EEDF0 /* DispatchReviewView.swift in Sources */,
-				8CB8971CA8F25A48887B5650 /* MonthGridBuilder.swift in Sources */,
-				A10AD40468D182F380D2EDED /* ScheduleViewModel.swift in Sources */,
-				02C05E2522888FC9FA1914FE /* ScheduleView.swift in Sources */,
-				E388FF0F4AE279B6C9099FEE /* ScheduleDayCellView.swift in Sources */,
-				EB02C36F09E042FBA560DB49 /* ScheduleDayEditViewModel.swift in Sources */,
-				A454F886AE329C10E8408C58 /* ScheduleDayEditSheet.swift in Sources */,
-				5C5516406BA9FF99BA05D27C /* ChargeModels.swift in Sources */,
-				0FE415DE0482F63A481ADDE6 /* ChargeService.swift in Sources */,
-				E258883E63844B231847FCF0 /* ChargeDetailView.swift in Sources */,
-				EAD60DE46F1B149DA45D02A0 /* VehicleModels.swift in Sources */,
-				F9751C4B6B5D1C95A3710733 /* VehicleService.swift in Sources */,
-				22B1CD41D5FC96447160F8DE /* VehicleSummaryViewModel.swift in Sources */,
-				5F2C227D2377263FA664B89B /* VehicleStatusViewModel.swift in Sources */,
-				E574D8B442A50FE739D2797E /* ChargeCostQueueViewModel.swift in Sources */,
-				6E5B03307FE94212F65DE0EB /* VehicleChargeTab.swift in Sources */,
-				71052B6E8FC03636B1952BCA /* VehicleTrendChart.swift in Sources */,
-				E79FC13D69A9C1D841B88449 /* ChargeRow.swift in Sources */,
-				2C5AD835581BB34B0C4D2A1D /* VehicleOverviewTab.swift in Sources */,
-				1B362266C00662B998F7BD46 /* ChargeCostQueueView.swift in Sources */,
-				897E42FFEAD38504BCF1B861 /* VehicleView.swift in Sources */,
-				2E857A7404304B09C194DE32 /* VehicleHealthModels.swift in Sources */,
-				D5F2677FF07AC04CED770A52 /* VehicleHealthViewModel.swift in Sources */,
-				135C407B4A2788482CAC5AB4 /* BatteryHealthCard.swift in Sources */,
-				66815BE79E2D79EC1E9415DC /* DegradationTrendChart.swift in Sources */,
-				64FC2509D0DC00E50F76B330 /* TirePressureCard.swift in Sources */,
-				A4AE9B9A3DE1AA33DD7F5E0A /* DriveInsightsModels.swift in Sources */,
-				81BEF6B554755A720DF556F2 /* VehicleStatsViewModel.swift in Sources */,
-				4BBAF07594578B59BCED2771 /* DriveBucketCards.swift in Sources */,
-				526879331CA284F16F93357E /* DriveTimeHeatmap.swift in Sources */,
-				D29BC72FA25A011F29E78D93 /* VehicleStatsTab.swift in Sources */,
-				ACC163F6EC88007072F01938 /* ChargeTotalsModels.swift in Sources */,
-				6D123C9F2258DDCB2EA6E76F /* ChargeTotalsViewModel.swift in Sources */,
-				9B8FDCDA4FB0EF187F1CB0B6 /* ChargeTotalsCard.swift in Sources */,
-				D4675DAC74C1146DB7179E37 /* ChargeCurveChart.swift in Sources */,
-				7A2EBE0EE90236D293C9D669 /* StateTimelineModels.swift in Sources */,
-				EB0B5D92B892DFD790210BC3 /* StateTimelineViewModel.swift in Sources */,
-				3ABE1D81C2171ADDA771C858 /* BatteryNowCard.swift in Sources */,
-				C357EE1396A9C735D6DCBB57 /* StateTimelineChart.swift in Sources */,
-				DA93828D80FD5DBC1FEBF0F2 /* DriveStatsCard.swift in Sources */,
-				D4A14506B36EE336E3DF1100 /* VehicleTheme.swift in Sources */,
-				E9ED799BF0F12E5D22DA0296 /* ChartPoint.swift in Sources */,
-				D93142B6B70EAFEFD1D4A4F4 /* MonthlyBarChart.swift in Sources */,
-				A8156A2E0E58AEF21CD71611 /* MonthlyLineChart.swift in Sources */,
-				F33F620CD4368B122B01E979 /* MonthlyBarLineChart.swift in Sources */,
-				468DD679EA4A32218274D9DA /* DonutChart.swift in Sources */,
-				50EE45F7F324407B832DF8CF /* DonutLeaderLayout.swift in Sources */,
-				D0ED996CA0ABF016EE8731B0 /* ChartCard.swift in Sources */,
-				2C28D2C1699EF8B31AE6D80B /* StatsDriveSection.swift in Sources */,
-				40A969BDBA7D9F0BFF3354C6 /* StatsChargeSection.swift in Sources */,
-				7B423E15D604151B4C9F61D3 /* CostBreakdownCard.swift in Sources */,
-				CDA451B131462A81C4C81CEE /* InsightsModels.swift in Sources */,
-				DBF548CE86E57030B0252CD1 /* DistributionBarChart.swift in Sources */,
-				6E61B6AF90309458C4C6D9D0 /* RankBarList.swift in Sources */,
-				8BB898B17D4BBEB63A05130F /* HeatmapGrid.swift in Sources */,
-				2DC1BF3C2B794343CF66873E /* StatsParkSection.swift in Sources */,
-				8D0403140D65DEE3C68E2C92 /* StatsPlaceSection.swift in Sources */,
-				49C42CBC990E95F9BF593C0F /* BatteryWindowModels.swift in Sources */,
-				64BE5535BDC86A3B9C696F82 /* BatteryWindowCard.swift in Sources */,
-				D0C9138A67CB999FDBD11F1E /* DivergingMonthlyBarChart.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
