@@ -14,7 +14,6 @@
 ## Global Constraints
 
 - **테스트 명령:** `xcodebuild -project WooriHaru.xcodeproj -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPhone 17' test`
-- **앱 타겟은 파일 자동 인식이 안 된다.** `WooriHaru/` 아래 새 `.swift`를 만들면 반드시 `ruby scripts/xcode-add-files.rb <경로…>`로 등록하고, `WooriHaru.xcodeproj/project.pbxproj` 변경을 그 커밋에 포함한다. 테스트 타겟(`WooriHaruTests/`)은 폴더 동기화라 등록이 필요 없다.
 - **증분 빌드가 변경을 놓치는 일이 있다.** 각 태스크의 마지막 테스트 실행 전에 바꾼 파일을 `touch`하고, 마지막 태스크의 최종 확인은 `clean test`로 한다.
 - **1단계 화면을 건드리지 않는다.** `VehicleHealthTab`·`BatteryHealthCard`·`DegradationTrendChart`·`TirePressureCard`·`VehicleHealthViewModel`은 이 계획에서 한 줄도 수정하지 않는다. `VehicleView`만 탭이 하나 느는 만큼 바뀐다.
 - **금액 입력 경로를 건드리지 않는다.** `ChargeCostQueueView`·`ChargeDetailView`·`ChargeService`는 diff 0줄이어야 한다.
@@ -361,14 +360,7 @@ enum DriveFormat {
 }
 ```
 
-- [ ] **Step 4: 앱 타겟에 파일을 등록한다**
-
-```bash
-ruby scripts/xcode-add-files.rb WooriHaru/Models/DriveInsightsModels.swift
-```
-Expected: `등록: WooriHaru/Models/DriveInsightsModels.swift`
-
-- [ ] **Step 5: 테스트가 통과하는지 확인한다**
+- [ ] **Step 4: 테스트가 통과하는지 확인한다**
 
 ```bash
 touch WooriHaru/Models/DriveInsightsModels.swift
@@ -377,7 +369,7 @@ xcodebuild -project WooriHaru.xcodeproj -scheme WooriHaru \
 ```
 Expected: PASS (`DriveInsightsMathTests` 9건 포함, 기존 643건도 통과)
 
-- [ ] **Step 6: 커밋**
+- [ ] **Step 5: 커밋**
 
 ```bash
 git add WooriHaru/Models/DriveInsightsModels.swift \
@@ -891,13 +883,7 @@ final class VehicleDriveViewModel {
 }
 ```
 
-- [ ] **Step 4: 앱 타겟에 파일을 등록한다**
-
-```bash
-ruby scripts/xcode-add-files.rb WooriHaru/ViewModels/VehicleDriveViewModel.swift
-```
-
-- [ ] **Step 5: 테스트가 통과하는지 확인한다**
+- [ ] **Step 4: 테스트가 통과하는지 확인한다**
 
 ```bash
 touch WooriHaru/ViewModels/VehicleDriveViewModel.swift
@@ -906,7 +892,7 @@ xcodebuild -project WooriHaru.xcodeproj -scheme WooriHaru \
 ```
 Expected: PASS (`VehicleDriveViewModelTests` 13건 포함)
 
-- [ ] **Step 6: 커밋**
+- [ ] **Step 5: 커밋**
 
 ```bash
 git add WooriHaru/ViewModels/VehicleDriveViewModel.swift \
@@ -1108,13 +1094,7 @@ private func header(_ title: String, _ trailing: String) -> some View {
 }
 ```
 
-- [ ] **Step 2: 앱 타겟에 파일을 등록한다**
-
-```bash
-ruby scripts/xcode-add-files.rb WooriHaru/Views/Vehicle/DriveBucketCards.swift
-```
-
-- [ ] **Step 3: 빌드가 통과하는지 확인한다**
+- [ ] **Step 2: 빌드가 통과하는지 확인한다**
 
 ```bash
 touch WooriHaru/Views/Vehicle/DriveBucketCards.swift
@@ -1123,13 +1103,13 @@ xcodebuild -project WooriHaru.xcodeproj -scheme WooriHaru \
 ```
 Expected: PASS
 
-- [ ] **Step 4: 프리뷰를 눈으로 확인한다**
+- [ ] **Step 3: 프리뷰를 눈으로 확인한다**
 
 - 전비 카드: 「10~20℃」가 가장 긴 진한 막대, 「영하」가 가장 짧다. 「30℃ 이상」은 값이 없어 막대가 없고 「—」다.
 - 거리 카드: 「0~5km」가 가장 긴 막대, 오른쪽 숫자가 「620회」.
 - 두 카드의 모수가 각각 「939회 기준」·「959회 기준」으로 **다르게** 적혀 있다.
 
-- [ ] **Step 5: 커밋**
+- [ ] **Step 4: 커밋**
 
 ```bash
 git add WooriHaru/Views/Vehicle/DriveBucketCards.swift WooriHaru.xcodeproj/project.pbxproj
@@ -1252,13 +1232,7 @@ struct DriveTimeHeatmap: View {
 }
 ```
 
-- [ ] **Step 2: 앱 타겟에 파일을 등록한다**
-
-```bash
-ruby scripts/xcode-add-files.rb WooriHaru/Views/Vehicle/DriveTimeHeatmap.swift
-```
-
-- [ ] **Step 3: 빌드가 통과하는지 확인한다**
+- [ ] **Step 2: 빌드가 통과하는지 확인한다**
 
 ```bash
 touch WooriHaru/Views/Vehicle/DriveTimeHeatmap.swift
@@ -1267,14 +1241,14 @@ xcodebuild -project WooriHaru.xcodeproj -scheme WooriHaru \
 ```
 Expected: PASS
 
-- [ ] **Step 4: 프리뷰를 눈으로 확인한다**
+- [ ] **Step 3: 프리뷰를 눈으로 확인한다**
 
 - 24칸이 가로로 다 들어가고 잘리지 않는다(아이폰 폭에서 칸 하나가 대략 11pt다).
 - 첫 줄이 「일」이고 그 줄의 14시가 옅게 차 있다 — **0이 일요일**인지 여기서 보인다.
 - 월~금 08시·17시가 진하다. 주말 라벨이 주황이다.
 - 둘째 프리뷰(표본 없음)는 전부 `slate100` 빈칸이다.
 
-- [ ] **Step 5: 커밋**
+- [ ] **Step 4: 커밋**
 
 ```bash
 git add WooriHaru/Views/Vehicle/DriveTimeHeatmap.swift WooriHaru.xcodeproj/project.pbxproj
@@ -1511,13 +1485,7 @@ struct VehicleView: View {
 
 **손대지 않는 곳:** `monthSwipeGesture`의 `including: tab == .summary ? .all : .subviews`는 그대로 맞다 — 주행 탭도 월이 없으므로 `.subviews`로 꺼진다. `fullScreenCover(onDismiss:)`도 그대로다(주행 탭에는 배지가 없다).
 
-- [ ] **Step 3: 앱 타겟에 파일을 등록한다**
-
-```bash
-ruby scripts/xcode-add-files.rb WooriHaru/Views/Vehicle/VehicleDriveTab.swift
-```
-
-- [ ] **Step 4: 전체 테스트를 clean으로 돌린다**
+- [ ] **Step 3: 전체 테스트를 clean으로 돌린다**
 
 ```bash
 xcodebuild -project WooriHaru.xcodeproj -scheme WooriHaru \
@@ -1527,7 +1495,7 @@ Expected: PASS — 기존 643건 + 이 계획의 신규분이 전부 통과.
 
 `steeringwheel` SF Symbol이 이 SDK에 없어 빌드가 깨지면 `car.side.fill`로 바꾸고 보고한다.
 
-- [ ] **Step 5: 실기로 확인한다**
+- [ ] **Step 4: 실기로 확인한다**
 
 **이 계획에서 코드로 확인할 수 없는 항목이다.** 시뮬레이터에서 차량 미니앱을 연다:
 
@@ -1539,7 +1507,7 @@ Expected: PASS — 기존 643건 + 이 계획의 신규분이 전부 통과.
 6. 건강 탭으로 갔다 주행 탭으로 돌아오면 **다시 부르지 않고** 보던 화면 그대로다.
 7. 「자주 가는 곳」 카드는 **보이지 않는다**(지오펜스가 0행이다).
 
-- [ ] **Step 6: 커밋**
+- [ ] **Step 5: 커밋**
 
 ```bash
 git add WooriHaru/Views/Vehicle/VehicleDriveTab.swift WooriHaru/Views/Vehicle/VehicleView.swift \

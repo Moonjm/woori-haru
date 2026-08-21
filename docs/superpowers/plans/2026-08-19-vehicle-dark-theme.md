@@ -14,7 +14,6 @@
 
 ## Global Constraints
 
-- **새 파일은 `ruby scripts/xcode-add-files.rb <경로...>`로 앱 타겟에 등록한다.** `WooriHaru/` 아래는 폴더 동기화가 없어 파일을 만들어 두기만 하면 **컴파일 대상에 잡히지 않는다.** `WooriHaruTests/`는 자동으로 잡힌다. **이 계획은 앱 타겟에 새 파일 하나(`VehicleTheme.swift`)를 만든다 — Task 1에서 반드시 등록한다.**
 - 전체 테스트: `xcodebuild test -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPhone 17 Pro'`. 단일 스위트는 뒤에 `-only-testing:WooriHaruTests/<스위트>`를 붙인다. **포그라운드로 돌린다** — 백그라운드로 띄우고 기다리면 턴이 끝나 버린다. 몇 분 걸리는 것이 정상이다.
 - 출력이 길다. `2>&1 | grep -E "Test run with|failed|error:|warning:|TEST SUCCEEDED|TEST FAILED" | tail -30`으로 거른다.
 - **`xcodebuild test`는 `-only-testing`을 줘도 테스트 번들 전체를 컴파일한다.** 어느 태스크도 컴파일이 깨진 채로 끝나면 안 된다.
@@ -320,27 +319,19 @@ extension View {
 }
 ```
 
-- [ ] **Step 4: 앱 타겟에 등록한다**
-
-```bash
-ruby scripts/xcode-add-files.rb WooriHaru/Views/Components/Glass/VehicleTheme.swift
-```
-
-등록하지 않으면 테스트 번들만 컴파일되고 **본 코드가 없어** `Cannot find 'VehicleTheme' in scope`가 그대로 남는다. `gem install --user-install xcodeproj`가 필요할 수 있다.
-
-- [ ] **Step 5: 테스트 통과를 확인한다**
+- [ ] **Step 4: 테스트 통과를 확인한다**
 
 Run: `xcodebuild test -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -only-testing:WooriHaruTests/VehicleThemeTests 2>&1 | grep -E "error:|TEST FAILED|TEST SUCCEEDED" | tail -10`
 
 Expected: TEST SUCCEEDED
 
-- [ ] **Step 6: 전체 테스트로 아무것도 안 깨졌는지 본다**
+- [ ] **Step 5: 전체 테스트로 아무것도 안 깨졌는지 본다**
 
 Run: `xcodebuild test -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPhone 17 Pro' 2>&1 | grep -E "Test run with|failed|error:|TEST SUCCEEDED|TEST FAILED" | tail -30`
 
 Expected: TEST SUCCEEDED. 이 단계까지는 화면이 아무것도 안 바뀐다 — 아무도 `VehicleTheme`을 아직 안 쓴다.
 
-- [ ] **Step 7: 커밋**
+- [ ] **Step 6: 커밋**
 
 ```bash
 git add WooriHaru/Views/Components/Glass/VehicleTheme.swift WooriHaruTests/VehicleThemeTests.swift WooriHaru.xcodeproj/project.pbxproj

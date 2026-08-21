@@ -12,7 +12,6 @@
 
 - 서버는 `toy-back`의 `feat/dispatch-day-edit-spec` 브랜치에 **이미 구현돼 있다**(`11cb1b8`). 계약은 `toy-back/docs/superpowers/specs/2026-08-13-dispatch-day-edit-design.md`. 앱 테스트는 대역(fake)으로 검증하고, 실제 왕복은 기기에서 확인한다.
 - 설계 문서: `docs/superpowers/specs/2026-08-13-schedule-day-edit-design.md`. 여기 적힌 판단과 어긋나게 구현하지 않는다.
-- **새로 만든 `WooriHaru/` 아래 Swift 파일은 반드시 `ruby scripts/xcode-add-files.rb <경로>`로 앱 타겟에 등록한다.** 앱 타겟은 폴더 동기화가 아니라서 파일만 만들면 컴파일 대상에 잡히지 않는다. `WooriHaruTests/`는 자동으로 잡히므로 등록하지 않는다.
 - 날짜 계산은 `Calendar.dispatchGregorian`(주입된 `calendar`)만 쓴다. `Date+Extensions`의 `.day`·`.month`·`.year`·`.weekday`는 `Calendar.current`(기기 설정)를 타므로 쓰지 않는다. **`.dateString`은 예외로 써도 된다** — 고정 포맷터(`ko_KR` + `yyyy-MM-dd`)라 기기 달력을 타지 않고, 기존 `ScheduleView`가 이미 조회 키로 쓰고 있다.
 - 아빠 순번 선택지는 `1`, `2`. 엄마 순번 선택지는 `"A"`, `"B"`, `"C"`. **저장된 값이 선택지에 없으면 그 값도 선택지에 함께 넣는다.**
 - 주석과 커밋 메시지는 한국어. 커밋 형식은 `feat: ~한다` / `fix: ~한다` / `docs: ~한다`.
@@ -659,13 +658,7 @@ final class ScheduleDayEditViewModel {
 }
 ```
 
-- [ ] **Step 4: 앱 타겟에 등록한다**
-
-```bash
-ruby scripts/xcode-add-files.rb WooriHaru/ViewModels/ScheduleDayEditViewModel.swift
-```
-
-- [ ] **Step 5: 통과를 확인한다**
+- [ ] **Step 4: 통과를 확인한다**
 
 Run:
 ```bash
@@ -675,7 +668,7 @@ xcodebuild test -project WooriHaru.xcodeproj -scheme WooriHaru \
 ```
 Expected: 전부 PASS
 
-- [ ] **Step 6: 커밋**
+- [ ] **Step 5: 커밋**
 
 ```bash
 git add WooriHaru/ViewModels/ScheduleDayEditViewModel.swift WooriHaruTests/ScheduleDayEditTests.swift WooriHaru.xcodeproj
@@ -1048,13 +1041,7 @@ struct ScheduleDayEditSheet: View {
 }
 ```
 
-- [ ] **Step 2: 앱 타겟에 등록한다**
-
-```bash
-ruby scripts/xcode-add-files.rb WooriHaru/Views/Schedule/ScheduleDayEditSheet.swift
-```
-
-- [ ] **Step 3: 빌드를 확인한다**
+- [ ] **Step 2: 빌드를 확인한다**
 
 Run:
 ```bash
@@ -1063,7 +1050,7 @@ xcodebuild build -project WooriHaru.xcodeproj -scheme WooriHaru \
 ```
 Expected: `BUILD SUCCEEDED`
 
-- [ ] **Step 4: 커밋**
+- [ ] **Step 3: 커밋**
 
 ```bash
 git add WooriHaru/Views/Schedule/ScheduleDayEditSheet.swift WooriHaru.xcodeproj

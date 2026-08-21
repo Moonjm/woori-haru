@@ -14,8 +14,6 @@
 ## Global Constraints
 
 - **테스트 명령:** `xcodebuild -project WooriHaru.xcodeproj -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPhone 17' test`
-- **앱 타겟은 파일 자동 인식이 안 된다.** `WooriHaru/` 아래 새 `.swift`를 만들면 반드시 `ruby scripts/xcode-add-files.rb <경로…>`로 등록한다. 테스트 타겟(`WooriHaruTests/`)은 폴더 동기화라 등록이 필요 없다.
-- **파일 이름을 바꾸면 `project.pbxproj`도 함께 고친다.** 등록 스크립트에는 제거 기능이 없다. `git mv` 뒤 `sed`로 pbxproj의 옛 파일명을 바꾼다(Task 7에 명령이 있다).
 - **증분 빌드가 변경을 놓치는 일이 있다.** 각 태스크의 마지막 테스트 실행 전에 바꾼 파일을 `touch`하고, 마지막 태스크의 최종 확인은 `clean test`로 한다.
 - **없는 값은 0이 아니라 「—」다.** 0은 「그렇게 측정됐다」는 뜻이라 「모른다」와 구분되지 않는다.
 - **못 받은 것을 「기록 없음」으로 그리지 않는다.** 실패는 재시도가 있는 실패 상태, 로딩은 「—」다.
@@ -358,14 +356,7 @@ extension VehicleFormat {
 }
 ```
 
-- [ ] **Step 5: 앱 타겟에 파일을 등록한다**
-
-```bash
-ruby scripts/xcode-add-files.rb WooriHaru/Models/VehicleHealthModels.swift
-```
-Expected: `등록: WooriHaru/Models/VehicleHealthModels.swift`
-
-- [ ] **Step 6: 테스트가 통과하는지 확인한다**
+- [ ] **Step 5: 테스트가 통과하는지 확인한다**
 
 ```bash
 touch WooriHaru/Models/VehicleHealthModels.swift WooriHaru/Models/VehicleModels.swift
@@ -374,7 +365,7 @@ xcodebuild -project WooriHaru.xcodeproj -scheme WooriHaru \
 ```
 Expected: PASS (`VehicleHealthMathTests` 9건 포함, 기존 테스트도 전부 통과)
 
-- [ ] **Step 7: 커밋**
+- [ ] **Step 6: 커밋**
 
 ```bash
 git add WooriHaru/Models/VehicleHealthModels.swift WooriHaru/Models/VehicleModels.swift \
@@ -814,14 +805,7 @@ final class VehicleHealthViewModel {
 }
 ```
 
-- [ ] **Step 4: 앱 타겟에 파일을 등록한다**
-
-```bash
-ruby scripts/xcode-add-files.rb WooriHaru/ViewModels/VehicleHealthViewModel.swift
-```
-Expected: `등록: WooriHaru/ViewModels/VehicleHealthViewModel.swift`
-
-- [ ] **Step 5: 테스트가 통과하는지 확인한다**
+- [ ] **Step 4: 테스트가 통과하는지 확인한다**
 
 ```bash
 touch WooriHaru/ViewModels/VehicleHealthViewModel.swift
@@ -830,7 +814,7 @@ xcodebuild -project WooriHaru.xcodeproj -scheme WooriHaru \
 ```
 Expected: PASS (`VehicleHealthViewModelTests` 11건 포함)
 
-- [ ] **Step 6: 커밋**
+- [ ] **Step 5: 커밋**
 
 ```bash
 git add WooriHaru/ViewModels/VehicleHealthViewModel.swift \
@@ -1046,14 +1030,7 @@ struct BatteryHealthPlaceholderCard: View {
 }
 ```
 
-- [ ] **Step 3: 앱 타겟에 파일을 등록한다**
-
-```bash
-ruby scripts/xcode-add-files.rb WooriHaru/Views/Vehicle/BatteryHealthCard.swift
-```
-Expected: `등록: WooriHaru/Views/Vehicle/BatteryHealthCard.swift`
-
-- [ ] **Step 4: 빌드가 통과하는지 확인한다**
+- [ ] **Step 3: 빌드가 통과하는지 확인한다**
 
 ```bash
 touch WooriHaru/Views/Vehicle/BatteryHealthCard.swift WooriHaru/Extensions/Color+Extensions.swift
@@ -1062,7 +1039,7 @@ xcodebuild -project WooriHaru.xcodeproj -scheme WooriHaru \
 ```
 Expected: PASS
 
-- [ ] **Step 5: 커밋**
+- [ ] **Step 4: 커밋**
 
 ```bash
 git add WooriHaru/Views/Vehicle/BatteryHealthCard.swift WooriHaru/Extensions/Color+Extensions.swift \
@@ -1284,14 +1261,7 @@ struct DegradationTrendChart: View {
 }
 ```
 
-- [ ] **Step 2: 앱 타겟에 파일을 등록한다**
-
-```bash
-ruby scripts/xcode-add-files.rb WooriHaru/Views/Vehicle/DegradationTrendChart.swift
-```
-Expected: `등록: WooriHaru/Views/Vehicle/DegradationTrendChart.swift`
-
-- [ ] **Step 3: 빌드가 통과하는지 확인한다**
+- [ ] **Step 2: 빌드가 통과하는지 확인한다**
 
 ```bash
 touch WooriHaru/Views/Vehicle/DegradationTrendChart.swift
@@ -1300,14 +1270,14 @@ xcodebuild -project WooriHaru.xcodeproj -scheme WooriHaru \
 ```
 Expected: PASS
 
-- [ ] **Step 4: 프리뷰를 눈으로 확인한다**
+- [ ] **Step 3: 프리뷰를 눈으로 확인한다**
 
 Xcode에서 `DegradationTrendChart.swift`의 캔버스를 연다. 확인할 것:
 - 신차 568km 점선이 표본 선 **위쪽**에 보인다(차트 밖으로 나가지 않았다).
 - 가운데가 빠진 두 번째 차트에서 **선이 끊겨 있고**, 빈 구간이 가로로 넓다.
 - 세 번째 차트는 점 하나가 **가운데**에 있고 아래 줄이 「값이 쌓이면 추이가 보여요」다.
 
-- [ ] **Step 5: 커밋**
+- [ ] **Step 4: 커밋**
 
 ```bash
 git add WooriHaru/Views/Vehicle/DegradationTrendChart.swift WooriHaru.xcodeproj/project.pbxproj
@@ -1484,14 +1454,7 @@ private extension TireStatus {
 }
 ```
 
-- [ ] **Step 2: 앱 타겟에 파일을 등록한다**
-
-```bash
-ruby scripts/xcode-add-files.rb WooriHaru/Views/Vehicle/TirePressureCard.swift
-```
-Expected: `등록: WooriHaru/Views/Vehicle/TirePressureCard.swift`
-
-- [ ] **Step 3: 빌드가 통과하는지 확인한다**
+- [ ] **Step 2: 빌드가 통과하는지 확인한다**
 
 ```bash
 touch WooriHaru/Views/Vehicle/TirePressureCard.swift
@@ -1500,13 +1463,13 @@ xcodebuild -project WooriHaru.xcodeproj -scheme WooriHaru \
 ```
 Expected: PASS
 
-- [ ] **Step 4: 프리뷰를 눈으로 확인한다**
+- [ ] **Step 3: 프리뷰를 눈으로 확인한다**
 
 - 첫 카드: 네 바퀴 모두 `slate100` 배경, 아래 줄이 초록 「네 바퀴 모두 정상」.
 - 둘째 카드: `앞 오른쪽`만 주황 배경(2.45bar ≈ 36psi), `뒤 오른쪽`은 「—」에 회색(경고가 아니다), 아래 줄은 주황 경고.
 - 셋째 카드: 네 칸 모두 「—」, 아래 줄이 「아직 공기압 값을 받지 못했어요」.
 
-- [ ] **Step 5: 커밋**
+- [ ] **Step 4: 커밋**
 
 ```bash
 git add WooriHaru/Views/Vehicle/TirePressureCard.swift WooriHaru.xcodeproj/project.pbxproj

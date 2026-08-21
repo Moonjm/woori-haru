@@ -16,7 +16,6 @@
 
 ## Global Constraints
 
-- **새 파일은 `ruby scripts/xcode-add-files.rb <경로...>`로 앱 타겟에 등록한다.** `WooriHaru/` 아래는 폴더 동기화가 없고 `WooriHaruTests/`는 자동이다. **이 계획은 새 파일을 만들지 않으므로 이 명령을 쓸 일이 없다.**
 - 전체 테스트: `xcodebuild test -scheme WooriHaru -destination 'platform=iOS Simulator,name=iPhone 17 Pro'`. 단일 스위트는 뒤에 `-only-testing:WooriHaruTests/<스위트>`를 붙인다. **포그라운드로 돌린다** — 백그라운드로 띄우고 기다리면 턴이 끝나 버린다. 몇 분 걸리는 것이 정상이다.
 - 출력이 길다. `2>&1 | grep -E "Test run with|failed|error:|warning:|TEST SUCCEEDED|TEST FAILED" | tail -30`으로 거른다.
 - 편집기의 SourceKit 진단(`No such module 'Testing'`, `Cannot find type X in scope`)은 이 프로젝트의 알려진 색인 잡음이다. **`xcodebuild`가 권위다.**
