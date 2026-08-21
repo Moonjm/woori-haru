@@ -68,15 +68,14 @@ struct TemperatureEfficiencyCard: View {
     }
 }
 
-/// 한 번에 얼마나 — 건수 분포. 도넛 + 범례로 그린다.
+/// 한 번에 얼마나 — 건수 분포. 지시선 라벨 도넛으로 그린다.
 ///
-/// 다섯 조각은 각도만으로 크기를 못 견주므로(`DonutChart` doc) **범례마다 라벨·퍼센트·
-/// 건수를 글자로 적는다** — 퍼센트가 각도의 부담을 대신 지고, 건수는 「52%가 몇 번인지」를
-/// 잃지 않으려 남긴다. 범례는 도넛 옆에 붙인다 — 급속/완속 도넛(`StatsChargeSection`)과
-/// 같은 모양이라 다른 카드로 눈이 옮겨가도 읽는 법이 안 바뀐다.
+/// **범례가 없다.** 조각마다 바깥으로 지시선을 뻗어 구간 이름을 적는다 — 이 카드가
+/// 답하는 건 「짧은 주행이 대부분인가」라는 대략의 모양이라 이름으로 충분하다(`DonutChart` doc).
+/// 배치 계산(좌우 갈림·겹침 방지)은 `DonutLeaderLayout`이 순수 함수로 낸다.
 ///
-/// **0인 버킷도 범례 자리를 지킨다** — 도넛에는 안 그려지지만(각도 0) 목록에서 빠지면
-/// 분포가 어긋나 보인다는 것은 막대 시절과 같은 이유다.
+/// **0인 버킷은 화면에서 빠진다** — 범례가 없으니 조각도 지시선도 안 남는다(각도 0).
+/// 접근성 라벨에는 남긴다.
 struct DistanceDistributionCard: View {
     let slices: [VehicleStatsViewModel.DistanceSlice]
     /// **전비 카드와 다른 수다.** 여기선 걸러 내는 주행이 없다.
@@ -91,6 +90,12 @@ struct DistanceDistributionCard: View {
         VehicleTheme.accent.opacity(0.24),
     ]
 
+    private static let donutSize: CGFloat = 128
+    private static let chartHeight: CGFloat = 220
+    private static let edgeRadius = donutSize / 2 + 3
+    private static let bendX = donutSize / 2 + 22
+    private static let labelX = donutSize / 2 + 32
+
     private func color(at index: Int) -> Color { Self.colors[index % Self.colors.count] }
 
     private var donutSlices: [DonutChart.Slice] {
@@ -101,57 +106,113 @@ struct DistanceDistributionCard: View {
         }
     }
 
+    /// 0건 버킷은 뺀다 — 각도가 0이라 지시선을 그릴 가장자리 점이 없다.
+    private var visibleSlices: [(index: Int, slice: VehicleStatsViewModel.DistanceSlice)] {
+        slices.enumerated().filter { $0.element.bucket.driveCount > 0 }
+            .map { ($0.offset, $0.element) }
+    }
+
+    private struct LeaderItem: Identifiable {
+        let label: String
+        let color: Color
+        let placement: DonutLeaderLayout.Placement
+        var id: String { placement.id }
+    }
+
+    /// `DonutLeaderLayout.place`가 `visibleSlices`와 같은 개수·순서로 돌려주니 그대로 짝짓는다.
+    private var leaderItems: [LeaderItem] {
+        let leaderSlices = visibleSlices.map { _, slice in
+            DonutLeaderLayout.Slice(label: slice.bucket.label,
+                                     fraction: CGFloat(truncating: (slice.percent ?? 0) as NSDecimalNumber))
+        }
+        let placements = DonutLeaderLayout.place(leaderSlices, radius: Self.edgeRadius,
+                                                  bendX: Self.bendX, labelX: Self.labelX)
+        return zip(visibleSlices, placements).map { item, placement in
+            LeaderItem(label: item.slice.bucket.label, color: color(at: item.index), placement: placement)
+        }
+    }
+
     var body: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: 10) {
-                header("한 번에 얼마나", "\(driveCount)회 기준")
-                HStack(alignment: .center, spacing: 16) {
-                    DonutChart(slices: donutSlices)
-                        .overlay {
-                            // 범례가 조각 각각을 말하니, 가운데는 전체를 말한다.
-                            VStack(spacing: 0) {
-                                Text("\(driveCount)")
-                                    .font(.subheadline)
-                                    .fontWeight(.heavy)
-                                    .monospacedDigit()
-                                    .foregroundStyle(VehicleTheme.textPrimary)
-                                Text("회")
-                                    .font(.caption2)
-                                    .foregroundStyle(VehicleTheme.textTertiary)
-                            }
-                        }
-                    VStack(alignment: .leading, spacing: 6) {
-                        ForEach(Array(slices.enumerated()), id: \.element.id) { index, slice in
-                            legendRow(slice, color: color(at: index))
-                        }
-                    }
-                }
+                Text("한 번에 얼마나")
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .foregroundStyle(VehicleTheme.textSecondary)
+                leaderDonut
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(accessibilitySummary)
             }
         }
     }
 
-    private func legendRow(_ slice: VehicleStatsViewModel.DistanceSlice, color: Color) -> some View {
-        let percentText = ChargeFormat.percent(slice.percent)
-        return HStack(spacing: 6) {
-            Circle().fill(color).frame(width: 8, height: 8)
-            Text(slice.bucket.label)
-                .font(.caption2)
-                .foregroundStyle(VehicleTheme.textSecondary)
-                .frame(width: 60, alignment: .leading)
-            Text(percentText)
-                .font(.caption2)
-                .fontWeight(.bold)
-                .monospacedDigit()
-                .foregroundStyle(VehicleTheme.textPrimary)
-                .frame(width: 36, alignment: .trailing)
-            Text(DriveFormat.count(slice.bucket.driveCount))
-                .font(.caption2)
-                .monospacedDigit()
-                .foregroundStyle(VehicleTheme.textTertiary)
-                .frame(width: 40, alignment: .trailing)
+    private var leaderDonut: some View {
+        GeometryReader { proxy in
+            let center = CGPoint(x: proxy.size.width / 2, y: proxy.size.height / 2)
+            ZStack {
+                DonutChart(slices: donutSlices, size: Self.donutSize)
+                    .position(center)
+                    // 지시선이 각각을 말하니, 가운데는 전체를 말한다.
+                    .overlay {
+                        VStack(spacing: 0) {
+                            Text("\(driveCount)")
+                                .font(.subheadline)
+                                .fontWeight(.heavy)
+                                .monospacedDigit()
+                                .foregroundStyle(VehicleTheme.textPrimary)
+                            Text("회")
+                                .font(.caption2)
+                                .foregroundStyle(VehicleTheme.textTertiary)
+                        }
+                        .position(center)
+                    }
+
+                Path { path in
+                    for item in leaderItems {
+                        path.move(to: point(item.placement.edgePoint, from: center))
+                        path.addLine(to: point(item.placement.bendPoint, from: center))
+                        path.addLine(to: point(item.placement.labelPoint, from: center))
+                    }
+                }
+                .stroke(VehicleTheme.textTertiary, lineWidth: 1)
+
+                ForEach(leaderItems) { item in
+                    leaderLabel(item.label, color: item.color, placement: item.placement, center: center)
+                }
+            }
         }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(slice.bucket.label) \(percentText), \(DriveFormat.count(slice.bucket.driveCount))")
+        .frame(height: Self.chartHeight)
+    }
+
+    private func point(_ offset: CGPoint, from center: CGPoint) -> CGPoint {
+        CGPoint(x: center.x + offset.x, y: center.y + offset.y)
+    }
+
+    private func leaderLabel(_ label: String, color: Color, placement: DonutLeaderLayout.Placement,
+                              center: CGPoint) -> some View {
+        Color.clear
+            .frame(width: 0, height: 0)
+            .position(point(placement.labelPoint, from: center))
+            .overlay(alignment: placement.side == .right ? .leading : .trailing) {
+                HStack(spacing: 4) {
+                    if placement.side == .left {
+                        Text(label).font(.caption2).foregroundStyle(VehicleTheme.textSecondary)
+                        Circle().fill(color).frame(width: 6, height: 6)
+                    } else {
+                        Circle().fill(color).frame(width: 6, height: 6)
+                        Text(label).font(.caption2).foregroundStyle(VehicleTheme.textSecondary)
+                    }
+                }
+                .fixedSize()
+            }
+    }
+
+    /// 화면에는 이름만 남으니, 퍼센트·건수는 이 요약 하나로만 전해진다 — 0건 버킷도 담는다.
+    private var accessibilitySummary: String {
+        let rows = slices.map { slice in
+            "\(slice.bucket.label) \(ChargeFormat.percent(slice.percent)), \(DriveFormat.count(slice.bucket.driveCount))"
+        }
+        return (["한 번에 얼마나, 총 \(DriveFormat.count(driveCount))"] + rows).joined(separator: ". ")
     }
 }
 
