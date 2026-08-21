@@ -48,10 +48,13 @@ struct StatsPlaceSection: View {
     /// 기본 상태라 「나라 1」은 아무것도 말하지 않는다 — 도시·시도 타일과 다르게, 그 수가
     /// 늘어나는 일이 실질적으로 없다.
     ///
-    /// **행 전체는 `regions.cities > 0`일 때만 선다.** 셋 다 non-optional이라(주소가
-    /// 없으면 0) 다른 값의 존재를 따로 볼 이유가 없다 — `showsPlaceSection`과 같은 기준이다.
+    /// **행 전체는 셋(`cities`·`states`·`countries`) 중 하나라도 0보다 클 때 선다** —
+    /// `showsPlaceSection`과 같은 기준이다. **`cities` 하나만 보지 않는다** — 역지오코딩이
+    /// 시골길·경계 지역에서 `city`만 NULL이고 `state`·`country`는 채우는 행이 실제로
+    /// 나온다. 그런 기간을 `cities > 0` 하나로만 걸면 지역 타일 줄이 통째로 숨는다.
     @ViewBuilder private var regionTiles: some View {
-        if let regions = viewModel.insights?.regions, regions.cities > 0 {
+        if let regions = viewModel.insights?.regions,
+           regions.cities > 0 || regions.states > 0 || regions.countries > 0 {
             GlassCard {
                 HStack(spacing: 10) {
                     tile("\(regions.cities)", "도시")

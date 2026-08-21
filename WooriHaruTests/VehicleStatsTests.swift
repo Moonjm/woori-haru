@@ -627,6 +627,8 @@ struct VehicleStatsViewModelTests {
         // 스텁의 chargeTimes에 weekday 0, hour 23이 4건 있다.
         #expect(viewModel.chargeHeatCount(weekday: 0, hour: 23) == 4)
         #expect(viewModel.maxChargeHeatCount == 4)
+        // 총합도 뷰모델이 낸다 — 뷰가 다시 더지 않는다.
+        #expect(viewModel.totalChargeHeatCount == 4)
         // 표본이 없는 칸은 0이다.
         #expect(viewModel.chargeHeatCount(weekday: 1, hour: 8) == 0)
     }
@@ -818,6 +820,17 @@ struct VehicleStatsViewModelTests {
     @Test func 지역_수만_있어도_섹션을_연다() async {
         let mock = MockAPIClient()
         stub(mock, Self.response(regions: Regions(cities: 3, states: 1, countries: 1)))
+        let viewModel = makeViewModel(mock)
+        await viewModel.load()
+        #expect(viewModel.showsPlaceSection)
+    }
+
+    /// **`cities`가 0이어도 `states`·`countries`가 있으면 섹션이 열려야 한다** — 역지오코딩이
+    /// 시골길·경계 지역에서 `city`만 NULL이고 `state`는 채우는 행이 실제로 나온다.
+    /// `regions.cities > 0` 하나로만 게이트를 걸면 그런 기간이 통째로 숨는다.
+    @Test func 도시가_0이어도_시도가_있으면_섹션을_연다() async {
+        let mock = MockAPIClient()
+        stub(mock, Self.response(places: [], regions: Regions(cities: 0, states: 2, countries: 1)))
         let viewModel = makeViewModel(mock)
         await viewModel.load()
         #expect(viewModel.showsPlaceSection)

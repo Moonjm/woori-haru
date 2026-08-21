@@ -84,10 +84,15 @@ final class VehicleStatsViewModel {
     /// 0행이라 `places`가 늘 비었다. 서버가 지오펜스가 없으면 주소로 이름을 짓도록
     /// 바뀌어(`COALESCE(g.name, a.name, a.road, a.city, a.display_name)`) 지오펜스
     /// 0행이어도 배열이 채워진다. 남은 빈 길은 「그 기간에 주행·충전이 없었다」뿐이다.
+    ///
+    /// **`regions`는 `cities`만 보지 않는다.** 역지오코딩이 시골길·경계 지역에서
+    /// `city`만 NULL이고 `state`·`country`는 채우는 행이 실제로 나온다 — `cities`
+    /// 하나로만 게이트를 걸면 그런 행뿐인 기간에 지역 타일 줄이 통째로 숨는다.
     var showsPlaceSection: Bool {
         guard let insights else { return false }
+        let regions = insights.regions
         return !insights.places.isEmpty || !insights.chargers.isEmpty
-            || insights.regions.cities > 0
+            || regions.cities > 0 || regions.states > 0 || regions.countries > 0
     }
 
     /// #26 명예의 전당 게이트. **셋이 각각 nil일 수 있다** — `bestEfficiency`만 nil인
@@ -333,6 +338,11 @@ final class VehicleStatsViewModel {
     }
 
     var maxChargeHeatCount: Int { insights?.chargeTimes.map(\.count).max() ?? 0 }
+
+    /// 충전 히트맵 콜아웃의 총합. **뷰가 아니라 여기서 더한다** — 주행 쪽
+    /// (`distanceDriveCount`)과 같은 관례다. 뷰에서 다시 더하면 두 히트맵이 서로 다른
+    /// 방식으로 같은 일을 하게 된다.
+    var totalChargeHeatCount: Int { (insights?.chargeTimes ?? []).reduce(0) { $0 + $1.count } }
 
     /// #16 충전 시작 SoC 분포. 열 칸이 늘 오고 0인 칸도 자리를 지킨다.
     var chargeStartLevelPoints: [ChartPoint] {

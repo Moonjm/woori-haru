@@ -142,8 +142,7 @@ struct StatsChargeSection: View {
     /// `HeatmapGrid`를 그대로 넘기면 맞는다. 직전 태스크가 `weekday` 배열(1=월요일,
     /// `isoWeekdayLabel`)을 쓴 것과 헷갈리지 않는다.
     private var chargeHeatmapCard: some View {
-        let total = (viewModel.insights?.chargeTimes ?? []).reduce(0) { $0 + $1.count }
-        return ChartCard(title: "충전 시간대", callout: DriveFormat.count(total)) {
+        ChartCard(title: "충전 시간대", callout: DriveFormat.count(viewModel.totalChargeHeatCount)) {
             HeatmapGrid(count: { viewModel.chargeHeatCount(weekday: $0, hour: $1) },
                        maxCount: viewModel.maxChargeHeatCount,
                        accessibilityLabel: chargeHeatmapAccessibilityLabel)
