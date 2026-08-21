@@ -43,14 +43,12 @@ final class VehicleStatsViewModel {
         insights?.efficiencyKwhPerKm != nil && temperatureRows.contains { $0.kmPerKwh != nil }
     }
 
-    /// #8 속도별 전비 카드 게이트. **`showsEfficiency`를 그대로 쓰지 않는다** — 그것은
-    /// `temperatureRows`(#9 온도별 전비)를 보는 온도 전용 판정이라, 재료가 다른 이 카드에
-    /// 그대로 물리면 우연히 같은 결측에만 맞는다. 모양은 같다 — 계수가 있고 값이 하나라도
-    /// 있어야 한다 — 재료만 `speedEfficiencyPoints`로 바꿔 나란히 둔다.
+    /// #8 속도별 전비 카드 게이트. **`showsEfficiency`를 그대로 쓰지 않는다** — 그것은 온도
+    /// 전용 판정(#9)이라 재료가 다르다. 모양은 같으니(계수 + 값 하나) 재료만
+    /// `speedEfficiencyPoints`로 바꿔 쓴다.
     ///
-    /// **왜 필요한가:** `cars.efficiency`가 없으면 `VehicleMath.kmPerKwh`가 이 카드의 점도
-    /// 전부 nil로 낸다. 게이트 없이 그리면 #9는 `showsEfficiency`로 감춰지는데 같은 결측이
-    /// #8만 막대 하나 없는 빈 차트로 세워 두 카드가 서로 다르게 반응한다.
+    /// 게이트 없이 그리면 `cars.efficiency` 결측일 때 #9는 감춰지는데 #8만 빈 막대로
+    /// 남아 두 카드가 다르게 반응한다.
     var showsSpeedEfficiency: Bool {
         insights?.efficiencyKwhPerKm != nil && speedEfficiencyPoints.contains { $0.value != nil }
     }
@@ -83,15 +81,11 @@ final class VehicleStatsViewModel {
         }
     }
 
-    /// 위치 섹션 게이트. 셋(`places`·`chargers`·`regions`)이 다 비면 헤더까지 감춘다 —
-    /// 제목만 남은 빈 섹션을 만들지 않는다.
+    /// 위치 섹션 게이트. 셋(`places`·`chargers`·`regions`)이 다 비면 헤더까지 감춘다.
     ///
-    /// 서버는 지오펜스가 없으면 주소로 이름을 지어(`COALESCE(g.name, a.name, a.road, a.city,
-    /// a.display_name)`) 채우므로, `places`가 비는 것은 「그 기간에 주행·충전이 없었다」뿐이다.
-    ///
-    /// **`regions`는 `cities`만 보지 않는다.** 역지오코딩이 시골길·경계 지역에서
-    /// `city`만 NULL이고 `state`·`country`는 채우는 행이 실제로 나온다 — `cities`
-    /// 하나로만 게이트를 걸면 그런 행뿐인 기간에 지역 타일 줄이 통째로 숨는다.
+    /// 서버는 지오펜스가 없으면 주소로 이름을 지어 채우므로, `places`가 비는 것은 「그 기간에
+    /// 주행·충전이 없었다」뿐이다. **`regions`는 `cities`만 보지 않는다** — 역지오코딩이
+    /// 시골길에서 `city`만 NULL이고 `state`·`country`는 채우는 행이 실제로 나온다.
     var showsPlaceSection: Bool {
         guard let insights else { return false }
         let regions = insights.regions
@@ -186,19 +180,11 @@ final class VehicleStatsViewModel {
 
     /// 「🚗 주행」 헤더 게이트. **두 카드 묶음 중 하나라도 있으면 선다.**
     ///
-    /// 두 묶음의 게이트가 서로 다르다. 월별 카드 넷(`StatsDriveSection`)은 `hasDriveMonths`
-    /// **하나만** 보고, `content`의 카드 셋(온도별 전비·시간대 히트맵·거리 분포,
-    /// `VehicleStatsTab`)은 「안내문을 띄우지 않는 모든 경우」에 뜬다 — 즉 **이 프로퍼티와
-    /// 같은 OR이다**(`!(!hasDrives && !hasDriveMonths)`). 그래서 헤더와 `content`는 늘 함께
-    /// 서고 함께 빠진다.
-    ///
-    /// **`hasDrives`와 `hasDriveMonths`를 합치지 않는다** — `end_date` 대 `start_date`라
-    /// 서로 다른 소스이고, 각자 답하는 질문이 다르다(`VehicleStatsTab`의 주석 참고).
-    ///
-    /// **헤더만은 OR을 봐야 한다.** 기간 경계를 걸친 주행 하나만 있는 기간(직전에
-    /// 시작해 기간 안에서 끝남)이면 `hasDrives=true`, `hasDriveMonths=false`가 실제로
-    /// 나온다 — 이때 헤더를 `hasDriveMonths` 하나로만 걸면 `content`의 카드 셋이
-    /// 「🚗 주행」 헤더 없이 화면에 뜬다.
+    /// 월별 카드 넷은 `hasDriveMonths` 하나만 보고, `content`(온도별 전비·시간대 히트맵·
+    /// 거리 분포)는 이 프로퍼티와 같은 OR을 본다 — 그래서 헤더와 `content`는 늘 함께 서고
+    /// 빠진다. **`hasDrives`(`end_date`)와 `hasDriveMonths`(`start_date`)는 합치지 않는다**
+    /// — 기간 경계를 걸친 주행 하나만 있으면 `hasDrives=true`·`hasDriveMonths=false`가
+    /// 나오는데, 헤더를 `hasDriveMonths` 하나로만 걸면 `content`가 헤더 없이 뜬다.
     var showsDriveSection: Bool { hasDrives || hasDriveMonths }
 
     /// 충전 섹션 게이트. **주행과 따로 본다** — 충전은 주행 없이도 한다. 하나로 묶으면
@@ -211,13 +197,10 @@ final class VehicleStatsViewModel {
     /// 응답도 받은 것은 받은 것이다.
     var hasLoadedInsights: Bool { insights != nil }
 
-    /// 주차 섹션 게이트. **행의 존재를 그대로 쓴다** — 위 둘(`hasDriveMonths`·
-    /// `hasChargeMonths`)이 「행은 있어도 내용은 nil일 수 있다」를 피하려고 필드값을
-    /// 하나하나 본 것과 다르다. 이 섹션의 세 재료 중 `idleMin`은 애초에 non-null이라
-    /// 행이 있으면 값도 있다 — 필드를 따로 검사해도 결론이 같다. `hasLoadedInsights`를
-    /// 그대로 쓰지 않는 이유는, `monthly`가 정말로 빈 배열일 때(그 기간에 행 자체가
-    /// 안 온 경우) 그것까지 참으로 두면 내용 없는 헤더만 선다 — 다른 두 섹션과 같은
-    /// 「헤더는 내용과 함께만 선다」 규칙을 지키려면 `monthly`가 비지 않아야 한다.
+    /// 주차 섹션 게이트. **행의 존재를 그대로 쓴다** — `idleMin`이 애초에 non-null이라
+    /// 행이 있으면 값도 있다(위 둘처럼 필드값을 따로 볼 필요가 없다). `hasLoadedInsights`를
+    /// 쓰지 않는 것은, `monthly`가 정말 빈 배열일 때 그것까지 참이면 내용 없는 헤더만
+    /// 서기 때문이다.
     var hasParkMonths: Bool { !monthly.isEmpty }
 
     private func points(_ value: (InsightsMonth) -> Decimal?) -> [ChartPoint] {
@@ -238,12 +221,11 @@ final class VehicleStatsViewModel {
     /// 얻는 것이 없다. 시·분 표기는 콜아웃에서 `ChargeFormat.duration(_:)`이 맡는다.
     var chargingMinPoints: [ChartPoint] { points { $0.chargingMin.map { Decimal($0) } } }
 
-    /// 전비(km/kWh). **`VehiclePeriod.efficiency`가 하던 계산을 여기로 옮겼다** —
-    /// `InsightsMonth`에는 그 계산 속성이 없다. 분모는 충전량(`energyAddedKwh`)이다.
+    /// 전비(km/kWh). `InsightsMonth`에 계산 속성이 없어 여기서 낸다. 분모는
+    /// 충전량(`energyAddedKwh`)이다.
     ///
-    /// **선의 공식은 이것으로 고정이다** — 정격거리 기반으로 바꾸지 않는다
-    /// (`vehicle-insights-tabs-design.md:190`). 정격 대비 비율은 선이 아니라
-    /// `overallEfficiencyRatio`로 카드 머리에 한 줄만 얹는다.
+    /// **선의 공식은 고정이다** — 정격거리 기반으로 바꾸지 않는다(`vehicle-insights-tabs-design.md:190`).
+    /// 정격 대비 비율은 `overallEfficiencyRatio`로 카드 머리에 한 줄만 얹는다.
     var efficiencyPoints: [ChartPoint] {
         points { VehicleMath.kmPerKwh(energyAddedKwh: $0.energyAddedKwh, distanceKm: $0.distanceKm) }
     }
@@ -285,16 +267,11 @@ final class VehicleStatsViewModel {
 
     /// #21 월별 대기 중 소모(팬텀 드레인, rated km). **표본이 0이면 nil이다** —
     /// `parkDrainSamples == 0`은 「안 샜다」가 아니라 「그 달에 잴 구간이 없었다」다.
-    /// `parkDrainRatedKm`이 0.0으로 와도 그대로 그리면 그 달만 완벽했던 것처럼 보인다.
     ///
-    /// **음수를 0으로 자르지 않는다.** 충전 기록 없이 정격거리가 늘어난 구간이 부호
-    /// 그대로 섞여 있다(BMS 재보정, 또는 TeslaMate가 세션으로 못 잡은 충전 — 실측
-    /// 3,960:628). 자르면 월 합이 위로 편향된다. 실측 월 합은 지금 전부 양수(75~169km)지만
-    /// 그건 **지금 데이터가 그렇다**는 뜻이지 계약이 그렇다는 뜻이 아니다 — 스펙은
-    /// 명시적으로 음수 구간이 남는다고 못박고 있다. 그래서 이 카드는 `MonthlyBarChart`
-    /// (음수를 0으로 자르는 `ChartScale.ratio`를 쓴다)가 아니라 부호를 보존하는
-    /// `DivergingMonthlyBarChart`로 그린다 — 월 합이 음수로 나오는 달도 크기와 방향을
-    /// 그대로 보여준다(`StatsParkSection.parkDrainCard`).
+    /// **음수를 0으로 자르지 않는다** — 충전 기록 없이 정격거리가 늘어난 구간이 부호 그대로
+    /// 섞여 있다(BMS 재보정 등, 실측 3,960:628). 스펙이 음수 구간을 명시하므로, 이 카드는
+    /// `ChartScale.ratio`(음수를 0으로 자르는)를 쓰는 `MonthlyBarChart` 대신 부호를 보존하는
+    /// `DivergingMonthlyBarChart`로 그린다.
     var parkDrainPoints: [ChartPoint] {
         monthly.map { month in
             ChartPoint(id: month.yearMonth, label: MonthLabel.axis(month.yearMonth),
@@ -343,13 +320,12 @@ final class VehicleStatsViewModel {
         }
     }
 
-    /// #15 충전 히트맵. **`chargeTimes`는 0=일요일이다** — `driveTimes`와 같고
-    /// 같은 응답의 `weekday` 배열(1=월요일, ISO)과 다르다. `HeatmapGrid`는 `weekdayLabel`
-    /// (0=일요일)을 쓰므로 `isoWeekdayLabel`로 바꾸면 안 된다.
+    /// #15 충전 히트맵. **`chargeTimes`는 0=일요일이다** — `driveTimes`와 같고 `weekday`
+    /// 배열(1=월요일, ISO)과 다르다. `HeatmapGrid`는 `weekdayLabel`(0=일요일)을 쓰므로
+    /// `isoWeekdayLabel`로 바꾸면 안 된다.
     ///
-    /// 없는 칸이 서버에서 아예 빠지므로(성기게 옴) 매번 선형 탐색한다 — `chargeTimes`는
-    /// `driveTimes`처럼 168칸을 자주 훑는 히트맵 전용 사전(`heatMap`)을 따로 둘 만큼
-    /// 크지 않다(충전은 주행보다 훨씬 드물다).
+    /// 없는 칸이 서버에서 아예 빠지므로 매번 선형 탐색한다 — `driveTimes`용 `heatMap` 사전을
+    /// 따로 둘 만큼 크지 않다(충전은 주행보다 훨씬 드물다).
     func chargeHeatCount(weekday: Int, hour: Int) -> Int {
         insights?.chargeTimes.first { $0.weekday == weekday && $0.hour == hour }?.count ?? 0
     }
