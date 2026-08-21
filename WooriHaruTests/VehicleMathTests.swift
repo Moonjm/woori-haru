@@ -92,6 +92,14 @@ struct VehicleMathTests {
         #expect(VehicleFormat.parseKST("14:02") == nil)
     }
 
+    /// 배터리 추이 카드의 범위 칩이 낡았을 때 실제 기준 시각을 밝히는 데 쓴다. **기기
+    /// 시간대와 무관하게 KST로 찍어야** `parseKST`가 KST 벽시계로 읽은 값을 그대로 되돌려
+    /// 찍을 수 있다 — 그렇지 않으면 한국 밖 기기에서 시각이 어긋난다.
+    @Test func 시각을_KST_HHmm으로_찍는다() {
+        let date = VehicleFormat.parseKST("2026-08-20T13:05:00")!
+        #expect(VehicleFormat.clockTime(date) == "13:05")
+    }
+
     /// 모르는 상태 문자열은 원문 그대로 낸다 — 상류가 값을 늘렸다는 사실이 숨으면 안 된다.
     @Test func 모르는_상태는_원문을_낸다() {
         #expect(VehicleFormat.stateLabel("asleep") == "잠자는 중")
