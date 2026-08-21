@@ -337,6 +337,9 @@ struct VehicleStatsViewModelTests {
         #expect(viewModel.distancePoints.count == 3)
         #expect(!viewModel.hasDriveMonths)
         #expect(!viewModel.hasChargeMonths)
+        // 둘 다 거짓이면(distanceBuckets도 기본값인 빈 배열) 헤더도 안 선다.
+        #expect(!viewModel.hasDrives)
+        #expect(!viewModel.showsDriveSection)
     }
 
     /// **게이트를 둘로 나눈 이유가 여기다.** 충전은 주행 없이도 한다 — 하나로 묶으면
@@ -387,6 +390,28 @@ struct VehicleStatsViewModelTests {
 
         #expect(!viewModel.hasDrives)
         #expect(viewModel.hasDriveMonths)
+        // 헤더는 둘 중 하나만 참이어도 선다 — `hasDriveMonths`가 참이니 여기서도 선다.
+        #expect(viewModel.showsDriveSection)
+    }
+
+    /// **반대 방향(Codex 결함 2).** 기간 경계를 걸친 주행 하나만 있는 기간은
+    /// `hasDrives=true`(거리 버킷, `end_date` 기준), `hasDriveMonths=false`(월별,
+    /// `start_date` 기준)로 나올 수 있다 — `distanceBuckets`는 채우고 `monthly`는
+    /// 비운 스텁으로 그 조합을 그대로 재현한다. 이때도 「🚗 주행」 헤더는 서야 한다 —
+    /// `VehicleStatsTab`의 `content`(온도별 전비·시간대 히트맵·거리 분포)가
+    /// `hasDrives`로 카드를 그리므로, 헤더가 안 서면 그 카드들이 제목 없이 뜬다.
+    @Test func 기간_경계를_걸친_주행만_있어도_헤더는_선다() async {
+        let mock = MockAPIClient()
+        stub(mock, Self.response(
+            monthly: [],
+            distanceBuckets: [DistanceBucket(fromKm: 0, toKm: 5, driveCount: 1, distanceKm: 3)]))
+        let viewModel = makeViewModel(mock)
+
+        await viewModel.load()
+
+        #expect(viewModel.hasDrives)
+        #expect(!viewModel.hasDriveMonths)
+        #expect(viewModel.showsDriveSection)
     }
 
     /// 히트맵은 성기게 온다 — 없는 칸은 0이다. `weekday` 0이 일요일이다.

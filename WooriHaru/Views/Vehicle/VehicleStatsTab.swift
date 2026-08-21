@@ -53,6 +53,19 @@ struct VehicleStatsTab: View {
                 // 나머지 카드 셋이다** — `StatsDriveSection`의 일곱 장과 합쳐 브리프가 세는
                 // 「🚗 주행 10장」이 여기서 나온다. 그래서 `StatsChargeSection`보다 먼저,
                 // `StatsDriveSection` 바로 뒤에 둔다 — 옮기지 않는다.
+                //
+                // **헤더를 여기서 낸다.** `StatsDriveSection`(월별 넷, `hasDriveMonths`
+                // 게이트)과 `content`(온도별 전비 등, `hasDrives` 게이트)는 각자 다른
+                // 소스를 보는 별개 게이트를 유지한다 — 합치지 않는다(`content`의 주석
+                // 참고). 그런데 「🚗 주행」 헤더는 그 둘 중 **하나라도 있으면** 서야 해서
+                // `viewModel.showsDriveSection`(둘의 OR)으로 딱 한 번만 판단한다. 기간
+                // 경계를 걸친 주행 하나만 있는 기간(`hasDrives=true`,
+                // `hasDriveMonths=false`)이 실제로 나오는데, 헤더를 `StatsDriveSection`
+                // 안에 `hasDriveMonths`로만 걸면 그 기간에 `content`의 카드 셋이 헤더 없이
+                // 뜬다.
+                if viewModel.showsDriveSection {
+                    driveHeader
+                }
                 StatsDriveSection(viewModel: viewModel)
                 content
                 StatsChargeSection(viewModel: viewModel, totalsViewModel: totalsViewModel)
@@ -99,6 +112,19 @@ struct VehicleStatsTab: View {
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(selected ? [.isSelected] : [])
+    }
+
+    /// `StatsDriveSection`이 예전에 이 헤더를 `hasDriveMonths` 하나로만 걸었던 자리 —
+    /// 이제는 `viewModel.showsDriveSection`으로 이 파일에서 낸다(위 호출부 주석 참고).
+    private var driveHeader: some View {
+        HStack {
+            Text("🚗 주행")
+                .font(.subheadline)
+                .fontWeight(.heavy)
+                .foregroundStyle(VehicleTheme.textPrimary)
+            Spacer(minLength: 0)
+        }
+        .padding(.top, 4)
     }
 
     /// **네 갈래다** — 못 받음 / 아직 안 받음 / 그 기간에 주행 없음 / 값 있음.

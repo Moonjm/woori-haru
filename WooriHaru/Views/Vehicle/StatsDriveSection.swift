@@ -19,13 +19,15 @@ struct StatsDriveSection: View {
     @State private var speedSelectedID: String?
     @State private var speedEfficiencySelectedID: String?
 
-    /// **헤더는 내용과 함께만 선다.** 주행 값이 있는 달이 하나도 없으면(아직 못 받았거나,
-    /// 그 기간에 안 탔거나) 섹션째 빠진다 — 헤더만 남으면 첫 로딩 중에 빈 제목 둘이
-    /// 나란히 서고, 실패는 「제목만 있고 아무것도 없다」로 보인다.
+    /// **헤더는 이 파일 밖(`VehicleStatsTab`)에 산다.** 「🚗 주행」 헤더는 이 월별 카드
+    /// 넷과 `VehicleStatsTab`의 `content`(온도별 전비·시간대 히트맵·거리 분포) 중
+    /// **하나라도 있으면** 서야 하는데, 그 판단은 `hasDriveMonths`와 `hasDrives` 둘을
+    /// 함께 봐야 해서 이 뷰 하나만으로는 못 낸다(`VehicleStatsViewModel.showsDriveSection`
+    /// 참고). 이 뷰 자신은 **월별 카드 묶음의 게이트**(`hasDriveMonths`)만 계속 쥔다 —
+    /// `content`의 게이트(`hasDrives`)와 합치지 않는다.
     var body: some View {
         VStack(spacing: 12) {
             if viewModel.hasDriveMonths {
-                header
                 monthlyDistanceCard
                 drivingTimeCard
                 cumulativeDistanceCard
@@ -39,17 +41,6 @@ struct StatsDriveSection: View {
                 }
             }
         }
-    }
-
-    private var header: some View {
-        HStack {
-            Text("🚗 주행")
-                .font(.subheadline)
-                .fontWeight(.heavy)
-                .foregroundStyle(VehicleTheme.textPrimary)
-            Spacer(minLength: 0)
-        }
-        .padding(.top, 4)
     }
 
     // MARK: - 카드

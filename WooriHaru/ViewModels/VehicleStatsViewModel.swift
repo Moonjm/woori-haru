@@ -196,6 +196,18 @@ final class VehicleStatsViewModel {
         monthly.contains { $0.distanceKm != nil || $0.drivingMin != nil || $0.driveCount != nil }
     }
 
+    /// 「🚗 주행」 헤더 게이트. **두 카드 묶음 중 하나라도 있으면 선다.** 월별 카드 넷
+    /// (`StatsDriveSection`)은 `hasDriveMonths`를, `content`의 카드 셋(온도별 전비·시간대
+    /// 히트맵·거리 분포, `VehicleStatsTab`)은 `hasDrives`를 **각자** 게이트로 쓴다 — 그
+    /// 둘은 합치지 않는다(`VehicleStatsTab`의 주석 참고, `end_date` 대 `start_date`라 서로
+    /// 다른 소스다).
+    ///
+    /// **헤더만은 OR을 봐야 한다.** 기간 경계를 걸친 주행 하나만 있는 기간(직전에
+    /// 시작해 기간 안에서 끝남)이면 `hasDrives=true`, `hasDriveMonths=false`가 실제로
+    /// 나온다 — 이때 헤더를 `hasDriveMonths` 하나로만 걸면 `content`의 카드 셋이
+    /// 「🚗 주행」 헤더 없이 화면에 뜬다.
+    var showsDriveSection: Bool { hasDrives || hasDriveMonths }
+
     /// 충전 섹션 게이트. **주행과 따로 본다** — 충전은 주행 없이도 한다. 하나로 묶으면
     /// 안 타고 충전만 한 기간에 충전 카드까지 사라진다.
     var hasChargeMonths: Bool {
