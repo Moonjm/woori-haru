@@ -25,7 +25,7 @@ struct DistributionBarChart: View {
     }
 
     private func bar(_ point: ChartPoint, maxValue: Decimal) -> some View {
-        // 인라인으로 두면 SourceKit이 타입 검사를 포기한다 — 1단계 5번 태스크에서 겪었다.
+        // 인라인으로 두면 SourceKit이 타입 검사를 포기한다.
         let isSelected = point.id == selectedID
         let ratio = ChartScale.ratio(point.value, max: maxValue)
         return VStack(spacing: 4) {

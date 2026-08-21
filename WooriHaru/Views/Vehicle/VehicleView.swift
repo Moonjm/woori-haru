@@ -1,13 +1,11 @@
 import SwiftUI
 
 /// 「차량」 미니앱 — 개요·통계·충전 세 탭. 가계부와 같은 하단 글래스 탭바 구조다.
-/// **여는 순간 개요 화면이 먼저 뜬다** — 첫 화면이 답을 하나 해야 한다.
+/// 여는 순간 개요 화면이 먼저 뜬다 — 첫 화면이 답을 하나 해야 한다.
 ///
-/// **첫 탭 이름이 「건강」에서 「상태」를 거쳐 「개요」로 바뀌었다.** 1단계에서 상태 표를 배터리
-/// 건강 대시보드로 갈아끼우며 「건강」이 됐는데, 4단계가 현재 상태를 열화 위로 올리고 5단계가
-/// 24시간 띠를 더하면서 무게중심이 다시 옮겨갔다 — 이 탭이 그리는 아홉 중 「건강」인 것은
-/// 잔존율 카드와 열화 추이 둘뿐이다. 탭 이름은 첫 화면이 답하는 질문을 따라간다.
-/// **세 개가 상한이다** — 더 늘리려는 순간 화면을 합칠 자리를 먼저 찾는다.
+/// 탭 이름은 「건강」이 아니라 개요다 — 이 탭이 그리는 아홉 카드 중 「건강」인 것은
+/// 잔존율 카드와 열화 추이 둘뿐이라, 이름은 카드 하나가 아니라 첫 화면이 답하는
+/// 질문을 따라간다. 세 개가 상한이다 — 더 늘리려는 순간 화면을 합칠 자리를 먼저 찾는다.
 struct VehicleView: View {
     private enum Tab { case overview, stats, charge }
 
@@ -52,7 +50,7 @@ struct VehicleView: View {
             .presentationDetents([.height(320)])
             .presentationDragIndicator(.visible)
         }
-        // 갱신은 화면이 닫힌 **뒤에** 여기서 한다 — 등록 화면이 요청 두 번을 기다리다
+        // 갱신은 화면이 닫힌 뒤에 여기서 한다 — 등록 화면이 요청 두 번을 기다리다
         // 멎어 보이지 않게 하려는 것이다.
         .fullScreenCover(isPresented: $showingQueue, onDismiss: {
             Task {
@@ -173,9 +171,9 @@ struct VehicleView: View {
         .padding(6)
         // 다크에서는 유리를 쓰지 않는다 — 테두리가 형태를 만든다.
         //
-        // **여기만 `surface`(불투명)를 쓴다.** 다른 카드는 흐름 안에 놓여 뒤에 배경밖에
-        // 없지만, 이 바는 목록 **위에 떠 있어서** 반투명하면 지나가는 글자가 아이콘에
-        // 겹쳐 비친다. 떠 있는 것은 가려야 한다.
+        // 여기만 `surface`(불투명)를 쓴다. 다른 카드는 흐름 안에 놓여 뒤에 배경밖에
+        // 없지만, 이 바는 목록 위에 떠 있어서 반투명하면 지나가는 글자가 아이콘에
+        // 겹쳐 비친다.
         .background(VehicleTheme.surface, in: RoundedRectangle(cornerRadius: 24))
         .overlay(RoundedRectangle(cornerRadius: 24).strokeBorder(VehicleTheme.cardStroke, lineWidth: 1))
         // 버튼 사이 여백 탭이 아래 목록으로 새지 않게 바 전체를 히트 영역으로 만든다.
@@ -185,16 +183,14 @@ struct VehicleView: View {
         .padding(.bottom, 8)
     }
 
-    /// 금액을 고친 뒤 통계 탭을 다시 받는다. **`load()`가 아니라 `reload()`다** —
+    /// 금액을 고친 뒤 통계 탭을 다시 받는다. `load()`가 아니라 `reload()`다 —
     /// 전자는 「이미 받아 뒀으면 아무것도 안 한다」라 낡은 값이 그대로 남는다.
     ///
-    /// **아직 안 열어 본 탭은 그냥 둔다.** 그때는 `insights`가 nil이라 다음에 열 때
-    /// `load()`가 처음부터 받는다 — 여기서 미리 받으면 안 볼 수도 있는 화면 때문에
-    /// 요청이 하나 는다.
+    /// 아직 안 열어 본 탭은 그냥 둔다 — 그때는 `insights`가 nil이라 다음에 열 때
+    /// `load()`가 처음부터 받는다.
     ///
-    /// 바로 위 `totalsViewModel.reload()`와 같은 이유다. 그쪽 주석이 「낡은 누적 카드가
-    /// 나란히 남는다」고 적어 둔 상황이 통계 탭에도 있다 — 월별·누적 충전비와 충전소
-    /// 순위가 전부 금액으로 만든 값이다.
+    /// 바로 위 `totalsViewModel.reload()`와 같은 이유다 — 월별·누적 충전비와 충전소
+    /// 순위가 전부 금액으로 만든 값이라 통계 탭에도 같은 상황이 있다.
     private func refreshStatsIfLoaded() async {
         guard statsViewModel.hasLoadedInsights else { return }
         await statsViewModel.reload()
@@ -214,7 +210,7 @@ struct VehicleView: View {
             .foregroundStyle(selected ? VehicleTheme.accentBright : VehicleTheme.textTertiary)
             .background {
                 if selected {
-                    // **파란 그라디언트와 그림자를 버린다.** 이 화면에서 빛나는 것은
+                    // 파란 그라디언트와 그림자를 버린다 — 이 화면에서 빛나는 것은
                     // 잔량 링 하나뿐이어야 하고, 탭바가 두 번째로 빛나면 그 규칙이 깨진다.
                     RoundedRectangle(cornerRadius: 18)
                         .fill(VehicleTheme.accent.opacity(0.20))

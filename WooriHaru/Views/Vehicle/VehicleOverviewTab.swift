@@ -1,16 +1,16 @@
 import SwiftUI
 
-/// 개요 탭 — 미니앱을 열면 **여기가 먼저 뜬다.**
+/// 개요 탭 — 미니앱을 열면 여기가 먼저 뜬다.
 ///
 /// 뷰모델을 넷 받는다. 배터리 건강(`/tesla/battery-health`)·현재 상태(`/tesla/status`)·
 /// 충전 누적·상태 타임라인(`/tesla/state-timeline`)은 서로 다른 호출이고,
-/// **하나가 실패해도 다른 카드는 그린다.**
+/// 하나가 실패해도 다른 카드는 그린다.
 struct VehicleOverviewTab: View {
     @Bindable var healthViewModel: VehicleHealthViewModel
     @Bindable var statusViewModel: VehicleStatusViewModel
     @Bindable var totalsViewModel: ChargeTotalsViewModel
     @Bindable var timelineViewModel: StateTimelineViewModel
-    /// 금액 미등록 큐를 여는 진입점. **입력 경로를 바꾸는 것이 아니라 하나 더 다는 것이다.**
+    /// 금액 미등록 큐를 여는 진입점. 입력 경로를 바꾸는 것이 아니라 하나 더 다는 것이다.
     let onOpenQueue: () -> Void
 
     var body: some View {
@@ -65,7 +65,7 @@ struct VehicleOverviewTab: View {
 
     // MARK: - 기준 시각
 
-    /// **1분마다 다시 그린다.** 경과 시간은 화면을 열어 둔 채로도 흐르는데, 뷰모델의 값만 읽으면
+    /// 1분마다 다시 그린다. 경과 시간은 화면을 열어 둔 채로도 흐르는데, 뷰모델의 값만 읽으면
     /// 29분에 연 값이 30분을 넘겨도 「29분 전」에 멈춘 채 강조도 켜지지 않는다.
     ///
     /// 상태 글자는 여기 두지 않는다 — 바로 아래 `BatteryNowCard`가 같은 말을 더 크게,
@@ -104,9 +104,8 @@ struct VehicleOverviewTab: View {
 
     // MARK: - 배터리 건강
 
-    /// **네 갈래다** — 값 있음(+새로고침 실패 시 배너 한 줄) / 못 받았고 값도 없음 / 아직 안 받음 / 표본 없음.
-    /// 「기록 없음」과 「못 받음」을 한 화면으로 뭉개지 않는 지금 관례를 따른다.
-    /// **있던 값을 새로고침 실패로 지우지 않는다** — 값이 있으면 카드를 그대로 두고, 오류는
+    /// 네 갈래다 — 값 있음(+새로고침 실패 시 배너 한 줄) / 못 받았고 값도 없음 / 아직 안 받음 / 표본 없음.
+    /// 있던 값을 새로고침 실패로 지우지 않는다 — 값이 있으면 카드를 그대로 두고, 오류는
     /// `statusSection`과 같은 자리에 같은 모양으로 한 줄만 얹는다.
     @ViewBuilder private var healthSection: some View {
         if let error = healthViewModel.errorMessage, healthViewModel.hasSamples {
@@ -150,7 +149,7 @@ struct VehicleOverviewTab: View {
 
     // MARK: - 현재 상태
 
-    /// **다섯 갈래다** — 값 있음(+새로고침 실패 시 배너 한 줄) / 응답은 왔는데 기록 없음 /
+    /// 다섯 갈래다 — 값 있음(+새로고침 실패 시 배너 한 줄) / 응답은 왔는데 기록 없음 /
     /// 불러오는 중 / 못 받음 / 취소된 첫 로드. 마지막 둘이 갈라져 있어야 「다시 시도」가
     /// 눌린 티가 난다.
     @ViewBuilder private var statusSection: some View {
@@ -165,7 +164,7 @@ struct VehicleOverviewTab: View {
         if let status = statusViewModel.status, statusViewModel.hasRecord {
             // 값이 먼저다 — 새로고침이 실패해도 보이던 카드를 오류 화면으로 바꾸지 않는다.
             //
-            // **1분마다 다시 그린다.** 「3시간 12분째」는 화면을 열어 둔 채로도 흘러간다 —
+            // 1분마다 다시 그린다. 「3시간 12분째」는 화면을 열어 둔 채로도 흘러간다 —
             // 기준 시각 줄이 같은 이유로 `TimelineView`를 쓴다.
             TimelineView(.periodic(from: .now, by: 60)) { context in
                 BatteryNowCard(status: status,
@@ -177,9 +176,8 @@ struct VehicleOverviewTab: View {
                                       title: "아직 기록이 없어요",
                                       message: "차가 한 번 깨어나면 값이 쌓여요")
         } else if statusViewModel.isLoading {
-            // **로딩이 오류보다 먼저다.** 재시도를 눌렀는데 오류 패널이 그대로 서 있으면
-            // 누른 것이 먹혔는지 알 길이 없다 — `errorMessage`는 다음 성공까지 남는다.
-            // 통계 탭이 같은 이유로 같은 순서를 쓴다.
+            // 로딩이 오류보다 먼저다 — 재시도를 눌렀는데 오류 패널이 그대로 서 있으면
+            // 누른 것이 먹혔는지 알 길이 없다(`errorMessage`는 다음 성공까지 남는다).
             BatteryNowPlaceholderCard(icon: "car",
                                       title: "불러오는 중",
                                       message: "차량 상태를 받고 있어요")
@@ -197,17 +195,17 @@ struct VehicleOverviewTab: View {
         }
     }
 
-    /// 최근 48시간 배터리 추이. **`/tesla/status`와 독립인 호출이다** — `statusSection`이
+    /// 최근 48시간 배터리 추이. `/tesla/status`와 독립인 호출이다 — `statusSection`이
     /// 실패하거나 아직 로딩 중이어도, 배터리 추이가 먼저 도착했으면 그린다. 값이 없을
-    /// 때는 조용히 자리를 비운다 — 이 카드는 화면의 중심이 아니라, 못 받은 사실까지
-    /// 한 줄 배너로 알릴 만큼 무겁게 다루지 않는다.
+    /// 때는 조용히 자리를 비운다 — 못 받은 사실까지 한 줄 배너로 알릴 만큼 무겁게
+    /// 다루지 않는다.
     @ViewBuilder private var batteryWindowSection: some View {
         if let window = statusViewModel.batteryWindow {
             BatteryWindowCard(window: window)
         }
     }
 
-    /// 타이어·실내는 **값이 있을 때만** 선다 — 주인공 패널이 플레이스홀더로 서 있는데
+    /// 타이어·실내는 값이 있을 때만 선다 — 주인공 패널이 플레이스홀더로 서 있는데
     /// 그 아래에 빈 카드 둘이 남으면 「못 받았다」는 말이 흐려진다.
     @ViewBuilder private var statusDetailSection: some View {
         if let status = statusViewModel.status, statusViewModel.hasRecord {
@@ -216,7 +214,7 @@ struct VehicleOverviewTab: View {
         }
     }
 
-    /// `stateSince`부터 흐른 분. **KST로 읽는다** — 서버가 KST 벽시계 값을 주는데
+    /// `stateSince`부터 흐른 분. KST로 읽는다 — 서버가 KST 벽시계 값을 주는데
     /// 기기 시간대로 읽으면 시차만큼 어긋난다. `asOf`와 같은 이유다.
     private func minutesInState(_ status: VehicleStatus, at date: Date) -> Int? {
         guard let since = status.stateSince.flatMap(VehicleFormat.parseKST) else { return nil }
@@ -225,20 +223,15 @@ struct VehicleOverviewTab: View {
 
     // MARK: - 최근 24시간
 
-    /// **다섯으로 갈린다** — 값 있음(+새로고침 실패 시 배너 한 줄) / 기록 없음 /
-    /// 불러오는 중 / 못 받음 / 아직 안 받음(아무것도 안 그린다).
+    /// 다섯으로 갈린다 — 값 있음(+새로고침 실패 시 배너 한 줄) / 기록 없음 /
+    /// 불러오는 중 / 못 받음 / 아직 안 받음(아무것도 안 그린다). `statusSection`과
+    /// 같은 이유로 로딩이 오류보다 먼저다.
     ///
-    /// `statusSection`과 같은 순서를 쓴다 — **로딩이 오류보다 먼저다.** 「다시 시도」를
-    /// 눌러도 `errorMessage`는 다음 성공까지 남으므로, 로딩 갈래가 없으면 오류 카드가
-    /// 그대로 서 있어 누른 것이 먹혔는지 알 수 없다.
+    /// 로딩 갈래는 오류를 한 번 띄운 뒤의 재시도에만 선다 — 첫 로드에는 위 진한
+    /// 패널이 이미 「불러오는 중」을 말해서 스피너 둘을 겹치지 않는다.
     ///
-    /// 로딩 갈래는 **오류를 한 번 띄운 뒤의 재시도에만** 선다. 첫 로드에는 이 절이 아무것도
-    /// 그리지 않는 편이 맞다 — 그때는 위 진한 패널이 이미 「불러오는 중」을 말하고 있어
-    /// 스피너가 둘이면 화면이 시끄럽다. 이 절은 **할 말이 생기기 전까지 자리를 차지하지 않고,**
-    /// 한 번 문제를 말한 뒤에는 그 자리에서 진행 상황까지 말한다.
-    ///
-    /// `from`·`to`를 못 읽으면 비율을 낼 수 없어 첫 갈래에 못 든다. 그때는 아래 갈래로 흘러가
-    /// **오류가 없는 한 아무것도 그리지 않는다** — 「못 받음」으로 승격시키지 않는다.
+    /// `from`·`to`를 못 읽으면 비율을 낼 수 없어 첫 갈래에 못 든다 — 그때는
+    /// 오류가 없는 한 「못 받음」으로 승격하지 않고 아무것도 그리지 않는다.
     @ViewBuilder private var timelineSection: some View {
         if let timeline = timelineViewModel.timeline,
            let from = VehicleFormat.parseKST(timeline.from),
@@ -263,9 +256,7 @@ struct VehicleOverviewTab: View {
                 }
             }
         } else if timelineViewModel.isLoading, timelineViewModel.errorMessage != nil {
-            // **로딩이 오류보다 먼저다.** `errorMessage`는 다음 성공까지 남으므로, 이 갈래가
-            // 없으면 「다시 시도」를 눌러도 오류 카드가 그대로 서 있어 눌린 티가 안 난다.
-            // 오류 카드와 같은 자리·같은 어휘로 선다.
+            // 로딩이 오류보다 먼저다 — 오류 카드와 같은 자리·같은 어휘로 선다.
             GlassCard {
                 Text("불러오는 중")
                     .font(.caption)
@@ -285,13 +276,11 @@ struct VehicleOverviewTab: View {
                 }
             }
         }
-        // 값도 오류도 없으면(첫 로드 중이거나, 취소돼 끝났거나, 서버에 아직 이 경로가
-        // 없으면) 아무것도 그리지 않는다 — 위 진한 패널이 이미 「불러오는 중」을 말한다.
+        // 값도 오류도 없으면 아무것도 그리지 않는다 — 위 진한 패널이 이미 말한다.
     }
 
-    /// 온도 둘을 타일로 올린다. 1단계에서는 **위치를 여기 말고 보여줄 데가 없어서** 아래 줄로
-    /// 남겼지만, 4단계에서 위치는 `BatteryNowCard`로 올라갔다 — 같은 값을 한 화면에 두 번 두지
-    /// 않는다. 에어컨만 온도 타일 아래 남는다.
+    /// 온도 둘을 타일로 올린다. 위치는 `BatteryNowCard`에 있어 여기 안 둔다 —
+    /// 같은 값을 한 화면에 두 번 두지 않는다. 에어컨만 온도 타일 아래 남는다.
     private func cabinCard(_ status: VehicleStatus) -> some View {
         GlassCard {
             VStack(spacing: 12) {

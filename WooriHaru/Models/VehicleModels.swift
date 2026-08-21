@@ -138,7 +138,7 @@ enum VehicleMath {
     ///
     /// **여기 단가는 `cost ÷ energyAddedKwh`다** — 누적 카드의 `wonPerKwh`(분모가
     /// 벽에서 뽑아쓴 `energyUsedKwh`)와 다른 값이다. 세 항의 곱이 비용이 되려면
-    /// 분모가 차에 들어간 양이어야 한다. 화면에는 「충전량 1kWh당」이라고 적어 구분한다.
+    /// 분모가 차에 들어간 양이어야 한다.
     static func costBreakdown(current: VehiclePeriod, previous: VehiclePeriod) -> CostBreakdown? {
         guard let d1 = current.distanceKm, let e1 = current.energyAddedKwh, let c1 = current.cost,
               let d0 = previous.distanceKm, let e0 = previous.energyAddedKwh, let c0 = previous.cost,
@@ -164,10 +164,9 @@ enum VehicleMath {
                              unitPrice: unitPrice)
     }
 
-    /// 충전량 1kWh당 금액. **분모가 `energyAddedKwh`(차에 들어간 양)다** —
-    /// 누적 카드의 `wonPerKwh`는 벽에서 뽑아쓴 `energyUsedKwh`로 나누므로 값이 다르다.
-    /// 비용 = 충전량 × 단가가 정확히 성립해야 `costBreakdown`의 세 항이 남김없이 갈리므로
-    /// 이 자리의 분모는 반드시 차에 들어간 양이어야 한다.
+    /// 충전량 1kWh당 금액. **분모가 `energyAddedKwh`(차에 들어간 양)다** — 누적 카드의
+    /// `wonPerKwh`(분모가 `energyUsedKwh`)와 다른 값이다. `costBreakdown`의 세 항이 남김없이
+    /// 갈리려면 이 분모가 차에 들어간 양이어야 한다.
     static func wonPerAddedKwh(cost: Decimal?, energyAddedKwh: Decimal?) -> Decimal? {
         guard let cost, let energyAddedKwh, energyAddedKwh > 0 else { return nil }
         return cost / energyAddedKwh
@@ -287,8 +286,8 @@ enum VehicleFormat {
     /// 타이어에 넣을 때 쓰는 단위도 차 문틀의 권장값도 psi다.
     ///
     /// bar→psi 변환만 하고 나머지는 `VehicleHealthModels.psiText(_:)`에 그대로 맡긴다 —
-    /// 반올림-후-표기 규칙을 두 곳에 따로 두면 한쪽만 고쳤을 때 표기와 판정이 갈린다
-    /// (`tireStatus(bar:)`가 겪었던 그 불일치). 임의로 되돌려 두 벌로 쪼개지 말 것.
+    /// 반올림-후-표기 규칙을 두 곳에 따로 두면 한쪽만 고쳤을 때 표기와 판정이 갈린다.
+    /// 임의로 되돌려 두 벌로 쪼개지 말 것.
     static func pressurePsi(_ bar: Decimal?) -> String {
         psiText(VehicleMath.psi(fromBar: bar))
     }
@@ -303,12 +302,11 @@ enum VehicleFormat {
     /// 「지금 이 상태로 얼마나」 — `relative`가 과거 시점을 읽는 것과 달리 **지속 시간**을 읽는다.
     ///
     /// **`relative`의 출력을 잘라 쓰지 않는다.** 「방금」에는 잘라낼 " 전"이 없어 「방금째」가 되고,
-    /// 그쪽 표기가 바뀌면 이 자리는 컴파일도 테스트도 깨지지 않은 채 글자만 이상해진다.
+    /// 그쪽 표기가 바뀌면 컴파일도 테스트도 깨지지 않은 채 글자만 이상해진다.
     ///
-    /// **하루 안에서는 분을 버리지 않는다** — 「3시간 12분째」다. 이 문구를 담은 카드는
-    /// 1분마다 다시 그려지는데(`TimelineView(.periodic(by: 60))`), 시간만 남기면 첫 한 시간이
-    /// 지난 뒤로는 한 시간에 한 번만 글자가 바뀌어 그 갱신이 있으나 마나가 된다.
-    /// 하루를 넘기면 다시 「N일째」다 — 그 크기에서 분은 읽는 사람에게 뜻이 없다.
+    /// **하루 안에서는 분을 버리지 않는다** — 「3시간 12분째」다. 이 카드는 1분마다 다시 그려지는데
+    /// (`TimelineView(.periodic(by: 60))`), 시간만 남기면 한 시간에 한 번만 바뀌어 갱신이 무의미해진다.
+    /// 하루를 넘기면 「N일째」다 — 그 크기에서 분은 뜻이 없다.
     static func elapsed(minutes: Int) -> String {
         if minutes < 1 { return "방금" }
         if minutes < 60 { return "\(minutes)분째" }
