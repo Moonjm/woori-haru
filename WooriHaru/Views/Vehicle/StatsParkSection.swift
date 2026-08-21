@@ -94,18 +94,19 @@ struct StatsParkSection: View {
         }
     }
 
-    /// #21 월별 대기 중 소모(팬텀 드레인). **표본이 0인 달은 점이 nil이라 막대가
-    /// 안 선다** — `viewModel.parkDrainPoints`가 그 갈림을 낸다. 음수도 부호 그대로
-    /// 나온다(자세한 이유는 그 접근자의 주석).
+    /// #21 월별 대기 중 소모(팬텀 드레인). **표본이 0인 달은 점이 nil이라 자리표시자만
+    /// 선다** — `viewModel.parkDrainPoints`가 그 갈림을 낸다. **음수도 부호 그대로 나온다**
+    /// (BMS 재보정으로 정격거리가 오히려 늘어난 달, 자세한 이유는 그 접근자의 주석) —
+    /// 그래서 `MonthlyBarChart`가 아니라 부호를 보존하는 `DivergingMonthlyBarChart`를 쓴다.
     private var parkDrainCard: some View {
         let points = viewModel.parkDrainPoints
         let anchor = anchorID(points)
         let shown = points.first { $0.id == anchor }
         return ChartCard(title: "월별 대기 중 소모",
                          callout: shown.map { VehicleFormat.distance($0.value) }) {
-            MonthlyBarChart(points: points,
-                            selectedID: anchor,
-                            onSelect: { selectedID = $0 })
+            DivergingMonthlyBarChart(points: points,
+                                      selectedID: anchor,
+                                      onSelect: { selectedID = $0 })
         }
     }
 }

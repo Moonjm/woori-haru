@@ -302,10 +302,12 @@ final class VehicleStatsViewModel {
     ///
     /// **음수를 0으로 자르지 않는다.** 충전 기록 없이 정격거리가 늘어난 구간이 부호
     /// 그대로 섞여 있다(BMS 재보정, 또는 TeslaMate가 세션으로 못 잡은 충전 — 실측
-    /// 3,960:628). 자르면 월 합이 위로 편향된다. **다만 `ChartScale.ratio`는 음수를
-    /// 0으로 낸다**(`ChartPoint.swift`) — 실측 월 합은 전부 양수(75~169km)라 지금
-    /// 화면에서는 문제가 없지만, 훗날 월 합이 음수로 뒤집히면 그 달 막대가 조용히
-    /// 사라진다. 그때 이 주석이 원인을 찾는 유일한 단서다.
+    /// 3,960:628). 자르면 월 합이 위로 편향된다. 실측 월 합은 지금 전부 양수(75~169km)지만
+    /// 그건 **지금 데이터가 그렇다**는 뜻이지 계약이 그렇다는 뜻이 아니다 — 스펙은
+    /// 명시적으로 음수 구간이 남는다고 못박고 있다. 그래서 이 카드는 `MonthlyBarChart`
+    /// (음수를 0으로 자르는 `ChartScale.ratio`를 쓴다)가 아니라 부호를 보존하는
+    /// `DivergingMonthlyBarChart`로 그린다 — 월 합이 음수로 나오는 달도 크기와 방향을
+    /// 그대로 보여준다(`StatsParkSection.parkDrainCard`).
     var parkDrainPoints: [ChartPoint] {
         monthly.map { month in
             ChartPoint(id: month.yearMonth, label: MonthLabel.axis(month.yearMonth),

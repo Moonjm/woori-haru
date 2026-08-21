@@ -24,9 +24,51 @@ enum ChartScale {
     }
 
     /// 0…1. **분모가 0이면 나누지 않고, 음수는 0으로 자른다.**
+    ///
+    /// **음수가 원리적으로 불가능한 나머지 스물다섯 장을 위한 가드다 — 고치지 않는다.**
+    /// 거리·시간·건수·금액·비율은 전부 음수가 나올 수 없으니 이 가드가 곧 그 계약이다.
+    /// 부호가 뜻을 갖는 화면(#21 「월별 대기 중 소모」)은 이 함수 대신 아래
+    /// `divergingRatio`/`divergingBarHeight`를 쓴다 — 여기를 건드리면 스물다섯 장이
+    /// 한꺼번에 회귀 위험을 진다.
     static func ratio(_ value: Decimal?, max: Decimal) -> CGFloat {
         guard let value, max > 0, value > 0 else { return 0 }
         return CGFloat(truncating: (value / max) as NSDecimalNumber)
+    }
+
+    // MARK: - 발산형(음수 보존)
+
+    /// 절댓값 기준 최댓값. **발산형 막대 전용이다.** `maxValue`는 부호 그대로 `max()`를
+    /// 써서 예를 들어 [-50, 10]이면 10을 고르는데, 발산형은 기준선에서 가장 멀리 뻗는
+    /// 막대(여기서는 -50)가 위아래 스케일을 정해야 두 방향이 서로 비교된다.
+    ///
+    /// 값이 전부 0 이상인 나머지 스물다섯 장에서는 `abs(v) == v`이므로 이 함수의 결과가
+    /// `maxValue`와 늘 같다 — 새 계산이 기존 카드를 조용히 바꾸지 않는다는 뜻이고,
+    /// 그 사실 자체를 아래 테스트가 못박는다.
+    static func maxAbsValue(_ points: [ChartPoint]) -> Decimal {
+        points.compactMap(\.value).map { abs($0) }.max() ?? 0
+    }
+
+    /// 0…1, **부호는 버리고 크기만 낸다.** `ratio`와 달리 음수를 0으로 자르지 않고
+    /// 절댓값을 쓴다 — 방향(위/아래)은 이 함수가 정하지 않고 `divergingBarHeight`가
+    /// 부호를 다시 붙인다. 값이 0 이상일 때는 `abs(v) == v`라 `ratio`와 결과가 같다.
+    static func divergingRatio(_ value: Decimal?, max: Decimal) -> CGFloat {
+        guard let value, max > 0 else { return 0 }
+        return CGFloat(truncating: (abs(value) / max) as NSDecimalNumber)
+    }
+
+    /// 발산형 막대의 **부호 있는** 픽셀 높이. 양수면 기준선 위로 뻗을 양(+), 음수면
+    /// 기준선 아래로 뻗을 양(-)을 돌려준다 — 방향을 그리는 쪽의 `if/else`에 맡기지 않고
+    /// 여기 한 곳의 계산으로 못박는다(그리는 쪽이 부호만 보고 위/아래 어느 절반에
+    /// 그릴지 고르면 된다).
+    ///
+    /// 값이 있는데 크기가 0에 가까우면 부호는 지킨 채 최소 3pt를 보장한다 — 「거의
+    /// 없다」와 「기록이 없다」를 갈라야 하는 이유는 `ratio`와 같다. 값이 nil이면 0이다
+    /// (그 자리에 무엇을 그릴지는 그리는 쪽이 판단 — 이 저장소의 다른 월별 차트처럼
+    /// 트랙 색 자리표시자를 쓴다).
+    static func divergingBarHeight(_ value: Decimal?, maxAbs: Decimal, halfHeight: CGFloat) -> CGFloat {
+        guard let value else { return 0 }
+        let magnitude = max(3, divergingRatio(value, max: maxAbs) * halfHeight)
+        return value < 0 ? -magnitude : magnitude
     }
 
     // MARK: - 슬롯 기하
