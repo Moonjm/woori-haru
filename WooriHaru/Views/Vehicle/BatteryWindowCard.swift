@@ -188,9 +188,6 @@ struct BatteryWindowCard: View {
 }
 
 #Preview("배터리 추이") {
-    let calendar = Calendar(identifier: .gregorian)
-    var comps = DateComponents()
-    comps.timeZone = TimeZone(identifier: "Asia/Seoul")
     func iso(_ hoursAgo: Int) -> String {
         let date = Date(timeIntervalSinceNow: -Double(hoursAgo) * 3600)
         let formatter = DateFormatter()
