@@ -93,6 +93,9 @@ struct DistanceDistributionCard: View {
     private static let donutSize: CGFloat = 128
     private static let chartHeight: CGFloat = 220
     private static let edgeRadius = donutSize / 2 + 3
+    /// 방사형 토막 — 가장자리에서 이만큼 각도를 유지한 채 뻗은 뒤에야 가로로 꺾인다.
+    /// 위·아래 조각의 선이 겹치지 않는 건 이 부챗살 구간 덕분이다.
+    private static let stubLength: CGFloat = 14
     private static let bendX = donutSize / 2 + 22
     private static let labelX = donutSize / 2 + 32
 
@@ -126,6 +129,7 @@ struct DistanceDistributionCard: View {
                                      fraction: CGFloat(truncating: (slice.percent ?? 0) as NSDecimalNumber))
         }
         let placements = DonutLeaderLayout.place(leaderSlices, radius: Self.edgeRadius,
+                                                  stubLength: Self.stubLength,
                                                   bendX: Self.bendX, labelX: Self.labelX)
         return zip(visibleSlices, placements).map { item, placement in
             LeaderItem(label: item.slice.bucket.label, color: color(at: item.index), placement: placement)
@@ -167,17 +171,20 @@ struct DistanceDistributionCard: View {
                         .position(center)
                     }
 
-                Path { path in
-                    for item in leaderItems {
+                // 조각마다 따로 그려 각자 색을 준다 — 라벨에서 점을 없앤 대신, 선 색 자체가
+                // 「어느 조각인지」를 말한다.
+                ForEach(leaderItems) { item in
+                    Path { path in
                         path.move(to: point(item.placement.edgePoint, from: center))
+                        path.addLine(to: point(item.placement.stubPoint, from: center))
                         path.addLine(to: point(item.placement.bendPoint, from: center))
                         path.addLine(to: point(item.placement.labelPoint, from: center))
                     }
+                    .stroke(item.color, lineWidth: 1)
                 }
-                .stroke(VehicleTheme.textTertiary, lineWidth: 1)
 
                 ForEach(leaderItems) { item in
-                    leaderLabel(item.label, color: item.color, placement: item.placement, center: center)
+                    leaderLabel(item.label, placement: item.placement, center: center)
                 }
             }
         }
@@ -188,23 +195,20 @@ struct DistanceDistributionCard: View {
         CGPoint(x: center.x + offset.x, y: center.y + offset.y)
     }
 
-    private func leaderLabel(_ label: String, color: Color, placement: DonutLeaderLayout.Placement,
+    /// 점을 따로 안 찍는다 — 지시선 자체가 조각 색이라 정체성은 선이 이미 담당한다.
+    private func leaderLabel(_ label: String, placement: DonutLeaderLayout.Placement,
                               center: CGPoint) -> some View {
         // **`overlay`가 `position`보다 먼저다.** 뒤에 붙이면 `position`이 가용 공간 전체로
         // 펼쳐진 뷰에 정렬돼, 라벨 다섯이 전부 카드 좌우 끝·세로 가운데로 몰린다.
         Color.clear
             .frame(width: 0, height: 0)
             .overlay(alignment: placement.side == .right ? .leading : .trailing) {
-                HStack(spacing: 4) {
-                    if placement.side == .left {
-                        Text(label).font(.caption2).foregroundStyle(VehicleTheme.textSecondary)
-                        Circle().fill(color).frame(width: 6, height: 6)
-                    } else {
-                        Circle().fill(color).frame(width: 6, height: 6)
-                        Text(label).font(.caption2).foregroundStyle(VehicleTheme.textSecondary)
-                    }
-                }
-                .fixedSize()
+                Text(label)
+                    .font(.caption)
+                    .foregroundStyle(VehicleTheme.textSecondary)
+                    .fixedSize()
+                    // 선 끝(labelPoint)과 글자 사이 여백 — 붙어 있으면 선이 글자를 파고드는 것처럼 보인다.
+                    .padding(placement.side == .right ? .leading : .trailing, 5)
             }
             .position(point(placement.labelPoint, from: center))
     }
@@ -283,4 +287,25 @@ private func header(_ title: String, _ trailing: String) -> some View {
     }
     .background(VehicleTheme.background)
     .environment(\.vehicleDark, true)
+}
+
+#Preview("도넛 — 작은 조각 몰림") {
+    // 지시선이 겹치기 가장 쉬운 분포(50/24/15/8/3%) — 작은 조각 셋이 왼쪽 위쪽에 몰린다.
+    let buckets = [
+        DistanceBucket(fromKm: 0, toKm: 5, driveCount: 500, distanceKm: 1200),
+        DistanceBucket(fromKm: 5, toKm: 20, driveCount: 240, distanceKm: 2600),
+        DistanceBucket(fromKm: 20, toKm: 50, driveCount: 150, distanceKm: 4500),
+        DistanceBucket(fromKm: 50, toKm: 100, driveCount: 80, distanceKm: 5600),
+        DistanceBucket(fromKm: 100, toKm: nil, driveCount: 30, distanceKm: 4100),
+    ]
+    let total = buckets.reduce(0) { $0 + $1.driveCount }
+    let slices = buckets.map { bucket in
+        VehicleStatsViewModel.DistanceSlice(
+            bucket: bucket,
+            percent: VehicleMath.ratio(Decimal(bucket.driveCount), Decimal(total)))
+    }
+    return DistanceDistributionCard(slices: slices, driveCount: total)
+        .padding(16)
+        .background(VehicleTheme.background)
+        .environment(\.vehicleDark, true)
 }
