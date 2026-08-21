@@ -12,6 +12,12 @@ final class VehicleStatusViewModel {
     private(set) var isLoading = false
     var errorMessage: String?
 
+    /// 최근 48시간 배터리 추이(`/tesla/battery-window`). **`status`와 독립이다** — 하나가
+    /// 실패해도 다른 카드는 그린다는 이 저장소의 규칙(`fetchBatteryHealth`가
+    /// `/tesla/status`와 독립인 것과 같다)을 여기서는 같은 뷰모델 안의 두 프로퍼티로 지킨다.
+    private(set) var batteryWindow: BatteryWindowResponse?
+    var batteryWindowErrorMessage: String?
+
     private let service: VehicleService
     private let now: @Sendable () -> Date
 
@@ -43,10 +49,27 @@ final class VehicleStatusViewModel {
         await reload()
     }
 
+    /// 상태와 배터리 추이를 **함께 병렬로** 받는다. `async let` 둘을 각각 자기 오류만
+    /// 다루게 해서, 하나가 실패해도 다른 쪽 값은 그대로 반영된다 — 여기서 던지고 밖에서
+    /// 한 번에 잡으면 먼저 실패한 쪽이 나중에 도착한 성공까지 함께 삼킨다.
+    ///
+    /// **`isLoading`은 상태(`reloadStatus`) 전용이다.** 배터리 추이는 원래부터 「실패하면
+    /// 조용히 자리를 비운다」는 자기만의 표시 규칙이 있고 로딩 스피너를 갖지 않는다
+    /// (`isBatteryWindowLoading`을 죽은 코드로 지운 적이 있다 — 되살리지 않는다). 예전에는
+    /// `isLoading`을 둘 다 끝난 뒤에야 내렸는데, `/tesla/status`가 먼저 실패하고
+    /// `/tesla/battery-window`가 오래 걸리면 `errorMessage`는 채워졌는데 `isLoading`만 참으로
+    /// 남아 `VehicleOverviewTab`이 (로딩이 오류보다 먼저인 그 화면의 규칙 때문에) 이미 끝난
+    /// 실패를 가리고 배터리 요청이 끝날 때까지 「불러오는 중」만 계속 보여줬다.
     func reload() async {
         generation += 1
         let current = generation
         isLoading = true
+        async let statusOutcome: Void = reloadStatus(generation: current)
+        async let windowOutcome: Void = reloadBatteryWindow(generation: current)
+        _ = await (statusOutcome, windowOutcome)
+    }
+
+    private func reloadStatus(generation current: Int) async {
         defer {
             if current == generation { isLoading = false }
         }
@@ -60,6 +83,20 @@ final class VehicleStatusViewModel {
         } catch {
             guard current == generation else { return }
             errorMessage = "차량 상태를 불러오지 못했습니다."
+        }
+    }
+
+    private func reloadBatteryWindow(generation current: Int) async {
+        do {
+            let loaded = try await service.fetchBatteryWindow()
+            guard current == generation else { return }
+            batteryWindow = loaded
+            batteryWindowErrorMessage = nil
+        } catch is CancellationError {
+            return
+        } catch {
+            guard current == generation else { return }
+            batteryWindowErrorMessage = "배터리 추이를 불러오지 못했습니다."
         }
     }
 }

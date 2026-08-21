@@ -1,25 +1,25 @@
 import Foundation
 import Observation
 
-/// 통계 탭 — `/tesla/drive-insights`와 `/tesla/summary` 둘을 본다. 인사이트 네 카드는
-/// 한 응답에서 나오므로 **기간 칩이 바뀌면 넷이 함께 바뀐다.** 추이(월별 차트)는 따로 받는다 —
-/// 「이번 달 기준 12개월」로 고정이라 기간 칩과 무관하고, 충전 탭의 `VehicleSummaryViewModel`이
-/// 보는 창(선택한 달 기준)과도 다르기 때문이다. 그래서 `load()`/`reload()`에서만 병렬로
-/// 함께 받고, 기간 칩(`select()`)을 눌러도 추이는 다시 부르지 않는다.
+/// 통계 탭 — `/tesla/insights` **하나만** 본다. 화면의 카드가 전부 한 응답에서 나오므로
+/// **기간 칩이 바뀌면 월별 차트까지 함께 바뀐다.**
+///
+/// 1단계에서는 `/tesla/drive-insights`와 `/tesla/summary`를 병렬로 받았다 — 후자는 오직
+/// 「이번 달 기준 12개월」 추이 때문이었고, 그래서 기간 칩이 월별 차트에 먹지 않았다.
+/// 이제 `monthly`가 그 자리를 채운다.
+///
+/// **배터리 열화(`VehicleHealthViewModel`)와 급속/완속 도넛(`ChargeTotalsViewModel`)은
+/// 여전히 다른 응답이다** — 둘 다 전 기간 집계라 기간 칩과 무관하다.
 @MainActor
 @Observable
 final class VehicleStatsViewModel {
 
-    private(set) var insights: DriveInsightsResponse? {
+    private(set) var insights: InsightsResponse? {
         didSet { rebuildHeatMap() }
     }
     private(set) var isLoading = false
     private(set) var period: DrivePeriod = .twelveMonths
     var errorMessage: String?
-
-    /// **기간 칩을 따르지 않는다** — 늘 이번 달 기준 12개월이다.
-    /// 충전 탭의 `VehicleSummaryViewModel`과 같은 엔드포인트를 보지만 창이 달라 따로 받는다.
-    private(set) var trend: [VehiclePeriod] = []
 
     private let service: VehicleService
     /// 겹친 요청 중 최신 것만 결과를 반영한다.
@@ -30,6 +30,12 @@ final class VehicleStatsViewModel {
     }
 
     // MARK: - 파생 값
+
+    /// 오래된 달부터 이번 달까지. **기록이 없는 달도 자리를 지킨다** — 건너뛰면 x축이 어긋난다.
+    ///
+    /// **기간 칩을 따른다.** 1단계의 `trend`가 12개월 고정이었던 것과 다른 점이고,
+    /// 이 화면에서 칩이 실제로 먹는다는 사실이 여기서 나온다.
+    var monthly: [InsightsMonth] { insights?.monthly ?? [] }
 
     /// 거리 버킷 기준이다 — 시간대 카드와 같은 모수를 쓴다.
     var hasDrives: Bool { distanceDriveCount > 0 }
@@ -43,21 +49,79 @@ final class VehicleStatsViewModel {
         insights?.efficiencyKwhPerKm != nil && temperatureRows.contains { $0.kmPerKwh != nil }
     }
 
-    /// **지오펜스가 하나도 없는 것이 이 차량의 기본 상태다**(`geofences` 0행).
-    /// 「가끔 비는 경우」로 다루면 안 되고, 등록하기 전까지 이 카드는 늘 감춰진다.
-    var showsPlaces: Bool { !(insights?.places.isEmpty ?? true) }
+    /// #8 속도별 전비 카드 게이트. **`showsEfficiency`를 그대로 쓰지 않는다** — 그것은
+    /// `temperatureRows`(#9 온도별 전비)를 보는 온도 전용 판정이라, 재료가 다른 이 카드에
+    /// 그대로 물리면 우연히 같은 결측에만 맞는다. 모양은 같다 — 계수가 있고 값이 하나라도
+    /// 있어야 한다 — 재료만 `speedEfficiencyPoints`로 바꿔 나란히 둔다.
+    ///
+    /// **왜 필요한가:** `cars.efficiency`가 없으면 `VehicleMath.kmPerKwh`가 이 카드의 점도
+    /// 전부 nil로 낸다. 게이트 없이 그리면 #9는 `showsEfficiency`로 감춰지는데 같은 결측이
+    /// #8만 막대 하나 없는 빈 차트로 세워 두 카드가 서로 다르게 반응한다.
+    var showsSpeedEfficiency: Bool {
+        insights?.efficiencyKwhPerKm != nil && speedEfficiencyPoints.contains { $0.value != nil }
+    }
 
-    /// 셋 다 없으면 서버가 아직 이 필드를 내지 않는 것이다. 하나라도 있으면 그린다 —
-    /// 「총거리 0km」는 값이 없는 것이 아니라 **안 탔다는 사실**이다.
-    var showsStats: Bool {
+    /// #24 자주 가는 곳. **막대 길이는 건수다** — 서버가 건수 내림차순(`drive_count DESC,
+    /// distance_km DESC, name`)으로 주므로, 거리로 길이를 정하면 짧은 막대가 위에 온다.
+    var placeRows: [RankBarList.Row] {
+        (insights?.places ?? []).map { place in
+            RankBarList.Row(id: place.id, label: place.name,
+                            value: Decimal(place.driveCount),
+                            primary: DriveFormat.count(place.driveCount),
+                            secondary: VehicleFormat.distance(place.distanceKm))
+        }
+    }
+
+    /// #25 충전소별 비용 TOP. **막대 길이는 충전 횟수다**(서버 정렬 기준과 같다,
+    /// `charge_count DESC, energy_added_kwh DESC, name`) — 금액으로 정하면 금액 미입력이
+    /// 섞인 곳이 실제보다 짧게 나와 순위와 어긋난다. 금액은 `primary`에 문자열로만 싣는다.
+    var chargerRows: [RankBarList.Row] {
+        (insights?.chargers ?? []).map { charger in
+            RankBarList.Row(
+                id: charger.id, label: charger.name,
+                value: Decimal(charger.chargeCount),
+                primary: ChargeFormat.cost(charger.cost),
+                secondary: ChargeFormat.energy(charger.energyAddedKwh),
+                // 미입력이 섞이면 위 금액이 실제보다 적다 — 그 사실을 적어 순위가
+                // 조용히 뒤집히지 않게 한다.
+                note: charger.costMissingCount > 0
+                      ? "\(charger.costMissingCount)건 금액 없음" : nil)
+        }
+    }
+
+    /// 위치 섹션 게이트. 셋(`places`·`chargers`·`regions`)이 다 비면 헤더까지 감춘다 —
+    /// 제목만 남은 빈 섹션을 만들지 않는다.
+    ///
+    /// **1단계의 「지오펜스가 없으면 감춘다」와 다르다.** 그때는 이 차량의 `geofences`가
+    /// 0행이라 `places`가 늘 비었다. 서버가 지오펜스가 없으면 주소로 이름을 짓도록
+    /// 바뀌어(`COALESCE(g.name, a.name, a.road, a.city, a.display_name)`) 지오펜스
+    /// 0행이어도 배열이 채워진다. 남은 빈 길은 「그 기간에 주행·충전이 없었다」뿐이다.
+    ///
+    /// **`regions`는 `cities`만 보지 않는다.** 역지오코딩이 시골길·경계 지역에서
+    /// `city`만 NULL이고 `state`·`country`는 채우는 행이 실제로 나온다 — `cities`
+    /// 하나로만 게이트를 걸면 그런 행뿐인 기간에 지역 타일 줄이 통째로 숨는다.
+    var showsPlaceSection: Bool {
         guard let insights else { return false }
-        return insights.maxSpeedKmh != nil
-            || insights.totalDistanceKm != nil
-            || insights.recordedMonths != nil
+        let regions = insights.regions
+        return !insights.places.isEmpty || !insights.chargers.isEmpty
+            || regions.cities > 0 || regions.states > 0 || regions.countries > 0
+    }
+
+    /// #26 명예의 전당 게이트. **셋이 각각 nil일 수 있다** — `bestEfficiency`만 nil인
+    /// 길이 따로 있다(20km 넘는 주행이 없을 때). 하나라도 있으면 섹션을 그리고,
+    /// 셋 다 없으면 헤더까지 감춘다(다른 섹션들과 같은 「헤더는 내용과 함께만 선다」 규칙).
+    var showsRecords: Bool {
+        guard let records = insights?.records else { return false }
+        return records.longestDistance != nil || records.longestDuration != nil
+            || records.bestEfficiency != nil
     }
 
     /// **뷰가 아니라 여기서 나눈다.** 뷰에서 다시 계산하면 테스트하는 값과 화면에 나오는 값이
     /// 서로 다른 코드가 된다 — 3단계에서 같은 함정을 두 번 밟았다.
+    ///
+    /// **`recordedMonths`가 0으로 올 수 있다**(주행이 하나도 없는 계정). 새 계약에서
+    /// non-null이 된 것은 「없음」이 사라졌다는 뜻이지 「0이 안 온다」가 아니므로,
+    /// 0 분모 방어는 `VehicleMath` 쪽에 그대로 남는다.
     var avgMonthlyKm: Decimal? {
         VehicleMath.avgMonthlyDistanceKm(totalKm: insights?.totalDistanceKm,
                                          months: insights?.recordedMonths)
@@ -119,12 +183,60 @@ final class VehicleStatsViewModel {
     /// 없는 칸은 **0이다.** 「기록이 없다」가 아니라 「그 시각에 안 탔다」다.
     func heatCount(weekday: Int, hour: Int) -> Int { heatMap[weekday * 24 + hour] ?? 0 }
 
-    // MARK: - 파생 값(추이)
+    // MARK: - 파생 값(월별)
 
-    var hasTrend: Bool { !trend.isEmpty }
+    /// 주행 섹션 게이트. **행의 존재가 아니라 값의 존재를 본다** — 서버는 기록이 없는
+    /// 달도 값이 전부 nil인 행으로 자리를 채워 보내므로(`InsightsMonth` 참고)
+    /// `!monthly.isEmpty`는 「그 기간에 하나도 안 탔다」일 때도 참이다. 그것으로 게이트를
+    /// 삼으면 「이 기간에 주행 기록이 없어요」 안내문 위아래로 빈 차트가 헤더까지 달고 선다.
+    ///
+    /// **기간 칩이 월별에 먹게 되면서 이 경로가 실제로 열렸다** — 1단계에서는 월별이
+    /// 12개월 고정이라 이 조합이 나오지 않았다.
+    var hasDriveMonths: Bool {
+        monthly.contains { $0.distanceKm != nil || $0.drivingMin != nil || $0.driveCount != nil }
+    }
 
-    private func points(_ value: (VehiclePeriod) -> Decimal?) -> [ChartPoint] {
-        trend.map { ChartPoint(id: $0.yearMonth, label: "\($0.monthNumber)", value: value($0)) }
+    /// 「🚗 주행」 헤더 게이트. **두 카드 묶음 중 하나라도 있으면 선다.**
+    ///
+    /// 두 묶음의 게이트가 서로 다르다. 월별 카드 넷(`StatsDriveSection`)은 `hasDriveMonths`
+    /// **하나만** 보고, `content`의 카드 셋(온도별 전비·시간대 히트맵·거리 분포,
+    /// `VehicleStatsTab`)은 「안내문을 띄우지 않는 모든 경우」에 뜬다 — 즉 **이 프로퍼티와
+    /// 같은 OR이다**(`!(!hasDrives && !hasDriveMonths)`). 그래서 헤더와 `content`는 늘 함께
+    /// 서고 함께 빠진다.
+    ///
+    /// **`hasDrives`와 `hasDriveMonths`를 합치지 않는다** — `end_date` 대 `start_date`라
+    /// 서로 다른 소스이고, 각자 답하는 질문이 다르다(`VehicleStatsTab`의 주석 참고).
+    ///
+    /// **헤더만은 OR을 봐야 한다.** 기간 경계를 걸친 주행 하나만 있는 기간(직전에
+    /// 시작해 기간 안에서 끝남)이면 `hasDrives=true`, `hasDriveMonths=false`가 실제로
+    /// 나온다 — 이때 헤더를 `hasDriveMonths` 하나로만 걸면 `content`의 카드 셋이
+    /// 「🚗 주행」 헤더 없이 화면에 뜬다.
+    var showsDriveSection: Bool { hasDrives || hasDriveMonths }
+
+    /// 충전 섹션 게이트. **주행과 따로 본다** — 충전은 주행 없이도 한다. 하나로 묶으면
+    /// 안 타고 충전만 한 기간에 충전 카드까지 사라진다.
+    var hasChargeMonths: Bool {
+        monthly.contains { $0.cost != nil || $0.energyAddedKwh != nil || $0.chargeCount != nil }
+    }
+
+    /// 「응답을 받았는가」 하나만 말한다. **내용 게이트 둘과 다르다** — 값이 하나도 없는
+    /// 응답도 받은 것은 받은 것이다. 1단계 `showsStats`가 이것과 「서버가 그 필드를
+    /// 내는가」를 함께 가리고 있었는데, 후자는 새 계약에서 거짓이 될 수 없어 사라졌다.
+    var hasLoadedInsights: Bool { insights != nil }
+
+    /// 주차 섹션 게이트. **행의 존재를 그대로 쓴다** — 위 둘(`hasDriveMonths`·
+    /// `hasChargeMonths`)이 「행은 있어도 내용은 nil일 수 있다」를 피하려고 필드값을
+    /// 하나하나 본 것과 다르다. 이 섹션의 세 재료 중 `idleMin`은 애초에 non-null이라
+    /// 행이 있으면 값도 있다 — 필드를 따로 검사해도 결론이 같다. `hasLoadedInsights`를
+    /// 그대로 쓰지 않는 이유는, `monthly`가 정말로 빈 배열일 때(그 기간에 행 자체가
+    /// 안 온 경우) 그것까지 참으로 두면 내용 없는 헤더만 선다 — 다른 두 섹션과 같은
+    /// 「헤더는 내용과 함께만 선다」 규칙을 지키려면 `monthly`가 비지 않아야 한다.
+    var hasParkMonths: Bool { !monthly.isEmpty }
+
+    private func points(_ value: (InsightsMonth) -> Decimal?) -> [ChartPoint] {
+        monthly.map {
+            ChartPoint(id: $0.yearMonth, label: MonthLabel.axis($0.yearMonth), value: value($0))
+        }
     }
 
     var distancePoints: [ChartPoint] { points(\.distanceKm) }
@@ -133,20 +245,153 @@ final class VehicleStatsViewModel {
     var energyPoints: [ChartPoint] { points(\.energyAddedKwh) }
     var costPoints: [ChartPoint] { points(\.cost) }
     var chargeCountPoints: [ChartPoint] { points { $0.chargeCount.map { Decimal($0) } } }
-    var efficiencyPoints: [ChartPoint] { points(\.efficiency) }
+
+    /// #12 월별 충전 시간(분). **막대 값은 분 그대로 둔다** — `drivingMinPoints`와 같은 이유다.
+    /// 막대 높이는 비율이라 단위가 무엇이든 그림이 같아, 60으로 나눠 시간 단위로 바꿔도
+    /// 얻는 것이 없다. 시·분 표기는 콜아웃에서 `ChargeFormat.duration(_:)`이 맡는다.
+    var chargingMinPoints: [ChartPoint] { points { $0.chargingMin.map { Decimal($0) } } }
+
+    /// 전비(km/kWh). **`VehiclePeriod.efficiency`가 하던 계산을 여기로 옮겼다** —
+    /// `InsightsMonth`에는 그 계산 속성이 없다. 분모는 1단계와 같은 충전량이다.
+    ///
+    /// **선의 공식은 이것으로 고정이다.** 계획 문서는 한때 이 선을 정격거리 기반으로
+    /// 바꾸라고 적었는데 스펙(`vehicle-insights-tabs-design.md:190`)과 어긋나 기각됐다 —
+    /// 정격 대비 비율은 선이 아니라 `overallEfficiencyRatio`로 카드 머리에 한 줄만 얹는다.
+    var efficiencyPoints: [ChartPoint] {
+        points { VehicleMath.kmPerKwh(energyAddedKwh: $0.energyAddedKwh, distanceKm: $0.distanceKm) }
+    }
+
+    /// 기간 전체의 정격 대비 실주행. **합끼리 나눈다** — 월별 비율의 평균은 짧은 달을
+    /// 과대평가한다(주행이 사흘뿐인 달의 100% 비율이 꽉 찬 달과 같은 무게를 갖는다).
+    /// 개요 누적 타일에서 옮겨온 자리다.
+    var overallEfficiencyRatio: Decimal? {
+        let distance = monthly.compactMap(\.distanceKm).reduce(0, +)
+        let rated = monthly.compactMap(\.ratedRangeUsedKm).reduce(0, +)
+        guard distance > 0, rated > 0 else { return nil }
+        return distance / rated
+    }
 
     /// **누적은 뷰가 아니라 여기서 낸다.** 뷰에서 다시 더하면 테스트하는 값과 화면 값이 갈린다.
     var cumulativeDistancePoints: [ChartPoint] {
-        let totals = VehicleMath.runningTotals(trend.map(\.distanceKm))
-        return zip(trend, totals).map { period, total in
-            ChartPoint(id: period.yearMonth, label: "\(period.monthNumber)", value: total)
+        let totals = VehicleMath.runningTotals(monthly.map(\.distanceKm))
+        return zip(monthly, totals).map { month, total in
+            ChartPoint(id: month.yearMonth, label: MonthLabel.axis(month.yearMonth), value: total)
         }
     }
 
     var cumulativeCostPoints: [ChartPoint] {
-        let totals = VehicleMath.runningTotals(trend.map(\.cost))
-        return zip(trend, totals).map { period, total in
-            ChartPoint(id: period.yearMonth, label: "\(period.monthNumber)", value: total)
+        let totals = VehicleMath.runningTotals(monthly.map(\.cost))
+        return zip(monthly, totals).map { month, total in
+            ChartPoint(id: month.yearMonth, label: MonthLabel.axis(month.yearMonth), value: total)
+        }
+    }
+
+    /// #19 월별 정지 시간(분). **`idleMin`은 non-null이다** — 다른 월별 계열(거리·비용·
+    /// 횟수…)과 반대로 기록이 없는 달일수록 값이 크다. 기록이 없다는 것 자체가 「그 달
+    /// 내내 서 있었다」는 뜻이라, 빈 달은 44640분(31일)까지도 나온다. 여기서 nil로
+    /// 바꾸거나 0으로 뭉개면 이 계약이 사라진다.
+    var idleMinPoints: [ChartPoint] {
+        monthly.map {
+            ChartPoint(id: $0.yearMonth, label: MonthLabel.axis($0.yearMonth), value: Decimal($0.idleMin))
+        }
+    }
+
+    /// #21 월별 대기 중 소모(팬텀 드레인, rated km). **표본이 0이면 nil이다** —
+    /// `parkDrainSamples == 0`은 「안 샜다」가 아니라 「그 달에 잴 구간이 없었다」다.
+    /// `parkDrainRatedKm`이 0.0으로 와도 그대로 그리면 그 달만 완벽했던 것처럼 보인다.
+    ///
+    /// **음수를 0으로 자르지 않는다.** 충전 기록 없이 정격거리가 늘어난 구간이 부호
+    /// 그대로 섞여 있다(BMS 재보정, 또는 TeslaMate가 세션으로 못 잡은 충전 — 실측
+    /// 3,960:628). 자르면 월 합이 위로 편향된다. 실측 월 합은 지금 전부 양수(75~169km)지만
+    /// 그건 **지금 데이터가 그렇다**는 뜻이지 계약이 그렇다는 뜻이 아니다 — 스펙은
+    /// 명시적으로 음수 구간이 남는다고 못박고 있다. 그래서 이 카드는 `MonthlyBarChart`
+    /// (음수를 0으로 자르는 `ChartScale.ratio`를 쓴다)가 아니라 부호를 보존하는
+    /// `DivergingMonthlyBarChart`로 그린다 — 월 합이 음수로 나오는 달도 크기와 방향을
+    /// 그대로 보여준다(`StatsParkSection.parkDrainCard`).
+    var parkDrainPoints: [ChartPoint] {
+        monthly.map { month in
+            ChartPoint(id: month.yearMonth, label: MonthLabel.axis(month.yearMonth),
+                       value: month.parkDrainSamples > 0 ? month.parkDrainRatedKm : nil)
+        }
+    }
+
+    // MARK: - 파생 값(분포)
+
+    /// #4 요일별 평균 주행거리. **`isoWeekdayLabel`을 쓴다** — 이 배열만 1=월요일이고
+    /// 같은 응답의 `driveTimes`·`chargeTimes`는 0=일요일이다. 섞으면 차트가 하루씩 밀린다.
+    var weekdayDistancePoints: [ChartPoint] {
+        (insights?.weekday ?? []).map { day in
+            ChartPoint(id: "wd\(day.weekday)",
+                       label: DriveFormat.isoWeekdayLabel(day.weekday),
+                       value: VehicleMath.avgPerOccurrence(total: day.distanceKm,
+                                                            occurrences: day.occurrences))
+        }
+    }
+
+    /// #20 요일별 정지 시간(분). **`isoWeekdayLabel`을 쓴다**(1=월요일) — 이 응답의
+    /// `weekday` 배열 전용 규약이고, 같은 응답의 `driveTimes`·`chargeTimes`(0=일요일)와
+    /// 반대다. `weekdayDistancePoints`(#4)와 같은 쪽이니 헷갈리면 그쪽을 본다.
+    var weekdayIdlePoints: [ChartPoint] {
+        (insights?.weekday ?? []).map { day in
+            ChartPoint(id: "wi\(day.weekday)", label: DriveFormat.isoWeekdayLabel(day.weekday),
+                       value: Decimal(day.idleMin))
+        }
+    }
+
+    /// #7 최고속도 분포. 주행 **한 건의 최고** 속도라 #8과 모집단이 다르다.
+    var speedPoints: [ChartPoint] {
+        (insights?.speedBuckets ?? []).map {
+            ChartPoint(id: "sp\($0.fromKmh)", label: $0.label, value: Decimal($0.driveCount))
+        }
+    }
+
+    /// #8 속도별 전비. **`driveCount`가 없는 배열이다** — `ΔratedRange > 0`인 주행만 들어
+    /// #7과 모집단이 다르므로, 카드 콜아웃에 「N회 기준」을 적지 않는다.
+    var speedEfficiencyPoints: [ChartPoint] {
+        (insights?.speedEnergyBuckets ?? []).map { bucket in
+            ChartPoint(id: "se\(bucket.fromKmh)", label: bucket.label,
+                       value: VehicleMath.kmPerKwh(distanceKm: bucket.distanceKm,
+                                                    ratedRangeUsedKm: bucket.ratedRangeUsedKm,
+                                                    efficiencyKwhPerKm: insights?.efficiencyKwhPerKm))
+        }
+    }
+
+    /// #15 충전 히트맵. **`chargeTimes`는 0=일요일이다** — `driveTimes`와 같고
+    /// 같은 응답의 `weekday` 배열(1=월요일, ISO)과 다르다. 직전 태스크가 `weekday`를 썼다고
+    /// 여기서도 `isoWeekdayLabel`을 따라가면 안 된다 — `HeatmapGrid`는 이미 `weekdayLabel`
+    /// (0=일요일)을 쓰므로 이 접근자를 그대로 넘기면 맞는다.
+    ///
+    /// 없는 칸이 서버에서 아예 빠지므로(성기게 옴) 매번 선형 탐색한다 — `chargeTimes`는
+    /// `driveTimes`처럼 168칸을 자주 훑는 히트맵 전용 사전(`heatMap`)을 따로 둘 만큼
+    /// 크지 않다(충전은 주행보다 훨씬 드물다).
+    func chargeHeatCount(weekday: Int, hour: Int) -> Int {
+        insights?.chargeTimes.first { $0.weekday == weekday && $0.hour == hour }?.count ?? 0
+    }
+
+    var maxChargeHeatCount: Int { insights?.chargeTimes.map(\.count).max() ?? 0 }
+
+    /// 충전 히트맵 콜아웃의 총합. **뷰가 아니라 여기서 더한다** — 주행 쪽
+    /// (`distanceDriveCount`)과 같은 관례다. 뷰에서 다시 더하면 두 히트맵이 서로 다른
+    /// 방식으로 같은 일을 하게 된다.
+    var totalChargeHeatCount: Int { (insights?.chargeTimes ?? []).reduce(0) { $0 + $1.count } }
+
+    /// #16 충전 시작 SoC 분포. 열 칸이 늘 오고 0인 칸도 자리를 지킨다.
+    var chargeStartLevelPoints: [ChartPoint] {
+        (insights?.chargeStartLevels ?? []).map {
+            ChartPoint(id: "cs\($0.fromPct)", label: $0.label, value: Decimal($0.count))
+        }
+    }
+
+    /// #17 충전 종료 SoC 분포. **마지막 칸만 양끝이 닫혀 있다**(90 이상 100 이하) —
+    /// 정확히 100%로 끝난 충전이 실측 71건이라 「미만」이면 가장 흔한 값이 어느 칸에도
+    /// 안 든다. 그 칸만 라벨을 「90~100」으로 적어 다른 칸(「미만」)과 다름을 글자로 드러낸다.
+    var chargeEndLevelPoints: [ChartPoint] {
+        let buckets = insights?.chargeEndLevels ?? []
+        return buckets.enumerated().map { index, bucket in
+            let isLast = index == buckets.count - 1
+            return ChartPoint(id: "ce\(bucket.fromPct)",
+                              label: isLast ? "\(bucket.fromPct)~\(bucket.toPct)" : bucket.label,
+                              value: Decimal(bucket.count))
         }
     }
 
@@ -157,32 +402,28 @@ final class VehicleStatsViewModel {
     /// (`VehicleHealthViewModel.load()`와 같은 규칙이다.)
     func load() async {
         guard insights == nil || errorMessage != nil else { return }
-        await fetch(period, isPeriodChange: false, fetchTrend: true)
+        await fetch(period, isPeriodChange: false)
     }
 
     /// 당겨서 새로고침. **실패해도 있던 값을 지우지 않는다** — 1단계 건강 화면과 같은 규칙이다.
     func reload() async {
-        await fetch(period, isPeriodChange: false, fetchTrend: true)
+        await fetch(period, isPeriodChange: false)
     }
 
     /// 기간 칩. **성공이든 실패든 옛 기간의 값을 곧장 지운다** — 칩은 3개월인데 화면이
     /// 12개월 값이면 그 순간만이라도 거짓말이 된다. 새로고침과 다르게 다뤄야 하는 유일한 자리다.
     ///
-    /// **추이는 다시 받지 않는다** — 「이번 달 기준 12개월」은 기간 칩과 무관해 이미 있는
-    /// 값 그대로다. 다시 받으면 칩을 누를 때마다 `/tesla/summary`를 불필요하게 또 부른다.
+    /// **`.all`의 rawValue 0을 그대로 보낸다** — 「전체」라고 파라미터를 빼면 서버가 기본값
+    /// 12로 답해 조용히 12개월만 나온다.
     func select(_ next: DrivePeriod) async {
         guard next != period else { return }
         period = next
-        await fetch(next, isPeriodChange: true, fetchTrend: false)
+        await fetch(next, isPeriodChange: true)
     }
 
     /// `isPeriodChange`는 「기간이 바뀌어 옛 값을 이 요청 결과로 완전히 갈아치운다」는 뜻이다 —
     /// 「실패하면 지운다」가 아니다. 그래서 지우는 지점은 아래 한 곳, 응답을 기다리기 전뿐이다.
-    ///
-    /// `fetchTrend`가 참이면 주행 인사이트와 12개월 추이를 **병렬로** 받는다. 하나가 던져도
-    /// 다른 하나는 산다 — 추이는 이번 달 기준으로 고정이라 기간 칩 변경(`select`)에는 딸려
-    /// 보내지 않는다.
-    private func fetch(_ months: DrivePeriod, isPeriodChange: Bool, fetchTrend: Bool) async {
+    private func fetch(_ months: DrivePeriod, isPeriodChange: Bool) async {
         generation += 1
         let current = generation
         // 기간이 바뀌면 결과를 기다리지 않고 바로 옛 값을 지운다 — 칩과 화면이 한순간도
@@ -193,32 +434,19 @@ final class VehicleStatsViewModel {
             if current == generation { isLoading = false }
         }
 
-        async let insightsTask = service.fetchDriveInsights(months: months.rawValue)
-        async let summaryTask: VehicleSummaryResponse? = fetchTrend
-            ? (try? await service.fetchSummary(yearMonth: LedgerYearMonth.current().apiValue))
-            : nil
+        var loaded: InsightsResponse?
+        var failure: (any Error)?
+        do { loaded = try await service.fetchInsights(months: months.rawValue) }
+        catch { failure = error }
 
-        // **둘을 따로 잡는다** — 하나가 던져도 다른 하나는 산다.
-        var loadedInsights: DriveInsightsResponse?
-        var insightsError: (any Error)?
-        do { loadedInsights = try await insightsTask } catch { insightsError = error }
-
-        // 추이는 실패해도 배너를 세우지 않는다 — 주행 카드가 살아 있는데 빨간 줄이 서면
-        // 「전부 못 받았다」로 읽힌다. 섹션이 조용히 빠질 뿐이다.
-        // **실패해도 있던 값을 지우지 않는다**(당겨서 새로고침 관례).
-        let loadedSummary = await summaryTask
-
-        if insightsError is CancellationError { return }
+        if failure is CancellationError { return }
         guard current == generation else { return }
 
-        if let loadedInsights {
-            insights = loadedInsights
+        if let loaded {
+            insights = loaded
             errorMessage = nil
-        } else if insightsError != nil {
+        } else {
             errorMessage = "주행 인사이트를 불러오지 못했습니다."
-        }
-        if fetchTrend {
-            trend = loadedSummary?.trend ?? trend
         }
     }
 }

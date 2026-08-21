@@ -216,13 +216,17 @@ TeslaMate가 저장하지 않는다. 자율주행과 같은 이유다.
 |---|---|---|---|---|
 | 22 | 용량 열화 추세 | 선 | `DegradationTrendChart` — 개요에서 이동 | ↩︎ |
 | 23 | 도시 · 시도 · 국가 수 | 타일 3 | `addresses` distinct | 🔧 |
-| 24 | 자주 가는 곳 | 목록 | `places` — 기존 카드 | ↩︎ |
+| 24 | 자주 가는 곳 | 가로 막대 | `places` — 기존 카드를 **`RankBarList`로 바꾼다** | ↩︎ |
 | 25 | 충전소별 비용 TOP | 가로 막대 | `geofences`/`addresses` 조인 — **지도가 아니라 순위표다** | 🔧 |
 | 26 | 명예의 전당 | 타일 격자 | 최장거리 · 최장시간 · 최고효율 | 🔧 |
 
 **「최다 고도 상승」은 뺐다.** 이것만 `positions.elevation`을 주행마다 훑어야 하는데 창이 없는 전 기간 스캔이라, 타일 한 칸이 비용을 못 넘는다(서버 설계 참조).
 
-**`showsPlaces` 판단을 그대로 이어받는다.** 지오펜스가 0행인 것이 이 차량의 기본 상태이므로(4단계 확인), 「자주 가는 곳」과 「충전소별 비용 TOP」은 지오펜스가 없으면 감춘다. 위치 섹션이 통째로 비는 길이 있고, 그때는 섹션 헤더까지 감춘다.
+**「자주 가는 곳」을 목록에서 가로 막대로 바꾼다.** 이 카드는 「어디를 제일 자주 가나」를 묻는데, 글자로 늘어놓으면 1등과 5등의 차이가 숫자를 읽어야만 보인다. 바로 아래 25번이 같은 모양의 순위표(충전소별 비용 TOP)라 **원형 하나(`RankBarList`)로 둘 다 그린다** — 26장 중 순위표가 둘뿐이라 원형을 새로 만드는 값이 여기서 나온다.
+
+**`showsPlaces` 판단은 이어받지 않는다 — 전제가 바뀌었다.** 1단계에서 이 카드를 감춘 이유는 지오펜스가 0행이라 `places`가 늘 빈 배열이었기 때문이다. 서버가 그 사이 **지오펜스가 없으면 주소로 이름을 짓도록** 바뀌었고(서버 설계 「이름 짓기」), 그래서 이 차량에서도 두 배열이 실제로 채워진다. 감추기는 남기되 조건이 「지오펜스가 없다」가 아니라 **「배열이 비었다」**가 된다 — 기간 안에 주행이 하나도 없으면 여전히 빈 배열이다.
+
+**`name`이 응답 안에서 유일해졌다.** 서버가 id가 아니라 표시 이름으로 묶기 때문이다. 1단계에서 `DrivePlace`가 `Identifiable`을 못 달고 뷰가 `id: \.offset`으로 그리던 이유가 사라졌으므로, `Identifiable`을 달고 막대에 선택 하이라이트를 붙인다.
 
 ---
 
@@ -260,6 +264,42 @@ TeslaMate가 저장하지 않는다. 자율주행과 같은 이유다.
 
 ---
 
+## 2단계 서버 계약 — 실제 구현 기준
+
+`GET /tesla/insights?months=N`(0=전체, 1~60, 기본 12)과 `GET /tesla/battery-window?hours=N`(1~168, 기본 48) **둘 다 이미 살아 있다.** 아래는 응답을 읽을 때 앱이 밟기 쉬운 자리만 모은 것이고, 근거는 서버 설계와 DTO 주석에 있다.
+
+### 요일 번호가 한 응답 안에서 둘이다
+
+| 배열 | 규약 |
+|---|---|
+| `driveTimes[].weekday` · `chargeTimes[].weekday` | **0 = 일요일** (PostgreSQL `dow`) |
+| `weekday[].weekday` | **1 = 월요일** (ISO), 일곱 개가 늘 온다 |
+
+`DriveFormat.weekdayLabel(_:)`은 0=일요일 전용이다. 4번·20번 차트가 `weekday` 배열을 쓰면서 이 함수를 그대로 부르면 **차트 전체가 하루씩 밀린다.** ISO용 라벨 함수를 따로 두고, 어느 배열이 어느 규약인지 호출부에서 보이게 한다.
+
+### 0과 null이 갈리는 자리
+
+- `monthly[]`에서 **`idleMin`·`parkDrainRatedKm`·`parkDrainSamples` 셋만 non-null**이다. 나머지(`distanceKm`·`driveCount`·`cost`…)는 기록이 없으면 null이다.
+- `parkDrainSamples == 0`이면 **막대를 그리지 않는다.** `parkDrainRatedKm`이 0.0으로 와도 그것은 「안 샜다」가 아니라 「잴 구간이 없었다」다.
+- `parkDrainRatedKm`에는 **음수 구간이 부호 그대로 섞여 있다**(BMS 재보정). 월 합은 양수로 나오지만 앱이 0으로 자르지 않는다.
+- `totalDistanceKm`·`recordedMonths`·`regions`는 **non-null**이다 — 기존 `/tesla/drive-insights`에서 옵셔널이던 것이 여기서는 아니다. `recordedMonths`는 0으로 올 수 있어 나누기 전에 막는 것은 그대로다.
+- `records`의 셋(`longestDistance`·`longestDuration`·`bestEfficiency`)은 **각각 null일 수 있다.** `bestEfficiency`만 null인 길이 따로 있다 — 20km 넘는 주행이 없을 때다.
+- `chargers[].cost`와 `.energyAddedKwh`는 null일 수 있다. **0으로 바꾸지 않는다.**
+
+### 모집단이 서로 다른 배열들
+
+- `speedBuckets`(최고 속도, 7칸)와 `speedEnergyBuckets`(평균 속도, 5칸)는 **다른 값을 버킷한다.** 후자에는 `driveCount`가 아예 없다 — `ΔratedRange > 0`인 주행만 들어 모집단이 다르기 때문이다. 두 카드가 각자 자기 수를 낸다(온도·거리 버킷이 1단계에서 그랬던 것과 같다).
+- `chargeStartLevels`·`chargeEndLevels`는 열 칸이 늘 오고, **마지막 칸(`90~100`)만 양끝이 닫힌다.** 정확히 100%로 끝난 충전이 실측 71건이라 「미만」으로 두면 가장 흔한 값이 사라진다. 라벨을 「90~100%」로 적어 다른 칸과 다름을 드러낸다.
+
+### `battery-window`
+
+- `samples`는 **5분마다 최대 하나**로 솎여서 온다(48시간 82개). 앱이 다시 솎지 않는다.
+- **`usableBatteryLevel`은 실측 3%만 채워져 있다.** 주 계열은 `batteryLevel`이고, 이것으로 선을 그리면 거의 다 끊긴다 — 있을 때만 점을 찍는 보조 계열이다.
+- `parkDrain`은 **`hours`를 안 따르고 최근 7일 고정**이다. `samples == 0`이면 그 줄을 감춘다.
+- `to`는 자정이 아니라 **요청 시각**이다.
+
+---
+
 ## 차트 원형
 
 차트가 5개에서 26개가 된다. **지금처럼 카드마다 그리는 코드를 새로 쓰면 26벌이 된다.** 기존 다섯(`VehicleTrendChart`·`DegradationTrendChart`·`StateTimelineChart`·`ChargeCurveChart`·`DriveTimeHeatmap`)에서 공통 뼈대를 뽑아 `Views/Vehicle/Charts/`에 원형을 둔다.
@@ -271,7 +311,7 @@ TeslaMate가 저장하지 않는다. 자율주행과 같은 이유다.
 | `BarLineChart` (이중축) | #1 #11 | 신규 (위 둘의 합성) |
 | `DistributionBarChart` | #4 #5 #7 #8 #16 #17 #20 | `DriveBucketCards` |
 | `HeatmapGrid` | #6 #15 | `DriveTimeHeatmap` |
-| `RankBarList` (가로) | #25 | 신규 |
+| `RankBarList` (가로) | #24 #25 | 신규 — `TemperatureEfficiencyCard`의 가로 막대에서 출발 |
 | `DonutChart` | #18 | 신규 |
 
 **원형은 값과 라벨만 받는다.** 도메인 타입(`VehiclePeriod`·`TemperatureBucket`)을 원형이 알면 재사용이 안 된다 — 각 카드가 자기 도메인 타입을 `[(label: String, value: Decimal?)]`로 바꿔 넘긴다.
