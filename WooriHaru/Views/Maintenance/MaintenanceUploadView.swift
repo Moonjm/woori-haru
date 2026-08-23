@@ -103,9 +103,7 @@ struct MaintenanceUploadView: View {
         }
         .navigationDestination(isPresented: $showReview) {
             if let recognition = vm.recognition {
-                // Task 7이 이 한 줄을
-                // `MaintenanceBillFormView(mode: .create(recognition), onSaved: onSaved)`로 갈아 끼운다.
-                Text(recognition.yearMonth ?? "연월 없음")
+                MaintenanceBillFormView(mode: .create(recognition), onSaved: onSaved)
             }
         }
     }
