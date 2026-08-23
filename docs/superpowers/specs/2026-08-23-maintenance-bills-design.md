@@ -174,11 +174,15 @@ enum Mode: Equatable {
 |---|---|---|---|
 | 1 | 월별 관리비 추이 | `MonthlyBarChart` | 언제 많이 나왔나 |
 | 2 | 최근 달 항목 구성 | `RankBarList` | 이번 달 무엇이 컸나 |
-| 3 | 전년 동월 대비 항목별 증감 | `DivergingMonthlyBarChart` | 작년 이맘때보다 무엇이 올랐나 |
+| 3 | 전년 동월 대비 항목별 증감 | `DivergingRankList` (신규 원형) | 작년 이맘때보다 무엇이 올랐나 |
 | 4 | 사용량 추이 | `MonthlyLineChart` + 5종 토글 | 실제로 더 썼나, 단가가 오른 건가 |
 | 5 | 항목 하나의 월별 추이 | `MonthlyBarChart` + 항목 피커 | 이 항목만 따라가 보기 |
 
-**#3의 축은 달이 아니라 항목이다.** `DivergingMonthlyBarChart`는 `[ChartPoint]`를 받으므로 `label`에 항목명을 넣으면 그대로 쓸 수 있다. 값은 `이번 달 금액 − 전년 동월 금액`, 증감이 큰 순으로 잘라 위에서부터 그린다.
+**#3의 축은 달이 아니라 항목이라, 원형 하나를 새로 둔다.** 기존 `DivergingMonthlyBarChart`는 `[ChartPoint]`를 받아 부호까지 그리지만 **가로축에 9pt 라벨을 놓는다** — 달 이름(`8`)은 들어가도 「일반관리비」·「세대전기료」는 슬롯 폭에 못 들어간다. `RankBarList`는 세로 리스트라 이름이 들어가지만 **부호를 표현하지 못한다**(막대가 늘 왼쪽에서 오른쪽으로 자라고 색이 하나다).
+
+그래서 `DivergingRankList`를 새로 만든다 — 세로 리스트, 가운데 기준선, **오른쪽으로 자라면 증가(경고색), 왼쪽으로 자라면 감소(강조색)**. 기하 계산은 이미 있는 `ChartScale.maxAbsValue`·`divergingRatio`를 그대로 쓴다(테스트가 이미 붙어 있다). 값은 `이번 달 금액 − 전년 동월 금액`, **증감 절댓값 큰 순 상위 8개**만 그린다 — 항목이 스무 개 넘어 전부 그리면 0에 가까운 행이 화면을 먹는다.
+
+새 원형은 관리비만 쓰지만 `Views/Vehicle/Charts`에 둔다 — 차트 원형이 두 군데로 갈리면 다음 화면이 어디를 뒤져야 할지 모른다.
 
 **전년 동월이 범위에 없으면 #3을 그리지 않는다.** 13개월이 다 차지 않은 초기(등록한 달이 두세 달뿐)에는 카드 자리에 「전년 동월 자료가 쌓이면 보여드립니다」를 놓는다. 없는 비교를 0으로 채우면 **모든 항목이 「신설」로 보인다.**
 
@@ -223,6 +227,7 @@ enum Mode: Equatable {
 ## 파일
 
 ```
+Views/Vehicle/Charts/DivergingRankList.swift      신규 차트 원형 (#3)
 Models/MaintenanceModels.swift
 Services/MaintenanceService.swift
 ViewModels/MaintenanceBillsViewModel.swift        목록·상세·삭제
