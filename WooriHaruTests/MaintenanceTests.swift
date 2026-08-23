@@ -162,3 +162,101 @@ struct MaintenanceModelTests {
         #expect(json["dong"] == nil)
     }
 }
+
+@MainActor
+struct MaintenanceServiceTests {
+    private func makeBill(_ yearMonth: String) -> MaintenanceBill {
+        MaintenanceBill(yearMonth: yearMonth, dong: nil, ho: nil, areaM2: nil,
+                        items: [], usage: nil,
+                        chargedAmount: 0, discountTotal: 0,
+                        unpaidAmount: 0, unpaidLateFee: 0,
+                        dueAmount: 0, dueDate: nil)
+    }
+
+    @Test func 목록을_받아_bills를_꺼낸다() async throws {
+        let api = MockAPIClient()
+        api.stubGet("/maintenance/bills",
+                    result: DataResponse(data: MaintenanceBillList(bills: [makeBill("2026-08")])))
+        let service = MaintenanceService(api: api)
+
+        let bills = try await service.fetchBills()
+
+        #expect(bills.map(\.yearMonth) == ["2026-08"])
+        #expect(api.getCalls.map(\.path) == ["/maintenance/bills"])
+    }
+
+    @Test func 상세는_연월을_경로에_넣는다() async throws {
+        let api = MockAPIClient()
+        api.stubGet("/maintenance/bills/2026-08", result: DataResponse(data: makeBill("2026-08")))
+        let service = MaintenanceService(api: api)
+
+        let bill = try await service.fetchBill(yearMonth: "2026-08")
+
+        #expect(bill.yearMonth == "2026-08")
+        #expect(api.getCalls.map(\.path) == ["/maintenance/bills/2026-08"])
+    }
+
+    /// 추이는 `months`를 쿼리로 싣는다. 기본 13은 **전년 동월이 범위에 들어오라고** 고른 값이다.
+    @Test func 추이는_months를_쿼리로_보낸다() async throws {
+        let api = MockAPIClient()
+        api.stubGet("/maintenance/trends", result: DataResponse(data: MaintenanceTrend(months: [])))
+        let service = MaintenanceService(api: api)
+
+        _ = try await service.fetchTrends(months: 13)
+
+        #expect(api.getCalls.first?.query == ["months": "13"])
+    }
+
+    /// 인식은 multipart다. **`image/jpeg`로 보낸다** — 서버가 이 값으로 디코더를 고르는데
+    /// HEIC 원본을 jpeg로 위장해 보내면 `IMAGE_UNREADABLE`이 된다.
+    @Test func 인식은_jpeg_multipart로_나간다() async throws {
+        let api = MockAPIClient()
+        let recognition = MaintenanceRecognition(
+            yearMonth: "2026-08", dong: nil, ho: nil, areaM2: nil,
+            items: [], usage: nil, chargedAmount: 0, discountTotal: 0,
+            unpaidAmount: 0, unpaidLateFee: 0, dueAmount: 0, dueDate: nil,
+            sumMatched: true, warnings: []
+        )
+        api.stubMultipartJSON("/maintenance/recognitions", result: DataResponse(data: recognition))
+        let service = MaintenanceService(api: api)
+
+        _ = try await service.recognize(imageData: Data([0xFF, 0xD8]))
+
+        let call = try #require(api.multipartJSONCalls.first)
+        #expect(call.path == "/maintenance/recognitions")
+        #expect(call.mimeType == "image/jpeg")
+        #expect(call.fileName.hasSuffix(".jpg"))
+    }
+
+    /// 인식 응답이 비면 200이라도 실패다 — nil을 들고 검수 화면을 열 수 없다.
+    @Test func 빈_인식_응답은_에러다() async throws {
+        let api = MockAPIClient()
+        api.stubMultipartJSON("/maintenance/recognitions",
+                              result: DataResponse<MaintenanceRecognition>(data: nil))
+        let service = MaintenanceService(api: api)
+
+        await #expect(throws: (any Error).self) {
+            _ = try await service.recognize(imageData: Data())
+        }
+    }
+
+    @Test func 저장과_수정과_삭제가_각_경로로_나간다() async throws {
+        let api = MockAPIClient()
+        let service = MaintenanceService(api: api)
+        let request = MaintenanceBillSaveRequest(
+            yearMonth: "2026-08",
+            items: [MaintenanceBillItemRequest(name: "일반관리비", amount: 100)],
+            chargedAmount: 100, dueAmount: 100,
+            dong: nil, ho: nil, areaM2: nil, usage: nil,
+            discountTotal: 0, unpaidAmount: 0, unpaidLateFee: 0, dueDate: nil
+        )
+
+        try await service.saveBill(request)
+        try await service.updateBill(yearMonth: "2026-08", request)
+        try await service.deleteBill(yearMonth: "2026-08")
+
+        #expect(api.postCalls.map(\.path) == ["/maintenance/bills"])
+        #expect(api.putVoidCalls.map(\.path) == ["/maintenance/bills/2026-08"])
+        #expect(api.deleteCalls == ["/maintenance/bills/2026-08"])
+    }
+}
