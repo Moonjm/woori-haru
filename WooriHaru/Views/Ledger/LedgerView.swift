@@ -38,6 +38,7 @@ struct LedgerView: View {
         .animation(.snappy(duration: 0.2), value: viewModel.isAtCurrentMonth)
         // 스와이프·화살표·피커 어느 쪽으로 달을 바꿔도 전환됐다는 촉각 신호를 준다.
         .sensoryFeedback(.selection, trigger: viewModel.month)
+        .sensoryFeedback(.selection, trigger: viewModel.sortMode)
         .overlay(alignment: .bottomTrailing) {
             if tab == .entries { searchButton }
         }
@@ -140,11 +141,17 @@ struct LedgerView: View {
 
                 if viewModel.isLoading && viewModel.entries.isEmpty {
                     ProgressView().padding(.top, 60)
-                } else if viewModel.sections.isEmpty {
+                } else if viewModel.entries.isEmpty {
                     emptyState.padding(.top, 48)
                 } else {
-                    ForEach(viewModel.sections) { section in
-                        daySection(section)
+                    sortPicker
+                    switch viewModel.sortMode {
+                    case .date:
+                        ForEach(viewModel.sections) { section in
+                            daySection(section)
+                        }
+                    case .amount:
+                        amountSortedList
                     }
                 }
             }
@@ -223,6 +230,63 @@ struct LedgerView: View {
         )
         .shadow(color: Color.blue600.opacity(0.35), radius: 14, y: 8)
         .padding(.bottom, 4)
+    }
+
+    /// 날짜순 ↔ 금액 큰순 토글 — 보여줄 내역이 있을 때만 나온다.
+    private var sortPicker: some View {
+        HStack(spacing: 6) {
+            ForEach(LedgerSortMode.allCases, id: \.self) { mode in
+                sortChip(mode)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.top, 16)
+        .padding(.horizontal, 4)
+    }
+
+    private func sortChip(_ mode: LedgerSortMode) -> some View {
+        let selected = viewModel.sortMode == mode
+        return Button {
+            withAnimation(.snappy(duration: 0.2)) { viewModel.sortMode = mode }
+        } label: {
+            Text(mode.label)
+                .font(.caption)
+                .fontWeight(.bold)
+                .foregroundStyle(selected ? .white : Color.slate500)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
+                .background {
+                    if selected {
+                        Capsule().fill(LinearGradient(colors: [Color.blue500, Color.blue700],
+                                                      startPoint: .topLeading, endPoint: .bottomTrailing))
+                    } else {
+                        Capsule().fill(Color.slate500.opacity(0.1))
+                    }
+                }
+                // 글자 픽셀만이 아니라 캡슐 전체가 눌리게
+                .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+
+    /// 금액 큰순 — 날짜 묶음 없이 그 달 전체를 한 덩어리로 세운다.
+    /// 날짜 헤더가 사라지므로 행마다 날짜를 달아 언제 쓴 건지 알 수 있게 한다.
+    private var amountSortedList: some View {
+        let list = viewModel.amountSortedEntries
+        return GlassCard(padding: 0) {
+            VStack(spacing: 0) {
+                ForEach(Array(list.enumerated()), id: \.element.id) { index, entry in
+                    // daySection과 같은 이유로 Button 대신 onTapGesture (월 스와이프와의 충돌 회피).
+                    LedgerEntryRow(entry: entry, showsDate: true)
+                        .onTapGesture { selectedEntry = entry }
+                    if index < list.count - 1 {
+                        Divider().padding(.leading, 16)
+                    }
+                }
+            }
+        }
+        .padding(.top, 12)
     }
 
     private func daySection(_ section: LedgerViewModel.DaySection) -> some View {
@@ -485,6 +549,8 @@ struct LedgerReturnPill: View {
 /// 한 줄 내역 — 구매처 + 출처 배지 + 시각 + 금액.
 struct LedgerEntryRow: View {
     let entry: LedgerEntry
+    /// 금액 큰순 목록처럼 날짜 헤더가 없는 자리에서는 시각 대신 날짜를 보여준다.
+    var showsDate = false
 
     var body: some View {
         HStack(spacing: 12) {
@@ -496,7 +562,7 @@ struct LedgerEntryRow: View {
                     .lineLimit(1)
                 HStack(spacing: 6) {
                     LedgerSourceBadge(source: entry.source)
-                    Text(LedgerFormat.time(entry.date))
+                    Text(showsDate ? LedgerFormat.dayHeader(entry.date) : LedgerFormat.time(entry.date))
                         .font(.caption2)
                         .foregroundStyle(Color.slate400)
                 }
