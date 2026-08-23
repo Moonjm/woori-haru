@@ -153,3 +153,33 @@ struct MaintenanceBillsViewModelTests {
         #expect(vm.errorMessage != nil)
     }
 }
+
+struct MaintenanceFormatTests {
+    @Test func 원화를_천단위로_끊는다() {
+        #expect(MaintenanceFormat.won(Decimal(168_620)) == "168,620원")
+        #expect(MaintenanceFormat.won(Decimal(0)) == "0원")
+    }
+
+    /// 증감은 **부호를 반드시 붙인다** — 「12,300원」만 적으면 오른 건지 내린 건지 모른다.
+    @Test func 증감에는_부호가_붙는다() {
+        #expect(MaintenanceFormat.signedWon(Decimal(12_300)) == "+12,300원")
+        #expect(MaintenanceFormat.signedWon(Decimal(-4_500)) == "-4,500원")
+        #expect(MaintenanceFormat.signedWon(Decimal(0)) == "+0원")
+    }
+
+    @Test func 비율은_소수_한_자리에_부호를_붙인다() {
+        #expect(MaintenanceFormat.percent(Decimal(string: "0.0787")!) == "+7.9%")
+        #expect(MaintenanceFormat.percent(Decimal(string: "-0.031")!) == "-3.1%")
+    }
+
+    @Test func 연월을_한국어로_적는다() {
+        #expect(MaintenanceFormat.monthTitle("2026-08") == "2026년 8월")
+        // 형식이 틀리면 원문 그대로 — 화면이 비는 것보다 낫다.
+        #expect(MaintenanceFormat.monthTitle("bogus") == "bogus")
+    }
+
+    @Test func 납기일을_짧게_적는다() {
+        #expect(MaintenanceFormat.dueDate("2026-08-31") == "8월 31일")
+        #expect(MaintenanceFormat.dueDate("bogus") == "bogus")
+    }
+}

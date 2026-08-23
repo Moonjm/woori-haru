@@ -117,6 +117,10 @@ struct SideDrawerView: View {
                     navPath.append(AppDestination.schedule)
                 }
                 drawerItem(icon: "bolt.car", label: "차량") { isOpen = false; navPath.append(AppDestination.vehicle) }
+                drawerItem(icon: "wonsign.square", label: "관리비") {
+                    isOpen = false
+                    navPath.append(AppDestination.maintenance)
+                }
             }
 
             Spacer()
