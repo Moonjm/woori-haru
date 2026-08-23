@@ -1,6 +1,19 @@
 import Foundation
 import Observation
 
+/// 내역 목록 정렬 기준. 날짜순은 하루씩 묶어 보여주고, 금액순은 달 전체를 한 덩어리로 세운다.
+enum LedgerSortMode: CaseIterable {
+    case date
+    case amount
+
+    var label: String {
+        switch self {
+        case .date: return "날짜순"
+        case .amount: return "금액 큰순"
+        }
+    }
+}
+
 /// 내역 탭(월 목록) 뷰모델. 검색은 전용 화면(LedgerSearchView)이 따로 담당한다.
 @MainActor
 @Observable
@@ -9,6 +22,8 @@ final class LedgerViewModel {
     // MARK: - State
 
     var month = LedgerYearMonth.current()
+    /// 화면 상태일 뿐이라 달을 옮기거나 새로고침해도 그대로 남는다.
+    var sortMode: LedgerSortMode = .date
 
     private(set) var entries: [LedgerEntry] = []
     private(set) var isLoading = false
@@ -38,6 +53,30 @@ final class LedgerViewModel {
         return grouped.keys.sorted(by: >).map { day in
             let items = grouped[day]!.sorted { $0.date > $1.date }
             return DaySection(id: day, date: day, entries: items, krwTotal: Self.krwExpenseTotal(items))
+        }
+    }
+
+    /// 금액 큰순 목록 — 날짜 묶음 없이 그 달 전체를 한 줄씩 세운다.
+    var amountSortedEntries: [LedgerEntry] { Self.sortedByAmount(entries) }
+
+    /// 정렬 비교용 원화 환산 금액.
+    /// 통화가 섞인 목록에서 숫자를 그대로 비교하면 JPY 12,000이 KRW 94,300을 이겨 버리므로,
+    /// 외화는 메모의 결제 시점 환산액으로 바꿔 비교한다 (환율 메모가 없으면 원 금액 그대로).
+    /// 환산액은 절대값으로 적혀 있어 부호를 다시 입혀야 취소 건이 큰 지출로 둔갑하지 않는다.
+    nonisolated static func sortAmount(_ entry: LedgerEntry) -> Decimal {
+        guard LedgerFormat.isForeign(entry.currency),
+              let converted = entry.fxConvertedAmount
+        else { return entry.amount }
+        return entry.amount < 0 ? -abs(converted) : abs(converted)
+    }
+
+    /// 환산 금액 내림차순. 같은 금액끼리 순서가 흔들리지 않게 최근 건을 먼저 둔다.
+    nonisolated static func sortedByAmount(_ list: [LedgerEntry]) -> [LedgerEntry] {
+        list.sorted { lhs, rhs in
+            let left = sortAmount(lhs)
+            let right = sortAmount(rhs)
+            if left != right { return left > right }
+            return lhs.date > rhs.date
         }
     }
 
