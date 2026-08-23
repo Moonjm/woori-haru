@@ -111,7 +111,7 @@ struct MaintenanceModelTests {
         #expect(list.bills[0].yearMonth == "2026-08")
     }
 
-    /// 추이 응답. `dueAmount`가 없다 — 통계는 부과액 기준이다.
+    /// 추이 응답. 목록·상세와 같은 부과액을 준다.
     @Test func 추이를_디코딩한다() throws {
         let json = """
         { "data": { "months": [

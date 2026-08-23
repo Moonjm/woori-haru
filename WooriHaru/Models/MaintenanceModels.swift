@@ -61,7 +61,7 @@ struct MaintenanceRecognition: Codable, Equatable {
     let warnings: [String]
 }
 
-/// 추이 한 달. **`dueAmount`가 없다** — 서버가 부과액만 준다. 통계 화면이 「부과액 기준」이라고 적는다.
+/// 추이 한 달. 목록·상세와 같은 `chargedAmount`를 그린다 — 화면마다 다른 숫자를 쓰지 않는다.
 struct MaintenanceTrendMonth: Codable, Equatable, Identifiable {
     let yearMonth: String
     let chargedAmount: Decimal
