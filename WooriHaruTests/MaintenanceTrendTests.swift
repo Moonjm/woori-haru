@@ -284,6 +284,42 @@ struct MaintenanceTrendMathTests {
 
         #expect(deltas.map(\.name) == ["항목10", "항목9", "항목8"])
     }
+
+    /// 작년엔 있었는데 올해 사라진 항목도 증감이다 — **전액 감소로 남긴다.**
+    /// 빠뜨리면 「없어져서 덜 냈다」가 통계에서 사라져 작년 대비가 실제보다 나빠 보인다.
+    @Test func 올해_사라진_항목은_전액_감소다() throws {
+        let months = [
+            month("2025-08", items: [MaintenanceBillItem(name: "승강기유지비", amount: 7_000)]),
+            month("2026-08", items: []),
+        ]
+        let deltas = try #require(MaintenanceTrendMath.yearOverYearDeltas(months))
+        #expect(deltas == [MaintenanceItemDelta(name: "승강기유지비", delta: Decimal(-7_000))])
+    }
+
+    /// **다섯 종이 각자 제 필드를 읽는지 전부 확인한다.** 수도와 온수는 단위가 같아
+    /// 서로 바뀌어도 화면만 봐서는 모른다 — 차트 한 장이 통째로 거짓이 된다.
+    @Test func 사용량_다섯_종이_제_필드를_읽는다() throws {
+        let usage = MaintenanceUsage(
+            electricityKwh: Decimal(311),
+            waterM3: Decimal(12),
+            hotWaterM3: Decimal(5),
+            heatingGcal: Decimal(2),
+            foodKg: Decimal(9)
+        )
+        let months = [month("2026-08", usage: usage)]
+        let expected: [(MaintenanceTrendMath.UsageKind, Decimal, String, String)] = [
+            (.electricity, 311, "전기", "kWh"),
+            (.water, 12, "수도", "m³"),
+            (.hotWater, 5, "온수", "m³"),
+            (.heating, 2, "난방", "Gcal"),
+            (.food, 9, "음식물", "kg"),
+        ]
+        for (kind, value, label, unit) in expected {
+            #expect(MaintenanceTrendMath.usagePoints(months, kind: kind).first?.value == value)
+            #expect(kind.label == label)
+            #expect(kind.unit == unit)
+        }
+    }
 }
 
 struct DivergingRankGeometryTests {
