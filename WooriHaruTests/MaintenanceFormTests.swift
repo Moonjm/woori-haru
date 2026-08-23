@@ -7,8 +7,10 @@ final class RecognizeStubService: MaintenanceServing, @unchecked Sendable {
     var result: MaintenanceRecognition?
     var error: Error?
     private(set) var callCount = 0
-    /// 이 값을 채우면 `recognize`가 그동안 대기한다 — 「도는 중에 사진 교체」를 만든다.
-    var gate: (stream: AsyncStream<Void>, continuation: AsyncStream<Void>.Continuation)?
+    /// 인식이 진행 중인 순간에 끼어들 자리. 재진입 가드와 generation 토큰을 **결정적으로**
+    /// 확인한다 — `async let`으로 두 번째 호출을 띄우면 자식 태스크가 언제 시작될지
+    /// 보장되지 않아 교착하거나 검증 없이 통과한다. `DispatchTests`가 쓰는 패턴이다.
+    var duringRecognize: (@Sendable () async -> Void)?
 
     func fetchBills() async throws -> [MaintenanceBill] { [] }
     func fetchBill(yearMonth: String) async throws -> MaintenanceBill {
@@ -18,10 +20,7 @@ final class RecognizeStubService: MaintenanceServing, @unchecked Sendable {
     }
     func recognize(imageData: Data) async throws -> MaintenanceRecognition {
         callCount += 1
-        if let gate {
-            var iterator = gate.stream.makeAsyncIterator()
-            _ = await iterator.next()
-        }
+        await duringRecognize?()
         if let error { throw error }
         guard let result else { throw APIError.serverError(statusCode: 500, message: nil) }
         return result
@@ -90,19 +89,17 @@ struct MaintenanceUploadViewModelTests {
     @Test func 도는_중에는_다시_부르지_않는다() async {
         let service = RecognizeStubService()
         service.result = makeRecognition()
-        let (stream, continuation) = AsyncStream<Void>.makeStream()
-        service.gate = (stream, continuation)
         let vm = MaintenanceUploadViewModel(service: service)
         vm.setImage(Data([0xFF, 0xD8]))
+        service.duringRecognize = { [vm] in
+            // 이미 인식 중이다. 두 번째 호출은 그대로 돌아가야 한다.
+            await vm.recognize()
+        }
 
-        async let first: Void = vm.recognize()
-        // 첫 호출이 게이트에 걸린 사이 두 번째를 시도한다.
         await vm.recognize()
-        continuation.yield()
-        continuation.finish()
-        await first
 
         #expect(service.callCount == 1)
+        #expect(vm.phase == .completed)
     }
 
     /// 사진을 바꾸면 **늦게 돌아온 이전 결과를 버린다.** 안 그러면 이전 사진의 인식 결과와
@@ -110,16 +107,14 @@ struct MaintenanceUploadViewModelTests {
     @Test func 사진을_바꾸면_늦은_결과를_버린다() async {
         let service = RecognizeStubService()
         service.result = makeRecognition(yearMonth: "2026-07")
-        let (stream, continuation) = AsyncStream<Void>.makeStream()
-        service.gate = (stream, continuation)
         let vm = MaintenanceUploadViewModel(service: service)
         vm.setImage(Data([0xFF, 0xD8]))
+        service.duringRecognize = { [vm] in
+            // 사진을 잘못 골라 곧바로 다시 고른 상황. 이전 인식이 아직 돌아오지 않았다.
+            await MainActor.run { vm.setImage(Data([0xFF, 0xD9])) }
+        }
 
-        async let running: Void = vm.recognize()
-        vm.setImage(Data([0xFF, 0xD9]))   // 사진 교체
-        continuation.yield()
-        continuation.finish()
-        await running
+        await vm.recognize()
 
         #expect(vm.recognition == nil)
         #expect(vm.phase == .idle)
