@@ -40,6 +40,15 @@ struct MaintenanceView: View {
         .navigationDestination(isPresented: $showingUpload) {
             MaintenanceUploadView { Task { await billsViewModel.load() } }
         }
+        .navigationDestination(item: $selectedYearMonth) { yearMonth in
+            if let bill = billsViewModel.bills.first(where: { $0.yearMonth == yearMonth }) {
+                MaintenanceBillDetailView(
+                    bill: bill,
+                    onChanged: { Task { await billsViewModel.load() } },
+                    onDeleted: { Task { await billsViewModel.load() } }
+                )
+            }
+        }
     }
 
     @ViewBuilder private var content: some View {
