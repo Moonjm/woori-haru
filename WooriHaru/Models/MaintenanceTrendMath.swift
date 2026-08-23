@@ -23,6 +23,12 @@ enum MaintenanceTrendMath {
             : String(format: "%04d-%02d", year, month - 1)
     }
 
+    /// `previousMonth(of:)`가 이미 하는 파싱을 이름으로만 다시 세운다 —
+    /// 형식 검사기를 두 개 두면 한쪽만 고친 날 폼과 차트가 다른 연월을 받아들인다.
+    static func isValidYearMonth(_ yearMonth: String) -> Bool {
+        previousMonth(of: yearMonth) != nil
+    }
+
     /// 목록에서 `index`번째 달과 **바로 다음 원소**를 견준다.
     ///
     /// **다음 원소가 바로 앞 달일 때만 낸다.** 목록은 최근 달부터라 다음 원소가 앞 달이지만,

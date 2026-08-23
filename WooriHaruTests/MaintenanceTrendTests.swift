@@ -16,6 +16,12 @@ struct MaintenanceMonthMathTests {
         #expect(MaintenanceTrendMath.previousMonth(of: "2026") == nil)
         #expect(MaintenanceTrendMath.previousMonth(of: "abcd-ef") == nil)
     }
+
+    @Test func 연월_형식을_검사한다() {
+        #expect(MaintenanceTrendMath.isValidYearMonth("2026-08") == true)
+        #expect(MaintenanceTrendMath.isValidYearMonth("2026-13") == false)
+        #expect(MaintenanceTrendMath.isValidYearMonth("") == false)
+    }
 }
 
 struct MaintenanceDeltaTests {
