@@ -179,3 +179,109 @@ struct MaintenanceFormatTests {
         #expect(MaintenanceFormat.monthTitle("bogus") == "bogus")
     }
 }
+
+struct MaintenanceTrendMathTests {
+    private func month(
+        _ yearMonth: String,
+        charged: Decimal = 0,
+        items: [MaintenanceBillItem] = [],
+        usage: MaintenanceUsage? = nil
+    ) -> MaintenanceTrendMonth {
+        MaintenanceTrendMonth(yearMonth: yearMonth, chargedAmount: charged,
+                              items: items, usage: usage)
+    }
+
+    /// **응답 순서를 믿지 않는다.** 차트 다섯 장이 전부 시간축이라 뒤집히면 전부 거짓이 된다.
+    @Test func 연월_오름차순으로_정렬한다() {
+        let months = [month("2026-08"), month("2025-12"), month("2026-01")]
+        #expect(MaintenanceTrendMath.sorted(months).map(\.yearMonth)
+                == ["2025-12", "2026-01", "2026-08"])
+    }
+
+    @Test func 부과액_점을_만든다() {
+        let points = MaintenanceTrendMath.chargedPoints(
+            [month("2026-07", charged: 150_000), month("2026-08", charged: 168_000)]
+        )
+        #expect(points.map(\.id) == ["2026-07", "2026-08"])
+        #expect(points.map(\.label) == ["7", "8"])
+        #expect(points.map(\.value) == [Decimal(150_000), Decimal(168_000)])
+    }
+
+    /// **13개월 전체에서 모은다.** 최근 달에만 있는 이름을 빼면 피커에서 사라진다.
+    @Test func 항목_이름을_전체에서_모은다() {
+        let months = [
+            month("2026-07", items: [MaintenanceBillItem(name: "난방비", amount: 50_000)]),
+            month("2026-08", items: [MaintenanceBillItem(name: "일반관리비", amount: 120_000),
+                                     MaintenanceBillItem(name: "난방비", amount: 1_000)]),
+        ]
+        // 금액 합이 큰 순 — 일반관리비 120,000 > 난방비 51,000
+        #expect(MaintenanceTrendMath.itemNames(months) == ["일반관리비", "난방비"])
+    }
+
+    /// **그 이름이 없는 달은 nil이다.** 0으로 채우면 「안 나왔다」가 「0원이었다」가 된다.
+    @Test func 없는_달의_항목은_nil이다() {
+        let months = [
+            month("2026-07", items: []),
+            month("2026-08", items: [MaintenanceBillItem(name: "난방비", amount: 51_000)]),
+        ]
+        let points = MaintenanceTrendMath.itemPoints(months, name: "난방비")
+
+        #expect(points.map(\.value) == [nil, Decimal(51_000)])
+    }
+
+    @Test func 사용량_점을_만든다() {
+        let months = [
+            month("2026-07", usage: MaintenanceUsage(electricityKwh: Decimal(300), waterM3: nil,
+                                                     hotWaterM3: nil, heatingGcal: nil, foodKg: nil)),
+            month("2026-08", usage: nil),
+        ]
+        let points = MaintenanceTrendMath.usagePoints(months, kind: .electricity)
+
+        #expect(points.map(\.value) == [Decimal(300), nil])
+        #expect(MaintenanceTrendMath.UsageKind.electricity.unit == "kWh")
+    }
+
+    /// 전년 동월과 항목별로 견준다. **증감 절댓값이 큰 순 상위 N개**만 남긴다.
+    @Test func 전년_동월_대비_증감을_낸다() throws {
+        let months = [
+            month("2025-08", items: [MaintenanceBillItem(name: "난방비", amount: 10_000),
+                                     MaintenanceBillItem(name: "일반관리비", amount: 100_000)]),
+            month("2026-08", items: [MaintenanceBillItem(name: "난방비", amount: 40_000),
+                                     MaintenanceBillItem(name: "일반관리비", amount: 105_000)]),
+        ]
+        let deltas = try #require(MaintenanceTrendMath.yearOverYearDeltas(months))
+
+        #expect(deltas.map(\.name) == ["난방비", "일반관리비"])
+        #expect(deltas[0].delta == Decimal(30_000))
+        #expect(deltas[1].delta == Decimal(5_000))
+    }
+
+    /// 작년에 없던 항목은 이번 달 금액 전부가 증가분이다.
+    @Test func 작년에_없던_항목은_전액_증가다() throws {
+        let months = [
+            month("2025-08", items: []),
+            month("2026-08", items: [MaintenanceBillItem(name: "승강기유지비", amount: 7_000)]),
+        ]
+        let deltas = try #require(MaintenanceTrendMath.yearOverYearDeltas(months))
+        #expect(deltas == [MaintenanceItemDelta(name: "승강기유지비", delta: Decimal(7_000))])
+    }
+
+    /// **전년 동월이 범위에 없으면 nil이다.** 0으로 채우면 모든 항목이 「신설」로 보인다.
+    @Test func 전년_동월이_없으면_nil이다() {
+        let months = [
+            month("2026-07", items: [MaintenanceBillItem(name: "난방비", amount: 1)]),
+            month("2026-08", items: [MaintenanceBillItem(name: "난방비", amount: 2)]),
+        ]
+        #expect(MaintenanceTrendMath.yearOverYearDeltas(months) == nil)
+    }
+
+    @Test func 증감_상위_개수를_자른다() throws {
+        let old = (1...10).map { MaintenanceBillItem(name: "항목\($0)", amount: Decimal(0)) }
+        let new = (1...10).map { MaintenanceBillItem(name: "항목\($0)", amount: Decimal($0 * 1000)) }
+        let months = [month("2025-08", items: old), month("2026-08", items: new)]
+
+        let deltas = try #require(MaintenanceTrendMath.yearOverYearDeltas(months, topCount: 3))
+
+        #expect(deltas.map(\.name) == ["항목10", "항목9", "항목8"])
+    }
+}
