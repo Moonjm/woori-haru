@@ -351,6 +351,19 @@ struct DivergingRankGeometryTests {
                                                     trackWidth: 200)
         #expect(width == 2)
     }
+
+    /// 양수는 기준선에서 오른쪽으로 자란다 — 시작점이 곧 기준선이다.
+    @Test func 양수는_기준선에서_시작한다() {
+        #expect(DivergingRankGeometry.barStart(Decimal(15_000), maxAbs: Decimal(30_000),
+                                               trackWidth: 200) == 100)
+    }
+
+    /// 음수는 기준선에서 **왼쪽으로** 자라므로 시작점이 기준선보다 막대 길이만큼 앞이다.
+    /// 이 단언이 「막대가 트랙 바깥 가장자리에 붙는」 예전 배치를 걸러낸다.
+    @Test func 음수는_기준선_왼쪽에서_시작한다() {
+        #expect(DivergingRankGeometry.barStart(Decimal(-15_000), maxAbs: Decimal(30_000),
+                                               trackWidth: 200) == 50)
+    }
 }
 
 @MainActor

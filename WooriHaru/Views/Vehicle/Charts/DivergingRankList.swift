@@ -12,6 +12,18 @@ enum DivergingRankGeometry {
         guard ratio > 0 else { return 0 }
         return max(minimumWidth, trackWidth / 2 * ratio)
     }
+
+    /// 막대의 왼쪽 끝 x. **기준선(트랙 중앙)이 기준이다** — 양수는 기준선에서 오른쪽으로,
+    /// 음수는 기준선에서 왼쪽으로 자란다.
+    ///
+    /// `halfWidth`가 크기만 내고 방향을 안 담는 것과 짝이다. 배치를 뷰의 `Spacer` 순서로
+    /// 정하면 컴파일은 되면서 거울상으로 그려지고, 크기만 보는 테스트는 그것을 못 잡는다
+    /// — 실제로 그렇게 났다.
+    static func barStart(_ value: Decimal, maxAbs: Decimal, trackWidth: CGFloat) -> CGFloat {
+        let baseline = trackWidth / 2
+        guard value < 0 else { return baseline }
+        return baseline - halfWidth(value, maxAbs: maxAbs, trackWidth: trackWidth)
+    }
 }
 
 /// 이름 있는 것들의 **증감**을 세로 리스트로 낸다. 가운데가 0이고 **오른쪽이 증가, 왼쪽이 감소**다.
@@ -69,22 +81,22 @@ struct DivergingRankList: View {
             GeometryReader { proxy in
                 let width = DivergingRankGeometry.halfWidth(row.value, maxAbs: maxAbs,
                                                             trackWidth: proxy.size.width)
-                ZStack(alignment: .center) {
+                let start = DivergingRankGeometry.barStart(row.value, maxAbs: maxAbs,
+                                                           trackWidth: proxy.size.width)
+                // `HStack` + `Spacer` 정렬로 방향을 정하면 컴파일은 되지만 거울상으로
+                // 그려질 수 있다 — 실제로 그랬다. `barStart`로 좌표를 직접 찍어
+                // 「어느 쪽이 먼저냐」라는 순서 함정을 없앤다.
+                ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 3).fill(VehicleTheme.trackFill)
                     // 기준선(0)은 늘 그린다 — 「여기가 0이다」를 눈으로 준다.
                     Rectangle()
                         .fill(VehicleTheme.cardStroke)
                         .frame(width: 1)
-                    HStack(spacing: 0) {
-                        // 감소는 기준선 왼쪽으로, 증가는 오른쪽으로 뻗는다. 빈 쪽을 `Spacer`로
-                        // 밀어 두 막대가 늘 가운데에서 시작하게 한다.
-                        if up { Spacer(minLength: 0) }
-                        RoundedRectangle(cornerRadius: 3)
-                            .fill(isSelected ? fill : fill.opacity(0.45))
-                            .frame(width: width)
-                        if !up { Spacer(minLength: 0) }
-                    }
-                    .padding(up ? .leading : .trailing, proxy.size.width / 2)
+                        .offset(x: proxy.size.width / 2)
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(isSelected ? fill : fill.opacity(0.45))
+                        .frame(width: width)
+                        .offset(x: start)
                 }
             }
             .frame(height: 10)
