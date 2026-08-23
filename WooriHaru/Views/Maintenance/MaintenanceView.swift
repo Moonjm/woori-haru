@@ -37,6 +37,9 @@ struct MaintenanceView: View {
             }
         }
         .task { await billsViewModel.load() }
+        .navigationDestination(isPresented: $showingUpload) {
+            MaintenanceUploadView { Task { await billsViewModel.load() } }
+        }
     }
 
     @ViewBuilder private var content: some View {
