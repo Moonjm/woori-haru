@@ -285,3 +285,34 @@ struct MaintenanceTrendMathTests {
         #expect(deltas.map(\.name) == ["항목10", "항목9", "항목8"])
     }
 }
+
+struct DivergingRankGeometryTests {
+    /// 가장 크게 움직인 행이 트랙 절반을 꽉 채운다.
+    @Test func 최대값이_절반을_채운다() {
+        let width = DivergingRankGeometry.halfWidth(Decimal(30_000), maxAbs: Decimal(30_000),
+                                                    trackWidth: 200)
+        #expect(width == 100)
+    }
+
+    /// **부호는 폭에 담지 않는다** — 방향은 그리는 쪽이 정렬로 정한다. 여기선 크기만 낸다.
+    @Test func 음수도_같은_크기를_낸다() {
+        let up = DivergingRankGeometry.halfWidth(Decimal(15_000), maxAbs: Decimal(30_000),
+                                                 trackWidth: 200)
+        let down = DivergingRankGeometry.halfWidth(Decimal(-15_000), maxAbs: Decimal(30_000),
+                                                   trackWidth: 200)
+        #expect(up == down)
+        #expect(up == 50)
+    }
+
+    /// 0으로 나누지 않는다.
+    @Test func 최대가_0이면_폭이_0이다() {
+        #expect(DivergingRankGeometry.halfWidth(Decimal(0), maxAbs: Decimal(0), trackWidth: 200) == 0)
+    }
+
+    /// 0이 아닌데 너무 작아 안 보이는 막대는 최소 폭을 준다 — 「0이다」와 갈려야 한다.
+    @Test func 아주_작은_값도_보인다() {
+        let width = DivergingRankGeometry.halfWidth(Decimal(1), maxAbs: Decimal(1_000_000),
+                                                    trackWidth: 200)
+        #expect(width == 2)
+    }
+}
