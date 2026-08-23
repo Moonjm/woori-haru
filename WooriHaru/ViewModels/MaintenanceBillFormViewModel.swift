@@ -55,10 +55,6 @@ final class MaintenanceBillFormViewModel {
     var foodKg: String
     var chargedAmount: String
     var discountTotal: String
-    var unpaidAmount: String
-    var unpaidLateFee: String
-    var dueAmount: String
-    var dueDate: String
 
     /// 서버가 붙인 경고. **이미 사용자용 한국어다** — 앱이 다시 쓰지 않는다. 편집 모드에선 비어 있다.
     private(set) var warnings: [String]
@@ -84,10 +80,6 @@ final class MaintenanceBillFormViewModel {
             foodKg = Self.text(recognition.usage?.foodKg)
             chargedAmount = Self.text(recognition.chargedAmount)
             discountTotal = Self.text(recognition.discountTotal)
-            unpaidAmount = Self.text(recognition.unpaidAmount)
-            unpaidLateFee = Self.text(recognition.unpaidLateFee)
-            dueAmount = Self.text(recognition.dueAmount)
-            dueDate = recognition.dueDate ?? ""
             warnings = recognition.warnings
         case .edit(let bill):
             editingYearMonth = bill.yearMonth
@@ -105,10 +97,6 @@ final class MaintenanceBillFormViewModel {
             foodKg = Self.text(bill.usage?.foodKg)
             chargedAmount = Self.text(bill.chargedAmount)
             discountTotal = Self.text(bill.discountTotal)
-            unpaidAmount = Self.text(bill.unpaidAmount)
-            unpaidLateFee = Self.text(bill.unpaidLateFee)
-            dueAmount = Self.text(bill.dueAmount)
-            dueDate = bill.dueDate ?? ""
             warnings = []
         }
     }
@@ -180,15 +168,11 @@ final class MaintenanceBillFormViewModel {
             yearMonth: yearMonth.trimmingCharacters(in: .whitespaces),
             items: drafts,
             chargedAmount: Self.decimal(chargedAmount) ?? 0,
-            dueAmount: Self.decimal(dueAmount) ?? 0,
             dong: Self.optionalText(dong),
             ho: Self.optionalText(ho),
             areaM2: Self.decimal(areaM2),
             usage: usage,
-            discountTotal: Self.decimal(discountTotal) ?? 0,
-            unpaidAmount: Self.decimal(unpaidAmount) ?? 0,
-            unpaidLateFee: Self.decimal(unpaidLateFee) ?? 0,
-            dueDate: Self.optionalText(dueDate)
+            discountTotal: Self.decimal(discountTotal) ?? 0
         )
     }
 
@@ -233,10 +217,6 @@ final class MaintenanceBillFormViewModel {
         foodKg = Self.text(bill.usage?.foodKg)
         chargedAmount = Self.text(bill.chargedAmount)
         discountTotal = Self.text(bill.discountTotal)
-        unpaidAmount = Self.text(bill.unpaidAmount)
-        unpaidLateFee = Self.text(bill.unpaidLateFee)
-        dueAmount = Self.text(bill.dueAmount)
-        dueDate = bill.dueDate ?? ""
         // 인식 경고는 더 이상 이 화면의 것이 아니다 — 지금 편집하는 건 저장돼 있던 달이다.
         warnings = []
         errorMessage = nil

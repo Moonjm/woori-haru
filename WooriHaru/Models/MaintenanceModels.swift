@@ -30,13 +30,9 @@ struct MaintenanceBill: Codable, Equatable, Identifiable {
     let items: [MaintenanceBillItem]
     /// **옵셔널로 둔다** — 키가 통째로 빠진 한 달 때문에 목록 전체 디코딩이 깨지면 화면이 빈다.
     let usage: MaintenanceUsage?
+    /// 당월 부과액 — 이 기능이 다루는 숫자.
     let chargedAmount: Decimal
     let discountTotal: Decimal
-    let unpaidAmount: Decimal
-    let unpaidLateFee: Decimal
-    /// **실제로 내는 돈.** 목록·상세가 앞세우는 값이다(추이에는 이 값이 없다).
-    let dueAmount: Decimal
-    let dueDate: String?
 
     var id: String { yearMonth }
 }
@@ -59,10 +55,6 @@ struct MaintenanceRecognition: Codable, Equatable {
     let usage: MaintenanceUsage?
     let chargedAmount: Decimal
     let discountTotal: Decimal
-    let unpaidAmount: Decimal
-    let unpaidLateFee: Decimal
-    let dueAmount: Decimal
-    let dueDate: String?
     /// 항목 합계가 부과액과 맞는가. false면 어딘가 잘못 읽혔다는 뜻이다.
     let sumMatched: Bool
     /// **이미 사용자용 한국어다** — 앱이 다시 쓰지 않고 그대로 띄운다.
@@ -98,13 +90,9 @@ struct MaintenanceBillSaveRequest: Encodable, Equatable {
     /// 서버 `minItems: 1` — 빈 배열이면 400이다. 폼이 저장 버튼을 잠가 막는다.
     let items: [MaintenanceBillItemRequest]
     let chargedAmount: Decimal
-    let dueAmount: Decimal
     let dong: String?
     let ho: String?
     let areaM2: Decimal?
     let usage: MaintenanceUsage?
     let discountTotal: Decimal
-    let unpaidAmount: Decimal
-    let unpaidLateFee: Decimal
-    let dueDate: String?
 }

@@ -6,10 +6,6 @@ struct MaintenanceBillCard: View {
     let bill: MaintenanceBill
     let delta: MaintenanceDelta?
 
-    private var hasUnpaid: Bool {
-        bill.unpaidAmount > 0 || bill.unpaidLateFee > 0
-    }
-
     var body: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: 10) {
@@ -18,14 +14,14 @@ struct MaintenanceBillCard: View {
                         .font(.headline)
                         .foregroundStyle(VehicleTheme.textPrimary)
                     Spacer(minLength: 8)
-                    if let dueDate = bill.dueDate {
-                        Text("납기 \(MaintenanceFormat.dueDate(dueDate))")
+                    if bill.discountTotal != 0 {
+                        Text("할인 \(MaintenanceFormat.won(bill.discountTotal))")
                             .font(.caption2)
                             .foregroundStyle(VehicleTheme.textTertiary)
                     }
                 }
 
-                Text(MaintenanceFormat.won(bill.dueAmount))
+                Text(MaintenanceFormat.won(bill.chargedAmount))
                     .font(.title2)
                     .fontWeight(.heavy)
                     .monospacedDigit()
@@ -51,16 +47,6 @@ struct MaintenanceBillCard: View {
                             .foregroundStyle(VehicleTheme.textTertiary)
                     }
                     Spacer(minLength: 0)
-                    if hasUnpaid {
-                        Text("미납")
-                            .font(.caption2)
-                            .fontWeight(.bold)
-                            .foregroundStyle(VehicleTheme.warning)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 3)
-                            .background(VehicleTheme.warning.opacity(0.18),
-                                        in: Capsule())
-                    }
                 }
             }
         }

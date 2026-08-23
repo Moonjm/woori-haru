@@ -40,8 +40,8 @@ enum MaintenanceTrendMath {
         let previous = bills[index + 1]
         guard previousMonth(of: current.yearMonth) == previous.yearMonth else { return nil }
 
-        let amount = current.dueAmount - previous.dueAmount
-        let ratio = previous.dueAmount == 0 ? nil : amount / previous.dueAmount
+        let amount = current.chargedAmount - previous.chargedAmount
+        let ratio = previous.chargedAmount == 0 ? nil : amount / previous.chargedAmount
         return MaintenanceDelta(amount: amount, ratio: ratio)
     }
 }

@@ -200,22 +200,6 @@ struct MaintenanceBillFormView: View {
                 sectionTitle("금액")
                 amountField("부과액", text: $vm.chargedAmount)
                 amountField("할인 합계", text: $vm.discountTotal)
-                amountField("미납액", text: $vm.unpaidAmount)
-                amountField("연체료", text: $vm.unpaidLateFee)
-                amountField("청구액", text: $vm.dueAmount)
-                HStack(spacing: 10) {
-                    Text("납기일")
-                        .font(.subheadline)
-                        .foregroundStyle(VehicleTheme.textSecondary)
-                        .frame(width: 72, alignment: .leading)
-                    TextField("2026-08-31", text: $vm.dueDate)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .multilineTextAlignment(.trailing)
-                        .monospacedDigit()
-                        .font(.subheadline)
-                        .foregroundStyle(VehicleTheme.textPrimary)
-                }
             }
         }
     }

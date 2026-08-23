@@ -23,11 +23,7 @@ struct MaintenanceModelTests {
           "foodKg": 8.4
         },
         "chargedAmount": 169820,
-        "discountTotal": 1200,
-        "unpaidAmount": 0,
-        "unpaidLateFee": 0,
-        "dueAmount": 168620,
-        "dueDate": "2026-08-31"
+        "discountTotal": 1200
       }
     }
     """
@@ -40,8 +36,7 @@ struct MaintenanceModelTests {
         #expect(bill.yearMonth == "2026-08")
         #expect(bill.items.count == 2)
         #expect(bill.items[0].amount == Decimal(121500))
-        #expect(bill.dueAmount == Decimal(168620))
-        #expect(bill.dueDate == "2026-08-31")
+        #expect(bill.chargedAmount == Decimal(169820))
     }
 
     /// 못 읽은 사용량은 **0이 아니라 nil이다.** 0으로 접히면 통계에서
@@ -67,9 +62,7 @@ struct MaintenanceModelTests {
             "yearMonth": "2026-07",
             "dong": null, "ho": null, "areaM2": null,
             "items": [{ "name": "일반관리비", "amount": 100 }],
-            "chargedAmount": 100, "discountTotal": 0,
-            "unpaidAmount": 0, "unpaidLateFee": 0,
-            "dueAmount": 100, "dueDate": null
+            "chargedAmount": 100, "discountTotal": 0
           }
         }
         """
@@ -77,7 +70,6 @@ struct MaintenanceModelTests {
             try JSONDecoder().decode(DataResponse<MaintenanceBill>.self, from: Data(json.utf8)).data
         )
         #expect(bill.usage == nil)
-        #expect(bill.dueDate == nil)
     }
 
     /// 인식 결과는 `yearMonth`가 **옵셔널**이다 — 고지서 제목이 잘리면 서버가 못 읽는다.
@@ -91,8 +83,6 @@ struct MaintenanceModelTests {
             "usage": { "electricityKwh": 312.5, "waterM3": null,
                        "hotWaterM3": null, "heatingGcal": null, "foodKg": null },
             "chargedAmount": 121500, "discountTotal": 0,
-            "unpaidAmount": 0, "unpaidLateFee": 0,
-            "dueAmount": 121500, "dueDate": null,
             "sumMatched": false,
             "warnings": ["항목 합계가 부과액과 맞지 않습니다"]
           }
@@ -111,8 +101,7 @@ struct MaintenanceModelTests {
         let json = """
         { "data": { "bills": [
             { "yearMonth": "2026-08", "dong": null, "ho": null, "areaM2": null,
-              "items": [], "chargedAmount": 10, "discountTotal": 0,
-              "unpaidAmount": 0, "unpaidLateFee": 0, "dueAmount": 10, "dueDate": null }
+              "items": [], "chargedAmount": 10, "discountTotal": 0 }
         ] } }
         """
         let list = try #require(
@@ -144,12 +133,12 @@ struct MaintenanceModelTests {
         let request = MaintenanceBillSaveRequest(
             yearMonth: "2026-08",
             items: [MaintenanceBillItemRequest(name: "일반관리비", amount: 100)],
-            chargedAmount: 100, dueAmount: 100,
+            chargedAmount: 100,
             dong: nil, ho: nil, areaM2: nil,
             usage: MaintenanceUsage(electricityKwh: Decimal(312),
                                     waterM3: nil, hotWaterM3: nil,
                                     heatingGcal: nil, foodKg: nil),
-            discountTotal: 0, unpaidAmount: 0, unpaidLateFee: 0, dueDate: nil
+            discountTotal: 0
         )
         let data = try JSONEncoder().encode(request)
         let json = try #require(
@@ -168,9 +157,7 @@ struct MaintenanceServiceTests {
     private func makeBill(_ yearMonth: String) -> MaintenanceBill {
         MaintenanceBill(yearMonth: yearMonth, dong: nil, ho: nil, areaM2: nil,
                         items: [], usage: nil,
-                        chargedAmount: 0, discountTotal: 0,
-                        unpaidAmount: 0, unpaidLateFee: 0,
-                        dueAmount: 0, dueDate: nil)
+                        chargedAmount: 0, discountTotal: 0)
     }
 
     @Test func 목록을_받아_bills를_꺼낸다() async throws {
@@ -214,7 +201,6 @@ struct MaintenanceServiceTests {
         let recognition = MaintenanceRecognition(
             yearMonth: "2026-08", dong: nil, ho: nil, areaM2: nil,
             items: [], usage: nil, chargedAmount: 0, discountTotal: 0,
-            unpaidAmount: 0, unpaidLateFee: 0, dueAmount: 0, dueDate: nil,
             sumMatched: true, warnings: []
         )
         api.stubMultipartJSON("/maintenance/recognitions", result: DataResponse(data: recognition))
@@ -246,9 +232,9 @@ struct MaintenanceServiceTests {
         let request = MaintenanceBillSaveRequest(
             yearMonth: "2026-08",
             items: [MaintenanceBillItemRequest(name: "일반관리비", amount: 100)],
-            chargedAmount: 100, dueAmount: 100,
+            chargedAmount: 100,
             dong: nil, ho: nil, areaM2: nil, usage: nil,
-            discountTotal: 0, unpaidAmount: 0, unpaidLateFee: 0, dueDate: nil
+            discountTotal: 0
         )
 
         try await service.saveBill(request)

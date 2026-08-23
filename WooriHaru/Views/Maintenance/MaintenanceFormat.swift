@@ -47,13 +47,4 @@ enum MaintenanceFormat {
         }
         return "\(year)년 \(month)월"
     }
-
-    /// `"2026-08-31"` → `"8월 31일"`. 해는 카드 제목이 이미 말한다.
-    static func dueDate(_ isoDate: String) -> String {
-        let parts = isoDate.split(separator: "-")
-        guard parts.count == 3, let month = Int(parts[1]), let day = Int(parts[2]) else {
-            return isoDate
-        }
-        return "\(month)월 \(day)일"
-    }
 }

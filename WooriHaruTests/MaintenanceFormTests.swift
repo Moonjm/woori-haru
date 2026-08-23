@@ -15,8 +15,7 @@ final class RecognizeStubService: MaintenanceServing, @unchecked Sendable {
     func fetchBills() async throws -> [MaintenanceBill] { [] }
     func fetchBill(yearMonth: String) async throws -> MaintenanceBill {
         MaintenanceBill(yearMonth: yearMonth, dong: nil, ho: nil, areaM2: nil,
-                        items: [], usage: nil, chargedAmount: 0, discountTotal: 0,
-                        unpaidAmount: 0, unpaidLateFee: 0, dueAmount: 0, dueDate: nil)
+                        items: [], usage: nil, chargedAmount: 0, discountTotal: 0)
     }
     func recognize(imageData: Data) async throws -> MaintenanceRecognition {
         callCount += 1
@@ -35,7 +34,6 @@ func makeRecognition(
     yearMonth: String? = "2026-08",
     items: [MaintenanceBillItem] = [MaintenanceBillItem(name: "일반관리비", amount: 100)],
     chargedAmount: Decimal = 100,
-    dueAmount: Decimal = 100,
     usage: MaintenanceUsage? = nil,
     sumMatched: Bool = true,
     warnings: [String] = []
@@ -43,8 +41,7 @@ func makeRecognition(
     MaintenanceRecognition(
         yearMonth: yearMonth, dong: "101", ho: "1502", areaM2: Decimal(string: "84.97"),
         items: items, usage: usage, chargedAmount: chargedAmount,
-        discountTotal: 0, unpaidAmount: 0, unpaidLateFee: 0,
-        dueAmount: dueAmount, dueDate: nil,
+        discountTotal: 0,
         sumMatched: sumMatched, warnings: warnings
     )
 }
@@ -172,9 +169,7 @@ struct MaintenanceFormViewModelTests {
         MaintenanceBill(yearMonth: yearMonth, dong: "101", ho: "1502",
                         areaM2: Decimal(string: "84.97"),
                         items: items, usage: usage,
-                        chargedAmount: 121_500, discountTotal: 0,
-                        unpaidAmount: 0, unpaidLateFee: 0,
-                        dueAmount: 121_500, dueDate: "2026-08-31")
+                        chargedAmount: 121_500, discountTotal: 0)
     }
 
     // MARK: - 초기화
@@ -183,7 +178,7 @@ struct MaintenanceFormViewModelTests {
         let recognition = makeRecognition(
             items: [MaintenanceBillItem(name: "일반관리비", amount: 121_500),
                     MaintenanceBillItem(name: "세대전기료", amount: 48_320)],
-            chargedAmount: 169_820, dueAmount: 168_620,
+            chargedAmount: 169_820,
             usage: MaintenanceUsage(electricityKwh: Decimal(string: "312.5"),
                                     waterM3: nil, hotWaterM3: nil,
                                     heatingGcal: nil, foodKg: nil),
@@ -254,7 +249,7 @@ struct MaintenanceFormViewModelTests {
             mode: .create(makeRecognition(
                 items: [MaintenanceBillItem(name: "일반관리비", amount: 100),
                         MaintenanceBillItem(name: "세대전기료", amount: 50)],
-                chargedAmount: 160, dueAmount: 160
+                chargedAmount: 160
             )),
             service: FormStubService()
         )
@@ -269,7 +264,7 @@ struct MaintenanceFormViewModelTests {
         let vm = MaintenanceBillFormViewModel(
             mode: .create(makeRecognition(
                 items: [MaintenanceBillItem(name: "일반관리비", amount: 100)],
-                chargedAmount: 150, dueAmount: 150, sumMatched: false
+                chargedAmount: 150, sumMatched: false
             )),
             service: FormStubService()
         )
@@ -284,7 +279,7 @@ struct MaintenanceFormViewModelTests {
     /// **합계가 안 맞아도 저장은 막지 않는다** — 반올림·별도 조정이 실제로 있고 판단은 사람이 한다.
     @Test func 합계가_어긋나도_저장할_수_있다() {
         let vm = MaintenanceBillFormViewModel(
-            mode: .create(makeRecognition(chargedAmount: 999, dueAmount: 999)),
+            mode: .create(makeRecognition(chargedAmount: 999)),
             service: FormStubService()
         )
         #expect(vm.isSumMatched == false)
@@ -304,20 +299,18 @@ struct MaintenanceFormViewModelTests {
         #expect(request.usage?.waterM3 == nil)
     }
 
-    /// 빈 문자열은 nil이지 0이 아니다 — 동·호·면적·납기일도 마찬가지다.
+    /// 빈 문자열은 nil이지 0이 아니다 — 동·호·면적도 마찬가지다.
     @Test func 빈_세대_정보는_nil로_나간다() throws {
         let vm = MaintenanceBillFormViewModel(mode: .edit(makeBill()), service: FormStubService())
         vm.dong = ""
         vm.ho = "  "
         vm.areaM2 = ""
-        vm.dueDate = ""
 
         let request = try #require(vm.makeRequest())
 
         #expect(request.dong == nil)
         #expect(request.ho == nil)
         #expect(request.areaM2 == nil)
-        #expect(request.dueDate == nil)
     }
 
     /// **`.create`와 `.edit`이 같은 값에서 같은 바디를 낸다.** 두 벌로 갈리면 한쪽만 고친 날
@@ -325,10 +318,9 @@ struct MaintenanceFormViewModelTests {
     @Test func 두_모드가_같은_바디를_낸다() throws {
         let bill = makeBill()
         let recognition = makeRecognition(
-            items: bill.items, chargedAmount: bill.chargedAmount, dueAmount: bill.dueAmount
+            items: bill.items, chargedAmount: bill.chargedAmount
         )
         let fromCreate = MaintenanceBillFormViewModel(mode: .create(recognition), service: FormStubService())
-        fromCreate.dueDate = "2026-08-31"
         let fromEdit = MaintenanceBillFormViewModel(mode: .edit(bill), service: FormStubService())
 
         #expect(try #require(fromCreate.makeRequest()) == (try #require(fromEdit.makeRequest())))

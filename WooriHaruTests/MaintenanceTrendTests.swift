@@ -25,16 +25,14 @@ struct MaintenanceMonthMathTests {
 }
 
 struct MaintenanceDeltaTests {
-    private func bill(_ yearMonth: String, due: Decimal) -> MaintenanceBill {
+    private func bill(_ yearMonth: String, charged: Decimal) -> MaintenanceBill {
         MaintenanceBill(yearMonth: yearMonth, dong: nil, ho: nil, areaM2: nil,
                         items: [], usage: nil,
-                        chargedAmount: due, discountTotal: 0,
-                        unpaidAmount: 0, unpaidLateFee: 0,
-                        dueAmount: due, dueDate: nil)
+                        chargedAmount: charged, discountTotal: 0)
     }
 
     @Test func 바로_앞_달과_견준다() throws {
-        let bills = [bill("2026-08", due: 168_620), bill("2026-07", due: 156_320)]
+        let bills = [bill("2026-08", charged: 168_620), bill("2026-07", charged: 156_320)]
         let delta = try #require(MaintenanceTrendMath.monthOverMonth(bills: bills, at: 0))
 
         #expect(delta.amount == Decimal(12_300))
@@ -45,18 +43,18 @@ struct MaintenanceDeltaTests {
 
     /// **연속하지 않은 달은 견주지 않는다.** 8월과 6월을 놓고 「전월 대비」라고 적으면 거짓이다.
     @Test func 달이_건너뛰면_델타가_없다() {
-        let bills = [bill("2026-08", due: 100), bill("2026-06", due: 50)]
+        let bills = [bill("2026-08", charged: 100), bill("2026-06", charged: 50)]
         #expect(MaintenanceTrendMath.monthOverMonth(bills: bills, at: 0) == nil)
     }
 
     @Test func 마지막_달은_델타가_없다() {
-        let bills = [bill("2026-08", due: 100)]
+        let bills = [bill("2026-08", charged: 100)]
         #expect(MaintenanceTrendMath.monthOverMonth(bills: bills, at: 0) == nil)
     }
 
     /// 앞 달이 0이면 비율이 나오지 않는다 — 0으로 나누지 않는다. 금액 차이만 남는다.
     @Test func 앞_달이_0이면_비율은_nil이다() throws {
-        let bills = [bill("2026-08", due: 100), bill("2026-07", due: 0)]
+        let bills = [bill("2026-08", charged: 100), bill("2026-07", charged: 0)]
         let delta = try #require(MaintenanceTrendMath.monthOverMonth(bills: bills, at: 0))
 
         #expect(delta.amount == Decimal(100))
@@ -69,9 +67,7 @@ struct MaintenanceBillsViewModelTests {
     private func bill(_ yearMonth: String) -> MaintenanceBill {
         MaintenanceBill(yearMonth: yearMonth, dong: nil, ho: nil, areaM2: nil,
                         items: [], usage: nil,
-                        chargedAmount: 0, discountTotal: 0,
-                        unpaidAmount: 0, unpaidLateFee: 0,
-                        dueAmount: 0, dueDate: nil)
+                        chargedAmount: 0, discountTotal: 0)
     }
 
     /// 목록·삭제 호출을 기록하는 대역. 서비스가 프로토콜이라 `MockAPIClient` 없이도 선다.
@@ -89,8 +85,7 @@ struct MaintenanceBillsViewModelTests {
         }
         func fetchBill(yearMonth: String) async throws -> MaintenanceBill {
             MaintenanceBill(yearMonth: yearMonth, dong: nil, ho: nil, areaM2: nil,
-                            items: [], usage: nil, chargedAmount: 0, discountTotal: 0,
-                            unpaidAmount: 0, unpaidLateFee: 0, dueAmount: 0, dueDate: nil)
+                            items: [], usage: nil, chargedAmount: 0, discountTotal: 0)
         }
         func recognize(imageData: Data) async throws -> MaintenanceRecognition {
             fatalError("이 스위트는 인식을 부르지 않는다")
@@ -182,10 +177,5 @@ struct MaintenanceFormatTests {
         #expect(MaintenanceFormat.monthTitle("2026-08") == "2026년 8월")
         // 형식이 틀리면 원문 그대로 — 화면이 비는 것보다 낫다.
         #expect(MaintenanceFormat.monthTitle("bogus") == "bogus")
-    }
-
-    @Test func 납기일을_짧게_적는다() {
-        #expect(MaintenanceFormat.dueDate("2026-08-31") == "8월 31일")
-        #expect(MaintenanceFormat.dueDate("bogus") == "bogus")
     }
 }
