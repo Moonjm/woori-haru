@@ -11,13 +11,19 @@
 **Spec:** `docs/superpowers/specs/2026-08-23-maintenance-bills-design.md`
 서버 계약: `https://daily.eunji.shop/api/v3/api-docs` 태그 「관리비」
 
+> **⚠ 서버 계약 변경 (2026-08-23, Task 7 완료 후).** `maintenance_bills`에서 네 컬럼이 사라졌다 —
+> `due_amount`·`unpaid_amount`·`unpaid_late_fee`·`due_date`. 미납을 다루지 않기로 하면서 납기내
+> 금액이 늘 당월부과액과 같아졌기 때문이다. **Task 1~7의 본문에 남아 있는 그 네 필드는 낡았다** —
+> 아래 「Task M: 계약 변경 반영」이 이미 만든 코드에서 걷어낸다. Task 8은 새 계약으로 다시 쓰였고,
+> Task 9~11(통계)은 원래 `chargedAmount`만 쓰므로 영향이 없다. 정확한 계약은 스펙 문서를 본다.
+
 ## Global Constraints
 
 - **서버는 손대지 않는다.** `/maintenance/*`는 이미 배포돼 있다. 계약이 모자라면 앱에서 파생시키고, 계약을 바꿔야 한다고 판단되면 멈추고 보고한다.
 - **테스트는 Swift Testing이다** — `import Testing`, `@Test`, `#expect`, `try #require`. XCTest를 새로 쓰지 않는다.
 - **금액은 전부 `Decimal`이다.** `Double`을 쓰지 않는다 — 항목 합계와 부과액을 견주는 화면이 있어 원 단위 오차가 그대로 보인다.
 - **`nil`은 `0`이 아니다.** 사용량 5종에서 `nil` = 고지서에서 못 읽음, `0` = 안 썼다. 차트에서 `nil` 칸은 트랙 색으로 남긴다(`ChartPoint.value: Decimal?`가 이미 그 규칙이다).
-- **목록·상세는 `dueAmount`(청구액), 통계는 `chargedAmount`(부과액)다.** `/maintenance/trends`에 `dueAmount`가 없다. 통계 화면에 「부과액 기준」이라고 적는다.
+- **금액은 `chargedAmount` 하나다.** 서버가 `dueAmount`를 지워 목록·상세·통계가 전부 같은 숫자를 그린다. 화면에 「무슨 기준」인지 적을 자리가 없다.
 - **차트 탭은 콜아웃만 바꾼다.** 화면을 옮기거나 달을 바꾸지 않는다.
 - **나눗셈은 뷰가 아니라 `MaintenanceTrendMath` 또는 뷰모델에서 한다.**
 - **주석은 한국어로 「왜」를 적는다.** 코드가 이미 말하는 「무엇」을 반복하지 않는다.
@@ -775,8 +781,7 @@ struct MaintenanceBillsViewModelTests {
         }
         func fetchBill(yearMonth: String) async throws -> MaintenanceBill {
             MaintenanceBill(yearMonth: yearMonth, dong: nil, ho: nil, areaM2: nil,
-                            items: [], usage: nil, chargedAmount: 0, discountTotal: 0,
-                            unpaidAmount: 0, unpaidLateFee: 0, dueAmount: 0, dueDate: nil)
+                            items: [], usage: nil, chargedAmount: 0, discountTotal: 0)
         }
         func recognize(imageData: Data) async throws -> MaintenanceRecognition {
             fatalError("이 스위트는 인식을 부르지 않는다")
@@ -2963,6 +2968,7 @@ git commit -m "feat: 고지서 검수·편집 폼을 그린다"
 
 - **목록이 이미 상세와 같은 필드를 다 갖고 있다.** `GET /bills`와 `GET /bills/{yearMonth}`가 같은 `BillResponse`다 — 상세를 열면서 다시 받지 않는다. 수정하고 돌아올 때만 목록을 다시 받는다(`onChanged`).
 - **항목 표는 금액 큰 순이다.** 서버 순서는 고지서 표 순서인데, 「무엇이 컸나」가 이 표가 답하는 질문이다. 가계부가 같은 판단을 했다(`67e1bef`).
+- **금액은 부과액과 할인 둘뿐이다.** 서버가 청구액·미납·연체료·납기일을 지웠다. 2×2 타일을 억지로 채우지 않고 **할인은 0이 아닐 때만 한 줄**로 적는다 — 늘 0인 줄은 정보가 아니다.
 - **비율 막대는 `ChartScale.ratio`를 쓴다.** 뷰에서 나눗셈하지 않는다.
 - **삭제는 확인 알럿을 거친다.** 성공했을 때만 `onDeleted()` → 목록으로 물러난다.
 - 사용량은 **값이 있는 것만 적고, 하나도 없으면 카드를 그리지 않는다.** 「—」 다섯 줄은 정보가 아니다.
@@ -3015,7 +3021,7 @@ struct MaintenanceBillDetailView: View {
         ScrollView {
             VStack(spacing: 12) {
                 heroCard
-                amountTiles
+                discountCard
                 itemsCard
                 if !usageRows.isEmpty { usageCard }
                 if let errorMessage {
@@ -3083,10 +3089,10 @@ struct MaintenanceBillDetailView: View {
     private var heroCard: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: 6) {
-                Text("청구액")
+                Text("부과액")
                     .font(.caption)
                     .foregroundStyle(VehicleTheme.textSecondary)
-                Text(MaintenanceFormat.won(bill.dueAmount))
+                Text(MaintenanceFormat.won(bill.chargedAmount))
                     .font(.system(size: 34, weight: .heavy))
                     .monospacedDigit()
                     .foregroundStyle(VehicleTheme.accentBright)
@@ -3097,9 +3103,6 @@ struct MaintenanceBillDetailView: View {
                     if let areaM2 = bill.areaM2 {
                         Text("\(NSDecimalNumber(decimal: areaM2).stringValue)m²")
                     }
-                    if let dueDate = bill.dueDate {
-                        Text("납기 \(MaintenanceFormat.dueDate(dueDate))")
-                    }
                 }
                 .font(.caption)
                 .foregroundStyle(VehicleTheme.textTertiary)
@@ -3107,35 +3110,24 @@ struct MaintenanceBillDetailView: View {
         }
     }
 
-    private var amountTiles: some View {
-        GlassCard {
-            VStack(spacing: 10) {
-                HStack(spacing: 10) {
-                    tile("부과액", bill.chargedAmount, warn: false)
-                    tile("할인", bill.discountTotal, warn: false)
-                }
-                HStack(spacing: 10) {
-                    tile("미납액", bill.unpaidAmount, warn: bill.unpaidAmount > 0)
-                    tile("연체료", bill.unpaidLateFee, warn: bill.unpaidLateFee > 0)
+    /// **0이 아닐 때만 그린다.** 늘 「할인 0원」이 붙어 있으면 그 줄은 읽히지 않고,
+    /// 실제로 할인이 붙은 달에도 눈에 안 들어온다.
+    @ViewBuilder private var discountCard: some View {
+        if bill.discountTotal != 0 {
+            GlassCard {
+                HStack {
+                    Text("할인")
+                        .font(.subheadline)
+                        .foregroundStyle(VehicleTheme.textSecondary)
+                    Spacer()
+                    Text(MaintenanceFormat.won(bill.discountTotal))
+                        .font(.subheadline)
+                        .fontWeight(.bold)
+                        .monospacedDigit()
+                        .foregroundStyle(VehicleTheme.accent)
                 }
             }
         }
-    }
-
-    private func tile(_ label: String, _ value: Decimal, warn: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(label)
-                .font(.caption2)
-                .foregroundStyle(VehicleTheme.textTertiary)
-            Text(MaintenanceFormat.won(value))
-                .font(.subheadline)
-                .fontWeight(.bold)
-                .monospacedDigit()
-                .foregroundStyle(warn ? VehicleTheme.warning : VehicleTheme.textPrimary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(10)
-        .background(VehicleTheme.tileFill, in: RoundedRectangle(cornerRadius: 10))
     }
 
     private var itemsCard: some View {
@@ -3771,7 +3763,7 @@ git commit -m "feat: 발산형 순위 리스트 차트 원형을 더한다"
 - **정렬은 받자마자 한 번만 한다.** `months`에는 이미 오름차순인 배열만 들어간다.
 - **선택 상태가 차트마다 따로다.** 한 곳에 두면 #1에서 8월을 고른 순간 #5의 콜아웃까지 바뀌어, 관계없는 두 차트가 이어져 있다고 잘못 읽힌다.
 - **#3은 `nil`일 때 카드를 지우지 않고 사유를 적는다.** 카드가 통째로 사라지면 「왜 없지」가 남는다.
-- 화면 맨 위에 **「부과액 기준」**을 적는다 — 목록의 8월 숫자(청구액)와 통계 막대의 8월 숫자(부과액)가 달라 보이는 것을 여기서 설명한다.
+- 화면 맨 위에 **「최근 13개월」**만 적는다. 초기 설계는 「부과액 기준」을 함께 적어 목록(청구액)과 통계(부과액)의 숫자가 갈리는 것을 설명하려 했지만, 서버가 청구액을 지우면서 갈림 자체가 없어졌다 — 목록·상세·통계가 같은 `chargedAmount`를 그린다.
 
 - [ ] **Step 1: 실패하는 테스트를 쓴다**
 
@@ -3789,8 +3781,7 @@ struct MaintenanceTrendsViewModelTests {
         func fetchBills() async throws -> [MaintenanceBill] { [] }
         func fetchBill(yearMonth: String) async throws -> MaintenanceBill {
             MaintenanceBill(yearMonth: yearMonth, dong: nil, ho: nil, areaM2: nil,
-                            items: [], usage: nil, chargedAmount: 0, discountTotal: 0,
-                            unpaidAmount: 0, unpaidLateFee: 0, dueAmount: 0, dueDate: nil)
+                            items: [], usage: nil, chargedAmount: 0, discountTotal: 0)
         }
         func recognize(imageData: Data) async throws -> MaintenanceRecognition {
             fatalError("이 스위트는 인식을 부르지 않는다")
@@ -4059,8 +4050,8 @@ import SwiftUI
 
 /// 통계 탭 — 차트 다섯 장이 한 응답 위에 올라간다.
 ///
-/// **「부과액 기준」을 맨 위에 적는다.** 목록의 8월 숫자는 청구액이고 여기 막대는 부과액이라
-/// 서로 다른데, 안 적으면 같은 달의 숫자가 둘로 보인다(`/maintenance/trends`에 청구액이 없다).
+/// 목록·상세와 같은 `chargedAmount`를 그리므로 기준을 따로 적지 않는다 — 서버가 청구액을
+/// 지우면서 「이 숫자는 무엇인가」가 화면마다 갈릴 여지가 사라졌다.
 struct MaintenanceStatsTab: View {
     @Bindable var vm: MaintenanceTrendsViewModel
 
@@ -4089,7 +4080,7 @@ struct MaintenanceStatsTab: View {
 
     private var header: some View {
         HStack {
-            Text("최근 13개월 · 부과액 기준")
+            Text("최근 13개월")
                 .font(.caption)
                 .foregroundStyle(VehicleTheme.textTertiary)
             Spacer()
