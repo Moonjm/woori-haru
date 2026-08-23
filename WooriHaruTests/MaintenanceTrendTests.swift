@@ -352,3 +352,106 @@ struct DivergingRankGeometryTests {
         #expect(width == 2)
     }
 }
+
+@MainActor
+struct MaintenanceTrendsViewModelTests {
+    final class TrendStubService: MaintenanceServing, @unchecked Sendable {
+        var months: [MaintenanceTrendMonth] = []
+        var error: Error?
+        private(set) var callCount = 0
+        private(set) var requestedMonths: [Int] = []
+
+        func fetchBills() async throws -> [MaintenanceBill] { [] }
+        func fetchBill(yearMonth: String) async throws -> MaintenanceBill {
+            MaintenanceBill(yearMonth: yearMonth, dong: nil, ho: nil, areaM2: nil,
+                            items: [], usage: nil, chargedAmount: 0, discountTotal: 0)
+        }
+        func recognize(imageData: Data) async throws -> MaintenanceRecognition {
+            fatalError("이 스위트는 인식을 부르지 않는다")
+        }
+        func saveBill(_ request: MaintenanceBillSaveRequest) async throws {}
+        func updateBill(yearMonth: String, _ request: MaintenanceBillSaveRequest) async throws {}
+        func deleteBill(yearMonth: String) async throws {}
+        func fetchTrends(months monthCount: Int) async throws -> [MaintenanceTrendMonth] {
+            callCount += 1
+            requestedMonths.append(monthCount)
+            if let error { throw error }
+            return months
+        }
+    }
+
+    private func month(_ yearMonth: String, charged: Decimal,
+                       items: [MaintenanceBillItem] = []) -> MaintenanceTrendMonth {
+        MaintenanceTrendMonth(yearMonth: yearMonth, chargedAmount: charged, items: items, usage: nil)
+    }
+
+    /// **13을 보낸다** — 전년 동월이 범위에 들어오게 하려는 것이다.
+    @Test func 열세_달을_받아_오름차순으로_담는다() async {
+        let service = TrendStubService()
+        service.months = [month("2026-08", charged: 2), month("2025-08", charged: 1)]
+        let vm = MaintenanceTrendsViewModel(service: service)
+
+        await vm.load()
+
+        #expect(service.requestedMonths == [13])
+        #expect(vm.months.map(\.yearMonth) == ["2025-08", "2026-08"])
+    }
+
+    /// **탭을 오갈 때마다 다시 받지 않는다.**
+    @Test func 이미_받았으면_다시_받지_않는다() async {
+        let service = TrendStubService()
+        let vm = MaintenanceTrendsViewModel(service: service)
+
+        await vm.load()
+        await vm.load()
+
+        #expect(service.callCount == 1)
+    }
+
+    /// 저장·수정 뒤에는 낡은 값을 버리고 다시 받는다.
+    @Test func reload는_다시_받는다() async {
+        let service = TrendStubService()
+        let vm = MaintenanceTrendsViewModel(service: service)
+        await vm.load()
+
+        await vm.reload()
+
+        #expect(service.callCount == 2)
+    }
+
+    @Test func 실패하면_메시지가_남는다() async {
+        let service = TrendStubService()
+        service.error = APIError.serverError(statusCode: 500, message: nil)
+        let vm = MaintenanceTrendsViewModel(service: service)
+
+        await vm.load()
+
+        #expect(vm.errorMessage != nil)
+        // 실패한 로딩은 `hasLoaded`를 세우지 않는다 — 다시 열면 재시도해야 한다.
+        #expect(vm.hasLoaded == false)
+    }
+
+    /// 최근 달 항목 순위. 금액 큰 순이다.
+    @Test func 최근_달_항목을_금액순으로_낸다() async {
+        let service = TrendStubService()
+        service.months = [
+            month("2026-08", charged: 170_000,
+                  items: [MaintenanceBillItem(name: "세대전기료", amount: 48_000),
+                          MaintenanceBillItem(name: "일반관리비", amount: 121_000)])
+        ]
+        let vm = MaintenanceTrendsViewModel(service: service)
+        await vm.load()
+
+        #expect(vm.latestItemRows.map(\.label) == ["일반관리비", "세대전기료"])
+    }
+
+    /// 전년 동월이 없으면 #3의 행이 nil이다 — 화면이 사유를 적는다.
+    @Test func 전년_동월이_없으면_증감_행이_nil이다() async {
+        let service = TrendStubService()
+        service.months = [month("2026-07", charged: 1), month("2026-08", charged: 2)]
+        let vm = MaintenanceTrendsViewModel(service: service)
+        await vm.load()
+
+        #expect(vm.yearOverYearRows == nil)
+    }
+}

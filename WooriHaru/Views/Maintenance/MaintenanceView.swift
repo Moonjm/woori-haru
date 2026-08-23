@@ -8,6 +8,7 @@ struct MaintenanceView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var tab: Tab = .bills
     @State private var billsViewModel = MaintenanceBillsViewModel()
+    @State private var trendsViewModel = MaintenanceTrendsViewModel()
     /// 상세로 넘길 달. `navigationDestination(item:)`이 요구하는 `Hashable`을
     /// `MaintenanceBill`이 `Identifiable`로만 만족하지 못해 연월 문자열을 들고 간다.
     @State private var selectedYearMonth: String?
@@ -38,27 +39,36 @@ struct MaintenanceView: View {
         }
         .task { await billsViewModel.load() }
         .navigationDestination(isPresented: $showingUpload) {
-            MaintenanceUploadView { Task { await billsViewModel.load() } }
+            MaintenanceUploadView {
+                Task {
+                    await billsViewModel.load()
+                    await refreshTrendsIfLoaded()
+                }
+            }
         }
         .navigationDestination(item: $selectedYearMonth) { yearMonth in
             if let bill = billsViewModel.bills.first(where: { $0.yearMonth == yearMonth }) {
                 MaintenanceBillDetailView(
                     bill: bill,
-                    onChanged: { Task { await billsViewModel.load() } },
-                    onDeleted: { Task { await billsViewModel.load() } }
+                    onChanged: { Task { await billsViewModel.load(); await refreshTrendsIfLoaded() } },
+                    onDeleted: { Task { await billsViewModel.load(); await refreshTrendsIfLoaded() } }
                 )
             }
         }
+    }
+
+    /// 아직 안 열어 본 통계 탭은 그냥 둔다 — 그때는 `hasLoaded`가 false라 다음에 열 때
+    /// `load()`가 처음부터 받는다. 차량 통계 탭이 같은 규칙이다.
+    private func refreshTrendsIfLoaded() async {
+        guard trendsViewModel.hasLoaded else { return }
+        await trendsViewModel.reload()
     }
 
     @ViewBuilder private var content: some View {
         switch tab {
         case .bills: billsTab
         case .stats:
-            // Task 11이 `MaintenanceStatsTab(...)`으로 갈아 끼운다.
-            Text("통계")
-                .foregroundStyle(VehicleTheme.textTertiary)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            MaintenanceStatsTab(vm: trendsViewModel)
         }
     }
 
