@@ -160,8 +160,21 @@ struct MaintenanceStatsTab: View {
                         .foregroundStyle(VehicleTheme.accentBright)
                     }
 
-                    MonthlyBarChart(points: points,
-                                    selectedID: selected) { vm.selectedItemID = $0 }
+                    // **차감 항목은 음수라 원형을 갈아 끼운다.** `MonthlyBarChart`는
+                    // `ChartScale.ratio`로 0 이하를 전부 0으로 잘라(스물여섯 장이 그 가드에
+                    // 기댄다) 「-13,790」과 「0」이 같은 막대가 된다. 부호가 뜻을 갖는
+                    // 자리를 위해 만들어 둔 `DivergingMonthlyBarChart`가 그 값을 살린다.
+                    //
+                    // 한 항목의 부호는 달마다 바뀌지 않는다(차감은 늘 차감이다). 그래서
+                    // 고른 항목에 따라 원형이 갈릴 뿐, 한 화면 안에서 섞이지 않는다 —
+                    // 양수 항목까지 발산형으로 그리면 기준선이 가운데 놓여 높이를 절반만 쓴다.
+                    if points.contains(where: { ($0.value ?? 0) < 0 }) {
+                        DivergingMonthlyBarChart(points: points,
+                                                 selectedID: selected) { vm.selectedItemID = $0 }
+                    } else {
+                        MonthlyBarChart(points: points,
+                                        selectedID: selected) { vm.selectedItemID = $0 }
+                    }
                 }
             }
         }

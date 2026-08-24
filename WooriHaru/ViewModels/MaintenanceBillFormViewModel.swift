@@ -131,7 +131,7 @@ final class MaintenanceBillFormViewModel {
     /// **앱이 실시간으로 다시 계산한다.** 서버의 `sumMatched`는 인식 시점 판정이라 사람이
     /// 금액을 고치면 낡는다.
     var itemsTotal: Decimal {
-        items.reduce(Decimal(0)) { $0 + (Self.decimal($1.amount) ?? 0) }
+        items.reduce(Decimal(0)) { $0 + (Self.decimal($1.amount, allowsNegative: true) ?? 0) }
     }
 
     /// 항목 합계 − 부과액. 음수면 항목이 모자라다는 뜻이다.
@@ -156,7 +156,7 @@ final class MaintenanceBillFormViewModel {
         guard !items.isEmpty else { return false }
         return items.allSatisfy {
             !$0.name.trimmingCharacters(in: .whitespaces).isEmpty
-                && Self.decimal($0.amount) != nil
+                && Self.decimal($0.amount, allowsNegative: true) != nil
         }
     }
 
@@ -164,7 +164,7 @@ final class MaintenanceBillFormViewModel {
     func makeRequest() -> MaintenanceBillSaveRequest? {
         guard canSave else { return nil }
         let drafts: [MaintenanceBillItemRequest] = items.compactMap { draft in
-            guard let amount = Self.decimal(draft.amount) else { return nil }
+            guard let amount = Self.decimal(draft.amount, allowsNegative: true) else { return nil }
             var name = draft.name.trimmingCharacters(in: .whitespaces)
             guard !name.isEmpty else { return nil }
             // 서버 한도 50자. `MaintenanceItemRow`의 `onChange`가 타이핑 중에 이미 자르지만,
@@ -297,20 +297,25 @@ final class MaintenanceBillFormViewModel {
     /// **로캘을 POSIX로 고정한다.** `locale`을 안 주면 기기 로캘을 따라가는데, 소수점을
     /// 쉼표로 쓰는 지역에서는 "." 하나로 파싱이 실패한다 — 반대로 사용자가 넣은 쉼표
     /// 자리구분과 그 지역의 소수 구분이 뒤섞이면 값이 조용히 달라진다.
-    private static func decimal(_ text: String) -> Decimal? {
+    /// **`allowsNegative`의 기본값이 `false`인 이유.** 음수가 뜻을 갖는 자리는 차감 항목
+    /// 하나뿐이다 — 사용량(`-30kWh를 썼다`)과 면적에 붙은 마이너스는 값이 아니라 오타이고,
+    /// 한 달 부과액도 마찬가지다. 새 칸이 생겼을 때 아무 생각 없이 쓰면 엄한 쪽으로
+    /// 걸리도록 기본값을 잡았다.
+    private static func decimal(_ text: String, allowsNegative: Bool = false) -> Decimal? {
         let cleaned = text
             .replacingOccurrences(of: ",", with: "")
             .trimmingCharacters(in: .whitespaces)
         // **`Decimal(string:)`은 관대해서 그대로 기대면 안 된다.** `"."`을 0으로 읽고
         // `"12abc"`를 12로 읽는다. 사용자가 고치려고 지우다 만 칸이 그 길로 조용히 0이
-        // 되어 실제 부과액을 덮었다. `.decimalPad`로 칠 수 있는 모양(숫자와 소수점 하나)만
-        // 받고, 숫자가 한 자도 없으면 거른다 — 붙여넣기는 그 키패드를 우회한다.
-        //
-        // 음수 검사를 따로 두지 않는 것은 이 허용 목록이 `-`를 이미 막기 때문이다.
+        // 되어 실제 부과액을 덮었다. 칠 수 있는 모양만 받고, 숫자가 한 자도 없으면 거른다
+        // — 붙여넣기는 키보드를 우회한다.
         let isDigit: (Character) -> Bool = { ("0"..."9").contains($0) }
-        guard cleaned.contains(where: isDigit),
-              cleaned.allSatisfy({ isDigit($0) || $0 == "." }),
-              cleaned.filter({ $0 == "." }).count <= 1,
+        let body = allowsNegative && cleaned.hasPrefix("-") ? String(cleaned.dropFirst()) : cleaned
+        // 마이너스는 **하나, 맨 앞에서만** 뜻이 있다. `dropFirst` 뒤에도 남아 있으면
+        // `--5`·`5-`·`1-2` 같은 모양이라 숫자가 아니다.
+        guard body.contains(where: isDigit),
+              body.allSatisfy({ isDigit($0) || $0 == "." }),
+              body.filter({ $0 == "." }).count <= 1,
               let value = Decimal(string: cleaned, locale: posixLocale)
         else { return nil }
         return value

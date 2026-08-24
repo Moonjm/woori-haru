@@ -239,6 +239,63 @@ struct MaintenanceFormViewModelTests {
         }
     }
 
+    /// **차감 항목은 음수다.** 고지서에 「관리비차감 -13,790」 같은 행이 실제로 있고
+    /// 서버도 `BillItemRequest.amount`에만 `minimum`을 안 걸어 두었다(막고 싶은 자리에는
+    /// `ChargeCostRequest.cost`처럼 `minimum: 0`을 적는 API다). 거부하면 그런 고지서는
+    /// **저장 버튼이 영영 안 켜진다.**
+    @Test func 항목_금액은_음수를_받는다() throws {
+        let vm = MaintenanceBillFormViewModel(mode: .edit(makeBill()), service: FormStubService())
+        vm.addItem()
+        vm.items[1].name = "관리비차감"
+        vm.items[1].amount = "-13,790"
+
+        #expect(vm.canSave == true)
+        let request = try #require(vm.makeRequest())
+        #expect(request.items.last?.amount == Decimal(-13_790))
+    }
+
+    /// 음수 항목이 합계에 그대로 들어간다 — 차감을 빼먹으면 부과액과 안 맞는다.
+    @Test func 음수_항목이_합계에_반영된다() {
+        let vm = MaintenanceBillFormViewModel(mode: .edit(makeBill()), service: FormStubService())
+        vm.addItem()
+        vm.items[1].name = "관리비차감"
+        vm.items[1].amount = "-1,500"
+
+        #expect(vm.itemsTotal == Decimal(121_500 - 1_500))
+    }
+
+    /// **사용량과 면적은 음수를 안 받는다.** 「-30kWh를 썼다」는 오타지 값이 아니다.
+    @Test func 사용량과_면적은_음수를_안_받는다() throws {
+        let vm = MaintenanceBillFormViewModel(mode: .edit(makeBill()), service: FormStubService())
+        vm.electricityKwh = "-30"
+        vm.areaM2 = "-84.97"
+
+        let request = try #require(vm.makeRequest())
+
+        #expect(request.usage?.electricityKwh == nil)
+        #expect(request.areaM2 == nil)
+    }
+
+    /// 마이너스가 **하나, 맨 앞에** 있을 때만 숫자다.
+    @Test func 마이너스가_어긋난_항목은_받지_않는다() {
+        let vm = MaintenanceBillFormViewModel(mode: .edit(makeBill()), service: FormStubService())
+
+        for bad in ["--5", "5-", "-", "1-2"] {
+            vm.items[0].amount = bad
+            #expect(vm.canSave == false, "「\(bad)」가 항목 금액으로 통과했다")
+        }
+    }
+
+    /// **부과액은 음수를 안 받는다.** 음수가 뜻을 갖는 자리는 차감 「항목」이지,
+    /// 한 달 전체의 부과액이 아니다 — 거기 붙은 마이너스는 오타로 본다.
+    @Test func 부과액은_음수를_안_받는다() {
+        let vm = MaintenanceBillFormViewModel(mode: .edit(makeBill()), service: FormStubService())
+
+        vm.chargedAmount = "-100"
+
+        #expect(vm.canSave == false)
+    }
+
     /// 고지서에서 금액을 복사하면 쉼표가 딸려 온다. **걷어내고 온전히 읽어야 한다** —
     /// 예전에는 `"168,620"`이 168로 잘려 저장됐다.
     @Test func 쉼표가_있어도_온전히_읽는다() throws {
