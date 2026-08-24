@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 통계 탭 — 차트 다섯 장이 한 응답(`/maintenance/trends`) 위에 올라간다.
+/// 통계 탭 — 차트 네 장이 한 응답(`/maintenance/trends`) 위에 올라간다.
 ///
 /// **13개월을 받는다.** 전년 동월이 범위에 들어오게 하려는 것이다 — 난방비처럼 계절을
 /// 타는 항목은 전월이 아니라 전년 동월과 견줘야 뜻이 있다.
@@ -11,17 +11,16 @@ final class MaintenanceTrendsViewModel {
 
     private let service: any MaintenanceServing
 
-    /// **늘 `yearMonth` 오름차순이다** — 받자마자 한 번만 정렬한다. 차트 다섯 장이 전부
+    /// **늘 `yearMonth` 오름차순이다** — 받자마자 한 번만 정렬한다. 차트 네 장이 전부
     /// 시간축이라 순서가 뒤집히면 전부 거짓말이 된다.
     private(set) var months: [MaintenanceTrendMonth] = []
     private(set) var isLoading = false
     private(set) var errorMessage: String?
     private(set) var hasLoaded = false
 
-    /// **차트마다 선택이 따로다.** 한 곳에 두면 #1에서 8월을 고른 순간 #5의 콜아웃까지
+    /// **차트마다 선택이 따로다.** 한 곳에 두면 #1에서 8월을 고른 순간 #4의 콜아웃까지
     /// 바뀌어, 관계없는 두 차트가 이어져 있다고 잘못 읽힌다.
     var selectedMonthID: String?
-    var selectedRankID: String?
     var selectedDeltaID: String?
     var selectedUsageID: String?
     var selectedItemID: String?
@@ -64,47 +63,10 @@ final class MaintenanceTrendsViewModel {
 
     // MARK: - 파생
 
-    var latestMonthLabel: String {
-        months.last.map { MaintenanceFormat.monthTitle($0.yearMonth) } ?? "—"
-    }
-
     /// #1 월별 부과액 추이.
     var chargedPoints: [ChartPoint] { MaintenanceTrendMath.chargedPoints(months) }
 
-    /// #2 최근 달 항목 구성 — 금액 큰 순.
-    var latestItemRows: [RankBarList.Row] {
-        guard let latest = months.last else { return [] }
-        // **분모는 양수 항목의 합이다.** 차감(음수) 항목까지 더한 합으로 나누면 분모가
-        // 작아져 **양수 항목들이 100%를 넘고** 차감 행은 음수 퍼센트가 된다 —
-        // 「무엇이 얼마나 차지하나」에 답해야 할 카드가 거짓을 말한다.
-        let base = latest.items.filter { $0.amount > 0 }.reduce(Decimal(0)) { $0 + $1.amount }
-        return latest.items
-            .sorted { $0.amount > $1.amount }
-            .map { item in
-                // 차감 항목에는 비율을 적지 않는다. 「구성비 -8%」는 뜻이 없고,
-                // `RankBarList`도 음수 막대를 0으로 잘라 그리지 않는다 — 금액과 「차감」이라는
-                // 말이 그 행이 무엇인지 이미 다 말한다.
-                let secondary: String
-                if item.amount > 0, base > 0 {
-                    secondary = MaintenanceFormat.percent(item.amount / base)
-                        .replacingOccurrences(of: "+", with: "")
-                } else if item.amount < 0 {
-                    secondary = "차감"
-                } else {
-                    secondary = "—"
-                }
-                return RankBarList.Row(
-                    id: item.name,
-                    label: item.name,
-                    value: item.amount,
-                    primary: MaintenanceFormat.won(item.amount),
-                    secondary: secondary,
-                    note: nil
-                )
-            }
-    }
-
-    /// #3 전년 동월 대비 항목별 증감. **전년 동월이 범위에 없으면 nil이다.**
+    /// #2 전년 동월 대비 항목별 증감. **전년 동월이 범위에 없으면 nil이다.**
     var yearOverYearRows: [DivergingRankList.Row]? {
         MaintenanceTrendMath.yearOverYearDeltas(months).map { deltas in
             deltas.map { delta in
@@ -118,12 +80,12 @@ final class MaintenanceTrendsViewModel {
         }
     }
 
-    /// #4 사용량 추이.
+    /// #3 사용량 추이.
     var usagePoints: [ChartPoint] {
         MaintenanceTrendMath.usagePoints(months, kind: usageKind)
     }
 
-    /// #5 항목 하나의 월별 추이.
+    /// #4 항목 하나의 월별 추이.
     var itemNames: [String] { MaintenanceTrendMath.itemNames(months) }
 
     /// **고른 이름이 지금 목록에 있을 때만 쓴다.** 수정·삭제로 그 항목이 사라진 뒤

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 통계 탭 — 차트 다섯 장이 한 응답 위에 올라간다.
+/// 통계 탭 — 차트 네 장이 한 응답 위에 올라간다.
 ///
 /// 목록·상세와 같은 `chargedAmount`를 그리므로 기준을 따로 적지 않는다 — 서버가 청구액을
 /// 지우면서 「이 숫자는 무엇인가」가 화면마다 갈릴 여지가 사라졌다.
@@ -12,7 +12,6 @@ struct MaintenanceStatsTab: View {
             VStack(spacing: 12) {
                 header
                 chargedCard
-                latestItemsCard
                 yearOverYearCard
                 usageCard
                 itemTrendCard
@@ -52,8 +51,8 @@ struct MaintenanceStatsTab: View {
         }
     }
 
-    /// #2·#3 순위 리스트의 기본 선택. 서버가 이미 순위(#2는 금액, #3은 증감 절댓값)
-    /// 내림차순으로 주므로 목록의 첫 행이 곧 1등이다 — `StatsPlaceSection.rankAnchor`와 같다.
+    /// 순위 리스트(#2 전년 동월 대비)의 기본 선택. 증감 절댓값 내림차순으로 이미
+    /// 정렬돼 오므로 목록의 첫 행이 곧 1등이다 — `StatsPlaceSection.rankAnchor`와 같다.
     private func rankAnchor(_ ids: [String], selected: String?) -> String? {
         ChartAnchor.resolve(selected: selected, in: ids) { ids.first }
     }
@@ -70,25 +69,7 @@ struct MaintenanceStatsTab: View {
         }
     }
 
-    // MARK: - #2 최근 달 항목 구성
-
-    /// **탭은 콜아웃만 바꾼다** — `RankBarList`가 지키는 규칙이고, 이 카드가 그 원형을
-    /// 쓰는 유일한 자리라 콜아웃이 없으면 그 규칙을 지킬 자리 자체가 없었다.
-    private var latestItemsCard: some View {
-        let rows = vm.latestItemRows
-        let selected = rankAnchor(rows.map(\.id), selected: vm.selectedRankID)
-        let shown = rows.first { $0.id == selected }
-        return ChartCard(title: "\(vm.latestMonthLabel) 항목 구성",
-                  callout: shown.map { "\($0.label) \($0.primary)" }) {
-            if rows.isEmpty {
-                emptyLine("등록된 항목이 없습니다")
-            } else {
-                RankBarList(rows: rows, selectedID: selected) { vm.selectedRankID = $0 }
-            }
-        }
-    }
-
-    // MARK: - #3 전년 동월 대비
+    // MARK: - #2 전년 동월 대비 항목별 증감
 
     private var yearOverYearCard: some View {
         let rows = vm.yearOverYearRows
@@ -107,7 +88,7 @@ struct MaintenanceStatsTab: View {
         }
     }
 
-    // MARK: - #4 사용량 추이
+    // MARK: - #3 사용량 추이
 
     private var usageCard: some View {
         let points = vm.usagePoints
@@ -130,7 +111,7 @@ struct MaintenanceStatsTab: View {
         }
     }
 
-    // MARK: - #5 항목 하나의 월별 추이
+    // MARK: - #4 항목 하나의 월별 추이
 
     private var itemTrendCard: some View {
         let points = vm.itemPoints
