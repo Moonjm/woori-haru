@@ -123,7 +123,10 @@ struct MaintenanceUploadView: View {
         }
         .navigationDestination(isPresented: $showReview) {
             if let recognition = vm.recognition {
-                MaintenanceBillFormView(mode: .create(recognition), onSaved: onSaved)
+                // 검수 화면이 원본과 대조할 수 있게 방금 고른 사진을 그대로 넘긴다.
+                MaintenanceBillFormView(
+                    mode: .create(recognition), photo: previewImage, onSaved: onSaved
+                )
             }
         }
     }

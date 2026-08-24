@@ -14,10 +14,19 @@ struct MaintenanceBillFormView: View {
     /// 두 겹 빠진다. 새 호출부를 붙일 때도 이 클로저 안에서 물러나야 한다.
     var onSaved: () -> Void
 
-    init(mode: MaintenanceBillFormViewModel.Mode, onSaved: @escaping () -> Void = {}) {
+    /// 방금 인식한 고지서 사진. **검수(`.create`)에만 있다** — 서버가 고지서 사진을
+    /// 저장하지 않아서, 상세에서 「수정」으로 들어온 폼에는 보여 줄 사진이 없다.
+    private let photo: UIImage?
+
+    init(
+        mode: MaintenanceBillFormViewModel.Mode,
+        photo: UIImage? = nil,
+        onSaved: @escaping () -> Void = {}
+    ) {
         // **`init`에서 세운다** — 뷰가 다시 그려질 때마다 뷰모델이 새로 생기면 사용자가
         // 친 값이 날아간다.
         _vm = State(initialValue: MaintenanceBillFormViewModel(mode: mode))
+        self.photo = photo
         self.onSaved = onSaved
     }
 
@@ -26,6 +35,7 @@ struct MaintenanceBillFormView: View {
             VStack(spacing: 12) {
                 warningCard
                 monthCard
+                photoCard
                 itemsCard
                 sumCard
                 usageCard
@@ -116,6 +126,29 @@ struct MaintenanceBillFormView: View {
                             .foregroundStyle(VehicleTheme.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
+                }
+            }
+        }
+    }
+
+    /// 방금 올린 고지서. **대조할 것이 옆에 있어야 검수가 된다** — 인식이 스무 줄을
+    /// 채워 놓아도 원본이 없으면 무엇을 확인해야 할지 알 수 없다.
+    ///
+    /// 항목 카드 바로 위에 둔다. 사진으로 확인하는 것은 대부분 항목과 금액이라, 그 둘이
+    /// 한 화면에 같이 잡히는 자리가 여기다.
+    ///
+    /// **크기는 등록 화면 미리보기와 같은 260pt다.** 방금 그 화면에서 넘어온 참이라
+    /// 사진이 같은 크기로 이어지는 편이 덜 낯설다.
+    @ViewBuilder private var photoCard: some View {
+        if let photo {
+            GlassCard {
+                VStack(alignment: .leading, spacing: 10) {
+                    sectionTitle("올린 고지서")
+                    Image(uiImage: photo)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxHeight: 260)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
             }
         }
