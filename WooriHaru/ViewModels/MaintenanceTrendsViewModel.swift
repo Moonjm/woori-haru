@@ -74,18 +74,31 @@ final class MaintenanceTrendsViewModel {
     /// #2 최근 달 항목 구성 — 금액 큰 순.
     var latestItemRows: [RankBarList.Row] {
         guard let latest = months.last else { return [] }
-        let total = latest.items.reduce(Decimal(0)) { $0 + $1.amount }
+        // **분모는 양수 항목의 합이다.** 차감(음수) 항목까지 더한 합으로 나누면 분모가
+        // 작아져 **양수 항목들이 100%를 넘고** 차감 행은 음수 퍼센트가 된다 —
+        // 「무엇이 얼마나 차지하나」에 답해야 할 카드가 거짓을 말한다.
+        let base = latest.items.filter { $0.amount > 0 }.reduce(Decimal(0)) { $0 + $1.amount }
         return latest.items
             .sorted { $0.amount > $1.amount }
             .map { item in
-                let share = total > 0 ? item.amount / total : 0
+                // 차감 항목에는 비율을 적지 않는다. 「구성비 -8%」는 뜻이 없고,
+                // `RankBarList`도 음수 막대를 0으로 잘라 그리지 않는다 — 금액과 「차감」이라는
+                // 말이 그 행이 무엇인지 이미 다 말한다.
+                let secondary: String
+                if item.amount > 0, base > 0 {
+                    secondary = MaintenanceFormat.percent(item.amount / base)
+                        .replacingOccurrences(of: "+", with: "")
+                } else if item.amount < 0 {
+                    secondary = "차감"
+                } else {
+                    secondary = "—"
+                }
                 return RankBarList.Row(
                     id: item.name,
                     label: item.name,
                     value: item.amount,
                     primary: MaintenanceFormat.won(item.amount),
-                    // 비율은 부호 없이 적는다 — 구성비지 증감이 아니다.
-                    secondary: MaintenanceFormat.percent(share).replacingOccurrences(of: "+", with: ""),
+                    secondary: secondary,
                     note: nil
                 )
             }

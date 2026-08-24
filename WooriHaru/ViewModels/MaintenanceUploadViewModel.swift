@@ -53,6 +53,19 @@ final class MaintenanceUploadViewModel {
         recognition = nil
     }
 
+    /// 해상도를 줄이지 않고는 전송 한도를 못 맞춘다.
+    ///
+    /// **줄여서 보내지 않는다.** 고지서는 항목이 스무 줄에 금액이 여섯 자리라 줄이면
+    /// 인식이 망가지는데, 그건 조용히 나빠지는 실패다 — 사용자는 유료 인식이 왜 엉망인지
+    /// 알 수 없다. 차라리 여기서 막고 이유를 말한다.
+    func setImageTooLarge() {
+        generation += 1
+        imageData = nil
+        phase = .idle
+        recognition = nil
+        errorMessage = "사진이 너무 커서 보낼 수 없습니다. 고지서 표만 담기게 잘라서 다시 찍어 주세요."
+    }
+
     /// 앨범에서 읽거나 JPEG로 굽는 데 실패했다. 조용히 넘기면 사진 자리가 빈 채로 남아
     /// 사용자가 「사진이 안 들어갔다」는 것조차 모른다.
     func setImageLoadFailed() {

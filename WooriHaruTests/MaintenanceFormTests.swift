@@ -117,6 +117,21 @@ struct MaintenanceUploadViewModelTests {
         #expect(vm.phase == .idle)
     }
 
+    /// **줄여서 보내지 않는다.** 고지서를 줄이면 인식이 망가지는데 그건 조용히 나빠지는
+    /// 실패다 — 유료 호출이 왜 엉망인지 사용자가 알 수 없다. 막고 이유를 말한다.
+    @Test func 사진이_너무_크면_안내로_남는다() {
+        let vm = MaintenanceUploadViewModel(service: RecognizeStubService())
+        vm.setImage(Data([0xFF, 0xD8]))
+
+        vm.setImageTooLarge()
+
+        #expect(vm.imageData == nil)
+        #expect(vm.canRecognize == false)
+        #expect(vm.errorMessage?.contains("너무 커서") == true)
+        // 실패가 아니라 「다시 찍어 달라」는 상태다 — 스피너가 남으면 안 된다.
+        #expect(vm.phase == .idle)
+    }
+
     @Test func 사진_읽기_실패는_안내로_남는다() {
         let vm = MaintenanceUploadViewModel(service: RecognizeStubService())
         vm.setImage(Data([0xFF, 0xD8]))
@@ -284,6 +299,46 @@ struct MaintenanceFormViewModelTests {
             vm.items[0].amount = bad
             #expect(vm.canSave == false, "「\(bad)」가 항목 금액으로 통과했다")
         }
+    }
+
+    /// **같은 이름의 항목 둘은 저장할 수 없다.** `MaintenanceBillItem.id`가 이름이라
+    /// 저장되고 나면 상세·통계의 `ForEach`가 같은 id를 둘 받아 행이 뭉개진다.
+    @Test func 이름이_겹친_항목은_저장이_잠긴다() {
+        let vm = MaintenanceBillFormViewModel(mode: .edit(makeBill()), service: FormStubService())
+        vm.addItem()
+        vm.items[1].name = "일반관리비"   // 0번과 같은 이름
+        vm.items[1].amount = "100"
+
+        #expect(vm.hasDuplicateItemNames == true)
+        #expect(vm.canSave == false)
+        #expect(vm.makeRequest() == nil)
+
+        vm.items[1].name = "세대전기료"
+
+        #expect(vm.hasDuplicateItemNames == false)
+        #expect(vm.canSave == true)
+    }
+
+    /// 앞뒤 공백만 다른 이름도 같은 이름이다 — 서버로는 트림해서 나가므로 결국 겹친다.
+    @Test func 공백만_다른_이름도_겹친_것으로_본다() {
+        let vm = MaintenanceBillFormViewModel(mode: .edit(makeBill()), service: FormStubService())
+        vm.addItem()
+        vm.items[1].name = " 일반관리비 "
+        vm.items[1].amount = "100"
+
+        #expect(vm.hasDuplicateItemNames == true)
+    }
+
+    /// **빈 이름 둘은 「겹쳤다」가 아니다.** 행을 막 더한 상태라 이름을 아직 안 적은 것이고,
+    /// 그건 별도 규칙(이름이 비면 저장 잠금)이 이미 막는다. 여기서 겹쳤다고 하면
+    /// 화면에 엉뚱한 안내가 뜬다.
+    @Test func 빈_이름_둘은_겹친_것이_아니다() {
+        let vm = MaintenanceBillFormViewModel(mode: .edit(makeBill()), service: FormStubService())
+        vm.addItem()
+        vm.addItem()
+
+        #expect(vm.hasDuplicateItemNames == false)
+        #expect(vm.canSave == false)   // 이름이 비어서 잠긴다
     }
 
     /// **부과액은 음수를 안 받는다.** 음수가 뜻을 갖는 자리는 차감 「항목」이지,

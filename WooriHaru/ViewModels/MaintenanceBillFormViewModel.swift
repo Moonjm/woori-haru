@@ -154,10 +154,26 @@ final class MaintenanceBillFormViewModel {
         // 「값이 아예 없다」는 판단할 것이 없다.
         guard Self.decimal(chargedAmount) != nil else { return false }
         guard !items.isEmpty else { return false }
+        guard !hasDuplicateItemNames else { return false }
         return items.allSatisfy {
             !$0.name.trimmingCharacters(in: .whitespaces).isEmpty
                 && Self.decimal($0.amount, allowsNegative: true) != nil
         }
+    }
+
+    /// 같은 이름을 가진 항목이 둘 이상인가.
+    ///
+    /// **저장 전에만 막는다.** 편집 중에는 겹쳐도 된다 — 이름을 고치는 도중에 잠깐
+    /// 같아지는 건 정상이고, 그때마다 화면이 빨개지면 타이핑을 방해한다.
+    ///
+    /// **막아야 하는 이유는 저장 이후에 있다.** `MaintenanceBillItem.id`가 이름이라
+    /// (한 달 안에서 유일하다는 고지서 표의 성질에 기댄 것이다) 같은 이름이 둘 저장되면
+    /// 상세·통계의 `ForEach`가 같은 id를 둘 받는다 — 행이 뭉개지거나 엉뚱한 행이
+    /// 재사용된다. 통계의 `itemNames`·`itemPoints`도 이름으로 항목을 찾으므로 한쪽만 잡힌다.
+    var hasDuplicateItemNames: Bool {
+        let names = items.map { $0.name.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+        return Set(names).count != names.count
     }
 
     /// 저장할 수 없는 상태면 nil. 화면은 `canSave`로 이미 막고 있어 여기 오지 않는다.

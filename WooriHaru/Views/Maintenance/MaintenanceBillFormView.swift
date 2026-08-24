@@ -63,15 +63,27 @@ struct MaintenanceBillFormView: View {
     /// 조용히 사라진다. `.edit`에서는 `sumMatched`가 늘 true이고 `warnings`가 늘
     /// 비어 있어 이 카드가 자연히 숨는다(스펙이 요구하는 「`.create`에서만」과 같다).
     @ViewBuilder private var warningCard: some View {
-        if !vm.sumMatched || !vm.warnings.isEmpty {
+        if !vm.isSumMatched || !vm.sumMatched || !vm.warnings.isEmpty {
             GlassCard {
                 VStack(alignment: .leading, spacing: 6) {
                     Label("확인이 필요합니다", systemImage: "exclamationmark.triangle.fill")
                         .font(.caption)
                         .fontWeight(.bold)
                         .foregroundStyle(VehicleTheme.warning)
-                    if !vm.sumMatched {
+                    // **둘은 배타적이다.** 앞은 지금 상태(`isSumMatched`), 뒤는 인식 시점의
+                    // 판정(`sumMatched`)이다. 예전에는 뒤엣것만 보고 배너를 띄워서, 사용자가
+                    // 금액을 고쳐 합계를 맞춘 뒤에도 배너는 「안 맞는다」고 하고 바로 아래
+                    // 대조 카드는 「맞는다」고 하는 **모순된 화면**이 됐다.
+                    if !vm.isSumMatched {
                         Text("항목 합계와 부과액이 맞지 않습니다")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(VehicleTheme.warning)
+                            .fixedSize(horizontal: false, vertical: true)
+                    } else if !vm.sumMatched {
+                        // 지금은 맞지만 인식할 때는 어긋나 있었다. 사람이 고쳐서 맞은 게
+                        // 아니라 **잘못 읽힌 값끼리 우연히 맞아떨어졌을 수도** 있어 남긴다.
+                        Text("인식할 때 합계가 어긋나 있었습니다. 값을 한 번 더 확인해 주세요")
                             .font(.caption)
                             .fontWeight(.semibold)
                             .foregroundStyle(VehicleTheme.warning)
@@ -163,6 +175,14 @@ struct MaintenanceBillFormView: View {
                     Text("항목이 하나도 없으면 저장할 수 없습니다")
                         .font(.caption)
                         .foregroundStyle(VehicleTheme.warning)
+                }
+                // **왜 잠겼는지 말해 준다.** 이름이 겹치면 저장 버튼이 꺼지는데, 스무 줄짜리
+                // 화면에서 어느 두 줄이 문제인지 모르면 사용자는 버튼이 고장 난 줄 안다.
+                if vm.hasDuplicateItemNames {
+                    Text("같은 이름의 항목이 둘 있습니다. 이름을 다르게 해 주세요")
+                        .font(.caption)
+                        .foregroundStyle(VehicleTheme.warning)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }

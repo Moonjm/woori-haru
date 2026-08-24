@@ -472,6 +472,26 @@ struct MaintenanceTrendsViewModelTests {
         #expect(vm.latestItemRows.map(\.label) == ["일반관리비", "세대전기료"])
     }
 
+    /// **차감 항목이 있어도 비율이 100%를 안 넘는다.** 분모를 부호 있는 합(90,000)으로
+    /// 잡으면 100,000짜리 항목이 111%가 되고 차감은 −11%가 된다 — 구성비 카드가
+    /// 거짓을 말한다. 분모는 양수 항목의 합(100,000)이어야 한다.
+    @Test func 차감_항목이_있어도_비율이_100퍼센트를_안_넘는다() async {
+        let service = TrendStubService()
+        service.months = [
+            month("2026-08", charged: 90_000,
+                  items: [MaintenanceBillItem(name: "일반관리비", amount: 100_000),
+                          MaintenanceBillItem(name: "관리비차감", amount: -10_000)])
+        ]
+        let vm = MaintenanceTrendsViewModel(service: service)
+        await vm.load()
+
+        let rows = vm.latestItemRows
+        #expect(rows.map(\.label) == ["일반관리비", "관리비차감"])
+        #expect(rows[0].secondary == "100.0%")
+        // 차감 행에는 비율을 안 적는다 — 「구성비 -10%」는 뜻이 없다.
+        #expect(rows[1].secondary == "차감")
+    }
+
     /// 전년 동월이 없으면 #3의 행이 nil이다 — 화면이 사유를 적는다.
     @Test func 전년_동월이_없으면_증감_행이_nil이다() async {
         let service = TrendStubService()

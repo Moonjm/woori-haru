@@ -7,6 +7,11 @@ import SwiftUI
 /// 낮추므로 해상도는 원본 그대로고, HEIC→JPEG 재인코딩과 EXIF 회전 반영만 일어난다.
 /// 이걸 건너뛰면 서버가 `IMAGE_UNREADABLE`을 내거나 눕힌 사진을 읽는다.
 struct MaintenanceUploadView: View {
+    /// 서버 multipart 한도는 10MB다. **`jpegWithinByteLimit`의 기본 한도와 같은 값을
+    /// 여기 다시 적는다** — 그 함수는 한도를 못 맞춰도 nil이 아니라 가장 작은 데이터를
+    /// 돌려주므로, 넘겼는지는 부르는 쪽이 직접 봐야 한다.
+    private static let byteLimit = 9 * 1024 * 1024
+
     /// 저장까지 끝나면 불린다 — 목록 화면이 이걸로 목록을 다시 받는다. 검수 화면까지 그대로 넘긴다.
     var onSaved: () -> Void = {}
 
@@ -79,7 +84,14 @@ struct MaintenanceUploadView: View {
             loadTask = Task {
                 let data = try? await item.loadTransferable(type: Data.self)
                 let normalize = Task.detached(priority: .userInitiated) {
-                    data.flatMap { UIImage.jpegWithinByteLimit(from: $0) }
+                    // **`dimensions`를 원본 하나로 못 박는다.** 기본값은
+                    // `[.greatestFiniteMagnitude, 4000, 3000, 2400]`이라, 원본 해상도에서
+                    // 품질을 넷까지 낮춰도 한도를 못 맞추면 **말없이 2400px까지 줄인다.**
+                    // 이 화면이 존재하는 이유가 「줄이면 인식이 망가진다」인데 그 폴백은
+                    // 그것을 조용히 되돌린다. 못 맞추면 줄이는 대신 아래에서 막는다.
+                    data.flatMap {
+                        UIImage.jpegWithinByteLimit(from: $0, dimensions: [.greatestFiniteMagnitude])
+                    }
                 }
                 normalizeTask = normalize
                 let normalized = await normalize.value
@@ -92,6 +104,14 @@ struct MaintenanceUploadView: View {
                 guard let normalized, let preview = UIImage(data: normalized) else {
                     previewImage = nil
                     vm.setImageLoadFailed()
+                    return
+                }
+                // **`jpegWithinByteLimit`은 한도를 못 맞춰도 nil을 안 준다** — 그때까지
+                // 구운 것 중 가장 작은 데이터를 그대로 돌려준다. 위 가드만 두면 한도를
+                // 넘긴 사진이 그대로 올라가 서버 multipart 한도(10MB)에서 튕긴다.
+                guard normalized.count <= Self.byteLimit else {
+                    previewImage = nil
+                    vm.setImageTooLarge()
                     return
                 }
                 vm.setImage(normalized)
