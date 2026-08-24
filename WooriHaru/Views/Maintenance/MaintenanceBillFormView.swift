@@ -27,6 +27,15 @@ struct MaintenanceBillFormView: View {
                 sumCard
                 usageCard
                 amountCard
+                // **왜 잠겼는지 말해 준다.** 사용량·면적·할인 중 하나가 숫자로 안 읽히면
+                // 저장 버튼이 꺼지는데, 그 칸들은 스크롤 아래쪽에 흩어져 있어 어디가
+                // 문제인지 모르면 버튼이 고장 난 줄 안다.
+                if vm.hasInvalidOptionalNumber {
+                    Text("숫자로 읽을 수 없는 칸이 있습니다. 비우거나 숫자만 남겨 주세요")
+                        .font(.footnote)
+                        .foregroundStyle(VehicleTheme.warning)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 if let message = vm.errorMessage {
                     Text(message)
                         .font(.footnote)

@@ -279,16 +279,60 @@ struct MaintenanceFormViewModelTests {
         #expect(vm.itemsTotal == Decimal(121_500 - 1_500))
     }
 
-    /// **사용량과 면적은 음수를 안 받는다.** 「-30kWh를 썼다」는 오타지 값이 아니다.
-    @Test func 사용량과_면적은_음수를_안_받는다() throws {
+    /// **비어 있지 않은데 숫자가 아닌 칸은 저장을 막는다.** 예전에는 `canSave`가 부과액과
+    /// 항목만 봐서, 사용량에 붙여넣은 `"12abc"`가 저장할 때 조용히 nil이 되고 할인은 0이
+    /// 됐다 — **화면에 보이는 입력이 사라진다.** 부과액이 0으로 덮이던 것과 같은 종류다.
+    @Test func 숫자가_아닌_선택_입력은_저장을_막는다() {
         let vm = MaintenanceBillFormViewModel(mode: .edit(makeBill()), service: FormStubService())
-        vm.electricityKwh = "-30"
-        vm.areaM2 = "-84.97"
 
+        vm.electricityKwh = "12abc"
+        #expect(vm.canSave == false)
+        vm.electricityKwh = ""
+        #expect(vm.canSave == true)
+
+        vm.areaM2 = "."
+        #expect(vm.canSave == false)
+        vm.areaM2 = ""
+        #expect(vm.canSave == true)
+
+        vm.discountTotal = "천원"
+        #expect(vm.canSave == false)
+        vm.discountTotal = ""
+        #expect(vm.canSave == true)
+    }
+
+    /// **진짜 빈 칸은 계속 허용한다.** 「고지서에 없어서 비웠다」와 「잘못 적었다」는 다르다.
+    @Test func 선택_입력이_전부_비어도_저장할_수_있다() throws {
+        let vm = MaintenanceBillFormViewModel(mode: .edit(makeBill()), service: FormStubService())
+        vm.areaM2 = ""
+        vm.electricityKwh = ""
+        vm.waterM3 = ""
+        vm.hotWaterM3 = ""
+        vm.heatingGcal = ""
+        vm.foodKg = ""
+        vm.discountTotal = ""
+
+        #expect(vm.canSave == true)
         let request = try #require(vm.makeRequest())
-
-        #expect(request.usage?.electricityKwh == nil)
         #expect(request.areaM2 == nil)
+        #expect(request.usage?.electricityKwh == nil)
+        #expect(request.discountTotal == 0)
+    }
+
+    /// **사용량과 면적은 음수를 안 받는다.** 「-30kWh를 썼다」는 오타지 값이 아니다.
+    ///
+    /// 예전에는 이 값들이 저장할 때 조용히 nil이 됐다 — 사용자는 적은 값이 사라진 줄
+    /// 모른다. 오타면 **저장을 막고 고치게 하는 것**이 맞다.
+    @Test func 사용량과_면적의_음수는_저장을_막는다() {
+        let vm = MaintenanceBillFormViewModel(mode: .edit(makeBill()), service: FormStubService())
+
+        vm.electricityKwh = "-30"
+        #expect(vm.canSave == false)
+        vm.electricityKwh = "30"
+        #expect(vm.canSave == true)
+
+        vm.areaM2 = "-84.97"
+        #expect(vm.canSave == false)
     }
 
     /// 마이너스가 **하나, 맨 앞에** 있을 때만 숫자다.

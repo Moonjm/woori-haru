@@ -492,6 +492,32 @@ struct MaintenanceTrendsViewModelTests {
         #expect(rows[1].secondary == "차감")
     }
 
+    /// **고른 항목이 사라지면 첫 항목으로 돌아간다.** 수정·삭제로 그 항목이 없어진 뒤
+    /// 추이를 다시 받으면, 예전에는 피커가 지워진 이름을 계속 보여주고 차트는 전부 nil인
+    /// 빈 그림이 됐다.
+    @Test func 고른_항목이_사라지면_첫_항목으로_돌아간다() async {
+        let service = TrendStubService()
+        service.months = [
+            month("2026-08", charged: 100,
+                  items: [MaintenanceBillItem(name: "난방비", amount: 60),
+                          MaintenanceBillItem(name: "일반관리비", amount: 40)])
+        ]
+        let vm = MaintenanceTrendsViewModel(service: service)
+        await vm.load()
+        vm.selectedItemName = "난방비"
+        #expect(vm.effectiveItemName == "난방비")
+
+        // 그 달을 고쳐 난방비 행이 없어졌다.
+        service.months = [
+            month("2026-08", charged: 40,
+                  items: [MaintenanceBillItem(name: "일반관리비", amount: 40)])
+        ]
+        await vm.reload()
+
+        #expect(vm.effectiveItemName == "일반관리비")
+        #expect(vm.itemPoints.contains { $0.value != nil })
+    }
+
     /// 전년 동월이 없으면 #3의 행이 nil이다 — 화면이 사유를 적는다.
     @Test func 전년_동월이_없으면_증감_행이_nil이다() async {
         let service = TrendStubService()

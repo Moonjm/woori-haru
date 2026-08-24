@@ -153,12 +153,29 @@ final class MaintenanceBillFormViewModel {
         // 덮여** 저장됐다. 항목 합계 불일치는 사람 판단에 맡기지만(그건 막지 않는다),
         // 「값이 아예 없다」는 판단할 것이 없다.
         guard Self.decimal(chargedAmount) != nil else { return false }
+        guard !hasInvalidOptionalNumber else { return false }
         guard !items.isEmpty else { return false }
         guard !hasDuplicateItemNames else { return false }
         return items.allSatisfy {
             !$0.name.trimmingCharacters(in: .whitespaces).isEmpty
                 && Self.decimal($0.amount, allowsNegative: true) != nil
         }
+    }
+
+    /// 비어 있지 않은데 숫자로 읽히지 않는 선택 입력이 있는가.
+    ///
+    /// **「비었다」와 「잘못 적었다」는 다르다.** 빈 칸은 「고지서에 없다」는 뜻이라
+    /// `makeRequest`가 사용량·면적은 nil로, 할인은 0으로 옮기는 게 맞다. 그런데 예전에는
+    /// 그 변환이 **잘못된 입력에도 똑같이 적용돼**, 사용자가 적어 넣은 `"12abc"`가 저장하는
+    /// 순간 소리 없이 사라졌다. 화면에는 그대로 보이는데 서버에는 없는 상태가 된다.
+    ///
+    /// 부과액과 항목 금액은 여기 없다 — 그 둘은 필수라 `canSave`가 따로, 더 세게 막는다.
+    var hasInvalidOptionalNumber: Bool {
+        [areaM2, electricityKwh, waterM3, hotWaterM3, heatingGcal, foodKg, discountTotal]
+            .contains { field in
+                let trimmed = field.trimmingCharacters(in: .whitespaces)
+                return !trimmed.isEmpty && Self.decimal(field) == nil
+            }
     }
 
     /// 같은 이름을 가진 항목이 둘 이상인가.

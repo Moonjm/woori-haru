@@ -126,8 +126,12 @@ final class MaintenanceTrendsViewModel {
     /// #5 항목 하나의 월별 추이.
     var itemNames: [String] { MaintenanceTrendMath.itemNames(months) }
 
+    /// **고른 이름이 지금 목록에 있을 때만 쓴다.** 수정·삭제로 그 항목이 사라진 뒤
+    /// 추이를 다시 받으면 예전에는 이 값이 그대로 이겨서, 피커는 지워진 이름을 보여주고
+    /// `itemPoints`는 전부 nil인 빈 차트를 냈다.
     var effectiveItemName: String? {
-        selectedItemName ?? itemNames.first
+        if let selectedItemName, itemNames.contains(selectedItemName) { return selectedItemName }
+        return itemNames.first
     }
 
     var itemPoints: [ChartPoint] {
