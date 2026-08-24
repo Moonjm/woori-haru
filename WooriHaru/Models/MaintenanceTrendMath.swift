@@ -23,10 +23,22 @@ enum MaintenanceTrendMath {
             : String(format: "%04d-%02d", year, month - 1)
     }
 
-    /// `previousMonth(of:)`가 이미 하는 파싱을 이름으로만 다시 세운다 —
-    /// 형식 검사기를 두 개 두면 한쪽만 고친 날 폼과 차트가 다른 연월을 받아들인다.
+    /// 사람이 손으로 넣은 연월이 서버 계약(`YYYY-MM`)에 맞는가.
+    ///
+    /// **`previousMonth(of:)`에 기대지 않고 자릿수를 직접 본다.** 그쪽은 `split` + `Int`라
+    /// `2026-8`·`2026-008`·`26-08`도 숫자로는 읽어 낸다. 그 문자열이 그대로 고지서의 키가
+    /// 되어 `PUT`/`DELETE` 경로에 실리므로, 통과시키면 **같은 달이 `2026-8`과 `2026-08`
+    /// 둘로 갈리거나** 요청이 거부된다. 서버에서 내려온 값은 늘 정규형이라 이 엄격함이
+    /// 걸리는 곳은 폼의 손입력뿐이다.
     static func isValidYearMonth(_ yearMonth: String) -> Bool {
-        previousMonth(of: yearMonth) != nil
+        let characters = Array(yearMonth)
+        guard characters.count == 7, characters[4] == "-" else { return false }
+        // **아스키 숫자만 받는다.** `Character.isNumber`는 다른 문자 체계의 숫자도 참이라
+        // 통과시킨 뒤 서버에서 터진다.
+        let digits = characters[0...3] + characters[5...6]
+        guard digits.allSatisfy({ ("0"..."9").contains($0) }) else { return false }
+        guard let month = Int(String(characters[5...6])), (1...12).contains(month) else { return false }
+        return true
     }
 
     /// 목록에서 `index`번째 달과 **바로 다음 원소**를 견준다.

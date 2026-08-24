@@ -148,6 +148,11 @@ final class MaintenanceBillFormViewModel {
     var canSave: Bool {
         guard !isSaving, !isLoadingExisting else { return false }
         guard MaintenanceTrendMath.isValidYearMonth(yearMonth) else { return false }
+        // **부과액은 필수다.** 예전에는 여기서 안 보고 `makeRequest`가 `?? 0`으로 메웠는데,
+        // 사용자가 고치려고 칸을 비운 순간이 정확히 그 상황이라 **실제 부과액이 0으로
+        // 덮여** 저장됐다. 항목 합계 불일치는 사람 판단에 맡기지만(그건 막지 않는다),
+        // 「값이 아예 없다」는 판단할 것이 없다.
+        guard Self.decimal(chargedAmount) != nil else { return false }
         guard !items.isEmpty else { return false }
         return items.allSatisfy {
             !$0.name.trimmingCharacters(in: .whitespaces).isEmpty
@@ -170,6 +175,12 @@ final class MaintenanceBillFormViewModel {
         }
         guard !drafts.isEmpty else { return nil }
 
+        // **`?? 0`으로 메우지 않는다.** `canSave`가 이미 막고 있지만, 그 가드가 언젠가
+        // 느슨해져도 여기서 0이 새어 나가면 안 된다 — 저장을 포기하는 편이 실제 부과액을
+        // 0으로 덮는 것보다 낫다. 반대로 **할인은 아래에서 `?? 0`이 맞다**: 비운 할인은
+        // 「할인이 없다」는 뜻이고, 0이 그 뜻 그대로다.
+        guard let charged = Self.decimal(chargedAmount) else { return nil }
+
         // **빈 칸은 nil이지 0이 아니다.** 0으로 보내면 서버에 「0을 썼다」가 저장돼
         // 통계에서 「못 읽은 달」이 「안 쓴 달」로 바뀐다.
         let usage = MaintenanceUsage(
@@ -187,7 +198,7 @@ final class MaintenanceBillFormViewModel {
             // 있다」는 인상만 준다.
             yearMonth: yearMonth,
             items: drafts,
-            chargedAmount: Self.decimal(chargedAmount) ?? 0,
+            chargedAmount: charged,
             dong: Self.optionalText(dong),
             ho: Self.optionalText(ho),
             areaM2: Self.decimal(areaM2),
@@ -287,12 +298,20 @@ final class MaintenanceBillFormViewModel {
     /// 쉼표로 쓰는 지역에서는 "." 하나로 파싱이 실패한다 — 반대로 사용자가 넣은 쉼표
     /// 자리구분과 그 지역의 소수 구분이 뒤섞이면 값이 조용히 달라진다.
     private static func decimal(_ text: String) -> Decimal? {
-        let trimmed = text
+        let cleaned = text
             .replacingOccurrences(of: ",", with: "")
             .trimmingCharacters(in: .whitespaces)
-        guard !trimmed.isEmpty,
-              let value = Decimal(string: trimmed, locale: posixLocale),
-              value >= 0
+        // **`Decimal(string:)`은 관대해서 그대로 기대면 안 된다.** `"."`을 0으로 읽고
+        // `"12abc"`를 12로 읽는다. 사용자가 고치려고 지우다 만 칸이 그 길로 조용히 0이
+        // 되어 실제 부과액을 덮었다. `.decimalPad`로 칠 수 있는 모양(숫자와 소수점 하나)만
+        // 받고, 숫자가 한 자도 없으면 거른다 — 붙여넣기는 그 키패드를 우회한다.
+        //
+        // 음수 검사를 따로 두지 않는 것은 이 허용 목록이 `-`를 이미 막기 때문이다.
+        let isDigit: (Character) -> Bool = { ("0"..."9").contains($0) }
+        guard cleaned.contains(where: isDigit),
+              cleaned.allSatisfy({ isDigit($0) || $0 == "." }),
+              cleaned.filter({ $0 == "." }).count <= 1,
+              let value = Decimal(string: cleaned, locale: posixLocale)
         else { return nil }
         return value
     }

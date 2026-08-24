@@ -204,6 +204,76 @@ struct MaintenanceFormViewModelTests {
         #expect(vm.canSave == false)
     }
 
+    /// **부과액은 필수다.** 비운 채로 저장하면 예전에는 `?? 0`이 조용히 0을 넣어
+    /// **실제 부과액을 0으로 덮어썼다.** 사용자가 고치려고 칸을 지운 순간이 정확히
+    /// 그 상황이라, 지운 값이 되살아나는 게 아니라 0이 저장됐다.
+    @Test func 부과액이_비면_저장이_잠긴다() {
+        let vm = MaintenanceBillFormViewModel(mode: .edit(makeBill()), service: FormStubService())
+        #expect(vm.canSave == true)
+
+        vm.chargedAmount = ""
+
+        #expect(vm.canSave == false)
+        #expect(vm.makeRequest() == nil)
+    }
+
+    /// 숫자로 안 읽히는 중간 상태(`.`·`-`)도 같은 자리다.
+    @Test func 부과액이_숫자가_아니면_저장이_잠긴다() {
+        let vm = MaintenanceBillFormViewModel(mode: .edit(makeBill()), service: FormStubService())
+
+        vm.chargedAmount = "."
+
+        #expect(vm.canSave == false)
+        #expect(vm.makeRequest() == nil)
+    }
+
+    /// **`Decimal(string:)`의 관대함을 막았는지 본다.** 그 파서는 `"."`을 0으로,
+    /// `"12abc"`를 12로 읽는다 — 둘 다 조용히 틀린 금액이 저장되는 길이다.
+    /// `.decimalPad`로는 못 치는 모양이지만 **붙여넣기는 키패드를 우회한다.**
+    @Test func 숫자가_아닌_금액은_받지_않는다() {
+        let vm = MaintenanceBillFormViewModel(mode: .edit(makeBill()), service: FormStubService())
+
+        for bad in [".", "-", "abc", "12abc", "1.2.3", "-100", "1 2"] {
+            vm.chargedAmount = bad
+            #expect(vm.canSave == false, "「\(bad)」가 금액으로 통과했다")
+        }
+    }
+
+    /// 고지서에서 금액을 복사하면 쉼표가 딸려 온다. **걷어내고 온전히 읽어야 한다** —
+    /// 예전에는 `"168,620"`이 168로 잘려 저장됐다.
+    @Test func 쉼표가_있어도_온전히_읽는다() throws {
+        let vm = MaintenanceBillFormViewModel(mode: .edit(makeBill()), service: FormStubService())
+
+        vm.chargedAmount = "168,620"
+
+        #expect(vm.canSave == true)
+        #expect(try #require(vm.makeRequest()).chargedAmount == Decimal(168_620))
+    }
+
+    /// **할인은 부과액과 다르다.** 비운 할인은 「할인이 없다」는 뜻이라 0이 맞고,
+    /// 그 때문에 저장이 잠기면 안 된다.
+    @Test func 할인이_비어도_저장할_수_있다() throws {
+        let vm = MaintenanceBillFormViewModel(mode: .edit(makeBill()), service: FormStubService())
+
+        vm.discountTotal = ""
+
+        #expect(vm.canSave == true)
+        #expect(try #require(vm.makeRequest()).discountTotal == 0)
+    }
+
+    /// 자릿수가 어긋난 연월은 저장이 잠긴다 — 그 문자열이 그대로 고지서의 키가 된다.
+    @Test func 자릿수가_어긋난_연월은_저장이_잠긴다() {
+        let vm = MaintenanceBillFormViewModel(
+            mode: .create(makeRecognition(yearMonth: nil)), service: FormStubService()
+        )
+
+        vm.yearMonth = "2026-8"
+        #expect(vm.canSave == false)
+
+        vm.yearMonth = "2026-08"
+        #expect(vm.canSave == true)
+    }
+
     /// **편집 모드에서 연월은 키다.** 바꾸는 것은 삭제 후 재등록이지 수정이 아니다.
     @Test func 편집_모드에서는_연월을_못_고친다() {
         let vm = MaintenanceBillFormViewModel(mode: .edit(makeBill()), service: FormStubService())

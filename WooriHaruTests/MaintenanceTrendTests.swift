@@ -22,6 +22,18 @@ struct MaintenanceMonthMathTests {
         #expect(MaintenanceTrendMath.isValidYearMonth("2026-13") == false)
         #expect(MaintenanceTrendMath.isValidYearMonth("") == false)
     }
+
+    /// **자릿수까지 본다.** 파싱만 하면 `2026-8`도 숫자로는 읽히지만, 이 문자열이 그대로
+    /// 고지서의 키가 되어 `PUT`/`DELETE` 경로에 실린다 — 서버 계약은 `YYYY-MM`이라
+    /// 같은 달이 `2026-8`과 `2026-08` 둘로 갈리거나 요청이 거부된다.
+    @Test func 자릿수가_어긋난_연월은_받지_않는다() {
+        #expect(MaintenanceTrendMath.isValidYearMonth("2026-8") == false)
+        #expect(MaintenanceTrendMath.isValidYearMonth("2026-008") == false)
+        #expect(MaintenanceTrendMath.isValidYearMonth("26-08") == false)
+        #expect(MaintenanceTrendMath.isValidYearMonth("2026/08") == false)
+        #expect(MaintenanceTrendMath.isValidYearMonth("2026-08 ") == false)
+        #expect(MaintenanceTrendMath.isValidYearMonth("2026-00") == false)
+    }
 }
 
 struct MaintenanceDeltaTests {
