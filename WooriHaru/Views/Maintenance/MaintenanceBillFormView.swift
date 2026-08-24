@@ -4,11 +4,14 @@ import SwiftUI
 /// 가능 여부·저장 메서드뿐이고, 그 판단은 전부 뷰모델이 한다.
 struct MaintenanceBillFormView: View {
     @State private var vm: MaintenanceBillFormViewModel
-    @Environment(\.dismiss) private var dismiss
     /// 409 알럿. **버튼이 둘이다** — 「기존 내역 수정하기」와 「취소」.
     @State private var showingDuplicateAlert = false
     @State private var saveTask: Task<Void, Never>?
 
+    /// 저장이 끝났다. **물러나는 일은 이 클로저를 넘긴 쪽이 한다** — 이 화면은
+    /// 스스로 `dismiss()`하지 않는다. 부르는 두 곳 모두 이 화면 너머까지 물러나야 해서
+    /// (등록은 업로드 화면째, 수정은 상세 화면째) 여기서 한 번 더 물러나면 화면이
+    /// 두 겹 빠진다. 새 호출부를 붙일 때도 이 클로저 안에서 물러나야 한다.
     var onSaved: () -> Void
 
     init(mode: MaintenanceBillFormViewModel.Mode, onSaved: @escaping () -> Void = {}) {
@@ -47,6 +50,14 @@ struct MaintenanceBillFormView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
         }
+        // 스크롤로도 내려간다 — `LedgerEntryFormView`가 쓰는 것과 같은 방식이다.
+        .scrollDismissesKeyboard(.interactively)
+        // **아무 데나 탭해도 내려간다.** 이 화면은 칸이 열댓 개라 키보드가 화면 절반을
+        // 덮는데, 그 상태로는 아래쪽 칸도 저장 버튼도 안 보인다.
+        //
+        // `onTapGesture`가 아니라 `simultaneousGesture`다 — 앞엣것은 안쪽 버튼·입력칸의
+        // 탭을 가로채, 항목 삭제나 다른 칸으로 옮기는 탭이 한 번에 안 먹는다.
+        .simultaneousGesture(TapGesture().onEnded { Self.dismissKeyboard() })
         .glassScreenBackground()
         .vehicleDarkTheme()
         .navigationTitle(vm.isYearMonthEditable ? "고지서 검수" : "관리비 수정")
@@ -255,8 +266,13 @@ struct MaintenanceBillFormView: View {
             saveTask = Task {
                 switch await vm.save() {
                 case .saved:
+                    // **여기서 `dismiss()`를 부르지 않는다.** 물러나는 일은 `onSaved`를
+                    // 넘긴 쪽이 한다 — 부르는 두 곳 모두 이 화면 **너머까지** 물러나기
+                    // 때문이다(등록은 `showingUpload = false`로 업로드 화면째, 수정은
+                    // 상세 화면의 `dismiss()`로 상세째). 거기에 이 화면이 한 번 더
+                    // 물러나면 **`MaintenanceView`까지 `path`에서 빠져 앱 첫 화면으로
+                    // 튕긴다.**
                     onSaved()
-                    dismiss()
                 case .duplicated:
                     showingDuplicateAlert = true
                 case .failed:
@@ -275,6 +291,16 @@ struct MaintenanceBillFormView: View {
         // 툴바가 아니라 맨 아래다 — 항목이 스무 줄이라 스크롤이 길고, 툴바 버튼은
         // 검수를 다 하기 전에 눌리기 쉽다.
         .padding(.top, 4)
+    }
+
+    /// **`@FocusState`를 쓰지 않는다.** 이 화면의 입력칸은 열댓 개이고 그중 다섯은
+    /// 별도 뷰(`MaintenanceUsageFields`·`MaintenanceItemRow`)에 있어, 포커스를 하나로
+    /// 묶으려면 그 뷰들에 바인딩을 뚫어야 한다. 내리기만 하면 되는 일에 그만한 배선을
+    /// 깔 이유가 없다.
+    private static func dismissKeyboard() {
+        UIApplication.shared.sendAction(
+            #selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil
+        )
     }
 
     private func sectionTitle(_ text: String) -> some View {
