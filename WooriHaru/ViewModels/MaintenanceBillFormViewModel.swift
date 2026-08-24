@@ -188,9 +188,21 @@ final class MaintenanceBillFormViewModel {
     /// 상세·통계의 `ForEach`가 같은 id를 둘 받는다 — 행이 뭉개지거나 엉뚱한 행이
     /// 재사용된다. 통계의 `itemNames`·`itemPoints`도 이름으로 항목을 찾으므로 한쪽만 잡힌다.
     var hasDuplicateItemNames: Bool {
-        let names = items.map { $0.name.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty }
+        // **서버로 나갈 이름끼리 비교한다.** 자르기 전 이름으로 보면 50자를 넘고
+        // 51번째 글자부터만 다른 둘이 통과한 뒤, 잘려 나가면서 같은 이름이 된다.
+        let names = items.map { Self.normalizedItemName($0.name) }.filter { !$0.isEmpty }
         return Set(names).count != names.count
+    }
+
+    /// 서버로 나가는 항목 이름. 앞뒤 공백을 떼고 한도(50자)에서 자른다.
+    ///
+    /// **중복 검사와 요청 조립이 같은 함수를 쓴다.** 두 곳이 각자 다듬으면 한쪽만 고친 날
+    /// 「검사는 통과했는데 저장된 것은 겹치는」 상태가 난다.
+    private static func normalizedItemName(_ raw: String) -> String {
+        let trimmed = raw.trimmingCharacters(in: .whitespaces)
+        // 서버 한도 50자. `MaintenanceItemRow`의 `onChange`가 타이핑 중에 이미 자르지만,
+        // 그건 뷰 쪽 방어라 붙여넣기나 인식 결과에는 닿지 않는다.
+        return trimmed.count > 50 ? String(trimmed.prefix(50)) : trimmed
     }
 
     /// 저장할 수 없는 상태면 nil. 화면은 `canSave`로 이미 막고 있어 여기 오지 않는다.
@@ -198,12 +210,8 @@ final class MaintenanceBillFormViewModel {
         guard canSave else { return nil }
         let drafts: [MaintenanceBillItemRequest] = items.compactMap { draft in
             guard let amount = Self.decimal(draft.amount, allowsNegative: true) else { return nil }
-            var name = draft.name.trimmingCharacters(in: .whitespaces)
+            let name = Self.normalizedItemName(draft.name)
             guard !name.isEmpty else { return nil }
-            // 서버 한도 50자. `MaintenanceItemRow`의 `onChange`가 타이핑 중에 이미 자르지만,
-            // 그건 뷰 쪽 방어라 테스트가 닿지 않는다 — `makeRequest`가 실제로 검증되는
-            // 경로이니 여기서도 자른다.
-            if name.count > 50 { name = String(name.prefix(50)) }
             return MaintenanceBillItemRequest(name: name, amount: amount)
         }
         guard !drafts.isEmpty else { return nil }

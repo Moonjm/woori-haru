@@ -15,16 +15,31 @@ final class MaintenanceBillsViewModel {
         self.service = service
     }
 
+    /// 목록을 건드릴 때마다 올린다. 최초 `.task` 로딩, 당겨서 새로고침, 저장·삭제 뒤
+    /// 재로딩은 **서로 겹칠 수 있고**, 먼저 시작한 요청이 나중에 끝날 수 있다. 그대로
+    /// 두면 **저장 전에 찍힌 스냅샷**이 마지막에 들어와 방금 등록한 달이 사라져 보인다.
+    /// (`MaintenanceUploadViewModel.generation`과 같은 장치다.)
+    private var generation = 0
+
     func load() async {
+        generation += 1
+        let token = generation
         isLoading = true
         errorMessage = nil
-        defer { isLoading = false }
+        // **내가 아직 최신일 때만 스피너를 내린다.** 늦게 끝난 옛 요청이 끄면 뒤이어
+        // 도는 새 요청의 스피너까지 사라진다.
+        defer { if token == generation { isLoading = false } }
         do {
-            bills = try await service.fetchBills()
+            let received = try await service.fetchBills()
+            // 도는 사이에 더 새로운 로딩이나 삭제가 있었다. 이 결과는 이미 낡았다.
+            guard token == generation else { return }
+            bills = received
         } catch is CancellationError {
             // 화면을 떠난 것이지 실패가 아니다. 영문 시스템 메시지를 띄우지 않는다.
             return
         } catch {
+            // 낡은 요청의 실패로 새 요청의 화면에 오류를 띄우지 않는다.
+            guard token == generation else { return }
             // **이미 받아 둔 목록을 지우지 않는다** — 새로고침 한 번 실패했다고 화면이 비면,
             // 사용자는 등록한 달이 사라진 줄 안다.
             errorMessage = error.serverMessage ?? error.localizedDescription
@@ -42,6 +57,9 @@ final class MaintenanceBillsViewModel {
         errorMessage = nil
         do {
             try await service.deleteBill(yearMonth: yearMonth)
+            // **여기서도 세대를 올린다.** 삭제 전에 시작된 로딩이 뒤늦게 돌아오면 지운 달이
+            // 든 목록으로 덮여 **방금 지운 달이 되살아난다.**
+            generation += 1
             bills.removeAll { $0.yearMonth == yearMonth }
             return true
         } catch is CancellationError {

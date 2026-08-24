@@ -88,8 +88,16 @@ struct MaintenanceBillsViewModelTests {
         var listError: Error?
         var deleteError: Error?
         private(set) var deletedYearMonths: [String] = []
+        /// 목록을 받는 도중에 끼어들 자리. 요청이 겹치는 상황을 **결정적으로** 만든다 —
+        /// `async let`으로 띄우면 자식 태스크가 언제 시작될지 보장되지 않는다.
+        /// `RecognizeStubService.duringRecognize`와 같은 장치다.
+        var duringFetch: (@Sendable () async -> Void)?
 
         func fetchBills() async throws -> [MaintenanceBill] {
+            // **한 번만 끼어든다.** 비우지 않으면 안쪽 `load()`가 다시 이 훅을 타 무한 재귀다.
+            let hook = duringFetch
+            duringFetch = nil
+            await hook?()
             if let listError { throw listError }
             return bills
         }
@@ -145,6 +153,48 @@ struct MaintenanceBillsViewModelTests {
 
         #expect(ok == true)
         #expect(service.deletedYearMonths == ["2026-08"])
+        #expect(vm.bills.map(\.yearMonth) == ["2026-07"])
+    }
+
+    /// **늦게 돌아온 옛 목록이 새 목록을 덮지 않는다.**
+    ///
+    /// 최초 `.task` 로딩, 당겨서 새로고침, 저장 후 재로딩이 겹칠 수 있다. 먼저 시작한
+    /// 요청이 나중에 끝나면 **저장 전에 찍힌 스냅샷**이 마지막에 들어와, 방금 등록한 달이
+    /// 다시 새로고침할 때까지 사라져 보인다.
+    @Test func 늦게_돌아온_옛_목록은_버린다() async {
+        let service = FakeService()
+        service.bills = [bill("2026-07")]                    // 저장 전 스냅샷
+        let vm = MaintenanceBillsViewModel(service: service)
+
+        // 저장 뒤 목록. **클로저 밖에서 만든다** — `bill(...)`은 이 스위트(`@MainActor`)의
+        // 메서드라 `@Sendable` 클로저 안에서 부르면 격리를 건너뛴다.
+        let afterSave = [bill("2026-08"), bill("2026-07")]
+
+        // 첫 로딩이 도는 중에 두 번째 로딩이 시작된 상황을 만든다.
+        service.duringFetch = { [vm] in
+            service.bills = afterSave
+            await vm.load()
+        }
+
+        await vm.load()
+
+        // 나중에 시작한 쪽이 이겨야 한다 — 먼저 시작한 요청의 결과는 버린다.
+        #expect(vm.bills.map(\.yearMonth) == ["2026-08", "2026-07"])
+    }
+
+    /// 삭제로 목록에서 뺀 달을, 그 전에 시작된 로딩이 되살리지 않는다.
+    @Test func 삭제_전에_시작된_로딩은_지운_달을_되살리지_않는다() async {
+        let service = FakeService()
+        service.bills = [bill("2026-08"), bill("2026-07")]
+        let vm = MaintenanceBillsViewModel(service: service)
+        await vm.load()
+
+        service.duringFetch = { [vm] in
+            _ = await vm.delete(yearMonth: "2026-08")
+        }
+
+        await vm.load()
+
         #expect(vm.bills.map(\.yearMonth) == ["2026-07"])
     }
 

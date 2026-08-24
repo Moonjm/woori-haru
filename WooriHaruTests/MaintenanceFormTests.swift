@@ -363,6 +363,21 @@ struct MaintenanceFormViewModelTests {
         #expect(vm.canSave == true)
     }
 
+    /// **자른 뒤에 겹치는 것도 겹친 것이다.** 서버 한도가 50자라 그보다 긴 이름은 잘려
+    /// 나가는데, 51번째 글자부터만 다른 두 이름은 자르기 전에는 달라 보이고 **나간 뒤에는
+    /// 같다.** 그대로 저장되면 상세·통계의 `ForEach`가 같은 id를 둘 받는다.
+    @Test func 오십자에서_잘리면_겹친_것으로_본다() {
+        let vm = MaintenanceBillFormViewModel(mode: .edit(makeBill()), service: FormStubService())
+        let head = String(repeating: "가", count: 50)
+        vm.items[0].name = head + "A"
+        vm.addItem()
+        vm.items[1].name = head + "B"
+        vm.items[1].amount = "100"
+
+        #expect(vm.hasDuplicateItemNames == true)
+        #expect(vm.canSave == false)
+    }
+
     /// 앞뒤 공백만 다른 이름도 같은 이름이다 — 서버로는 트림해서 나가므로 결국 겹친다.
     @Test func 공백만_다른_이름도_겹친_것으로_본다() {
         let vm = MaintenanceBillFormViewModel(mode: .edit(makeBill()), service: FormStubService())

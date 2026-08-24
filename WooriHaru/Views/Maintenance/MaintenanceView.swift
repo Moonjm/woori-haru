@@ -5,7 +5,6 @@ import SwiftUI
 struct MaintenanceView: View {
     private enum Tab { case bills, stats }
 
-    @Environment(\.dismiss) private var dismiss
     @State private var tab: Tab = .bills
     @State private var billsViewModel = MaintenanceBillsViewModel()
     @State private var trendsViewModel = MaintenanceTrendsViewModel()
@@ -22,11 +21,11 @@ struct MaintenanceView: View {
         .glassScreenBackground()
         .vehicleDarkTheme()
         .navigationBarTitleDisplayMode(.inline)
+        // **뒤로가기를 직접 그리지 않는다.** 이 껍데기는 `VehicleView`에서 가져왔는데,
+        // 거기서 시스템 버튼을 숨기고(`navigationBarBackButtonHidden`) 손수 그린 이유는
+        // **월 이동 스와이프가 엣지 뒤로가기와 겹쳐서**다. 이 화면에는 그 제스처가 없어
+        // 숨길 이유가 없고, 숨기는 쪽만 빼먹고 버튼만 가져와 **뒤로가기가 둘로 보였다.**
         .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button { dismiss() } label: { Image(systemName: "chevron.backward") }
-                    .accessibilityLabel("뒤로")
-            }
             ToolbarItem(placement: .principal) {
                 Text(tab == .bills ? "관리비" : "통계")
                     .font(.subheadline).fontWeight(.bold)
