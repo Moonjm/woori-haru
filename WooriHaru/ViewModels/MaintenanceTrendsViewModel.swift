@@ -124,14 +124,27 @@ final class MaintenanceTrendsViewModel {
 
     // MARK: - 콜아웃
 
-    /// 고른 점의 값을 한 줄로. 고른 것이 없으면 마지막 점이다 — 빈 콜아웃을 두지 않는다.
+    /// 고른 점의 값을 한 줄로.
+    ///
+    /// **고른 것이 없으면 「값이 있는 마지막 점」이다.** 그냥 `points.last`를 쓰면 계절
+    /// 토글에서 걸린다 — 여름에 「난방」을 고르면 마지막 달(예: 8월)의 `value`가 `nil`이라,
+    /// 차트는 겨울 막대로 가득한데 콜아웃만 「8월 기록 없음」을 말하는 모순이 생긴다.
+    /// 차량 통계 탭(`StatsDriveSection.anchorID`)이 같은 규칙을 쓴다.
+    ///
+    /// **`point.label`이 아니라 `point.id`로 달을 적는다.** `label`은 `MonthLabel.axis`가
+    /// 만든 x축 표기(`"8"`)라 13개월 창의 양 끝(2025-08과 2026-08)이 똑같이 「8」로
+    /// 보인다 — 13개월 창을 고른 이유가 정확히 전년 동월 비교인데, 그 비교의 두 달이
+    /// 콜아웃에서 구분되지 않으면 창을 고른 의미가 없다. `point.id`는 이미 `yearMonth`
+    /// 전체(`"2026-08"`)라 `MaintenanceFormat.monthTitle`이 연도까지 적는다.
     func callout(for points: [ChartPoint], selectedID: String?, suffix: String) -> String? {
-        let point = points.first { $0.id == selectedID } ?? points.last
+        let point = points.first { $0.id == selectedID }
+            ?? points.last(where: { $0.value != nil })
         guard let point else { return nil }
-        guard let value = point.value else { return "\(point.label)월 기록 없음" }
+        let month = MaintenanceFormat.monthTitle(point.id)
+        guard let value = point.value else { return "\(month) 기록 없음" }
         let text = suffix.isEmpty
             ? MaintenanceFormat.won(value)
             : "\(NSDecimalNumber(decimal: value).stringValue) \(suffix)"
-        return "\(point.label)월 \(text)"
+        return "\(month) \(text)"
     }
 }

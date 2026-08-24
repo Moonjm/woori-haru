@@ -40,6 +40,13 @@ struct MaintenanceView: View {
         .task { await billsViewModel.load() }
         .navigationDestination(isPresented: $showingUpload) {
             MaintenanceUploadView {
+                // 검수 화면(`MaintenanceBillFormView`)은 업로드 화면 **위에** 뜬다
+                // (`navigationDestination(isPresented:)`가 겹으로 쌓인다). 그래서
+                // 검수 화면의 `dismiss()`는 업로드 화면까지만 물러나고, 여기서
+                // `showingUpload`를 내리지 않으면 저장에 성공해도 사용자는 사진
+                // 미리보기와 「인식하기」 버튼이 살아 있는 업로드 화면에 남는다 —
+                // 거기서 다시 누르면 유료 인식이 또 나가고 곧장 409로 막힌다.
+                showingUpload = false
                 Task {
                     await billsViewModel.load()
                     await refreshTrendsIfLoaded()
@@ -50,8 +57,9 @@ struct MaintenanceView: View {
             if let bill = billsViewModel.bills.first(where: { $0.yearMonth == yearMonth }) {
                 MaintenanceBillDetailView(
                     bill: bill,
+                    billsViewModel: billsViewModel,
                     onChanged: { Task { await billsViewModel.load(); await refreshTrendsIfLoaded() } },
-                    onDeleted: { Task { await billsViewModel.load(); await refreshTrendsIfLoaded() } }
+                    onDeleted: { Task { await refreshTrendsIfLoaded() } }
                 )
             }
         }
@@ -117,6 +125,11 @@ struct MaintenanceView: View {
             Text("고지서 사진을 올려 첫 달을 등록해 보세요")
                 .font(.caption)
                 .foregroundStyle(VehicleTheme.textTertiary)
+            // 스펙(오류·빈 상태)이 요구하는 「안내 + 등록 버튼」 — 안내만 있으면
+            // 사용자가 등록으로 가려면 툴바의 작은 「+」를 따로 찾아야 한다.
+            Button("고지서 등록") { showingUpload = true }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 48)

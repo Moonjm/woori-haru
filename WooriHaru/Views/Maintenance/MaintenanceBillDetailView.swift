@@ -4,19 +4,21 @@ import SwiftUI
 /// 수정하고 돌아올 때만 목록을 새로 받는다(`onChanged`).
 struct MaintenanceBillDetailView: View {
     let bill: MaintenanceBill
+    /// **삭제는 반드시 이 뷰모델을 거친다.** 화면이 스스로 `MaintenanceService`를 새로
+    /// 만들어 지우면 `MaintenanceBillsViewModel.delete(yearMonth:)`가 죽은 코드가 되고
+    /// (실제로 그랬다 — 테스트만 있고 프로덕션 호출자가 없었다), 목록의 낙관적
+    /// `bills.removeAll`도 타지 않아 뒤로 나가면 방금 지운 달이 목록에 그대로 남는다.
+    let billsViewModel: MaintenanceBillsViewModel
     /// 수정이 저장됐다. 목록을 다시 받아야 한다.
     var onChanged: () -> Void = {}
-    /// 삭제됐다. 화면이 물러난 뒤 목록에서도 빠져야 한다.
+    /// 삭제됐다. `billsViewModel.delete`가 이미 목록에서 낙관적으로 뺐으므로 여기서는
+    /// 목록을 다시 받지 않는다 — 통계 탭만 새로 받으면 된다.
     var onDeleted: () -> Void = {}
 
     @Environment(\.dismiss) private var dismiss
     @State private var showingEdit = false
     @State private var showingDeleteConfirm = false
-    @State private var isDeleting = false
-    @State private var errorMessage: String?
     @State private var deleteTask: Task<Void, Never>?
-
-    private let service: any MaintenanceServing = MaintenanceService()
 
     /// **금액 큰 순.** 서버 순서는 고지서 표 순서인데, 이 표가 답하는 질문은 「무엇이 컸나」다.
     private var sortedItems: [MaintenanceBillItem] {
@@ -44,7 +46,7 @@ struct MaintenanceBillDetailView: View {
                 discountCard
                 itemsCard
                 if !usageRows.isEmpty { usageCard }
-                if let errorMessage {
+                if let errorMessage = billsViewModel.errorMessage {
                     Text(errorMessage)
                         .font(.footnote)
                         .foregroundStyle(VehicleTheme.warning)
@@ -67,7 +69,6 @@ struct MaintenanceBillDetailView: View {
                 } label: {
                     Image(systemName: "ellipsis.circle")
                 }
-                .disabled(isDeleting)
                 .accessibilityLabel("더 보기")
             }
         }
@@ -90,20 +91,16 @@ struct MaintenanceBillDetailView: View {
         }
     }
 
+    /// **뷰모델을 거쳐 지운다.** `billsViewModel.delete`가 성공하면 목록에서 낙관적으로
+    /// 빼고 `errorMessage`도 그 안에 남긴다 — 이 화면이 따로 상태를 들지 않는다.
     private func delete() async {
-        isDeleting = true
-        errorMessage = nil
-        defer { isDeleting = false }
-        do {
-            try await service.deleteBill(yearMonth: bill.yearMonth)
-            onDeleted()
-            dismiss()
-        } catch is CancellationError {
-            return
-        } catch {
+        let ok = await billsViewModel.delete(yearMonth: bill.yearMonth)
+        guard ok else {
             // **실패하면 물러나지 않는다** — 물러나면 사용자는 지워진 줄 안다.
-            errorMessage = error.serverMessage ?? error.localizedDescription
+            return
         }
+        onDeleted()
+        dismiss()
     }
 
     private var heroCard: some View {
@@ -117,8 +114,14 @@ struct MaintenanceBillDetailView: View {
                     .monospacedDigit()
                     .foregroundStyle(VehicleTheme.accentBright)
                 HStack(spacing: 8) {
-                    if let dong = bill.dong, let ho = bill.ho {
-                        Text("\(dong)동 \(ho)호")
+                    // **동·호는 따로따로 있을 수 있다.** 인식이 한쪽만 읽었을 때
+                    // `dong·ho` 둘 다 있어야만 그리면(예전 `if let dong, let ho`)
+                    // 읽어 낸 한쪽 정보까지 함께 사라진다.
+                    switch (bill.dong, bill.ho) {
+                    case let (dong?, ho?): Text("\(dong)동 \(ho)호")
+                    case let (dong?, nil): Text("\(dong)동")
+                    case let (nil, ho?): Text("\(ho)호")
+                    case (nil, nil): EmptyView()
                     }
                     if let areaM2 = bill.areaM2 {
                         Text("\(NSDecimalNumber(decimal: areaM2).stringValue)m²")

@@ -40,26 +40,50 @@ struct MaintenanceStatsTab: View {
         }
     }
 
+    // MARK: - 강조·콜아웃 앵커
+
+    /// 강조와 콜아웃이 같은 달을 가리키게 한다. 기본값은 **값이 있는 마지막 점**이다 —
+    /// 그냥 `points.last`를 쓰면 계절 토글(예: 여름에 「난방」)에서 마지막 달이 `nil`인
+    /// 채 걸려, 차트는 겨울 막대로 가득한데 콜아웃만 「기록 없음」을 말하는 모순이 생긴다.
+    /// 차량 통계 탭 `StatsDriveSection.anchorID`와 같은 규칙(`ChartAnchor.resolve`)이다.
+    private func anchor(_ points: [ChartPoint], selected: String?) -> String? {
+        ChartAnchor.resolve(selected: selected, in: points.map(\.id)) {
+            points.last(where: { $0.value != nil })?.id
+        }
+    }
+
+    /// #2·#3 순위 리스트의 기본 선택. 서버가 이미 순위(#2는 금액, #3은 증감 절댓값)
+    /// 내림차순으로 주므로 목록의 첫 행이 곧 1등이다 — `StatsPlaceSection.rankAnchor`와 같다.
+    private func rankAnchor(_ ids: [String], selected: String?) -> String? {
+        ChartAnchor.resolve(selected: selected, in: ids) { ids.first }
+    }
+
     // MARK: - #1 월별 부과액 추이
 
     private var chargedCard: some View {
-        ChartCard(title: "월별 관리비",
-                  callout: vm.callout(for: vm.chargedPoints,
-                                      selectedID: vm.selectedMonthID, suffix: "")) {
-            MonthlyBarChart(points: vm.chargedPoints,
-                            selectedID: vm.selectedMonthID) { vm.selectedMonthID = $0 }
+        let points = vm.chargedPoints
+        let selected = anchor(points, selected: vm.selectedMonthID)
+        return ChartCard(title: "월별 관리비",
+                  callout: vm.callout(for: points, selectedID: selected, suffix: "")) {
+            MonthlyBarChart(points: points,
+                            selectedID: selected) { vm.selectedMonthID = $0 }
         }
     }
 
     // MARK: - #2 최근 달 항목 구성
 
+    /// **탭은 콜아웃만 바꾼다** — `RankBarList`가 지키는 규칙이고, 이 카드가 그 원형을
+    /// 쓰는 유일한 자리라 콜아웃이 없으면 그 규칙을 지킬 자리 자체가 없었다.
     private var latestItemsCard: some View {
-        ChartCard(title: "\(vm.latestMonthLabel) 항목 구성", callout: nil) {
-            if vm.latestItemRows.isEmpty {
+        let rows = vm.latestItemRows
+        let selected = rankAnchor(rows.map(\.id), selected: vm.selectedRankID)
+        let shown = rows.first { $0.id == selected }
+        return ChartCard(title: "\(vm.latestMonthLabel) 항목 구성",
+                  callout: shown.map { "\($0.label) \($0.primary)" }) {
+            if rows.isEmpty {
                 emptyLine("등록된 항목이 없습니다")
             } else {
-                RankBarList(rows: vm.latestItemRows,
-                            selectedID: vm.selectedRankID) { vm.selectedRankID = $0 }
+                RankBarList(rows: rows, selectedID: selected) { vm.selectedRankID = $0 }
             }
         }
     }
@@ -67,11 +91,14 @@ struct MaintenanceStatsTab: View {
     // MARK: - #3 전년 동월 대비
 
     private var yearOverYearCard: some View {
-        ChartCard(title: "전년 동월 대비", callout: nil) {
-            if let rows = vm.yearOverYearRows, !rows.isEmpty {
-                DivergingRankList(rows: rows,
-                                  selectedID: vm.selectedDeltaID) { vm.selectedDeltaID = $0 }
-            } else if vm.yearOverYearRows != nil {
+        let rows = vm.yearOverYearRows
+        let selected = rows.flatMap { rankAnchor($0.map(\.id), selected: vm.selectedDeltaID) }
+        let shown = rows?.first { $0.id == selected }
+        return ChartCard(title: "전년 동월 대비",
+                  callout: shown.map { "\($0.label) \($0.detail)" }) {
+            if let rows, !rows.isEmpty {
+                DivergingRankList(rows: rows, selectedID: selected) { vm.selectedDeltaID = $0 }
+            } else if rows != nil {
                 emptyLine("작년 이맘때와 달라진 항목이 없습니다")
             } else {
                 // **카드를 지우지 않는다** — 통째로 사라지면 「왜 없지」가 남는다.
@@ -83,9 +110,10 @@ struct MaintenanceStatsTab: View {
     // MARK: - #4 사용량 추이
 
     private var usageCard: some View {
-        ChartCard(title: "사용량 추이",
-                  callout: vm.callout(for: vm.usagePoints,
-                                      selectedID: vm.selectedUsageID,
+        let points = vm.usagePoints
+        let selected = anchor(points, selected: vm.selectedUsageID)
+        return ChartCard(title: "사용량 추이",
+                  callout: vm.callout(for: points, selectedID: selected,
                                       suffix: vm.usageKind.unit)) {
             VStack(spacing: 10) {
                 // 단위가 달라(kWh·m³·Gcal·kg) 한 차트에 겹쳐 그리지 않고 하나씩 본다.
@@ -96,8 +124,8 @@ struct MaintenanceStatsTab: View {
                 }
                 .pickerStyle(.segmented)
 
-                MonthlyLineChart(points: vm.usagePoints,
-                                 selectedID: vm.selectedUsageID) { vm.selectedUsageID = $0 }
+                MonthlyLineChart(points: points,
+                                 selectedID: selected) { vm.selectedUsageID = $0 }
             }
         }
     }
@@ -105,9 +133,10 @@ struct MaintenanceStatsTab: View {
     // MARK: - #5 항목 하나의 월별 추이
 
     private var itemTrendCard: some View {
-        ChartCard(title: "항목별 추이",
-                  callout: vm.callout(for: vm.itemPoints,
-                                      selectedID: vm.selectedItemID, suffix: "")) {
+        let points = vm.itemPoints
+        let selected = anchor(points, selected: vm.selectedItemID)
+        return ChartCard(title: "항목별 추이",
+                  callout: vm.callout(for: points, selectedID: selected, suffix: "")) {
             VStack(alignment: .leading, spacing: 10) {
                 if vm.itemNames.isEmpty {
                     emptyLine("등록된 항목이 없습니다")
@@ -131,8 +160,8 @@ struct MaintenanceStatsTab: View {
                         .foregroundStyle(VehicleTheme.accentBright)
                     }
 
-                    MonthlyBarChart(points: vm.itemPoints,
-                                    selectedID: vm.selectedItemID) { vm.selectedItemID = $0 }
+                    MonthlyBarChart(points: points,
+                                    selectedID: selected) { vm.selectedItemID = $0 }
                 }
             }
         }

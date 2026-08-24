@@ -58,14 +58,25 @@ struct MaintenanceBillFormView: View {
         }
     }
 
+    /// **둘 중 하나만 있어도 뜬다.** `sumMatched == false`인데 서버가 `warnings`를 비워
+    /// 보낼 수 있다 — `warnings`만 보면 검수 화면에서 가장 중요한 신호(합계 불일치)가
+    /// 조용히 사라진다. `.edit`에서는 `sumMatched`가 늘 true이고 `warnings`가 늘
+    /// 비어 있어 이 카드가 자연히 숨는다(스펙이 요구하는 「`.create`에서만」과 같다).
     @ViewBuilder private var warningCard: some View {
-        if !vm.warnings.isEmpty {
+        if !vm.sumMatched || !vm.warnings.isEmpty {
             GlassCard {
                 VStack(alignment: .leading, spacing: 6) {
                     Label("확인이 필요합니다", systemImage: "exclamationmark.triangle.fill")
                         .font(.caption)
                         .fontWeight(.bold)
                         .foregroundStyle(VehicleTheme.warning)
+                    if !vm.sumMatched {
+                        Text("항목 합계와 부과액이 맞지 않습니다")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(VehicleTheme.warning)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                     // 서버 문구가 이미 사용자용 한국어다 — 앱이 다시 쓰지 않는다.
                     ForEach(vm.warnings, id: \.self) { warning in
                         Text("• \(warning)")
@@ -140,7 +151,12 @@ struct MaintenanceBillFormView: View {
                                 .foregroundStyle(VehicleTheme.textTertiary)
                         }
                         .buttonStyle(.plain)
-                        .accessibilityLabel("항목 삭제")
+                        // **행 이름을 넣는다.** 항목이 스무 줄 넘는 고지서에서 전부 「항목
+                        // 삭제」만 읽히면 VoiceOver 사용자는 스무 번을 들어도 어느 줄인지
+                        // 구분하지 못한다. 갓 추가한 빈 행은 이름이 없으니 그 자리를 말로 채운다.
+                        .accessibilityLabel(
+                            "\(item.name.isEmpty ? "새 항목" : item.name) 삭제"
+                        )
                     }
                 }
                 if vm.items.isEmpty {

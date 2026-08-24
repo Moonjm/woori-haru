@@ -58,7 +58,17 @@ final class MaintenanceBillFormViewModel {
 
     /// 서버가 붙인 경고. **이미 사용자용 한국어다** — 앱이 다시 쓰지 않는다. 편집 모드에선 비어 있다.
     private(set) var warnings: [String]
+    /// 인식 시점에 항목 합계와 부과액이 맞았는가. **`.edit`은 늘 true다** — 저장돼 있던
+    /// 달은 서버가 이미 확정한 값이라 이 배너가 다시 뜰 이유가 없다. `switchToEdit`도
+    /// 같은 이유로 true로 되돌린다. `warnings`가 비어 있어도 이 값이 false면 배너를
+    /// 띄워야 한다 — 서버가 `sumMatched: false`만 보내고 `warnings`는 비울 수 있어서다.
+    private(set) var sumMatched: Bool
     private(set) var isSaving = false
+    /// 409에서 「기존 내역 수정하기」를 누른 뒤 `loadForEdit`이 도는 동안 true. `canSave`가
+    /// 이것도 본다 — 안 그러면 이 fetch가 도는 사이 저장 버튼이 살아 있어, 조급하게 「저장」을
+    /// 누르면 `saveTask?.cancel()`이 이 fetch를 취소하고 폼은 여전히 `.create`라 같은 POST가
+    /// 다시 나가 또 409를 받는다.
+    private(set) var isLoadingExisting = false
     private(set) var errorMessage: String?
 
     init(mode: Mode, service: any MaintenanceServing = MaintenanceService()) {
@@ -81,6 +91,7 @@ final class MaintenanceBillFormViewModel {
             chargedAmount = Self.text(recognition.chargedAmount)
             discountTotal = Self.text(recognition.discountTotal)
             warnings = recognition.warnings
+            sumMatched = recognition.sumMatched
         case .edit(let bill):
             editingYearMonth = bill.yearMonth
             yearMonth = bill.yearMonth
@@ -98,6 +109,7 @@ final class MaintenanceBillFormViewModel {
             chargedAmount = Self.text(bill.chargedAmount)
             discountTotal = Self.text(bill.discountTotal)
             warnings = []
+            sumMatched = true
         }
     }
 
@@ -134,7 +146,7 @@ final class MaintenanceBillFormViewModel {
     /// **막는 것은 서버가 400을 낼 것들뿐이다.** 합계 불일치는 막지 않는다 — 고지서에
     /// 반올림·별도 조정이 실제로 있고, 판단은 사람이 한다.
     var canSave: Bool {
-        guard !isSaving else { return false }
+        guard !isSaving, !isLoadingExisting else { return false }
         guard MaintenanceTrendMath.isValidYearMonth(yearMonth) else { return false }
         guard !items.isEmpty else { return false }
         return items.allSatisfy {
@@ -148,8 +160,12 @@ final class MaintenanceBillFormViewModel {
         guard canSave else { return nil }
         let drafts: [MaintenanceBillItemRequest] = items.compactMap { draft in
             guard let amount = Self.decimal(draft.amount) else { return nil }
-            let name = draft.name.trimmingCharacters(in: .whitespaces)
+            var name = draft.name.trimmingCharacters(in: .whitespaces)
             guard !name.isEmpty else { return nil }
+            // 서버 한도 50자. `MaintenanceItemRow`의 `onChange`가 타이핑 중에 이미 자르지만,
+            // 그건 뷰 쪽 방어라 테스트가 닿지 않는다 — `makeRequest`가 실제로 검증되는
+            // 경로이니 여기서도 자른다.
+            if name.count > 50 { name = String(name.prefix(50)) }
             return MaintenanceBillItemRequest(name: name, amount: amount)
         }
         guard !drafts.isEmpty else { return nil }
@@ -165,7 +181,11 @@ final class MaintenanceBillFormViewModel {
         )
 
         return MaintenanceBillSaveRequest(
-            yearMonth: yearMonth.trimmingCharacters(in: .whitespaces),
+            // **여기서 다시 다듬지 않는다.** `canSave`가 이미 `isValidYearMonth`로 막고
+            // 있어(`Int(" 2026")`이 nil이라 앞뒤 공백이 있으면 애초에 여기 못 온다) 이
+            // 자리의 `.trimmingCharacters`는 아무 값도 바꾸지 못하면서 「뭔가 다듬고
+            // 있다」는 인상만 준다.
+            yearMonth: yearMonth,
             items: drafts,
             chargedAmount: Self.decimal(chargedAmount) ?? 0,
             dong: Self.optionalText(dong),
@@ -195,6 +215,9 @@ final class MaintenanceBillFormViewModel {
             if case .serverError(409, _) = error { return .duplicated }
             errorMessage = error.serverMessage ?? error.localizedDescription
             return .failed
+        } catch is CancellationError {
+            // 화면을 떠난 것이지 실패가 아니다. 영문 시스템 메시지를 띄우지 않는다.
+            return .failed
         } catch {
             errorMessage = error.serverMessage ?? error.localizedDescription
             return .failed
@@ -219,14 +242,25 @@ final class MaintenanceBillFormViewModel {
         discountTotal = Self.text(bill.discountTotal)
         // 인식 경고는 더 이상 이 화면의 것이 아니다 — 지금 편집하는 건 저장돼 있던 달이다.
         warnings = []
+        sumMatched = true
         errorMessage = nil
     }
 
     /// 서버에서 그 달을 받아 편집 모드로 갈아 끼운다. 실패하면 false.
+    ///
+    /// **도는 동안 저장을 잠근다.** 잠그지 않으면 409 알럿에서 「기존 내역 수정하기」를
+    /// 누른 뒤 조급하게 「저장」을 또 누를 수 있다 — 그러면 `saveTask?.cancel()`이 이
+    /// fetch를 취소하는데, 폼은 아직 `.create`라 취소된 채로 같은 POST가 다시 나가
+    /// 곧장 또 409를 받는다.
     func loadForEdit(yearMonth: String) async -> Bool {
+        isLoadingExisting = true
+        defer { isLoadingExisting = false }
         do {
             switchToEdit(try await service.fetchBill(yearMonth: yearMonth))
             return true
+        } catch is CancellationError {
+            // 화면을 떠난 것이지 실패가 아니다. 영문 시스템 메시지를 띄우지 않는다.
+            return false
         } catch {
             errorMessage = error.serverMessage ?? error.localizedDescription
             return false
@@ -241,13 +275,29 @@ final class MaintenanceBillFormViewModel {
         return NSDecimalNumber(decimal: value).stringValue
     }
 
+    /// `ChargeModels.ChargeFormat.parseCost`와 같은 규칙이다 — 저장소에 이미 있는 해법을
+    /// 다시 만들지 않는다.
+    ///
+    /// **쉼표를 지운다.** `.decimalPad`로는 쉼표를 못 치지만, 고지서 금액을 복사해
+    /// 붙여넣으면(예: 「168,620」) 들어온다. `Decimal(string:)`은 쉼표에서 파싱을 멈춰
+    /// 「168」만 읽고 나머지를 버린다 — 화면엔 「168,620」이 그대로 보이는데 저장은
+    /// 168원으로 나가는, 알아채기 어려운 손실이다.
+    ///
+    /// **로캘을 POSIX로 고정한다.** `locale`을 안 주면 기기 로캘을 따라가는데, 소수점을
+    /// 쉼표로 쓰는 지역에서는 "." 하나로 파싱이 실패한다 — 반대로 사용자가 넣은 쉼표
+    /// 자리구분과 그 지역의 소수 구분이 뒤섞이면 값이 조용히 달라진다.
     private static func decimal(_ text: String) -> Decimal? {
-        let trimmed = text.trimmingCharacters(in: .whitespaces)
-        guard !trimmed.isEmpty else { return nil }
-        // `Decimal(string:)`은 로캘을 타지 않는 파서다. `NumberFormatter`를 쓰면 소수점이
-        // 쉼표인 지역에서 `312.5`가 312가 된다.
-        return Decimal(string: trimmed)
+        let trimmed = text
+            .replacingOccurrences(of: ",", with: "")
+            .trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty,
+              let value = Decimal(string: trimmed, locale: posixLocale),
+              value >= 0
+        else { return nil }
+        return value
     }
+
+    private static let posixLocale = Locale(identifier: "en_US_POSIX")
 
     private static func optionalText(_ text: String) -> String? {
         let trimmed = text.trimmingCharacters(in: .whitespaces)

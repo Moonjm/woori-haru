@@ -76,10 +76,8 @@ struct MaintenanceBillsViewModelTests {
         var listError: Error?
         var deleteError: Error?
         private(set) var deletedYearMonths: [String] = []
-        private(set) var listCallCount = 0
 
         func fetchBills() async throws -> [MaintenanceBill] {
-            listCallCount += 1
             if let listError { throw listError }
             return bills
         }
@@ -398,6 +396,10 @@ struct MaintenanceTrendsViewModelTests {
         MaintenanceTrendMonth(yearMonth: yearMonth, chargedAmount: charged, items: items, usage: nil)
     }
 
+    private func point(_ yearMonth: String, _ value: Decimal?) -> ChartPoint {
+        ChartPoint(id: yearMonth, label: MonthLabel.axis(yearMonth), value: value)
+    }
+
     /// **13을 보낸다** — 전년 동월이 범위에 들어오게 하려는 것이다.
     @Test func 열세_달을_받아_오름차순으로_담는다() async {
         let service = TrendStubService()
@@ -466,5 +468,83 @@ struct MaintenanceTrendsViewModelTests {
         await vm.load()
 
         #expect(vm.yearOverYearRows == nil)
+    }
+
+    // MARK: - callout(for:selectedID:suffix:)
+
+    /// **#1·#4·#5 콜아웃이 전부 이 함수 하나로 나온다.** 여기서 놓치면 세 카드가 조용히
+    /// 같은 방식으로 틀린다 — 실제로 강조와 콜아웃이 다른 달을 가리키는 버그가 여기서 났다.
+
+    @Test func 고른_점을_읽는다() {
+        let vm = MaintenanceTrendsViewModel(service: TrendStubService())
+        let points = [point("2026-07", 150_000), point("2026-08", 168_620)]
+
+        let text = vm.callout(for: points, selectedID: "2026-07", suffix: "")
+
+        #expect(text == "2026년 7월 150,000원")
+    }
+
+    /// **고른 것이 없으면 값이 있는 마지막 점이다.** 그냥 `points.last`를 쓰면 계절
+    /// 토글에서 마지막 달이 `nil`인 채 걸린다.
+    @Test func 아무것도_안_골랐으면_마지막_점이다() {
+        let vm = MaintenanceTrendsViewModel(service: TrendStubService())
+        let points = [point("2026-07", 150_000), point("2026-08", 168_620)]
+
+        let text = vm.callout(for: points, selectedID: nil, suffix: "")
+
+        #expect(text == "2026년 8월 168,620원")
+    }
+
+    /// 여름에 「난방」을 고르면 최근 달의 값이 `nil`일 수 있다 — 그 달을 건너뛰고
+    /// 값이 있는 마지막 점을 고른다. `points.last`였다면 「기록 없음」을 잘못 냈을 자리다.
+    @Test func nil인_점은_건너뛰고_값_있는_마지막_점을_고른다() {
+        let vm = MaintenanceTrendsViewModel(service: TrendStubService())
+        let points = [point("2026-06", 150_000), point("2026-07", nil), point("2026-08", nil)]
+
+        let text = vm.callout(for: points, selectedID: nil, suffix: "")
+
+        #expect(text == "2026년 6월 150,000원")
+    }
+
+    /// 골랐는데 그 달의 값이 `nil`이면 「기록 없음」이다 — 값이 있는 다른 달로 조용히
+    /// 넘어가지 않는다. 고른 것은 존중한다.
+    @Test func 고른_점이_nil이면_기록_없음이다() {
+        let vm = MaintenanceTrendsViewModel(service: TrendStubService())
+        let points = [point("2026-07", 150_000), point("2026-08", nil)]
+
+        let text = vm.callout(for: points, selectedID: "2026-08", suffix: "")
+
+        #expect(text == "2026년 8월 기록 없음")
+    }
+
+    @Test func suffix가_있으면_단위를_붙인다() {
+        let vm = MaintenanceTrendsViewModel(service: TrendStubService())
+        let points = [point("2026-08", Decimal(string: "312.5"))]
+
+        let text = vm.callout(for: points, selectedID: "2026-08", suffix: "kWh")
+
+        #expect(text == "2026년 8월 312.5 kWh")
+    }
+
+    /// **연도가 이제 갈린다.** 예전엔 `point.label`(월만, 「8」)을 썼어서 13개월 창의
+    /// 양 끝인 2025-08과 2026-08이 콜아웃에서 똑같이 보였다 — 13개월을 고른 이유가
+    /// 정확히 전년 동월 비교인데, 그 둘이 안 갈리면 창을 고른 뜻이 없다.
+    @Test func 전년_동월과_올해가_콜아웃에서_갈린다() {
+        let vm = MaintenanceTrendsViewModel(service: TrendStubService())
+        let points = [point("2025-08", 150_000), point("2026-08", 168_620)]
+
+        let thisYear = vm.callout(for: points, selectedID: "2026-08", suffix: "")
+        let lastYear = vm.callout(for: points, selectedID: "2025-08", suffix: "")
+
+        #expect(thisYear != lastYear)
+        #expect(thisYear == "2026년 8월 168,620원")
+        #expect(lastYear == "2025년 8월 150,000원")
+    }
+
+    /// 점이 하나도 없으면 콜아웃도 없다 — 빈 카드에 「기록 없음」을 억지로 그리지 않는다.
+    @Test func 점이_없으면_nil이다() {
+        let vm = MaintenanceTrendsViewModel(service: TrendStubService())
+
+        #expect(vm.callout(for: [], selectedID: nil, suffix: "") == nil)
     }
 }
