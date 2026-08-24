@@ -60,6 +60,11 @@ final class MaintenanceBillsViewModel {
             // **여기서도 세대를 올린다.** 삭제 전에 시작된 로딩이 뒤늦게 돌아오면 지운 달이
             // 든 목록으로 덮여 **방금 지운 달이 되살아난다.**
             generation += 1
+            // **올린 다음에는 스피너를 직접 내려야 한다.** 방금 무효화한 그 로딩은
+            // `defer`에서 「나는 이미 낡았다」며 `isLoading`을 건드리지 않고, 삭제는 새
+            // 로딩을 띄우지 않는다 — 아무도 안 내리면 스피너가 영영 남고, **마지막 달을
+            // 지웠을 때 빈 상태가 그 뒤에 가려 안 뜬다.**
+            isLoading = false
             bills.removeAll { $0.yearMonth == yearMonth }
             return true
         } catch is CancellationError {
