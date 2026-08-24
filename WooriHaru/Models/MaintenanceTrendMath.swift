@@ -91,6 +91,28 @@ extension MaintenanceTrendMath {
             }
         }
 
+        /// 이 사용량에 해당하는 **항목 이름의 낱말**.
+        ///
+        /// **서버가 사용량과 금액을 잇는 키를 주지 않는다.** `usage`는 계량기 값이고
+        /// `items`는 고지서 표의 줄이라, 둘을 맞추려면 이름을 보는 수밖에 없다.
+        /// 낱말이 걸리는 항목을 **전부 더한다** — 「세대전기료」와 「공동전기료」로 나눠
+        /// 적는 고지서가 흔한데 하나만 집으면 그 달 전기에 쓴 돈이 실제보다 적게 보인다.
+        ///
+        /// **못 찾으면 nil이다**(0이 아니다). 0으로 채우면 「그 달엔 안 썼다」가 되어
+        /// 차트가 거짓을 그리는데, 실제로는 「이름이 달라 못 찾았다」다.
+        ///
+        /// 「수도」와 「온수」는 글자가 겹치지 않아 서로를 집지 않는다(`상하수도료` ↔ `온수료`).
+        /// 온수를 「급탕」으로 적는 고지서가 있어 별칭을 함께 둔다.
+        var amountKeywords: [String] {
+            switch self {
+            case .electricity: ["전기"]
+            case .water: ["수도"]
+            case .hotWater: ["온수", "급탕"]
+            case .heating: ["난방"]
+            case .food: ["음식물"]
+            }
+        }
+
         func value(in usage: MaintenanceUsage?) -> Decimal? {
             switch self {
             case .electricity: usage?.electricityKwh
@@ -115,27 +137,16 @@ extension MaintenanceTrendMath {
         }
     }
 
-    /// **13개월 전체에서 모은다.** 고지서 표기가 바뀌거나 인식이 다르게 읽으면 이름이
-    /// 갈리는데, 최근 달에만 있는 이름을 빼면 피커에서 사라진다.
-    /// 정렬은 **금액 합이 큰 순** — 자주 큰 항목이 위에 온다.
-    static func itemNames(_ months: [MaintenanceTrendMonth]) -> [String] {
-        var totals: [String: Decimal] = [:]
-        for month in months {
-            for item in month.items {
-                totals[item.name, default: 0] += item.amount
-            }
-        }
-        // 합이 같으면 이름순 — 순서가 흔들리면 피커가 열 때마다 달라 보인다.
-        return totals.sorted { ($0.value, $1.key) > ($1.value, $0.key) }.map(\.key)
-    }
-
-    /// **그 이름이 없는 달은 nil이다** — 0으로 채우면 「안 나왔다」가 「0원이었다」가 된다.
-    static func itemPoints(_ months: [MaintenanceTrendMonth], name: String) -> [ChartPoint] {
+    static func usageAmountPoints(_ months: [MaintenanceTrendMonth], kind: UsageKind) -> [ChartPoint] {
         months.map { month in
-            ChartPoint(
+            let matched = month.items.filter { item in
+                kind.amountKeywords.contains { item.name.contains($0) }
+            }
+            return ChartPoint(
                 id: month.yearMonth,
                 label: MonthLabel.axis(month.yearMonth),
-                value: month.items.first { $0.name == name }?.amount
+                // 걸린 항목이 없으면 nil — 「0원 냈다」와 「못 찾았다」는 다르다.
+                value: matched.isEmpty ? nil : matched.reduce(Decimal(0)) { $0 + $1.amount }
             )
         }
     }

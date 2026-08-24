@@ -182,6 +182,24 @@ struct MaintenanceBillsViewModelTests {
         #expect(vm.bills.map(\.yearMonth) == ["2026-08", "2026-07"])
     }
 
+    /// **삭제가 로딩을 무효화해도 스피너는 내려간다.** 세대를 올려 진행 중인 로딩을
+    /// 버리게 만들면 그 로딩의 `defer`가 「나는 이미 낡았다」며 `isLoading`을 안 내린다 —
+    /// 대신 돌 로딩도 없어서 **스피너가 영영 남고, 마지막 달을 지우면 빈 상태가 안 뜬다.**
+    @Test func 삭제가_로딩을_무효화해도_스피너는_내려간다() async {
+        let service = FakeService()
+        service.bills = [bill("2026-08")]
+        let vm = MaintenanceBillsViewModel(service: service)
+
+        service.duringFetch = { [vm] in
+            _ = await vm.delete(yearMonth: "2026-08")
+        }
+
+        await vm.load()
+
+        #expect(vm.isLoading == false)
+        #expect(vm.bills.isEmpty)
+    }
+
     /// 삭제로 목록에서 뺀 달을, 그 전에 시작된 로딩이 되살리지 않는다.
     @Test func 삭제_전에_시작된_로딩은_지운_달을_되살리지_않는다() async {
         let service = FakeService()
@@ -267,26 +285,56 @@ struct MaintenanceTrendMathTests {
         #expect(points.map(\.value) == [Decimal(150_000), Decimal(168_000)])
     }
 
-    /// **13개월 전체에서 모은다.** 최근 달에만 있는 이름을 빼면 피커에서 사라진다.
-    @Test func 항목_이름을_전체에서_모은다() {
+    /// **사용량 옆에 그 항목의 금액을 붙인다.** 서버는 사용량(`usage`)과 금액(`items`)을
+    /// 따로 주고 둘을 잇는 키가 없어, 항목 **이름의 낱말**로 맞춘다.
+    @Test func 사용량에_맞는_항목_금액을_찾는다() {
         let months = [
-            month("2026-07", items: [MaintenanceBillItem(name: "난방비", amount: 50_000)]),
-            month("2026-08", items: [MaintenanceBillItem(name: "일반관리비", amount: 120_000),
-                                     MaintenanceBillItem(name: "난방비", amount: 1_000)]),
+            month("2026-08", items: [MaintenanceBillItem(name: "세대전기료", amount: 48_320),
+                                     MaintenanceBillItem(name: "일반관리비", amount: 121_500)],
+                  usage: MaintenanceUsage(electricityKwh: Decimal(312), waterM3: nil,
+                                          hotWaterM3: nil, heatingGcal: nil, foodKg: nil))
         ]
-        // 금액 합이 큰 순 — 일반관리비 120,000 > 난방비 51,000
-        #expect(MaintenanceTrendMath.itemNames(months) == ["일반관리비", "난방비"])
+        #expect(MaintenanceTrendMath.usageAmountPoints(months, kind: .electricity).first?.value
+                == Decimal(48_320))
     }
 
-    /// **그 이름이 없는 달은 nil이다.** 0으로 채우면 「안 나왔다」가 「0원이었다」가 된다.
-    @Test func 없는_달의_항목은_nil이다() {
+    /// **이름이 여럿 걸리면 더한다.** 고지서가 「세대전기료」와 「공동전기료」로 나눠 적는
+    /// 일이 흔한데, 하나만 집으면 그 달 전기에 쓴 돈이 실제보다 적게 보인다.
+    @Test func 같은_낱말의_항목이_여럿이면_더한다() {
         let months = [
-            month("2026-07", items: []),
-            month("2026-08", items: [MaintenanceBillItem(name: "난방비", amount: 51_000)]),
+            month("2026-08", items: [MaintenanceBillItem(name: "세대전기료", amount: 48_320),
+                                     MaintenanceBillItem(name: "공동전기료", amount: 5_100)])
         ]
-        let points = MaintenanceTrendMath.itemPoints(months, name: "난방비")
+        #expect(MaintenanceTrendMath.usageAmountPoints(months, kind: .electricity).first?.value
+                == Decimal(53_420))
+    }
 
-        #expect(points.map(\.value) == [nil, Decimal(51_000)])
+    /// **맞는 항목이 없으면 nil이다.** 0으로 채우면 「그 달엔 전기를 안 썼다」가 되어
+    /// 차트가 거짓을 그린다 — 실제로는 「이름이 달라 못 찾았다」다.
+    @Test func 맞는_항목이_없으면_금액은_nil이다() {
+        let months = [
+            month("2026-08", items: [MaintenanceBillItem(name: "일반관리비", amount: 121_500)])
+        ]
+        #expect(MaintenanceTrendMath.usageAmountPoints(months, kind: .electricity).first?.value == nil)
+    }
+
+    /// 수도와 온수는 이름이 닮았지만 서로를 집으면 안 된다.
+    @Test func 수도와_온수를_갈라_집는다() {
+        let months = [
+            month("2026-08", items: [MaintenanceBillItem(name: "상하수도료", amount: 14_000),
+                                     MaintenanceBillItem(name: "온수료", amount: 22_000)])
+        ]
+        #expect(MaintenanceTrendMath.usageAmountPoints(months, kind: .water).first?.value
+                == Decimal(14_000))
+        #expect(MaintenanceTrendMath.usageAmountPoints(months, kind: .hotWater).first?.value
+                == Decimal(22_000))
+    }
+
+    /// 온수를 「급탕」으로 적는 고지서도 있다.
+    @Test func 급탕도_온수로_본다() {
+        let months = [month("2026-08", items: [MaintenanceBillItem(name: "급탕비", amount: 19_000)])]
+        #expect(MaintenanceTrendMath.usageAmountPoints(months, kind: .hotWater).first?.value
+                == Decimal(19_000))
     }
 
     @Test func 사용량_점을_만든다() {
@@ -445,9 +493,16 @@ struct MaintenanceTrendsViewModelTests {
         func saveBill(_ request: MaintenanceBillSaveRequest) async throws {}
         func updateBill(yearMonth: String, _ request: MaintenanceBillSaveRequest) async throws {}
         func deleteBill(yearMonth: String) async throws {}
+        /// 추이를 받는 도중에 끼어들 자리. `FakeService.duringFetch`와 같은 장치다.
+        var duringFetch: (@Sendable () async -> Void)?
+
         func fetchTrends(months monthCount: Int) async throws -> [MaintenanceTrendMonth] {
             callCount += 1
             requestedMonths.append(monthCount)
+            // **한 번만 끼어든다** — 비우지 않으면 안쪽 `reload()`가 다시 타 무한 재귀다.
+            let hook = duringFetch
+            duringFetch = nil
+            await hook?()
             if let error { throw error }
             return months
         }
@@ -496,6 +551,26 @@ struct MaintenanceTrendsViewModelTests {
         #expect(service.callCount == 2)
     }
 
+    /// **늦게 돌아온 옛 추이가 새 추이를 덮지 않는다.** 저장·수정·삭제가 잇따르면
+    /// `reload()`가 겹치는데, 먼저 시작한 요청이 나중에 끝나면 낡은 13개월이 마지막에
+    /// 들어와 방금 고친 값이 차트에서 사라진다. 목록 뷰모델과 같은 세대 토큰이 필요하다.
+    @Test func 늦게_돌아온_옛_추이는_버린다() async {
+        let service = TrendStubService()
+        service.months = [month("2026-07", charged: 100)]        // 낡은 스냅샷
+        let vm = MaintenanceTrendsViewModel(service: service)
+
+        let fresh = [month("2026-07", charged: 100), month("2026-08", charged: 200)]
+        service.duringFetch = { [vm] in
+            service.months = fresh
+            await vm.reload()
+        }
+
+        await vm.load()
+
+        #expect(vm.months.map(\.yearMonth) == ["2026-07", "2026-08"])
+        #expect(vm.isLoading == false)
+    }
+
     @Test func 실패하면_메시지가_남는다() async {
         let service = TrendStubService()
         service.error = APIError.serverError(statusCode: 500, message: nil)
@@ -509,32 +584,6 @@ struct MaintenanceTrendsViewModelTests {
     }
 
     /// 최근 달 항목 순위. 금액 큰 순이다.
-    /// **고른 항목이 사라지면 첫 항목으로 돌아간다.** 수정·삭제로 그 항목이 없어진 뒤
-    /// 추이를 다시 받으면, 예전에는 피커가 지워진 이름을 계속 보여주고 차트는 전부 nil인
-    /// 빈 그림이 됐다.
-    @Test func 고른_항목이_사라지면_첫_항목으로_돌아간다() async {
-        let service = TrendStubService()
-        service.months = [
-            month("2026-08", charged: 100,
-                  items: [MaintenanceBillItem(name: "난방비", amount: 60),
-                          MaintenanceBillItem(name: "일반관리비", amount: 40)])
-        ]
-        let vm = MaintenanceTrendsViewModel(service: service)
-        await vm.load()
-        vm.selectedItemName = "난방비"
-        #expect(vm.effectiveItemName == "난방비")
-
-        // 그 달을 고쳐 난방비 행이 없어졌다.
-        service.months = [
-            month("2026-08", charged: 40,
-                  items: [MaintenanceBillItem(name: "일반관리비", amount: 40)])
-        ]
-        await vm.reload()
-
-        #expect(vm.effectiveItemName == "일반관리비")
-        #expect(vm.itemPoints.contains { $0.value != nil })
-    }
-
     /// 전년 동월이 없으면 #3의 행이 nil이다 — 화면이 사유를 적는다.
     @Test func 전년_동월이_없으면_증감_행이_nil이다() async {
         let service = TrendStubService()

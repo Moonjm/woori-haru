@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 통계 탭 — 차트 네 장이 한 응답 위에 올라간다.
+/// 통계 탭 — 차트 세 장이 한 응답 위에 올라간다.
 ///
 /// 목록·상세와 같은 `chargedAmount`를 그리므로 기준을 따로 적지 않는다 — 서버가 청구액을
 /// 지우면서 「이 숫자는 무엇인가」가 화면마다 갈릴 여지가 사라졌다.
@@ -14,7 +14,6 @@ struct MaintenanceStatsTab: View {
                 chargedCard
                 yearOverYearCard
                 usageCard
-                itemTrendCard
                 if let message = vm.errorMessage {
                     Text(message)
                         .font(.footnote)
@@ -88,16 +87,15 @@ struct MaintenanceStatsTab: View {
         }
     }
 
-    // MARK: - #3 사용량 추이
+    // MARK: - #3 사용량 · 금액 추이
 
     private var usageCard: some View {
         let points = vm.usagePoints
         let selected = anchor(points, selected: vm.selectedUsageID)
-        return ChartCard(title: "사용량 추이",
-                  callout: vm.callout(for: points, selectedID: selected,
-                                      suffix: vm.usageKind.unit)) {
+        return ChartCard(title: "사용량 · 금액 추이",
+                  callout: vm.usageCallout(selectedID: selected)) {
             VStack(spacing: 10) {
-                // 단위가 달라(kWh·m³·Gcal·kg) 한 차트에 겹쳐 그리지 않고 하나씩 본다.
+                // 다섯 종은 단위가 달라(kWh·m³·Gcal·kg) 한 차트에 겹치지 않고 토글로 하나씩 본다.
                 Picker("사용량", selection: $vm.usageKind) {
                     ForEach(MaintenanceTrendMath.UsageKind.allCases) { kind in
                         Text(kind.label).tag(kind)
@@ -105,58 +103,12 @@ struct MaintenanceStatsTab: View {
                 }
                 .pickerStyle(.segmented)
 
-                MonthlyLineChart(points: points,
-                                 selectedID: selected) { vm.selectedUsageID = $0 }
-            }
-        }
-    }
-
-    // MARK: - #4 항목 하나의 월별 추이
-
-    private var itemTrendCard: some View {
-        let points = vm.itemPoints
-        let selected = anchor(points, selected: vm.selectedItemID)
-        return ChartCard(title: "항목별 추이",
-                  callout: vm.callout(for: points, selectedID: selected, suffix: "")) {
-            VStack(alignment: .leading, spacing: 10) {
-                if vm.itemNames.isEmpty {
-                    emptyLine("등록된 항목이 없습니다")
-                } else {
-                    Menu {
-                        // **13개월에 한 번이라도 나온 이름을 전부 올린다** — 최근 달에만 있는
-                        // 이름으로 좁히면 표기가 바뀐 항목이 피커에서 사라진다.
-                        ForEach(vm.itemNames, id: \.self) { name in
-                            Button(name) {
-                                vm.selectedItemName = name
-                                vm.selectedItemID = nil
-                            }
-                        }
-                    } label: {
-                        HStack(spacing: 4) {
-                            Text(vm.effectiveItemName ?? "항목 고르기")
-                                .font(.caption)
-                                .fontWeight(.bold)
-                            Image(systemName: "chevron.down").font(.caption2)
-                        }
-                        .foregroundStyle(VehicleTheme.accentBright)
-                    }
-
-                    // **차감 항목은 음수라 원형을 갈아 끼운다.** `MonthlyBarChart`는
-                    // `ChartScale.ratio`로 0 이하를 전부 0으로 잘라(스물여섯 장이 그 가드에
-                    // 기댄다) 「-13,790」과 「0」이 같은 막대가 된다. 부호가 뜻을 갖는
-                    // 자리를 위해 만들어 둔 `DivergingMonthlyBarChart`가 그 값을 살린다.
-                    //
-                    // 한 항목의 부호는 달마다 바뀌지 않는다(차감은 늘 차감이다). 그래서
-                    // 고른 항목에 따라 원형이 갈릴 뿐, 한 화면 안에서 섞이지 않는다 —
-                    // 양수 항목까지 발산형으로 그리면 기준선이 가운데 놓여 높이를 절반만 쓴다.
-                    if points.contains(where: { ($0.value ?? 0) < 0 }) {
-                        DivergingMonthlyBarChart(points: points,
-                                                 selectedID: selected) { vm.selectedItemID = $0 }
-                    } else {
-                        MonthlyBarChart(points: points,
-                                        selectedID: selected) { vm.selectedItemID = $0 }
-                    }
-                }
+                // **막대는 사용량, 선은 금액이다.** 「많이 썼나」와 「많이 냈나」는 따로
+                // 움직인다 — 단가가 오르면 덜 쓰고도 더 낸다. 겹쳐 그려야 그 어긋남이 보인다.
+                // 두 계열의 눈금은 적지 않는다(원형의 규칙) — 정확한 값은 콜아웃이 말한다.
+                MonthlyBarLineChart(bars: points,
+                                    line: vm.usageAmountPoints,
+                                    selectedID: selected) { vm.selectedUsageID = $0 }
             }
         }
     }

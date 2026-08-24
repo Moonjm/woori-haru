@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 통계 탭 — 차트 네 장이 한 응답(`/maintenance/trends`) 위에 올라간다.
+/// 통계 탭 — 차트 세 장이 한 응답(`/maintenance/trends`) 위에 올라간다.
 ///
 /// **13개월을 받는다.** 전년 동월이 범위에 들어오게 하려는 것이다 — 난방비처럼 계절을
 /// 타는 항목은 전월이 아니라 전년 동월과 견줘야 뜻이 있다.
@@ -11,23 +11,20 @@ final class MaintenanceTrendsViewModel {
 
     private let service: any MaintenanceServing
 
-    /// **늘 `yearMonth` 오름차순이다** — 받자마자 한 번만 정렬한다. 차트 네 장이 전부
+    /// **늘 `yearMonth` 오름차순이다** — 받자마자 한 번만 정렬한다. 차트 세 장이 전부
     /// 시간축이라 순서가 뒤집히면 전부 거짓말이 된다.
     private(set) var months: [MaintenanceTrendMonth] = []
     private(set) var isLoading = false
     private(set) var errorMessage: String?
     private(set) var hasLoaded = false
 
-    /// **차트마다 선택이 따로다.** 한 곳에 두면 #1에서 8월을 고른 순간 #4의 콜아웃까지
+    /// **차트마다 선택이 따로다.** 한 곳에 두면 #1에서 8월을 고른 순간 #3의 콜아웃까지
     /// 바뀌어, 관계없는 두 차트가 이어져 있다고 잘못 읽힌다.
     var selectedMonthID: String?
     var selectedDeltaID: String?
     var selectedUsageID: String?
-    var selectedItemID: String?
 
     var usageKind: MaintenanceTrendMath.UsageKind = .electricity
-    /// nil이면 항목 목록의 첫째를 쓴다 — 화면이 열리자마자 빈 차트를 보이지 않으려는 것이다.
-    var selectedItemName: String?
 
     init(service: any MaintenanceServing = MaintenanceService()) {
         self.service = service
@@ -44,18 +41,28 @@ final class MaintenanceTrendsViewModel {
         await fetch()
     }
 
+    /// 저장·수정·삭제가 잇따르면 `reload()`가 겹친다. 먼저 시작한 요청이 나중에 끝나면
+    /// **낡은 13개월이 마지막에 들어와** 방금 고친 값이 차트에서 사라진다.
+    /// (`MaintenanceBillsViewModel.generation`과 같은 장치다.)
+    private var generation = 0
+
     private func fetch() async {
+        generation += 1
+        let token = generation
         isLoading = true
         errorMessage = nil
-        defer { isLoading = false }
+        // 내가 아직 최신일 때만 스피너를 내린다 — 늦게 끝난 옛 요청이 끄면 뒤이어 도는
+        // 새 요청의 스피너까지 사라진다.
+        defer { if token == generation { isLoading = false } }
         do {
-            months = MaintenanceTrendMath.sorted(
-                try await service.fetchTrends(months: Self.monthWindow)
-            )
+            let received = try await service.fetchTrends(months: Self.monthWindow)
+            guard token == generation else { return }
+            months = MaintenanceTrendMath.sorted(received)
             hasLoaded = true
         } catch is CancellationError {
             return
         } catch {
+            guard token == generation else { return }
             // 실패는 `hasLoaded`를 세우지 않는다 — 다시 열면 재시도해야 한다.
             errorMessage = error.serverMessage ?? error.localizedDescription
         }
@@ -80,25 +87,34 @@ final class MaintenanceTrendsViewModel {
         }
     }
 
-    /// #3 사용량 추이.
+    /// #3 사용량 추이. 막대는 사용량, 선은 **그 항목의 금액**이다.
     var usagePoints: [ChartPoint] {
         MaintenanceTrendMath.usagePoints(months, kind: usageKind)
     }
 
-    /// #4 항목 하나의 월별 추이.
-    var itemNames: [String] { MaintenanceTrendMath.itemNames(months) }
-
-    /// **고른 이름이 지금 목록에 있을 때만 쓴다.** 수정·삭제로 그 항목이 사라진 뒤
-    /// 추이를 다시 받으면 예전에는 이 값이 그대로 이겨서, 피커는 지워진 이름을 보여주고
-    /// `itemPoints`는 전부 nil인 빈 차트를 냈다.
-    var effectiveItemName: String? {
-        if let selectedItemName, itemNames.contains(selectedItemName) { return selectedItemName }
-        return itemNames.first
+    /// 사용량 위에 겹쳐 그릴 금액. `usagePoints`와 같은 순서·같은 id다
+    /// (`MonthlyBarLineChart`가 두 계열이 그렇기를 요구한다).
+    var usageAmountPoints: [ChartPoint] {
+        MaintenanceTrendMath.usageAmountPoints(months, kind: usageKind)
     }
 
-    var itemPoints: [ChartPoint] {
-        guard let name = effectiveItemName else { return [] }
-        return MaintenanceTrendMath.itemPoints(months, name: name)
+    /// 사용량 카드의 콜아웃. **둘 다 적는다** — 「얼마나 썼나」와 「얼마 냈나」가 이 카드가
+    /// 답하는 한 쌍의 질문이라, 한쪽만 적으면 겹쳐 그린 이유가 사라진다.
+    /// 금액을 못 찾은 달은 사용량만 적는다(0원이라고 적지 않는다).
+    func usageCallout(selectedID: String?) -> String? {
+        let points = usagePoints
+        let point = points.first { $0.id == selectedID }
+            ?? points.last(where: { $0.value != nil })
+        guard let point else { return nil }
+        let month = MaintenanceFormat.monthTitle(point.id)
+        let amount = usageAmountPoints.first { $0.id == point.id }?.value
+        guard let used = point.value else {
+            return amount.map { "\(month) 사용량 없음 · \(MaintenanceFormat.won($0))" }
+                ?? "\(month) 기록 없음"
+        }
+        let usage = "\(NSDecimalNumber(decimal: used).stringValue) \(usageKind.unit)"
+        guard let amount else { return "\(month) \(usage)" }
+        return "\(month) \(usage) · \(MaintenanceFormat.won(amount))"
     }
 
     // MARK: - 콜아웃
