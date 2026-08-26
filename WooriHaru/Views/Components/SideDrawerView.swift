@@ -121,6 +121,10 @@ struct SideDrawerView: View {
                     isOpen = false
                     navPath.append(AppDestination.maintenance)
                 }
+                drawerItem(icon: "parkingsign", label: "방문차량") {
+                    isOpen = false
+                    navPath.append(AppDestination.visitorCar)
+                }
             }
 
             Spacer()
