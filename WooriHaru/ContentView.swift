@@ -66,7 +66,10 @@ struct ContentView: View {
                     case .vehicle: VehicleView()
                     case .maintenance: MaintenanceView()
                     case .visitorCar: VisitorCarView(navPath: $path)
-                    case .visitorCarRegister: Text("준비 중")
+                    case .visitorCarRegister:
+                        VisitorCarRegisterView {
+                            // 홈으로 물러나면 `.task`가 다시 돌아 잔여시간을 새로 읽는다.
+                        }
                     case .visitorCarBookings: Text("준비 중")
                     case .visitorCarEntries: Text("준비 중")
                     case .visitorCarSettings: Text("준비 중")
