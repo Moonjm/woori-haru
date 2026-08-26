@@ -3193,7 +3193,7 @@ struct VisitorCarBookingsTests {
     }
 
     /// 기본 범위는 **오늘부터 한 달 뒤까지** — 방문 예약은 앞날을 잡는 일이다.
-    @Test func 기본_조회_범위는_오늘부터_한_달이다() {
+    @Test func 기본_조회_범위는_오늘부터_한_달이다() throws {
         let viewModel = VisitorCarBookingsViewModel(service: makeService(transport: FakeVisitorCarTransport()))
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "Asia/Seoul")!
