@@ -61,18 +61,6 @@ struct VisitorCarBookingsView: View {
                 .presentationDetents([.medium])
                 .vehicleDarkTheme()
         }
-        .alert("등록 내역 삭제", isPresented: .constant(pendingDeletion != nil)) {
-            Button("삭제", role: .destructive) {
-                guard let target = pendingDeletion else { return }
-                pendingDeletion = nil
-                Task {
-                    if await viewModel.delete(id: target.id) { selected = nil }
-                }
-            }
-            Button("취소", role: .cancel) { pendingDeletion = nil }
-        } message: {
-            Text("\(pendingDeletion?.carNo ?? "") 등록을 삭제할까요?")
-        }
     }
 
     private var conditionCard: some View {
@@ -178,6 +166,27 @@ struct VisitorCarBookingsView: View {
             .glassScreenBackground()
             .navigationTitle("등록 상세")
             .navigationBarTitleDisplayMode(.inline)
+        }
+        // **시트 자신의 presentation context에서 띄운다.** 바깥 뷰에 체이닝하면 이미 시트가
+        // 올라간 상태에서 시스템 alert를 띄우는 셈이 되어, iOS 버전·타이밍에 따라 시트 위에
+        // 뜨거나 조용히 삼켜질 수 있다(SwiftUI/UIKit의 알려진 presentation-stacking 함정).
+        .alert(
+            "등록 내역 삭제",
+            isPresented: Binding(
+                get: { pendingDeletion != nil },
+                set: { isPresented in if !isPresented { pendingDeletion = nil } }
+            )
+        ) {
+            Button("삭제", role: .destructive) {
+                guard let target = pendingDeletion else { return }
+                pendingDeletion = nil
+                Task {
+                    if await viewModel.delete(id: target.id) { selected = nil }
+                }
+            }
+            Button("취소", role: .cancel) { pendingDeletion = nil }
+        } message: {
+            Text("\(pendingDeletion?.carNo ?? "") 등록을 삭제할까요?")
         }
     }
 

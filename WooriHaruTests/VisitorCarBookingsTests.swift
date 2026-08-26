@@ -113,4 +113,23 @@ struct VisitorCarBookingsTests {
         #expect(viewModel.bookings.map(\.id) == [1, 2])
         #expect(viewModel.errorMessage == "입차 후 삭제 불가능합니다.")
     }
+
+    /// `hasMore`가 이전 조회에서 켜진 채로 남으면, 실패한 재조회의 빈 목록 위에
+    /// 「더 보기」가 남아 다음 페이지를 잘못 건너뛴다. 재조회는 `hasMore`도 되돌려야 한다.
+    @Test func 재조회가_실패하면_hasMore를_되돌린다() async {
+        let transport = FakeVisitorCarTransport()
+        transport.enqueue(Self.path, FakeVisitorCarTransport.ok(page(ids: [1, 2], totalPages: 2, number: 0)))
+        transport.enqueue(Self.path, FakeVisitorCarTransport.ok("{}"))
+        let viewModel = VisitorCarBookingsViewModel(service: makeService(transport: transport))
+
+        await viewModel.search()
+        #expect(viewModel.hasMore)
+
+        // 조건을 바꾸고 재조회한다 — 이번엔 서버 응답이 깨져서 실패한다.
+        viewModel.to = Date(timeIntervalSince1970: 0)
+        await viewModel.search()
+
+        #expect(!viewModel.hasMore)
+        #expect(viewModel.errorMessage != nil)
+    }
 }

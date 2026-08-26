@@ -30,6 +30,9 @@ final class VisitorCarBookingsViewModel {
         // **처음부터 채운다.** 이어 붙이면 조건이 바뀐 결과와 섞인다.
         loadedPage = 0
         bookings = []
+        // hasMore도 되돌린다 — 그대로 두면 실패했을 때 빈 목록 위에 「더 보기」가 남아,
+        // 누르면 새 조건의 0쪽을 건너뛰고 1쪽을 가져오게 된다.
+        hasMore = false
         await fetch(page: 0)
     }
 
@@ -66,6 +69,8 @@ final class VisitorCarBookingsViewModel {
             hasMore = !result.last
         } catch {
             errorMessage = error.localizedDescription
+            // 실패한 페이지는 없는 셈이다 — 「더 보기」를 남겨 두면 잘못된 다음 페이지를 부른다.
+            hasMore = false
         }
     }
 }
