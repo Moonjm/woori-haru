@@ -93,6 +93,9 @@ struct VisitorCarModelTests {
 
     /// 실제 `/nxpmsc/web/book-car/pageList` 응답을 그대로 옮긴 것.
     /// 필드가 하나라도 어긋나면 디코딩이 깨진다.
+    ///
+    /// **유닉스 초를 눈으로 읽지 말 것.** `1784300400` = 2026-07-18 00:00:00 KST,
+    /// `1784386799` = 같은 날 23:59:59다. 기대값을 고칠 일이 생기면 `date -r`로 먼저 검산한다.
     static let bookingJSON = """
     {"data":{"content":[{"id":25752,"compName":"1001","deptName":"0101","name":"",
       "carNo":"12가3456","tel":"","startDate":1784300400,"endDate":1784386799,
@@ -203,10 +206,10 @@ struct VisitorCarModelTests {
 
     /// **두 엔드포인트의 날짜 형식이 다르다.** 진입 현황에 날짜만 보내면 500이 떨어진다.
     @Test func 날짜_포맷이_엔드포인트별로_갈린다() {
-        let date = Date(timeIntervalSince1970: 1784300400) // 2026-08-26 00:00:00 KST
+        let date = Date(timeIntervalSince1970: 1784300400) // 2026-07-18 00:00:00 KST
 
-        #expect(VisitorCarDateFormat.day.string(from: date) == "2026-08-26")
-        #expect(VisitorCarDateFormat.second.string(from: date) == "2026-08-26 00:00:00")
+        #expect(VisitorCarDateFormat.day.string(from: date) == "2026-07-18")
+        #expect(VisitorCarDateFormat.second.string(from: date) == "2026-07-18 00:00:00")
     }
 }
 ```
@@ -439,7 +442,9 @@ enum VisitorCarError: Error, LocalizedError, Equatable {
         case .remainingTimeUnavailable: "잔여시간을 불러오지 못했습니다."
         case .householdUnavailable: "세대 정보를 불러오지 못했습니다."
         case .server(let code): "서버에 연결하지 못했습니다. (\(code))"
-        case .network: "서버에 연결하지 못했습니다."
+        // **실린 문구를 그대로 쓴다.** 버리면 `network(String)`의 값이 죽은 짐이 되고,
+        // 「연결 실패」와 「응답을 못 읽음」이 화면에서 같은 말이 된다.
+        case .network(let message): message
         case .keychain(let status): "계정을 저장하지 못했습니다. (\(status))"
         }
     }
@@ -1652,8 +1657,8 @@ struct VisitorCarSessionTests {
         #expect(sent["compName"] == "1001")
         #expect(sent["deptName"] == "0101")
         #expect(sent["parkingLot"] == "1")
-        #expect(sent["bookStartDate"] == "2026-08-26")
-        #expect(sent["bookEndDate"] == "2026-08-26")
+        #expect(sent["bookStartDate"] == "2026-07-18")
+        #expect(sent["bookEndDate"] == "2026-07-18")
         #expect(sent["address"] == "택배")
         #expect(sent["id"] == "")
         #expect(sent["siteName"] == "none")
@@ -1715,10 +1720,10 @@ struct VisitorCarSessionTests {
         let booking = try #require(try JSONSerialization.jsonObject(with: bookingBody) as? [String: Any])
         let entry = try #require(try JSONSerialization.jsonObject(with: entryBody) as? [String: Any])
 
-        #expect(booking["startDate"] as? String == "2026-08-26")
+        #expect(booking["startDate"] as? String == "2026-07-18")
         #expect(booking["userId"] as? String == "10010101")
-        #expect(entry["startDate"] as? String == "2026-08-26 00:00:00")
-        #expect(entry["endDate"] as? String == "2026-08-26 23:59:59")
+        #expect(entry["startDate"] as? String == "2026-07-18 00:00:00")
+        #expect(entry["endDate"] as? String == "2026-07-18 23:59:59")
     }
 
     @Test func 로그아웃하면_계정과_쿠키를_버린다() async throws {
@@ -2020,7 +2025,9 @@ actor VisitorCarService: VisitorCarServing {
         do {
             return try JSONDecoder().decode(VisitorCarPageResponse<T>.self, from: data).data
         } catch {
-            // 여기까지 왔는데 디코딩이 깨지면 사이트가 바뀐 것이다. 원인을 삼키지 않는다.
+            // 여기까지 왔는데 디코딩이 깨지면 사이트가 바뀐 것이다.
+            // **원문을 실어 올리지 않는다** — 로그인 페이지 HTML이 통째로 담겨 올 수 있고,
+            // 거기에는 세션 값이 섞여 있다. 무엇이 깨졌는지는 파서 테스트가 말한다.
             throw VisitorCarError.network("응답을 읽지 못했습니다.")
         }
     }
@@ -3959,7 +3966,7 @@ struct VisitorCarEntriesTests {
         await viewModel.search()
 
         #expect(viewModel.entries.isEmpty)
-        #expect(viewModel.errorMessage == "서버에 연결하지 못했습니다.")
+        #expect(viewModel.errorMessage == "응답을 읽지 못했습니다.")
     }
 }
 ```
