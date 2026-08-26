@@ -54,6 +54,47 @@ final class VisitorCarBookingsViewModel {
         }
     }
 
+    /// - Returns: 실제로 바뀌었으면 `true`. 검증에 걸리거나 서버가 거절하면 `false`이고
+    ///   문구는 `errorMessage`에 남는다.
+    func update(
+        id: Int,
+        carNo: String,
+        startDate: Date,
+        endDate: Date,
+        visitReason: String
+    ) async -> Bool {
+        errorMessage = nil
+
+        // 등록 화면과 같은 규칙으로 먼저 막는다 — 잘못된 번호를 서버까지 보낼 이유가 없다.
+        if let error = VisitorCarValidation.carNoError(carNo) {
+            errorMessage = error
+            return false
+        }
+        if let error = VisitorCarValidation.periodError(start: startDate, end: endDate) {
+            errorMessage = error
+            return false
+        }
+
+        do {
+            try await service.update(
+                id: id,
+                VisitorCarRegisterRequest(
+                    carNo: carNo,
+                    startDate: startDate,
+                    endDate: endDate,
+                    visitReason: visitReason
+                )
+            )
+            // **결과를 손으로 기워 넣지 않는다.** 서버가 무엇을 바꿨는지(시각 보정 등)
+            // 우리가 모르므로 다시 읽어 확인한다.
+            await search()
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
     private func fetch(page: Int) async {
         guard !isLoading else { return }
         isLoading = true

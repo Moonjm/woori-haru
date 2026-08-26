@@ -132,4 +132,68 @@ struct VisitorCarBookingsTests {
         #expect(!viewModel.hasMore)
         #expect(viewModel.errorMessage != nil)
     }
+
+    @Test func 수정에_성공하면_목록을_다시_읽는다() async throws {
+        let transport = FakeVisitorCarTransport()
+        transport.enqueue(Self.path, FakeVisitorCarTransport.ok(page(ids: [1], totalPages: 1, number: 0)))
+        transport.enqueue(Self.path, FakeVisitorCarTransport.ok(page(ids: [1, 2], totalPages: 1, number: 0)))
+        transport.stub("/book-car/getOriginal", FakeVisitorCarTransport.ok(VisitorCarFixture.registerForm))
+        transport.stub("/book-car/put", FakeVisitorCarTransport.ok(VisitorCarFixture.successResult))
+        let viewModel = VisitorCarBookingsViewModel(service: makeService(transport: transport))
+        await viewModel.search()
+
+        let day = Date(timeIntervalSince1970: 1784300400)
+        let updated = await viewModel.update(
+            id: 1, carNo: "34나5678", startDate: day, endDate: day, visitReason: "택배"
+        )
+
+        #expect(updated)
+        // 수정 결과를 손으로 기워 넣지 않는다 — 서버가 무엇을 바꿨는지 다시 읽어 확인한다.
+        #expect(viewModel.bookings.map(\.id) == [1, 2])
+
+        let sent = try #require(transport.formFields.last(where: { $0.path == "/book-car/put" })?.fields)
+        #expect(sent["id"] == "1")
+        #expect(sent["carNo"] == "34나5678")
+    }
+
+    /// **입차 후에는 서버가 거절한다.** 문구를 그대로 띄우고 목록은 건드리지 않는다.
+    @Test func 수정이_거절되면_목록을_건드리지_않는다() async {
+        let transport = FakeVisitorCarTransport()
+        transport.stub(Self.path, FakeVisitorCarTransport.ok(page(ids: [1], totalPages: 1, number: 0)))
+        transport.stub("/book-car/getOriginal", FakeVisitorCarTransport.ok(VisitorCarFixture.registerForm))
+        transport.stub(
+            "/book-car/put",
+            FakeVisitorCarTransport.ok(#"{"result":"fail","message":"입차 후 수정 불가능합니다."}"#)
+        )
+        let viewModel = VisitorCarBookingsViewModel(service: makeService(transport: transport))
+        await viewModel.search()
+
+        let day = Date(timeIntervalSince1970: 1784300400)
+        let updated = await viewModel.update(
+            id: 1, carNo: "34나5678", startDate: day, endDate: day, visitReason: ""
+        )
+
+        #expect(!updated)
+        #expect(viewModel.errorMessage == "입차 후 수정 불가능합니다.")
+        #expect(viewModel.bookings.map(\.carNo) == ["12가3456"])
+    }
+
+    /// 검증은 등록 화면과 같은 규칙이다 — 잘못된 번호를 서버까지 보내지 않는다.
+    @Test func 잘못된_차량번호로는_수정하지_않는다() async {
+        let transport = FakeVisitorCarTransport()
+        transport.stub(Self.path, FakeVisitorCarTransport.ok(page(ids: [1], totalPages: 1, number: 0)))
+        transport.stub("/book-car/getOriginal", FakeVisitorCarTransport.ok(VisitorCarFixture.registerForm))
+        transport.stub("/book-car/put", FakeVisitorCarTransport.ok(VisitorCarFixture.successResult))
+        let viewModel = VisitorCarBookingsViewModel(service: makeService(transport: transport))
+        await viewModel.search()
+
+        let day = Date(timeIntervalSince1970: 1784300400)
+        let updated = await viewModel.update(
+            id: 1, carNo: "34나 5678", startDate: day, endDate: day, visitReason: ""
+        )
+
+        #expect(!updated)
+        #expect(viewModel.errorMessage == "차량번호에 공백을 넣을 수 없습니다.")
+        #expect(transport.callCount("/book-car/put") == 0)
+    }
 }

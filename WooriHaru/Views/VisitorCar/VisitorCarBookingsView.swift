@@ -6,6 +6,12 @@ struct VisitorCarBookingsView: View {
     @State private var selected: VisitorCarBooking?
     @State private var pendingDeletion: VisitorCarBooking?
 
+    @State private var isEditing = false
+    @State private var editCarNo = ""
+    @State private var editStart = Date()
+    @State private var editEnd = Date()
+    @State private var editReason = ""
+
     var body: some View {
         ScrollView {
             VStack(spacing: GlassTokens.cardSpacing) {
@@ -61,6 +67,8 @@ struct VisitorCarBookingsView: View {
                 .presentationDetents([.medium])
                 .vehicleDarkTheme()
         }
+        // 시트가 닫히면 편집 모드도 되돌린다 — 다음에 다른 건을 열었을 때 이전 편집 흔적이 남지 않게.
+        .onChange(of: selected) { if selected == nil { isEditing = false } }
     }
 
     private var conditionCard: some View {
@@ -128,13 +136,78 @@ struct VisitorCarBookingsView: View {
             ScrollView {
                 VStack(spacing: GlassTokens.cardSpacing) {
                     GlassCard {
-                        VStack(alignment: .leading, spacing: 10) {
-                            detailRow("차량번호", booking.carNo)
-                            detailRow("방문 기간", periodText(booking))
-                            detailRow("등록구분", booking.insertType.label)
-                            detailRow("방문사유", booking.visitReason.isEmpty ? "—" : booking.visitReason)
-                            detailRow("등록자", booking.registrant)
+                        if isEditing {
+                            VStack(alignment: .leading, spacing: 12) {
+                                TextField("차량번호", text: $editCarNo)
+                                    .textInputAutocapitalization(.never)
+                                    .autocorrectionDisabled()
+                                    .textFieldStyle(.plain)
+                                    .padding(12)
+                                    .background(VehicleTheme.tileFill, in: RoundedRectangle(cornerRadius: 10))
+
+                                DatePicker("시작일", selection: $editStart, displayedComponents: .date)
+                                Divider().overlay(VehicleTheme.cardStroke)
+                                DatePicker("종료일", selection: $editEnd, displayedComponents: .date)
+
+                                TextField("방문사유 (선택)", text: $editReason)
+                                    .textFieldStyle(.plain)
+                                    .padding(12)
+                                    .background(VehicleTheme.tileFill, in: RoundedRectangle(cornerRadius: 10))
+                            }
+                            .font(.subheadline)
+                            .foregroundStyle(VehicleTheme.textSecondary)
+                        } else {
+                            VStack(alignment: .leading, spacing: 10) {
+                                detailRow("차량번호", booking.carNo)
+                                detailRow("방문 기간", periodText(booking))
+                                detailRow("등록구분", booking.insertType.label)
+                                detailRow("방문사유", booking.visitReason.isEmpty ? "—" : booking.visitReason)
+                                detailRow("등록자", booking.registrant)
+                            }
                         }
+                    }
+
+                    if isEditing {
+                        Button {
+                            Task {
+                                let ok = await viewModel.update(
+                                    id: booking.id,
+                                    carNo: editCarNo,
+                                    startDate: editStart,
+                                    endDate: editEnd,
+                                    visitReason: editReason
+                                )
+                                if ok {
+                                    isEditing = false
+                                    selected = nil
+                                }
+                            }
+                        } label: {
+                            Text("저장")
+                                .fontWeight(.semibold)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(VehicleTheme.accent, in: RoundedRectangle(cornerRadius: 10))
+                                .foregroundStyle(VehicleTheme.background)
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        Button {
+                            // 편집을 시작할 때 현재 값을 옮겨 담는다.
+                            editCarNo = booking.carNo
+                            editStart = booking.startDate
+                            editEnd = booking.endDate
+                            editReason = booking.visitReason
+                            isEditing = true
+                        } label: {
+                            Text("수정")
+                                .fontWeight(.semibold)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(VehicleTheme.tileFill, in: RoundedRectangle(cornerRadius: 10))
+                                .foregroundStyle(VehicleTheme.textPrimary)
+                        }
+                        .buttonStyle(.plain)
                     }
 
                     if let message = viewModel.errorMessage {
