@@ -679,7 +679,9 @@ enum VisitorCarHTMLParser {
         else { return nil }
 
         // 실제 응답은 `<option`과 `value=` 사이가 줄바꿈으로 쪼개져 있다 — `[\s\S]`로 받는다.
-        return firstCapture(in: block, pattern: #"<option[\s\S]*?value="([^"]*)"[\s\S]*?selected"#)
+        // **끝을 `[^>]*?selected`로 닫는다.** `[\s\S]*?selected`로 두면 첫 `<option value="">`를
+        // 잡은 뒤 `>`를 넘어 **다음 옵션의** `selected`까지 기어가서 빈 값을 돌려준다.
+        return firstCapture(in: block, pattern: #"<option[\s\S]*?value="([^"]*)"[^>]*?selected"#)
     }
 
     private static func firstMatch(in text: String, pattern: String) -> String? {
