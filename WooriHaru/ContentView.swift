@@ -72,7 +72,10 @@ struct ContentView: View {
                         }
                     case .visitorCarBookings: VisitorCarBookingsView()
                     case .visitorCarEntries: VisitorCarEntriesView()
-                    case .visitorCarSettings: Text("준비 중")
+                    case .visitorCarSettings:
+                        VisitorCarSettingsView {
+                            // 홈으로 물러나면 `.task`가 다시 돌아 로그인 카드를 띄운다.
+                        }
                     case .dispatchUpload:
                         DispatchUploadView(onSaved: { yearMonth in
                             savedDispatchYearMonth = yearMonth
