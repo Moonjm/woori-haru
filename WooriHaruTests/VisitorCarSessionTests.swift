@@ -111,6 +111,49 @@ struct VisitorCarSessionTests {
         #expect(store.saveCount == 0)
     }
 
+    /// **성공 리다이렉트가 `;jsessionid=…`를 달고 와도 받아들인다.** `URLComponents`는
+    /// 매트릭스 파라미터를 경로에서 떼지 않는다 — 실패 리다이렉트는 이미 이 접미사를
+    /// 달고 오는 것이 관찰됐으니, 성공 쪽도 언젠가 그럴 수 있다(R2).
+    @Test func 성공_경로에_세션ID_접미사가_붙어도_받아들인다() async throws {
+        let transport = FakeVisitorCarTransport()
+        transport.stub(
+            "/do-login",
+            VisitorCarHTTPResponse(status: 302, location: "/nxpmsc/book-car;jsessionid=ABC123", body: Data())
+        )
+        let store = FakeCredentialStore()
+        let service = VisitorCarService(
+            transport: transport,
+            credentials: store,
+            defaults: UserDefaults(suiteName: "visitorcar.tests.\(UUID().uuidString)")!
+        )
+
+        try await service.login(id: "10010101", password: "비밀")
+
+        #expect(store.saveCount == 1)
+    }
+
+    /// **다른 경로에 세션ID 접미사가 붙어도 여전히 거부한다.** 접미사를 떼는 것이 경로
+    /// 비교 자체를 느슨하게 만들면 안 된다 — 딱 `/nxpmsc/book-car` 하나만 허용해야
+    /// fail-closed가 유지된다(R2).
+    @Test func 다른_경로에_세션ID_접미사가_붙으면_여전히_거부한다() async throws {
+        let transport = FakeVisitorCarTransport()
+        transport.stub(
+            "/do-login",
+            VisitorCarHTTPResponse(status: 302, location: "/nxpmsc/maintenance;jsessionid=ABC123", body: Data())
+        )
+        let store = FakeCredentialStore()
+        let service = VisitorCarService(
+            transport: transport,
+            credentials: store,
+            defaults: UserDefaults(suiteName: "visitorcar.tests.\(UUID().uuidString)")!
+        )
+
+        await #expect(throws: VisitorCarError.loginUnavailable) {
+            try await service.login(id: "10010101", password: "비밀")
+        }
+        #expect(store.saveCount == 0)
+    }
+
     // MARK: - 세션 만료
 
     /// 302를 만나면 **다시 로그인하고 원 요청을 한 번 더** 보낸다.

@@ -329,9 +329,16 @@ actor VisitorCarService: VisitorCarServing {
         // 저장해 두고 사용자가 나중에야 이유 모를 실패에 갇히는 쪽이 훨씬 나쁘다.
         // **`/nxpmsc/book-car`는 계정 하나로 관찰한 값이다** — 다른 계정에서 로그인이
         // 안 되면 이 도착지부터 의심한다(설계 문서 「확인하지 않은 것」 참고).
+        //
+        // **경로는 매트릭스 파라미터를 떼고 비교한다.** `URLComponents`는 `;jsessionid=…`를
+        // 경로에서 벗겨내지 않는다 — 실패 리다이렉트는 이미 이 접미사를 달고 오는 것이
+        // 관찰됐다(`/nxpmsc/login;jsessionid=…`). 성공 쪽에서는 아직 본 적 없지만, 서버가
+        // 같은 세션 메커니즘으로 붙이는 값이라 언젠가 붙지 않는다는 보장이 없다. 떼고
+        // 비교해도 fail-closed는 그대로다 — 여전히 경로 하나만 허용한다.
         guard response.status == 302,
               let location = response.location,
-              URLComponents(string: location)?.path == "/nxpmsc/book-car"
+              let path = URLComponents(string: location)?.path,
+              stripMatrixParameters(from: path) == "/nxpmsc/book-car"
         else {
             // **여기 걸리는 것은 "거절"이 아니라 "판단할 수 없음"이다.** 302가 아니거나,
             // 302인데 `Location`이 없거나, `book-car`도 `login`도 아닌 낯선 곳으로 튄
@@ -341,6 +348,11 @@ actor VisitorCarService: VisitorCarServing {
             // 지운다. 서버가 이 경우엔 메시지를 주지 않으므로 문구는 여기서 직접 짓는다.
             throw VisitorCarError.loginUnavailable
         }
+    }
+
+    /// `;jsessionid=…` 같은 매트릭스 파라미터를 경로에서 뗀다 — `;` 앞부분만 남긴다.
+    private static func stripMatrixParameters(from path: String) -> String {
+        String(path.prefix(while: { $0 != ";" }))
     }
 
     private func userId() throws -> String {
