@@ -120,6 +120,29 @@ struct VisitorCarBookingsTests {
         #expect(viewModel.bookings.map(\.id) == [2])
     }
 
+    /// **`removeAll`의 유일한 증인.** 성공 경로의 다른 삭제 테스트들은 재조회가 성공해
+    /// `fetch()`가 `bookings = result.content`로 통째로 갈아 끼운다 — 그 안에서는
+    /// `removeAll` 줄을 지워도 두 번째 enqueue 응답이 같은 최종 상태를 만들어 내므로
+    /// 구분이 안 된다. 여기서는 재조회 응답을 깨뜨려 `fetch()`가 `bookings`를 아예
+    /// 건드리지 못하게 한다 — 그러면 남는 값은 오직 `removeAll`이 만든 값뿐이다.
+    @Test func 삭제_뒤_재조회가_깨져도_지운_줄은_이미_빠져_있다() async {
+        let transport = FakeVisitorCarTransport()
+        transport.enqueue(Self.path, FakeVisitorCarTransport.ok(page(ids: [1, 2], totalPages: 1, number: 0)))
+        // 삭제 뒤 재조회 — 응답이 깨져서 `fetch()`가 `bookings`를 갈아 끼우지 못한다.
+        transport.enqueue(Self.path, FakeVisitorCarTransport.ok("{}"))
+        transport.stub("/book-car/delete", FakeVisitorCarTransport.ok(VisitorCarFixture.successResult))
+        let viewModel = VisitorCarBookingsViewModel(service: makeService(transport: transport))
+        await viewModel.search()
+
+        let deleted = await viewModel.delete(id: 1)
+
+        // 삭제 자체는 성공했다 — 뒤이은 재조회 실패와는 별개다.
+        #expect(deleted)
+        // 재조회가 실패해 `bookings`를 못 바꿨으니, 이 값은 `removeAll`만이 만들 수 있다.
+        #expect(viewModel.bookings.map(\.id) == [2])
+        #expect(viewModel.errorMessage != nil)
+    }
+
     /// **회귀 시험.** 서버는 offset으로 페이지를 나눈다 — 0쪽만 불러온 상태에서 지우면
     /// 아직 못 읽은 1쪽의 맨 앞 레코드가 0쪽 끝으로 한 칸 밀린다. `loadMore()`는 여전히
     /// `loadedPage + 1`(=1쪽)을 요청하므로, `await search()`로 0쪽부터 다시 맞추지
