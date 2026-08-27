@@ -22,7 +22,12 @@ struct VisitorCarHTTPResponse: Sendable {
     /// 302로 로그인 페이지를 가리킨다. 상대 경로로 올 수도 있어 경로만 본다.
     var isLoginRedirect: Bool {
         guard status == 302, let location else { return false }
-        let path = URLComponents(string: location)?.path ?? location
+        guard let path = URLComponents(string: location)?.path else {
+            // **`URLComponents`가 파싱하지 못하면 fail-closed다.** 실패를 「로그인 리다이렉트가
+            // 아니다」로 읽으면, 로그인 중일 때는 틀린 자격증명이 성공으로 둔갑해 Keychain에
+            // 저장된다 — 방향이 반대다. 원문에 대고 한 번 더 본다.
+            return location.contains("/nxpmsc/login")
+        }
         // `;jsessionid=…`가 경로에 붙어 오므로 정확히 같기를 요구하지 않는다.
         // 다만 `book-car/login-history` 같은 것을 삼키지 않도록 접두만 본다.
         return path == "/nxpmsc/login" || path.hasPrefix("/nxpmsc/login;")

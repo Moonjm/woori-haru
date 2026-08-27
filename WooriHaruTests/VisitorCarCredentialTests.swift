@@ -48,4 +48,14 @@ struct VisitorCarCredentialTests {
 
         #expect(store.load() == nil)
     }
+
+    /// **비밀번호가 문자열로 새면 안 된다.** 실수로 `print`나 `Logger`에 걸려도
+    /// 비밀번호 자리는 마스킹돼야 한다.
+    @Test func 비밀번호는_문자열로_새지_않는다() {
+        let credentials = VisitorCarCredentials(id: "10010101", password: "매우비밀스러운값")
+
+        #expect(!credentials.description.contains("매우비밀스러운값"))
+        #expect(!credentials.debugDescription.contains("매우비밀스러운값"))
+        #expect(credentials.description.contains("10010101"))
+    }
 }

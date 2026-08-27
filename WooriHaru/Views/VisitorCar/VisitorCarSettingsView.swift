@@ -158,7 +158,3 @@ struct VisitorCarSettingsView: View {
         .buttonStyle(.plain)
     }
 }
-
-#Preview {
-    NavigationStack { VisitorCarSettingsView(onLoggedOut: {}) }
-}

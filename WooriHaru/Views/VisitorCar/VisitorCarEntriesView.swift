@@ -7,7 +7,10 @@ struct VisitorCarEntriesView: View {
     @State private var viewModel = VisitorCarEntriesViewModel()
 
     /// 1분이면 족하다. 화면에 분 단위까지만 적는다.
-    private let ticker = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
+    /// **`@State`다.** `let`이면 부모가 뷰 구조체를 다시 만들 때마다(예: 형제 상태 변경으로
+    /// 다시 그려질 때) 타이머가 새로 생겨 60초 카운트다운이 초기화된다 — 「흐르는 주차시간」이
+    /// 이 화면의 존재 이유인데 그 시계가 뷰 갱신에 끌려다니면 안 된다.
+    @State private var ticker = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
 
     var body: some View {
         ScrollView {
@@ -130,8 +133,4 @@ struct VisitorCarEntriesView: View {
             }
         }
     }
-}
-
-#Preview {
-    NavigationStack { VisitorCarEntriesView() }
 }

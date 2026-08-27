@@ -50,6 +50,27 @@ struct VisitorCarValidationTests {
         #expect(VisitorCarValidation.periodError(start: start, end: end) == nil)
     }
 
+    // MARK: - 방문사유
+
+    /// 등록 화면과 수정 시트가 같은 규칙을 쓰도록 한 곳에 모아 둔 값이다.
+    @Test func 스무_자_이하는_그대로_둔다() {
+        #expect(VisitorCarValidation.clampVisitReason("택배") == "택배")
+        #expect(VisitorCarValidation.clampVisitReason("") == "")
+    }
+
+    @Test func 스무_자를_넘으면_자른다() {
+        let long = String(repeating: "가", count: 25)
+        let clamped = VisitorCarValidation.clampVisitReason(long)
+
+        #expect(clamped.count == 20)
+        #expect(clamped == String(repeating: "가", count: 20))
+    }
+
+    @Test func 딱_스무_자는_그대로_둔다() {
+        let exact = String(repeating: "가", count: 20)
+        #expect(VisitorCarValidation.clampVisitReason(exact) == exact)
+    }
+
     // MARK: - 폼 인코딩
 
     /// **`+`·`&`·`=`를 반드시 인코딩한다** — 안 하면 값에 든 문자가 필드 구분자로 읽힌다.

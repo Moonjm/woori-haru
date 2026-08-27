@@ -57,43 +57,58 @@ final class FakeVisitorCarTransport: VisitorCarTransport, @unchecked Sendable {
     }
 
     func form(path: String, fields: [String: String]) async throws -> VisitorCarHTTPResponse {
-        lock.withLock { formFields.append((path, fields)) }
-        return try next(path)
+        // **기록과 응답 결정을 같은 잠금 안에서 한다.** 따로면 두 스레드가 엇갈려
+        // `calls` 순서와 `formFields` 순서가 갈릴 수 있다.
+        try lock.withLock {
+            formFields.append((path, fields))
+            return try recordCallAndRespond(path)
+        }
     }
 
     func json(path: String, body: any Encodable & Sendable) async throws -> VisitorCarHTTPResponse {
         let data = try JSONEncoder().encode(body)
-        lock.withLock { jsonBodies.append((path, data)) }
-        return try next(path)
+        return try lock.withLock {
+            jsonBodies.append((path, data))
+            return try recordCallAndRespond(path)
+        }
     }
 
     func page(path: String) async throws -> VisitorCarHTTPResponse {
-        try next(path)
+        try lock.withLock { try recordCallAndRespond(path) }
     }
 
     func clearCookies() async {
         lock.withLock { clearCookiesCount += 1 }
     }
 
-    private func next(_ path: String) throws -> VisitorCarHTTPResponse {
-        try lock.withLock {
-            calls.append(path)
-            if sessionAware {
-                if path == "/do-login" {
-                    loggedIn = true
-                } else if !loggedIn {
-                    return Self.loginRedirect()
-                }
-            }
-            if var queue = queues[path], !queue.isEmpty {
-                let head = queue.removeFirst()
-                queues[path] = queue
-                lastResponses[path] = head
-                return head
-            }
-            guard let last = lastResponses[path] else { throw FakeError.unstubbed(path) }
-            return last
+    /// **항상 `lock.withLock` 안에서만 부른다** — `NSLock`은 재진입이 안 되므로
+    /// 여기서 다시 잠그면 교착이다.
+    private func recordCallAndRespond(_ path: String) throws -> VisitorCarHTTPResponse {
+        calls.append(path)
+        if sessionAware, path != "/do-login", !loggedIn {
+            return Self.loginRedirect()
         }
+
+        let response = try dequeue(path)
+
+        // **응답이 로그인 성공(로그인 페이지가 아닌 리다이렉트)일 때만 세션을 세운다.**
+        // `/do-login`이 불리기만 하면 스텁 응답과 무관하게 세우면, 재로그인 실패를
+        // 다루는 테스트가 실제로는 성공한 것처럼 거짓 초록을 준다.
+        if sessionAware, path == "/do-login", !response.isLoginRedirect {
+            loggedIn = true
+        }
+        return response
+    }
+
+    private func dequeue(_ path: String) throws -> VisitorCarHTTPResponse {
+        if var queue = queues[path], !queue.isEmpty {
+            let head = queue.removeFirst()
+            queues[path] = queue
+            lastResponses[path] = head
+            return head
+        }
+        guard let last = lastResponses[path] else { throw FakeError.unstubbed(path) }
+        return last
     }
 
     func callCount(_ path: String) -> Int {

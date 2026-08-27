@@ -30,6 +30,16 @@ enum VisitorCarValidation {
         }
         return nil
     }
+
+    /// 방문사유 칸의 최대 길이. 웹 폼이 20자로 못박아 둔 값이다.
+    static let visitReasonLimit = 20
+
+    /// 방문사유를 제한 길이로 자른다. **여기 한 곳에 모아 둔다** — 등록 화면과 수정 시트가
+    /// 같은 값을 같은 서버 필드(`address`)로 보내는데, 검증을 뷰 하나에만 두면 다른
+    /// 진입점이 무제한으로 새어 나간다.
+    static func clampVisitReason(_ value: String) -> String {
+        value.count > visitReasonLimit ? String(value.prefix(visitReasonLimit)) : value
+    }
 }
 
 /// `application/x-www-form-urlencoded` 바디를 만든다.

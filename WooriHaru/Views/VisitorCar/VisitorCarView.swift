@@ -144,9 +144,3 @@ struct VisitorCarView: View {
         .buttonStyle(.plain)
     }
 }
-
-#Preview {
-    NavigationStack {
-        VisitorCarView(navPath: .constant(NavigationPath()))
-    }
-}

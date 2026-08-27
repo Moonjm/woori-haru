@@ -153,6 +153,10 @@ struct VisitorCarBookingsView: View {
                                     .textFieldStyle(.plain)
                                     .padding(12)
                                     .background(VehicleTheme.tileFill, in: RoundedRectangle(cornerRadius: 10))
+                                    // 등록 화면과 같은 20자 제한 — 서버 필드가 같다.
+                                    .onChange(of: editReason) {
+                                        editReason = VisitorCarValidation.clampVisitReason(editReason)
+                                    }
                             }
                             .font(.subheadline)
                             .foregroundStyle(VehicleTheme.textSecondary)
@@ -285,8 +289,4 @@ struct VisitorCarBookingsView: View {
         let end = VisitorCarDateFormat.day.string(from: booking.endDate)
         return start == end ? start : "\(start) ~ \(end)"
     }
-}
-
-#Preview {
-    NavigationStack { VisitorCarBookingsView() }
 }

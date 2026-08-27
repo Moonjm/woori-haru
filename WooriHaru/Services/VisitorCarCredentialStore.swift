@@ -6,6 +6,13 @@ struct VisitorCarCredentials: Codable, Sendable, Equatable {
     let password: String
 }
 
+/// **비밀번호가 문자열로 새지 않게 가린다.** 이 타입이 실수로 `print`나 `Logger`에 걸려도
+/// 비밀번호는 찍히지 않는다 — 아이디는 남겨도 되지만(디버깅에 필요) 비밀번호 자리는 마스킹한다.
+extension VisitorCarCredentials: CustomStringConvertible, CustomDebugStringConvertible {
+    var description: String { "VisitorCarCredentials(id: \(id), password: ***)" }
+    var debugDescription: String { description }
+}
+
 /// 자격증명 보관. **테스트는 이 자리를 메모리 대역으로 바꾼다** —
 /// 서비스 테스트가 Keychain에 붙을 이유가 없다.
 protocol VisitorCarCredentialStoring: Sendable {
@@ -49,7 +56,9 @@ struct VisitorCarKeychainStore: VisitorCarCredentialStoring {
         var attributes = baseQuery()
         attributes[kSecValueData as String] = data
         // 잠긴 기기에서 백그라운드로 붙을 일이 없다 — 화면을 열어야 쓰는 기능이다.
-        attributes[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlocked
+        // **`ThisDeviceOnly`다.** 평문 HTTP 사이트의 비밀번호가 암호화 백업을 타고
+        // 새 기기로 옮겨 갈 이유가 없다 — 잃어 봐야 다시 로그인하면 그만이다.
+        attributes[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
 
         let status = SecItemAdd(attributes as CFDictionary, nil)
         guard status == errSecSuccess else { throw VisitorCarError.keychain(Int(status)) }

@@ -106,6 +106,9 @@ actor VisitorCarService: VisitorCarServing {
         try await performLogin(id: id, password: password)
         // **성공한 뒤에 저장한다.** 틀린 자격증명을 넣어 두면 이후 재로그인이 영원히 실패한다.
         try credentials.save(VisitorCarCredentials(id: id, password: password))
+        // **세대 캐시를 버린다.** 다른 계정으로 로그인했을 수 있다 — 이전 세대의 동·호가
+        // 남아 있으면 그걸로 등록이 나가 다른 세대 이름으로 예약이 들어간다.
+        defaults.removeObject(forKey: householdKey)
     }
 
     func logout() async {
@@ -209,33 +212,53 @@ actor VisitorCarService: VisitorCarServing {
         _ perform: () async throws -> VisitorCarHTTPResponse
     ) async throws -> VisitorCarHTTPResponse {
         let first = try await perform()
-        guard first.isLoginRedirect else { return first }
+        guard first.isLoginRedirect else { return try checkStatus(first) }
 
         try await reLogin()
 
         let second = try await perform()
         if second.isLoginRedirect { throw VisitorCarError.sessionExpired }
-        return second
+        return try checkStatus(second)
+    }
+
+    /// 302 처리 **뒤에** 본다. 등록·수정·삭제·조회가 500이나 로그인 아닌 HTML을 받으면
+    /// 날것의 `DecodingError`가 UI까지 올라가 영어 문구가 뜬다 — 여기서 먼저 가른다.
+    private func checkStatus(_ response: VisitorCarHTTPResponse) throws -> VisitorCarHTTPResponse {
+        guard response.status >= 400 else { return response }
+        throw VisitorCarError.server(response.status)
     }
 
     /// 진행 중인 로그인이 있으면 **그것을 기다린다.** 동시에 만료를 만난 요청들이
     /// 로그인을 각자 던지지 않게 하는 자리다.
     private func reLogin() async throws {
-        if let existing = loginTask {
-            return try await existing.value
-        }
-        guard let saved = credentials.load() else { throw VisitorCarError.notLoggedIn }
+        do {
+            if let existing = loginTask {
+                try await existing.value
+            } else {
+                guard let saved = credentials.load() else { throw VisitorCarError.notLoggedIn }
 
-        let task = Task { [transport] in
-            try await Self.performLogin(
-                transport: transport,
-                id: saved.id,
-                password: saved.password
-            )
+                let task = Task { [transport] in
+                    try await Self.performLogin(
+                        transport: transport,
+                        id: saved.id,
+                        password: saved.password
+                    )
+                }
+                loginTask = task
+                defer { loginTask = nil }
+                try await task.value
+            }
+        } catch VisitorCarError.loginFailed {
+            // **조용한 재로그인의 실패는 `sessionExpired`로 올린다.** `loginFailed`가 그대로
+            // 올라가면 홈 뷰모델이 로그인 카드로 접지 않아(needsLogin은 notLoggedIn·sessionExpired만
+            // 본다), 사용자가 붉은 글씨만 보고 빠져나갈 길을 못 찾는다. 저장된 자격증명도
+            // 지운다 — 틀린 것이 확인됐으니 남겨 둘 이유가 없고, 지워야 로그인 카드가
+            // 곧바로 쓸모 있어진다. **이 변환은 여기(조용한 재로그인)에만 한다** — 사용자가
+            // 로그인 카드에서 직접 부르는 `login(id:password:)`는 `loginFailed`를 그대로
+            // 올려야 서버가 준 한국어 문구가 카드에 뜬다.
+            credentials.clear()
+            throw VisitorCarError.sessionExpired
         }
-        loginTask = task
-        defer { loginTask = nil }
-        try await task.value
     }
 
     private func performLogin(id: String, password: String) async throws {

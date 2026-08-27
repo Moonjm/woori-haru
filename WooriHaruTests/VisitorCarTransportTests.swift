@@ -38,6 +38,15 @@ struct VisitorCarTransportTests {
         #expect(!response(status: 302, location: "/nxpmsc/book-car/login-history").isLoginRedirect)
     }
 
+    /// **`URLComponents`가 파싱하지 못하면 fail-closed다.** 파싱 실패를 「로그인 리다이렉트가
+    /// 아니다」로 읽으면, 로그인 중에는 틀린 자격증명이 성공으로 둔갑해 Keychain에 저장된다.
+    /// `http://[invalid...`는 `URLComponents(string:)`가 통째로 `nil`을 돌려주는 자리다.
+    @Test func 파싱_실패한_리다이렉트도_원문에서_로그인을_알아본다() {
+        let malformed = "http://[invalid/nxpmsc/login"
+        #expect(URLComponents(string: malformed) == nil)
+        #expect(response(status: 302, location: malformed).isLoginRedirect)
+    }
+
     @Test func 본문을_문자열로_읽는다() {
         let html = VisitorCarHTTPResponse(status: 200, location: nil, body: Data("<html>가</html>".utf8))
         #expect(html.text == "<html>가</html>")

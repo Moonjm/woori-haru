@@ -83,6 +83,27 @@ struct VisitorCarSessionTests {
         #expect(transport.callCount("/book-car") == 2)
     }
 
+    /// 세대가 사이트에서 비밀번호를 바꾸면 저장된 자격증명으로 하는 **조용한** 재로그인이
+    /// 거절된다. `loginFailed`가 그대로 올라가면 홈 뷰모델이 로그인 카드로 접지 않는다
+    /// (`needsLogin`은 `notLoggedIn`·`sessionExpired`만 본다) — `sessionExpired`로 바꿔야
+    /// 빠져나갈 길이 생긴다. 저장된 자격증명도 지워야 로그인 카드가 곧바로 쓸모 있다.
+    @Test func 재로그인이_거절되면_세션만료로_바뀌고_저장된_계정을_지운다() async throws {
+        let transport = FakeVisitorCarTransport()
+        transport.stub("/book-car", FakeVisitorCarTransport.loginRedirect())
+        transport.stub("/do-login", FakeVisitorCarTransport.loginFailure(message: "비밀번호가 바뀌었습니다."))
+        let store = FakeCredentialStore(stored: VisitorCarCredentials(id: "10010101", password: "옛비밀"))
+        let service = VisitorCarService(
+            transport: transport,
+            credentials: store,
+            defaults: UserDefaults(suiteName: "visitorcar.tests.\(UUID().uuidString)")!
+        )
+
+        await #expect(throws: VisitorCarError.sessionExpired) {
+            _ = try await service.remainingMinutes()
+        }
+        #expect(store.load() == nil)
+    }
+
     @Test func 저장된_계정이_없으면_로그인이_필요하다() async throws {
         let transport = FakeVisitorCarTransport()
         transport.stub("/book-car", FakeVisitorCarTransport.loginRedirect())
@@ -229,6 +250,24 @@ struct VisitorCarSessionTests {
         #expect(booking["userId"] as? String == "10010101")
         #expect(entry["startDate"] as? String == "2026-07-18 00:00:00")
         #expect(entry["endDate"] as? String == "2026-07-18 23:59:59")
+    }
+
+    /// 다른 세대 계정으로 로그인했을 수 있다. **세대 캐시가 살아 있으면 이전 세대의
+    /// 동·호로 등록이 나간다** — 파서가 빈 동·호에 `nil`을 돌려주면서까지 막으려던 피해다.
+    @Test func 로그인하면_세대_캐시를_버리고_다시_읽는다() async throws {
+        let transport = FakeVisitorCarTransport()
+        transport.stub("/do-login", FakeVisitorCarTransport.loginSuccess())
+        transport.stub("/book-car/getOriginal", FakeVisitorCarTransport.ok(VisitorCarFixture.registerForm))
+        let defaults = UserDefaults(suiteName: "visitorcar.tests.\(UUID().uuidString)")!
+        let stale = VisitorCarHousehold(dong: "9999", ho: "9999", parkingLot: "1", parkingZone: "1")
+        defaults.set(try JSONEncoder().encode(stale), forKey: "visitorCar.household")
+        let service = VisitorCarService(transport: transport, credentials: FakeCredentialStore(), defaults: defaults)
+
+        try await service.login(id: "10010101", password: "비밀")
+        let household = try await service.household()
+
+        #expect(household.dong == "1001")
+        #expect(transport.callCount("/book-car/getOriginal") == 1)
     }
 
     @Test func 로그아웃하면_계정과_쿠키를_버린다() async throws {

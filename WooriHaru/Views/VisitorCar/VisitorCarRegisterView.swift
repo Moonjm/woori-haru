@@ -95,11 +95,9 @@ struct VisitorCarRegisterView: View {
                     .textFieldStyle(.plain)
                     .padding(12)
                     .background(VehicleTheme.tileFill, in: RoundedRectangle(cornerRadius: 10))
-                    // 서버 폼이 20자로 잘라 둔 칸이다.
+                    // 서버 폼이 20자로 잘라 둔 칸이다 — 수정 시트와 같은 규칙을 쓴다.
                     .onChange(of: viewModel.visitReason) {
-                        if viewModel.visitReason.count > 20 {
-                            viewModel.visitReason = String(viewModel.visitReason.prefix(20))
-                        }
+                        viewModel.visitReason = VisitorCarValidation.clampVisitReason(viewModel.visitReason)
                     }
             }
             .font(.subheadline)
@@ -129,11 +127,5 @@ struct VisitorCarRegisterView: View {
         }
         .buttonStyle(.plain)
         .disabled(!viewModel.canSubmit)
-    }
-}
-
-#Preview {
-    NavigationStack {
-        VisitorCarRegisterView(onSaved: {})
     }
 }
