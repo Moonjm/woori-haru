@@ -51,6 +51,62 @@ struct VisitorCarSessionTests {
         #expect(store.saveCount == 0)
     }
 
+    /// **`Location`이 없는 302는 실패다.** 「로그인 리다이렉트가 아니면 성공」으로
+    /// 읽으면 이 경우가 성공으로 둔갑해 확인되지 않은 자격증명이 Keychain에 저장된다.
+    @Test func 위치_없는_302는_로그인_실패다() async throws {
+        let transport = FakeVisitorCarTransport()
+        transport.stub("/do-login", VisitorCarHTTPResponse(status: 302, location: nil, body: Data()))
+        let store = FakeCredentialStore()
+        let service = VisitorCarService(
+            transport: transport,
+            credentials: store,
+            defaults: UserDefaults(suiteName: "visitorcar.tests.\(UUID().uuidString)")!
+        )
+
+        await #expect(throws: VisitorCarError.self) {
+            try await service.login(id: "10010101", password: "비밀")
+        }
+        #expect(store.saveCount == 0)
+    }
+
+    /// **문서화된 도착지가 아닌 302도 실패다.** 점검 페이지 등 다른 곳으로 튀는 302를
+    /// 성공으로 읽으면 확인되지 않은 자격증명이 Keychain에 저장된다.
+    @Test func 다른_경로로_가는_302는_로그인_실패다() async throws {
+        let transport = FakeVisitorCarTransport()
+        transport.stub(
+            "/do-login",
+            VisitorCarHTTPResponse(status: 302, location: "/nxpmsc/maintenance", body: Data())
+        )
+        let store = FakeCredentialStore()
+        let service = VisitorCarService(
+            transport: transport,
+            credentials: store,
+            defaults: UserDefaults(suiteName: "visitorcar.tests.\(UUID().uuidString)")!
+        )
+
+        await #expect(throws: VisitorCarError.self) {
+            try await service.login(id: "10010101", password: "비밀")
+        }
+        #expect(store.saveCount == 0)
+    }
+
+    /// 302가 아닌 응답(5xx 등)도 실패다 — 성공 판정은 `/nxpmsc/book-car` 302 하나뿐이다.
+    @Test func 리다이렉트가_아니면_로그인_실패다() async throws {
+        let transport = FakeVisitorCarTransport()
+        transport.stub("/do-login", VisitorCarHTTPResponse(status: 500, location: nil, body: Data()))
+        let store = FakeCredentialStore()
+        let service = VisitorCarService(
+            transport: transport,
+            credentials: store,
+            defaults: UserDefaults(suiteName: "visitorcar.tests.\(UUID().uuidString)")!
+        )
+
+        await #expect(throws: VisitorCarError.self) {
+            try await service.login(id: "10010101", password: "비밀")
+        }
+        #expect(store.saveCount == 0)
+    }
+
     // MARK: - 세션 만료
 
     /// 302를 만나면 **다시 로그인하고 원 요청을 한 번 더** 보낸다.

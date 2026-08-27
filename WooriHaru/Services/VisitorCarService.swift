@@ -308,7 +308,26 @@ actor VisitorCarService: VisitorCarServing {
             let message = VisitorCarHTMLParser.loginErrorMessage(location: response.location ?? "")
             throw VisitorCarError.loginFailed(message ?? "아이디 또는 비밀번호를 확인해 주세요.")
         }
-        guard response.status == 302 else { throw VisitorCarError.server(response.status) }
+
+        // **성공은 `/nxpmsc/book-car`로 가는 302 하나뿐이다.** 「로그인 리다이렉트가
+        // 아니면 성공」으로 읽으면 fail-open이 된다 — `Location`이 없는 302나 점검·오류
+        // 페이지로 가는 302까지 성공으로 둔갑해, 확인되지 않은 자격증명을 Keychain에
+        // 써 버린다(`isLoginRedirect`는 이미 파싱 실패에 대해 fail-closed인데, 그
+        // 위를 부르는 이 자리만 여태 fail-open이었다). 여기서는 반대로 문 하나만 열어
+        // 둔다: 확실히 아는 성공 도착지가 아니면 전부 실패로 본다.
+        // **트레이드오프를 받아들인다:** 사이트가 언젠가 로그인 성공 후 도착 페이지를
+        // 바꾸면 이 코드도 함께 깨진다 — 다만 그 깨짐은 로그인 카드에 오류로 시끄럽게
+        // 드러나 한 커밋으로 고칠 수 있다. 검증하지 않은 자격증명을 Keychain에 조용히
+        // 저장해 두고 사용자가 나중에야 이유 모를 실패에 갇히는 쪽이 훨씬 나쁘다.
+        // **`/nxpmsc/book-car`는 계정 하나로 관찰한 값이다** — 다른 계정에서 로그인이
+        // 안 되면 이 도착지부터 의심한다(설계 문서 「확인하지 않은 것」 참고).
+        guard response.status == 302,
+              let location = response.location,
+              URLComponents(string: location)?.path == "/nxpmsc/book-car"
+        else {
+            // 서버가 이 경우엔 메시지를 주지 않는다 — 여기서 직접 짓는다.
+            throw VisitorCarError.loginFailed("로그인에 실패했습니다. 잠시 후 다시 시도해 주세요.")
+        }
     }
 
     private func userId() throws -> String {
