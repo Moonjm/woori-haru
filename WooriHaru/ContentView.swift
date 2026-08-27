@@ -71,7 +71,7 @@ struct ContentView: View {
                             // 홈으로 물러나면 `.task`가 다시 돌아 잔여시간을 새로 읽는다.
                         }
                     case .visitorCarBookings: VisitorCarBookingsView()
-                    case .visitorCarEntries: Text("준비 중")
+                    case .visitorCarEntries: VisitorCarEntriesView()
                     case .visitorCarSettings: Text("준비 중")
                     case .dispatchUpload:
                         DispatchUploadView(onSaved: { yearMonth in
