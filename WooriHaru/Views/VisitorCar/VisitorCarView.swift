@@ -4,6 +4,10 @@ import SwiftUI
 ///
 /// **탭바를 두지 않는다.** 차량·관리비는 한 화면 안에서 오가는 탭이 필요했지만
 /// 여기는 셋 다 「들어갔다 나오는」 일이라 목록이 맞다.
+///
+/// **`vehicleDarkTheme()`을 쓰지 않는다.** 차량·관리비는 계기판처럼 읽는 화면이라 다크가
+/// 맞지만, 여기는 입력과 목록이 전부다 — 가계부·식단과 같은 밝은 팔레트(`Color.slate*`,
+/// `blue600`, `red500`)를 쓴다. 이 미니앱의 뷰 여섯은 `VehicleTheme`을 참조하지 않는다.
 struct VisitorCarView: View {
     @Binding var navPath: NavigationPath
     @State private var viewModel = VisitorCarHomeViewModel()
@@ -44,13 +48,12 @@ struct VisitorCarView: View {
             .padding(GlassTokens.cardPadding)
         }
         .glassScreenBackground()
-        .vehicleDarkTheme()
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {
                 Text("방문차량")
                     .font(.subheadline).fontWeight(.bold)
-                    .foregroundStyle(VehicleTheme.textPrimary)
+                    .foregroundStyle(Color.slate900)
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Button { navPath.append(AppDestination.visitorCarSettings) } label: {
@@ -68,29 +71,29 @@ struct VisitorCarView: View {
             HStack(spacing: 14) {
                 Image(systemName: "clock.badge.checkmark")
                     .font(.title2)
-                    .foregroundStyle(VehicleTheme.accent)
+                    .foregroundStyle(Color.blue600)
                     .frame(width: 44, height: 44)
-                    .background(VehicleTheme.tileFill, in: RoundedRectangle(cornerRadius: 12))
+                    .background(Color.slate500.opacity(0.10), in: RoundedRectangle(cornerRadius: 12))
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("충전 잔여 시간")
                         .font(.caption)
-                        .foregroundStyle(VehicleTheme.textTertiary)
+                        .foregroundStyle(Color.slate500)
 
                     switch viewModel.state {
                     case .ready(let minutes):
                         Text(VisitorCarHomeViewModel.remainingText(minutes: minutes))
                             .font(.title3).fontWeight(.semibold)
                             // 초과분은 붉게 — 「남음」과 눈으로 갈려야 한다.
-                            .foregroundStyle(minutes < 0 ? VehicleTheme.danger : VehicleTheme.textPrimary)
+                            .foregroundStyle(minutes < 0 ? Color.red500 : Color.slate900)
                     case .failed(let message):
                         Text(message)
                             .font(.footnote)
-                            .foregroundStyle(VehicleTheme.danger)
+                            .foregroundStyle(Color.red500)
                     default:
                         Text("불러오는 중")
                             .font(.footnote)
-                            .foregroundStyle(VehicleTheme.textTertiary)
+                            .foregroundStyle(Color.slate500)
                     }
                 }
 
@@ -98,7 +101,7 @@ struct VisitorCarView: View {
 
                 Button { Task { await viewModel.load() } } label: {
                     Image(systemName: "arrow.clockwise")
-                        .foregroundStyle(VehicleTheme.textSecondary)
+                        .foregroundStyle(Color.slate700)
                         .frame(width: 44, height: 44)
                         .contentShape(Rectangle())
                 }
@@ -119,17 +122,17 @@ struct VisitorCarView: View {
                 HStack(spacing: 14) {
                     Image(systemName: icon)
                         .font(.title3)
-                        .foregroundStyle(VehicleTheme.accent)
+                        .foregroundStyle(Color.blue600)
                         .frame(width: 44, height: 44)
-                        .background(VehicleTheme.tileFill, in: RoundedRectangle(cornerRadius: 12))
+                        .background(Color.slate500.opacity(0.10), in: RoundedRectangle(cornerRadius: 12))
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text(title)
                             .font(.headline)
-                            .foregroundStyle(VehicleTheme.textPrimary)
+                            .foregroundStyle(Color.slate900)
                         Text(detail)
                             .font(.caption)
-                            .foregroundStyle(VehicleTheme.textTertiary)
+                            .foregroundStyle(Color.slate500)
                             .multilineTextAlignment(.leading)
                     }
 
@@ -137,7 +140,7 @@ struct VisitorCarView: View {
 
                     Image(systemName: "chevron.right")
                         .font(.footnote)
-                        .foregroundStyle(VehicleTheme.textTertiary)
+                        .foregroundStyle(Color.slate500)
                 }
             }
         }

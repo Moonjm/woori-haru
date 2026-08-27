@@ -20,7 +20,7 @@ struct VisitorCarEntriesView: View {
                 if let message = viewModel.errorMessage {
                     Text(message)
                         .font(.footnote)
-                        .foregroundStyle(VehicleTheme.danger)
+                        .foregroundStyle(Color.red500)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
@@ -29,10 +29,10 @@ struct VisitorCarEntriesView: View {
                         VStack(spacing: 8) {
                             Image(systemName: "tray")
                                 .font(.title2)
-                                .foregroundStyle(VehicleTheme.textTertiary)
+                                .foregroundStyle(Color.slate500)
                             Text("입출차 내역이 없습니다.")
                                 .font(.footnote)
-                                .foregroundStyle(VehicleTheme.textTertiary)
+                                .foregroundStyle(Color.slate500)
                         }
                         .frame(maxWidth: .infinity)
                     }
@@ -44,7 +44,7 @@ struct VisitorCarEntriesView: View {
                         Button { Task { await viewModel.loadMore() } } label: {
                             Text("더 보기")
                                 .font(.subheadline)
-                                .foregroundStyle(VehicleTheme.accent)
+                                .foregroundStyle(Color.blue600)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 12)
                         }
@@ -55,7 +55,6 @@ struct VisitorCarEntriesView: View {
             .padding(GlassTokens.cardPadding)
         }
         .glassScreenBackground()
-        .vehicleDarkTheme()
         .navigationTitle("차량 진입 현황")
         .navigationBarTitleDisplayMode(.inline)
         .task { await viewModel.search() }
@@ -67,31 +66,31 @@ struct VisitorCarEntriesView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Label("조회 조건", systemImage: "line.3.horizontal.decrease")
                     .font(.headline)
-                    .foregroundStyle(VehicleTheme.textPrimary)
+                    .foregroundStyle(Color.slate900)
 
                 DatePicker("시작", selection: $viewModel.from, displayedComponents: [.date, .hourAndMinute])
-                Divider().overlay(VehicleTheme.cardStroke)
+                Divider()
                 DatePicker("종료", selection: $viewModel.to, displayedComponents: [.date, .hourAndMinute])
 
                 Button { Task { await viewModel.search() } } label: {
                     HStack {
                         Spacer()
                         if viewModel.isLoading {
-                            ProgressView().tint(VehicleTheme.background)
+                            ProgressView().tint(Color.white)
                         } else {
                             Label("조회", systemImage: "magnifyingglass").fontWeight(.semibold)
                         }
                         Spacer()
                     }
                     .padding(.vertical, 12)
-                    .background(VehicleTheme.accent, in: RoundedRectangle(cornerRadius: 10))
-                    .foregroundStyle(VehicleTheme.background)
+                    .background(Color.blue600, in: RoundedRectangle(cornerRadius: 10))
+                    .foregroundStyle(Color.white)
                 }
                 .buttonStyle(.plain)
                 .disabled(viewModel.isLoading)
             }
             .font(.subheadline)
-            .foregroundStyle(VehicleTheme.textSecondary)
+            .foregroundStyle(Color.slate700)
         }
         // 조회 조건 선택기가 기기 시간대가 아니라 한국 시각으로 뜨고 움직이게 한다.
         .seoulDatePickerEnvironment()
@@ -103,7 +102,7 @@ struct VisitorCarEntriesView: View {
                 HStack {
                     Text(entry.carNo)
                         .font(.headline)
-                        .foregroundStyle(VehicleTheme.textPrimary)
+                        .foregroundStyle(Color.slate900)
                     Spacer(minLength: 0)
                     if let status = entry.status {
                         Text(status.label)
@@ -112,10 +111,10 @@ struct VisitorCarEntriesView: View {
                             .padding(.vertical, 4)
                             .background(
                                 // 아직 안 나간 차만 강조한다 — 나머지는 지난 일이다.
-                                (status.isParked ? VehicleTheme.accent.opacity(0.20) : VehicleTheme.tileFill),
+                                (status.isParked ? Color.blue600.opacity(0.20) : Color.slate500.opacity(0.10)),
                                 in: Capsule()
                             )
-                            .foregroundStyle(status.isParked ? VehicleTheme.accent : VehicleTheme.textSecondary)
+                            .foregroundStyle(status.isParked ? Color.blue600 : Color.slate700)
                     }
                 }
 
@@ -125,12 +124,12 @@ struct VisitorCarEntriesView: View {
                     Text(VisitorCarEntriesViewModel.parkingText(seconds: entry.parkingSeconds(now: viewModel.now)))
                 }
                 .font(.caption)
-                .foregroundStyle(VehicleTheme.textTertiary)
+                .foregroundStyle(Color.slate500)
 
                 if let outDate = entry.outDate {
                     Text("출차 \(VisitorCarDateFormat.second.string(from: outDate))")
                         .font(.caption)
-                        .foregroundStyle(VehicleTheme.textTertiary)
+                        .foregroundStyle(Color.slate500)
                 }
             }
         }

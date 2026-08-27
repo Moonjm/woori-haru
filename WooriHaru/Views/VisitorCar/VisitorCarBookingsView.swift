@@ -20,7 +20,7 @@ struct VisitorCarBookingsView: View {
                 if let message = viewModel.errorMessage {
                     Text(message)
                         .font(.footnote)
-                        .foregroundStyle(VehicleTheme.danger)
+                        .foregroundStyle(Color.red500)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
@@ -29,10 +29,10 @@ struct VisitorCarBookingsView: View {
                         VStack(spacing: 8) {
                             Image(systemName: "tray")
                                 .font(.title2)
-                                .foregroundStyle(VehicleTheme.textTertiary)
+                                .foregroundStyle(Color.slate500)
                             Text("등록 내역이 없습니다.")
                                 .font(.footnote)
-                                .foregroundStyle(VehicleTheme.textTertiary)
+                                .foregroundStyle(Color.slate500)
                         }
                         .frame(maxWidth: .infinity)
                     }
@@ -47,7 +47,7 @@ struct VisitorCarBookingsView: View {
                         Button { Task { await viewModel.loadMore() } } label: {
                             Text("더 보기")
                                 .font(.subheadline)
-                                .foregroundStyle(VehicleTheme.accent)
+                                .foregroundStyle(Color.blue600)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 12)
                         }
@@ -58,14 +58,12 @@ struct VisitorCarBookingsView: View {
             .padding(GlassTokens.cardPadding)
         }
         .glassScreenBackground()
-        .vehicleDarkTheme()
         .navigationTitle("등록 내역 조회")
         .navigationBarTitleDisplayMode(.inline)
         .task { await viewModel.search() }
         .sheet(item: $selected) { booking in
             detailSheet(booking)
                 .presentationDetents([.medium])
-                .vehicleDarkTheme()
         }
         // 시트가 닫히면 편집 모드도 되돌린다 — 다음에 다른 건을 열었을 때 이전 편집 흔적이 남지 않게.
         .onChange(of: selected) { if selected == nil { isEditing = false } }
@@ -76,31 +74,31 @@ struct VisitorCarBookingsView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Label("조회 조건", systemImage: "line.3.horizontal.decrease")
                     .font(.headline)
-                    .foregroundStyle(VehicleTheme.textPrimary)
+                    .foregroundStyle(Color.slate900)
 
                 DatePicker("시작일", selection: $viewModel.from, displayedComponents: .date)
-                Divider().overlay(VehicleTheme.cardStroke)
+                Divider()
                 DatePicker("종료일", selection: $viewModel.to, displayedComponents: .date)
 
                 Button { Task { await viewModel.search() } } label: {
                     HStack {
                         Spacer()
                         if viewModel.isLoading {
-                            ProgressView().tint(VehicleTheme.background)
+                            ProgressView().tint(Color.white)
                         } else {
                             Label("조회", systemImage: "magnifyingglass").fontWeight(.semibold)
                         }
                         Spacer()
                     }
                     .padding(.vertical, 12)
-                    .background(VehicleTheme.accent, in: RoundedRectangle(cornerRadius: 10))
-                    .foregroundStyle(VehicleTheme.background)
+                    .background(Color.blue600, in: RoundedRectangle(cornerRadius: 10))
+                    .foregroundStyle(Color.white)
                 }
                 .buttonStyle(.plain)
                 .disabled(viewModel.isLoading)
             }
             .font(.subheadline)
-            .foregroundStyle(VehicleTheme.textSecondary)
+            .foregroundStyle(Color.slate700)
         }
         // 조회 조건 선택기가 기기 시간대가 아니라 한국 시각으로 뜨고 움직이게 한다.
         .seoulDatePickerEnvironment()
@@ -112,10 +110,10 @@ struct VisitorCarBookingsView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(booking.carNo)
                         .font(.headline)
-                        .foregroundStyle(VehicleTheme.textPrimary)
+                        .foregroundStyle(Color.slate900)
                     Text(periodText(booking))
                         .font(.caption)
-                        .foregroundStyle(VehicleTheme.textTertiary)
+                        .foregroundStyle(Color.slate500)
                 }
                 Spacer(minLength: 0)
                 if !booking.insertType.label.isEmpty {
@@ -123,12 +121,12 @@ struct VisitorCarBookingsView: View {
                         .font(.caption2)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
-                        .background(VehicleTheme.tileFill, in: Capsule())
-                        .foregroundStyle(VehicleTheme.textSecondary)
+                        .background(Color.slate500.opacity(0.10), in: Capsule())
+                        .foregroundStyle(Color.slate700)
                 }
                 Image(systemName: "chevron.right")
                     .font(.footnote)
-                    .foregroundStyle(VehicleTheme.textTertiary)
+                    .foregroundStyle(Color.slate500)
             }
         }
     }
@@ -145,23 +143,23 @@ struct VisitorCarBookingsView: View {
                                     .autocorrectionDisabled()
                                     .textFieldStyle(.plain)
                                     .padding(12)
-                                    .background(VehicleTheme.tileFill, in: RoundedRectangle(cornerRadius: 10))
+                                    .background(Color.slate500.opacity(0.10), in: RoundedRectangle(cornerRadius: 10))
 
                                 DatePicker("시작일", selection: $editStart, displayedComponents: .date)
-                                Divider().overlay(VehicleTheme.cardStroke)
+                                Divider()
                                 DatePicker("종료일", selection: $editEnd, displayedComponents: .date)
 
                                 TextField("방문사유 (선택)", text: $editReason)
                                     .textFieldStyle(.plain)
                                     .padding(12)
-                                    .background(VehicleTheme.tileFill, in: RoundedRectangle(cornerRadius: 10))
+                                    .background(Color.slate500.opacity(0.10), in: RoundedRectangle(cornerRadius: 10))
                                     // 등록 화면과 같은 20자 제한 — 서버 필드가 같다.
                                     .onChange(of: editReason) {
                                         editReason = VisitorCarValidation.clampVisitReason(editReason)
                                     }
                             }
                             .font(.subheadline)
-                            .foregroundStyle(VehicleTheme.textSecondary)
+                            .foregroundStyle(Color.slate700)
                             // 수정 시트의 시작일·종료일 선택기도 조회 조건과 같은 한국 시각을 쓴다.
                             .seoulDatePickerEnvironment()
                         } else {
@@ -195,8 +193,8 @@ struct VisitorCarBookingsView: View {
                                 .fontWeight(.semibold)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 12)
-                                .background(VehicleTheme.accent, in: RoundedRectangle(cornerRadius: 10))
-                                .foregroundStyle(VehicleTheme.background)
+                                .background(Color.blue600, in: RoundedRectangle(cornerRadius: 10))
+                                .foregroundStyle(Color.white)
                         }
                         .buttonStyle(.plain)
                     } else {
@@ -216,8 +214,8 @@ struct VisitorCarBookingsView: View {
                                 .fontWeight(.semibold)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 12)
-                                .background(VehicleTheme.tileFill, in: RoundedRectangle(cornerRadius: 10))
-                                .foregroundStyle(VehicleTheme.textPrimary)
+                                .background(Color.slate500.opacity(0.10), in: RoundedRectangle(cornerRadius: 10))
+                                .foregroundStyle(Color.slate900)
                         }
                         .buttonStyle(.plain)
                     }
@@ -225,7 +223,7 @@ struct VisitorCarBookingsView: View {
                     if let message = viewModel.errorMessage {
                         Text(message)
                             .font(.footnote)
-                            .foregroundStyle(VehicleTheme.danger)
+                            .foregroundStyle(Color.red500)
                     }
 
                     Button(role: .destructive) {
@@ -235,8 +233,8 @@ struct VisitorCarBookingsView: View {
                             .fontWeight(.semibold)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
-                            .background(VehicleTheme.danger.opacity(0.15), in: RoundedRectangle(cornerRadius: 10))
-                            .foregroundStyle(VehicleTheme.danger)
+                            .background(Color.red500.opacity(0.15), in: RoundedRectangle(cornerRadius: 10))
+                            .foregroundStyle(Color.red500)
                     }
                     .buttonStyle(.plain)
 
@@ -244,7 +242,7 @@ struct VisitorCarBookingsView: View {
                     // 판정하지 않는다** — 흉내 내면 서버 규칙과 갈라진다. 보내고 거절당하면 띄운다.
                     Text("입차한 뒤에는 수정·삭제가 거절될 수 있습니다.")
                         .font(.caption2)
-                        .foregroundStyle(VehicleTheme.textTertiary)
+                        .foregroundStyle(Color.slate500)
                 }
                 .padding(GlassTokens.cardPadding)
             }
@@ -279,11 +277,11 @@ struct VisitorCarBookingsView: View {
         HStack {
             Text(title)
                 .font(.caption)
-                .foregroundStyle(VehicleTheme.textTertiary)
+                .foregroundStyle(Color.slate500)
             Spacer()
             Text(value)
                 .font(.subheadline)
-                .foregroundStyle(VehicleTheme.textPrimary)
+                .foregroundStyle(Color.slate900)
         }
     }
 

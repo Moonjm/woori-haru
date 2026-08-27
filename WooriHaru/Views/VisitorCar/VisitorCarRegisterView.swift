@@ -19,7 +19,7 @@ struct VisitorCarRegisterView: View {
                 if let message = viewModel.errorMessage {
                     Text(message)
                         .font(.footnote)
-                        .foregroundStyle(VehicleTheme.danger)
+                        .foregroundStyle(Color.red500)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 submitButton
@@ -27,7 +27,6 @@ struct VisitorCarRegisterView: View {
             .padding(GlassTokens.cardPadding)
         }
         .glassScreenBackground()
-        .vehicleDarkTheme()
         .navigationTitle("신규 차량 등록")
         .navigationBarTitleDisplayMode(.inline)
         // **액션시트가 아니라 하단 시트로 띄운다.** 저장된 차량이 늘면 액션시트는
@@ -36,7 +35,6 @@ struct VisitorCarRegisterView: View {
         .sheet(isPresented: $showingFrequentCars) {
             frequentCarsSheet
                 .presentationDetents([.medium])
-                .vehicleDarkTheme()
         }
         .onChange(of: viewModel.didSucceed) {
             guard viewModel.didSucceed else { return }
@@ -57,27 +55,27 @@ struct VisitorCarRegisterView: View {
                             GlassCard {
                                 HStack(spacing: 12) {
                                     Image(systemName: "car")
-                                        .foregroundStyle(VehicleTheme.accent)
+                                        .foregroundStyle(Color.blue600)
                                         .frame(width: 40, height: 40)
                                         .background(
-                                            VehicleTheme.tileFill,
+                                            Color.slate500.opacity(0.10),
                                             in: RoundedRectangle(cornerRadius: 10)
                                         )
 
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(car.nickname)
                                             .font(.subheadline).fontWeight(.semibold)
-                                            .foregroundStyle(VehicleTheme.textPrimary)
+                                            .foregroundStyle(Color.slate900)
                                         Text(car.carNo)
                                             .font(.caption)
-                                            .foregroundStyle(VehicleTheme.textTertiary)
+                                            .foregroundStyle(Color.slate500)
                                     }
 
                                     Spacer(minLength: 0)
 
                                     Image(systemName: "chevron.right")
                                         .font(.caption)
-                                        .foregroundStyle(VehicleTheme.textTertiary)
+                                        .foregroundStyle(Color.slate500)
                                 }
                             }
                         }
@@ -102,19 +100,19 @@ struct VisitorCarRegisterView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Label("차량 정보", systemImage: "car")
                     .font(.headline)
-                    .foregroundStyle(VehicleTheme.textPrimary)
+                    .foregroundStyle(Color.slate900)
 
                 TextField("차량번호", text: $viewModel.carNo)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .textFieldStyle(.plain)
                     .padding(12)
-                    .background(VehicleTheme.tileFill, in: RoundedRectangle(cornerRadius: 10))
+                    .background(Color.slate500.opacity(0.10), in: RoundedRectangle(cornerRadius: 10))
 
                 if let error = viewModel.validationError {
                     Text(error)
                         .font(.caption)
-                        .foregroundStyle(VehicleTheme.danger)
+                        .foregroundStyle(Color.red500)
                 }
 
                 // 저장된 게 없으면 감춘다 — 눌러 봐야 빈 목록이다.
@@ -124,7 +122,7 @@ struct VisitorCarRegisterView: View {
                     } label: {
                         Label("자주 쓰는 차량 선택", systemImage: "bookmark")
                             .font(.subheadline)
-                            .foregroundStyle(VehicleTheme.accent)
+                            .foregroundStyle(Color.blue600)
                     }
                     .buttonStyle(.plain)
                 }
@@ -137,25 +135,25 @@ struct VisitorCarRegisterView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Label("방문 기간", systemImage: "calendar")
                     .font(.headline)
-                    .foregroundStyle(VehicleTheme.textPrimary)
+                    .foregroundStyle(Color.slate900)
 
                 DatePicker("시작일", selection: $viewModel.startDate, displayedComponents: .date)
-                Divider().overlay(VehicleTheme.cardStroke)
+                Divider()
                 DatePicker("종료일", selection: $viewModel.endDate, displayedComponents: .date)
 
-                Divider().overlay(VehicleTheme.cardStroke)
+                Divider()
 
                 TextField("방문사유 (선택)", text: $viewModel.visitReason)
                     .textFieldStyle(.plain)
                     .padding(12)
-                    .background(VehicleTheme.tileFill, in: RoundedRectangle(cornerRadius: 10))
+                    .background(Color.slate500.opacity(0.10), in: RoundedRectangle(cornerRadius: 10))
                     // 서버 폼이 20자로 잘라 둔 칸이다 — 수정 시트와 같은 규칙을 쓴다.
                     .onChange(of: viewModel.visitReason) {
                         viewModel.visitReason = VisitorCarValidation.clampVisitReason(viewModel.visitReason)
                     }
             }
             .font(.subheadline)
-            .foregroundStyle(VehicleTheme.textSecondary)
+            .foregroundStyle(Color.slate700)
         }
         // 시작일·종료일 선택기가 기기 시간대가 아니라 한국 시각으로 뜨고 움직이게 한다.
         .seoulDatePickerEnvironment()
@@ -168,7 +166,7 @@ struct VisitorCarRegisterView: View {
             HStack {
                 Spacer()
                 if viewModel.isSubmitting {
-                    ProgressView().tint(VehicleTheme.background)
+                    ProgressView().tint(Color.white)
                 } else {
                     Text("방문 차량 등록").fontWeight(.semibold)
                 }
@@ -176,10 +174,10 @@ struct VisitorCarRegisterView: View {
             }
             .padding(.vertical, 14)
             .background(
-                viewModel.canSubmit ? VehicleTheme.accent : VehicleTheme.trackFill,
+                viewModel.canSubmit ? Color.blue600 : Color.slate200,
                 in: RoundedRectangle(cornerRadius: 12)
             )
-            .foregroundStyle(viewModel.canSubmit ? VehicleTheme.background : VehicleTheme.textTertiary)
+            .foregroundStyle(viewModel.canSubmit ? Color.white : Color.slate500)
         }
         .buttonStyle(.plain)
         .disabled(!viewModel.canSubmit)

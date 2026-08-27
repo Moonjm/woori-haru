@@ -26,7 +26,6 @@ struct VisitorCarSettingsView: View {
             .padding(GlassTokens.cardPadding)
         }
         .glassScreenBackground()
-        .vehicleDarkTheme()
         .navigationTitle("방문차량 설정")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -52,11 +51,11 @@ struct VisitorCarSettingsView: View {
         GlassCard {
             HStack(alignment: .top, spacing: 10) {
                 Image(systemName: "info.circle")
-                    .foregroundStyle(VehicleTheme.textTertiary)
+                    .foregroundStyle(Color.slate500)
                 // 참고 앱과 같은 안내다. 서버에 올리지 않는다는 사실을 사용자가 알아야 한다.
                 Text("자주 쓰는 차량 정보는 이 기기에만 저장됩니다. 앱을 지우거나 기기를 바꾸면 사라집니다.")
                     .font(.caption)
-                    .foregroundStyle(VehicleTheme.textTertiary)
+                    .foregroundStyle(Color.slate500)
             }
         }
     }
@@ -66,24 +65,24 @@ struct VisitorCarSettingsView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Label("차량 추가", systemImage: "bookmark")
                     .font(.headline)
-                    .foregroundStyle(VehicleTheme.textPrimary)
+                    .foregroundStyle(Color.slate900)
 
                 TextField("별칭", text: $nickname)
                     .textFieldStyle(.plain)
                     .padding(12)
-                    .background(VehicleTheme.tileFill, in: RoundedRectangle(cornerRadius: 10))
+                    .background(Color.slate500.opacity(0.10), in: RoundedRectangle(cornerRadius: 10))
 
                 TextField("차량번호", text: $carNo)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .textFieldStyle(.plain)
                     .padding(12)
-                    .background(VehicleTheme.tileFill, in: RoundedRectangle(cornerRadius: 10))
+                    .background(Color.slate500.opacity(0.10), in: RoundedRectangle(cornerRadius: 10))
 
                 if let addError {
                     Text(addError)
                         .font(.caption)
-                        .foregroundStyle(VehicleTheme.danger)
+                        .foregroundStyle(Color.red500)
                 }
 
                 Button {
@@ -97,8 +96,8 @@ struct VisitorCarSettingsView: View {
                         .fontWeight(.semibold)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
-                        .background(VehicleTheme.accent, in: RoundedRectangle(cornerRadius: 10))
-                        .foregroundStyle(VehicleTheme.background)
+                        .background(Color.blue600, in: RoundedRectangle(cornerRadius: 10))
+                        .foregroundStyle(Color.white)
                 }
                 .buttonStyle(.plain)
             }
@@ -111,31 +110,31 @@ struct VisitorCarSettingsView: View {
             VStack(alignment: .leading, spacing: 10) {
                 Text("저장된 차량")
                     .font(.headline)
-                    .foregroundStyle(VehicleTheme.textPrimary)
+                    .foregroundStyle(Color.slate900)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 ForEach(store.cars) { car in
                     GlassCard {
                         HStack(spacing: 12) {
                             Image(systemName: "car")
-                                .foregroundStyle(VehicleTheme.accent)
+                                .foregroundStyle(Color.blue600)
                                 .frame(width: 40, height: 40)
-                                .background(VehicleTheme.tileFill, in: RoundedRectangle(cornerRadius: 10))
+                                .background(Color.slate500.opacity(0.10), in: RoundedRectangle(cornerRadius: 10))
 
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(car.nickname)
                                     .font(.subheadline).fontWeight(.semibold)
-                                    .foregroundStyle(VehicleTheme.textPrimary)
+                                    .foregroundStyle(Color.slate900)
                                 Text(car.carNo)
                                     .font(.caption)
-                                    .foregroundStyle(VehicleTheme.textTertiary)
+                                    .foregroundStyle(Color.slate500)
                             }
 
                             Spacer(minLength: 0)
 
                             Button { store.remove(id: car.id) } label: {
                                 Image(systemName: "trash")
-                                    .foregroundStyle(VehicleTheme.textTertiary)
+                                    .foregroundStyle(Color.slate500)
                                     .frame(width: 44, height: 44)
                                     .contentShape(Rectangle())
                             }
@@ -155,7 +154,7 @@ struct VisitorCarSettingsView: View {
             showingLogoutConfirm = true
         } label: {
             Image(systemName: "rectangle.portrait.and.arrow.right")
-                .foregroundStyle(VehicleTheme.danger)
+                .foregroundStyle(Color.red500)
         }
         .accessibilityLabel("로그아웃")
     }

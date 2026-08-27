@@ -21,11 +21,11 @@ struct VisitorCarLoginCard: View {
             VStack(alignment: .leading, spacing: 14) {
                 Label("주차관제 로그인", systemImage: "person.badge.key")
                     .font(.headline)
-                    .foregroundStyle(VehicleTheme.textPrimary)
+                    .foregroundStyle(Color.slate900)
 
                 Text("아파트 주차관제 계정으로 한 번만 로그인하면 됩니다.")
                     .font(.caption)
-                    .foregroundStyle(VehicleTheme.textTertiary)
+                    .foregroundStyle(Color.slate500)
 
                 TextField("아이디", text: $id)
                     .textInputAutocapitalization(.never)
@@ -33,18 +33,18 @@ struct VisitorCarLoginCard: View {
                     .keyboardType(.numberPad)
                     .textFieldStyle(.plain)
                     .padding(12)
-                    .background(VehicleTheme.tileFill, in: RoundedRectangle(cornerRadius: 10))
+                    .background(Color.slate500.opacity(0.10), in: RoundedRectangle(cornerRadius: 10))
 
                 SecureField("비밀번호", text: $password)
                     .textFieldStyle(.plain)
                     .padding(12)
-                    .background(VehicleTheme.tileFill, in: RoundedRectangle(cornerRadius: 10))
+                    .background(Color.slate500.opacity(0.10), in: RoundedRectangle(cornerRadius: 10))
 
                 if let error {
                     // 서버가 준 한국어를 그대로 띄운다.
                     Text(error)
                         .font(.caption)
-                        .foregroundStyle(VehicleTheme.danger)
+                        .foregroundStyle(Color.red500)
                 }
 
                 Button {
@@ -53,7 +53,7 @@ struct VisitorCarLoginCard: View {
                     HStack {
                         Spacer()
                         if isSubmitting {
-                            ProgressView().tint(VehicleTheme.background)
+                            ProgressView().tint(Color.white)
                         } else {
                             Text("로그인").fontWeight(.semibold)
                         }
@@ -61,10 +61,10 @@ struct VisitorCarLoginCard: View {
                     }
                     .padding(.vertical, 12)
                     .background(
-                        canSubmit ? VehicleTheme.accent : VehicleTheme.trackFill,
+                        canSubmit ? Color.blue600 : Color.slate200,
                         in: RoundedRectangle(cornerRadius: 10)
                     )
-                    .foregroundStyle(canSubmit ? VehicleTheme.background : VehicleTheme.textTertiary)
+                    .foregroundStyle(canSubmit ? Color.white : Color.slate500)
                 }
                 .buttonStyle(.plain)
                 .disabled(!canSubmit)

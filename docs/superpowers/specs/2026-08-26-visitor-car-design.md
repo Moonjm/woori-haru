@@ -6,7 +6,7 @@
 
 **이 문서에 실린 아이디·동·호·차량번호는 전부 자리를 채우려고 지어낸 값이다.** 실제 값은 문서에 남기지 않는다 — 계정은 Keychain에, 동·호는 사이트가 응답으로 준다.
 
-**따라가는 선례:** 미니앱 껍데기·다크 테마·글래스 탭바는 `docs/superpowers/specs/2026-08-23-maintenance-bills-design.md`(관리비)와 `2026-08-13-vehicle-mini-app-design.md`(차량)를 그대로 물려받는다.
+**따라가는 선례:** 미니앱 껍데기·글래스 탭바는 `docs/superpowers/specs/2026-08-23-maintenance-bills-design.md`(관리비)와 `2026-08-13-vehicle-mini-app-design.md`(차량)를 그대로 물려받는다.
 
 ## 배경
 
@@ -255,7 +255,9 @@ VisitorCarView (화면)
 
 ## 화면
 
-전부 `VehicleTheme` 다크 + 글래스 카드. 관리비 미니앱과 같은 껍데기다.
+전부 글래스 카드 + **밝은 팔레트**(`Color.slate*`/`blue600`/`red500`). 껍데기는 관리비
+미니앱과 같지만 색은 차량·관리비의 `VehicleTheme` 다크를 쓰지 않는다 — 가계부·식단처럼
+밝은 화면 쪽에 붙는다.
 
 ### 홈 — `VisitorCarView`
 
