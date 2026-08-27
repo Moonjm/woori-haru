@@ -58,7 +58,19 @@ final class VisitorCarBookingsViewModel {
         errorMessage = nil
         do {
             try await service.delete(id: id)
+            // 지운 줄부터 먼저 빼서 곧바로 반영한다 — 뒤이은 재조회가 실패해도
+            // (일시적 끊김 등) 최소한 방금 지운 줄만큼은 목록에서 맞다.
             bookings.removeAll { $0.id == id }
+            // **서버는 offset으로 페이지를 나눈다.** 지운 줄 뒤의 레코드는 모두 한 칸씩
+            // 앞으로 밀린다 — 예를 들어 0쪽 10개를 지운 뒤 「더 보기」가 여전히
+            // `loadedPage + 1`쪽을 요청하면, 새로 0쪽 끝으로 밀려온 옛 11번째 레코드는
+            // 어느 페이지 요청에도 걸리지 않고 통째로 건너뛰어 사라진다. `update()`가
+            // 같은 이유로 재조회하는 것과 같은 조치다 — 서버가 순서를 어떻게 다시
+            // 매겼는지 우리는 알 수 없으므로 0쪽부터 다시 읽어 맞춘다.
+            // **대가:** 「더 보기」로 쌓아 둔 뒤쪽 페이지는 여기서 버려지고 0쪽만 남는다.
+            // 목록이 짧아 보이는 건 한 번 더 누르면 되지만, 레코드가 조용히 빠지는
+            // 쪽은 되돌릴 방법이 없다 — 후자를 피하는 게 이 트레이드오프의 이유다.
+            await search()
             return true
         } catch {
             errorMessage = error.localizedDescription

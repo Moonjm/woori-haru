@@ -105,7 +105,11 @@ struct VisitorCarBookingsTests {
 
     @Test func 삭제하면_목록에서_빠진다() async {
         let transport = FakeVisitorCarTransport()
-        transport.stub(Self.path, FakeVisitorCarTransport.ok(page(ids: [1, 2], totalPages: 1, number: 0)))
+        transport.enqueue(Self.path, FakeVisitorCarTransport.ok(page(ids: [1, 2], totalPages: 1, number: 0)))
+        // 삭제 뒤에는 `delete(id:)`가 0쪽을 다시 읽는다 — 서버에서도 실제로 빠진
+        // 상태를 흉내 낸다. 여기서 응답을 그대로 두면(같은 [1, 2]) 재조회가 지운
+        // 줄을 되살려 버려 아래 단언이 실패한다.
+        transport.enqueue(Self.path, FakeVisitorCarTransport.ok(page(ids: [2], totalPages: 1, number: 0)))
         transport.stub("/book-car/delete", FakeVisitorCarTransport.ok(VisitorCarFixture.successResult))
         let viewModel = VisitorCarBookingsViewModel(service: makeService(transport: transport))
         await viewModel.search()
@@ -116,7 +120,34 @@ struct VisitorCarBookingsTests {
         #expect(viewModel.bookings.map(\.id) == [2])
     }
 
+    /// **회귀 시험.** 서버는 offset으로 페이지를 나눈다 — 0쪽만 불러온 상태에서 지우면
+    /// 아직 못 읽은 1쪽의 맨 앞 레코드가 0쪽 끝으로 한 칸 밀린다. `loadMore()`는 여전히
+    /// `loadedPage + 1`(=1쪽)을 요청하므로, `await search()`로 0쪽부터 다시 맞추지
+    /// 않으면 밀려온 레코드(여기서는 11번)는 어느 페이지 요청에도 걸리지 않고 사라진다.
+    /// `delete(id:)`에서 `await search()`를 지우면 이 시험은 실패한다.
+    @Test func 삭제하면_페이지매김을_0쪽부터_다시_맞춘다() async {
+        let transport = FakeVisitorCarTransport()
+        transport.enqueue(Self.path, FakeVisitorCarTransport.ok(page(ids: Array(1...10), totalPages: 2, number: 0)))
+        // 삭제 뒤 재조회 — 1번이 빠지고, 1쪽 맨 앞이던 11번이 0쪽 끝으로 밀려온
+        // 상태를 흉내 낸다.
+        transport.enqueue(Self.path, FakeVisitorCarTransport.ok(page(ids: Array(2...11), totalPages: 2, number: 0)))
+        transport.stub("/book-car/delete", FakeVisitorCarTransport.ok(VisitorCarFixture.successResult))
+        let viewModel = VisitorCarBookingsViewModel(service: makeService(transport: transport))
+        await viewModel.search()
+        #expect(viewModel.hasMore)
+
+        let deleted = await viewModel.delete(id: 1)
+
+        #expect(deleted)
+        // 0쪽 조회가 한 번 더 나갔다 — 삭제만으로 페이지매김을 손으로 기우지 않는다.
+        #expect(transport.callCount(Self.path) == 2)
+        // 11번은 삭제 전엔 1쪽에 있었다. 재조회 없이는 이 자리에 나타날 수 없다.
+        #expect(viewModel.bookings.map(\.id) == Array(2...11))
+    }
+
     /// **입차 후에는 서버가 거절한다.** 앱이 그 조건을 흉내 내지 않고, 거절 문구를 그대로 띄운다.
+    /// 거절이면 지운 게 없으니 재조회로 페이지매김을 다시 맞출 이유도 없다 — 조회 호출이
+    /// 늘지 않아야 한다.
     @Test func 삭제가_거절되면_목록을_건드리지_않는다() async {
         let transport = FakeVisitorCarTransport()
         transport.stub(Self.path, FakeVisitorCarTransport.ok(page(ids: [1, 2], totalPages: 1, number: 0)))
@@ -126,10 +157,12 @@ struct VisitorCarBookingsTests {
         )
         let viewModel = VisitorCarBookingsViewModel(service: makeService(transport: transport))
         await viewModel.search()
+        let callsBefore = transport.callCount(Self.path)
 
         let deleted = await viewModel.delete(id: 1)
 
         #expect(!deleted)
+        #expect(transport.callCount(Self.path) == callsBefore)
         #expect(viewModel.bookings.map(\.id) == [1, 2])
         #expect(viewModel.errorMessage == "입차 후 삭제 불가능합니다.")
     }
