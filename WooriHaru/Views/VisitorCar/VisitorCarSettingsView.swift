@@ -22,7 +22,6 @@ struct VisitorCarSettingsView: View {
                 noticeCard
                 addCard
                 savedCars
-                logoutButton
             }
             .padding(GlassTokens.cardPadding)
         }
@@ -30,6 +29,11 @@ struct VisitorCarSettingsView: View {
         .vehicleDarkTheme()
         .navigationTitle("방문차량 설정")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                logoutButton
+            }
+        }
         .alert("로그아웃", isPresented: $showingLogoutConfirm) {
             Button("로그아웃", role: .destructive) {
                 Task {
@@ -144,17 +148,15 @@ struct VisitorCarSettingsView: View {
         }
     }
 
+    /// **툴바 아이콘 하나로 둔다.** 목록 아래 폭 꽉 찬 버튼은 자주 쓰지도 않는 일에
+    /// 화면을 너무 많이 쓴다 — 드로어의 로그아웃과 같은 모양으로 맞춘다.
     private var logoutButton: some View {
         Button(role: .destructive) {
             showingLogoutConfirm = true
         } label: {
-            Label("로그아웃", systemImage: "rectangle.portrait.and.arrow.right")
-                .fontWeight(.semibold)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .background(VehicleTheme.danger.opacity(0.15), in: RoundedRectangle(cornerRadius: 10))
+            Image(systemName: "rectangle.portrait.and.arrow.right")
                 .foregroundStyle(VehicleTheme.danger)
         }
-        .buttonStyle(.plain)
+        .accessibilityLabel("로그아웃")
     }
 }
