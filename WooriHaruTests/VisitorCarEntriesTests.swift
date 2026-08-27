@@ -56,6 +56,26 @@ struct VisitorCarEntriesTests {
         #expect(VisitorCarDateFormat.second.string(from: viewModel.to).hasSuffix("23:59:59"))
     }
 
+    /// 선택기가 기간을 역전으로 둘 수 있다(`in:` 제약이 없다). 역전 기간을 서버로 보내면
+    /// 오류나 빈 목록으로 「입출차 내역이 사라졌다」는 오해를 산다 — 여기서 먼저 막는다.
+    @Test func 시작일이_종료일보다_뒤면_조회하지_않는다() async {
+        let transport = FakeVisitorCarTransport()
+        transport.stub(Self.path, FakeVisitorCarTransport.ok(Self.onePage))
+        let viewModel = VisitorCarEntriesViewModel(service: makeService(transport: transport))
+        await viewModel.search()
+        #expect(viewModel.entries.map(\.id) == [354751])
+        let callsBefore = transport.callCount(Self.path)
+
+        viewModel.from = Date(timeIntervalSince1970: 1784300400) // 2026-07-18
+        viewModel.to = viewModel.from.addingTimeInterval(-86_400) // 2026-07-17
+        await viewModel.search()
+
+        #expect(viewModel.errorMessage == "종료일이 시작일보다 앞설 수 없습니다.")
+        #expect(transport.callCount(Self.path) == callsBefore)
+        // 검증 실패는 실패한 조회와 같은 규칙이다 — 보고 있던 목록을 지우지 않는다.
+        #expect(viewModel.entries.map(\.id) == [354751])
+    }
+
     @Test func 조회하면_목록을_채운다() async {
         let transport = FakeVisitorCarTransport()
         transport.stub(Self.path, FakeVisitorCarTransport.ok(Self.onePage))

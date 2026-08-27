@@ -27,6 +27,14 @@ final class VisitorCarBookingsViewModel {
     }
 
     func search() async {
+        // 선택기가 기간을 역전으로 두게 둘 수 있다(둘 다 `in:` 제약이 없다). 역전 기간을
+        // 그대로 보내면 서버가 오류를 주거나, 더 나쁘게는 빈 목록을 줘서 「등록 내역이
+        // 사라졌다」는 오해를 산다 — 등록 화면·수정과 같은 규칙으로 여기서도 먼저 막는다.
+        if let error = VisitorCarValidation.periodError(start: from, end: to) {
+            errorMessage = error
+            return
+        }
+
         // **처음부터 채운다.** 이어 붙이면 조건이 바뀐 결과와 섞인다.
         // **단, 성공했을 때만 갈아 끼운다** — 재조회가 실패하면(일시적 끊김 등) 이전 목록을
         // 지우지 않는다. 지워 버리면 「저장은 됐는데 목록이 텅 비어 보이는」 상황이 생긴다.

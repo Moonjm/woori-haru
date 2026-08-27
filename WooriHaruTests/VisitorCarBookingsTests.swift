@@ -40,6 +40,26 @@ struct VisitorCarBookingsTests {
         #expect(calendar.isDate(viewModel.to, inSameDayAs: try #require(expected)))
     }
 
+    /// 선택기가 기간을 역전으로 둘 수 있다(`in:` 제약이 없다). 역전 기간을 서버로 보내면
+    /// 오류나 빈 목록으로 「등록 내역이 사라졌다」는 오해를 산다 — 여기서 먼저 막는다.
+    @Test func 시작일이_종료일보다_뒤면_조회하지_않는다() async {
+        let transport = FakeVisitorCarTransport()
+        transport.stub(Self.path, FakeVisitorCarTransport.ok(page(ids: [1], totalPages: 1, number: 0)))
+        let viewModel = VisitorCarBookingsViewModel(service: makeService(transport: transport))
+        await viewModel.search()
+        #expect(viewModel.bookings.map(\.id) == [1])
+        let callsBefore = transport.callCount(Self.path)
+
+        viewModel.from = Date(timeIntervalSince1970: 1784300400) // 2026-07-18
+        viewModel.to = viewModel.from.addingTimeInterval(-86_400) // 2026-07-17
+        await viewModel.search()
+
+        #expect(viewModel.errorMessage == "종료일이 시작일보다 앞설 수 없습니다.")
+        #expect(transport.callCount(Self.path) == callsBefore)
+        // 검증 실패는 실패한 조회와 같은 규칙이다 — 보고 있던 목록을 지우지 않는다.
+        #expect(viewModel.bookings.map(\.id) == [1])
+    }
+
     @Test func 조회하면_목록을_채운다() async throws {
         let transport = FakeVisitorCarTransport()
         transport.stub(Self.path, FakeVisitorCarTransport.ok(page(ids: [1, 2], totalPages: 1, number: 0)))
@@ -126,7 +146,9 @@ struct VisitorCarBookingsTests {
         #expect(viewModel.hasMore)
 
         // 조건을 바꾸고 재조회한다 — 이번엔 서버 응답이 깨져서 실패한다.
-        viewModel.to = Date(timeIntervalSince1970: 0)
+        // **과거로 되돌리지 않는다** — 기간 검증이 먼저 막아 서버까지 가지 않으면
+        // 이 테스트가 확인하려는 「깨진 응답이 hasMore를 되돌리는지」를 시험할 수 없다.
+        viewModel.to = viewModel.to.addingTimeInterval(86_400)
         await viewModel.search()
 
         #expect(!viewModel.hasMore)
@@ -145,7 +167,9 @@ struct VisitorCarBookingsTests {
         #expect(viewModel.bookings.map(\.id) == [1, 2])
 
         // 조건을 바꾸고 재조회한다 — 이번엔 서버 응답이 깨져서 실패한다.
-        viewModel.to = Date(timeIntervalSince1970: 0)
+        // **과거로 되돌리지 않는다** — 기간 검증이 먼저 막아 서버까지 가지 않으면
+        // 이 테스트가 확인하려는 「깨진 응답이 목록을 지우지 않는지」를 시험할 수 없다.
+        viewModel.to = viewModel.to.addingTimeInterval(86_400)
         await viewModel.search()
 
         #expect(viewModel.bookings.map(\.id) == [1, 2])
