@@ -530,7 +530,7 @@ struct VisitorCarSessionTests {
     /// 있었다"로 읽어, 로그아웃한 적도 없는데 방금 로그인한 사용자를 조용히 다시
     /// 로그아웃시키는 버그가 생긴다 — 로그아웃 전용 세대(`logoutGeneration`)로 갈라야
     /// 이 경우와 진짜 로그아웃을 구분할 수 있다.
-    @Test func 재로그인_완료_전에_더_새_로그인이_성공해도_쿠키를_지키지_않는다() async throws {
+    @Test func 재로그인_완료_전에_더_새_로그인이_성공하면_쿠키를_지우지_않는다() async throws {
         let transport = FakeVisitorCarTransport()
         transport.stub("/do-login", FakeVisitorCarTransport.loginSuccess())
         let store = FakeCredentialStore(stored: VisitorCarCredentials(id: "10010101", password: "비밀"))
