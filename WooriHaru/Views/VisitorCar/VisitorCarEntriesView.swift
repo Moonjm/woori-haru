@@ -1,3 +1,7 @@
+// **`Combine`을 직접 들인다.** 아래 `ticker`가 `Publishers.Autoconnect`를 값으로 갖는데,
+// `@State` 매크로가 펼쳐 만드는 저장 프로퍼티는 그 타입 이름을 이 파일 안에서 다시 적는다
+// — SwiftUI가 재수출해 주는 것만으로는 매크로가 만든 파일이 타입을 못 찾는다.
+import Combine
 import SwiftUI
 
 /// 우리 세대 차량의 입출차 현황.
