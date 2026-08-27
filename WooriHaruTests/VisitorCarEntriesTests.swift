@@ -88,6 +88,42 @@ struct VisitorCarEntriesTests {
         #expect(!viewModel.hasMore)
     }
 
+    /// **F3 회귀.** 조회 뒤 사용자가 다음 조회를 위해 픽커만 미리 바꿔 둘 수 있다(조회
+    /// 버튼은 안 누른 채). 「더 보기」는 그 새 값이 아니라 **방금 조회했던 기간**의
+    /// 다음 페이지를 이어야 한다 — 자매 화면(등록 내역 조회)과 같은 회귀다.
+    @Test func 더_보기는_조회_뒤_바뀐_픽커가_아니라_제출한_기간을_쓴다() async throws {
+        let secondPage = """
+        {"message":"200","data":{"content":[
+          {"id":999999,"inDate":1784357197,"outDate":null,"outChk":0,
+           "carNo":"34나5678","name":"","startDate":1784300400,"endDate":1784386799,
+           "updateDate":1784356046}],
+          "totalElements":20,"totalPages":2,"number":1,"size":10,"first":false,"last":true}}
+        """
+        let transport = FakeVisitorCarTransport()
+        transport.enqueue(Self.path, FakeVisitorCarTransport.ok(Self.pageWithMore))
+        transport.enqueue(Self.path, FakeVisitorCarTransport.ok(secondPage))
+        let viewModel = VisitorCarEntriesViewModel(service: makeService(transport: transport))
+        let submittedFrom = viewModel.from
+        let submittedTo = viewModel.to
+
+        await viewModel.search()
+        #expect(viewModel.hasMore)
+
+        // 조회 버튼은 안 누른 채, 픽커만 완전히 다른 날(2026년 10월 즈음)로 바꿔 둔다.
+        viewModel.from = Date(timeIntervalSince1970: 1_790_000_000)
+        viewModel.to = Date(timeIntervalSince1970: 1_790_100_000)
+
+        await viewModel.loadMore()
+
+        // 방금 조회했던 기간의 다음 페이지가 이어 붙었다 — 픽커의 새 기간과 섞이지 않는다.
+        #expect(viewModel.entries.map(\.id) == [354751, 999999])
+
+        let secondRequest = try #require(transport.jsonBodies.filter { $0.path == Self.path }.dropFirst().first)
+        let sent = try #require(try JSONSerialization.jsonObject(with: secondRequest.body) as? [String: Any])
+        #expect(sent["startDate"] as? String == VisitorCarDateFormat.second.string(from: submittedFrom))
+        #expect(sent["endDate"] as? String == VisitorCarDateFormat.second.string(from: submittedTo))
+    }
+
     /// **아직 안 나간 차는 시간이 흘러야 한다.** `tick()`이 기준 시각을 밀어 준다.
     @Test func tick하면_기준_시각이_지금으로_바뀐다() {
         let viewModel = VisitorCarEntriesViewModel(service: makeService(transport: FakeVisitorCarTransport()))

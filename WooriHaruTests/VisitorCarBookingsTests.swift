@@ -88,6 +88,36 @@ struct VisitorCarBookingsTests {
         #expect(!viewModel.hasMore)
     }
 
+    /// **F3 회귀.** 조회 뒤 사용자가 다음 조회를 위해 픽커만 미리 바꿔 둘 수 있다(조회
+    /// 버튼은 안 누른 채). 「더 보기」는 그 새 값이 아니라 **방금 조회했던 기간**의
+    /// 다음 페이지를 이어야 한다 — `search()`의 주석대로 「이어 붙이면 조건이 바뀐
+    /// 결과와 섞인다」가 `loadMore()`에도 그대로 적용된다.
+    @Test func 더_보기는_조회_뒤_바뀐_픽커가_아니라_제출한_기간을_쓴다() async throws {
+        let transport = FakeVisitorCarTransport()
+        transport.enqueue(Self.path, FakeVisitorCarTransport.ok(page(ids: [1, 2], totalPages: 2, number: 0)))
+        transport.enqueue(Self.path, FakeVisitorCarTransport.ok(page(ids: [3, 4], totalPages: 2, number: 1)))
+        let viewModel = VisitorCarBookingsViewModel(service: makeService(transport: transport))
+        let submittedFrom = viewModel.from
+        let submittedTo = viewModel.to
+
+        await viewModel.search()
+        #expect(viewModel.hasMore)
+
+        // 조회 버튼은 안 누른 채, 픽커만 완전히 다른 기간(2026년 10월 즈음)으로 바꿔 둔다.
+        viewModel.from = Date(timeIntervalSince1970: 1_790_000_000)
+        viewModel.to = Date(timeIntervalSince1970: 1_790_100_000)
+
+        await viewModel.loadMore()
+
+        // 방금 조회했던 기간의 다음 페이지가 이어 붙었다 — 픽커의 새 기간과 섞이지 않는다.
+        #expect(viewModel.bookings.map(\.id) == [1, 2, 3, 4])
+
+        let secondRequest = try #require(transport.jsonBodies.filter { $0.path == Self.path }.dropFirst().first)
+        let sent = try #require(try JSONSerialization.jsonObject(with: secondRequest.body) as? [String: Any])
+        #expect(sent["startDate"] as? String == VisitorCarDateFormat.day.string(from: submittedFrom))
+        #expect(sent["endDate"] as? String == VisitorCarDateFormat.day.string(from: submittedTo))
+    }
+
     /// 다시 조회하면 **처음부터** 채운다 — 이어 붙이면 조건이 바뀐 결과와 섞인다.
     @Test func 다시_조회하면_처음부터_채운다() async {
         let transport = FakeVisitorCarTransport()
