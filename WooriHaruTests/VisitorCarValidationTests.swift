@@ -50,6 +50,37 @@ struct VisitorCarValidationTests {
         #expect(VisitorCarValidation.periodError(start: start, end: end) == nil)
     }
 
+    // MARK: - 시각 (P2, `timeRangeError` — 차량 진입 현황 화면 전용)
+
+    @Test func 같은_시각은_통과한다() {
+        let instant = Date(timeIntervalSince1970: 1784300400)
+        #expect(VisitorCarValidation.timeRangeError(start: instant, end: instant) == nil)
+    }
+
+    @Test func 시작보다_이른_종료를_막는다() {
+        let start = Date(timeIntervalSince1970: 1784300400 + 3600 * 18) // 18:00
+        let end = Date(timeIntervalSince1970: 1784300400 + 3600 * 9)    // 09:00, 같은 날
+        #expect(
+            VisitorCarValidation.timeRangeError(start: start, end: end)
+                == "종료 시각이 시작 시각보다 앞설 수 없습니다."
+        )
+    }
+
+    /// **`periodError`와의 결정적 차이.** `periodError`는 같은 날이면 시각이 거꾸로여도
+    /// 통과시키지만(위 `같은_날이면_시각이_거꾸로여도_통과한다`), `timeRangeError`는
+    /// 같은 날 안에서도 순서를 본다 — 두 규칙이 진짜로 다른 규칙임을 여기서 증명한다.
+    @Test func 같은_날이어도_시각이_거꾸로면_막는다() {
+        let start = Date(timeIntervalSince1970: 1784300400 + 3600 * 20)
+        let end = Date(timeIntervalSince1970: 1784300400 + 3600)
+        #expect(VisitorCarValidation.timeRangeError(start: start, end: end) != nil)
+    }
+
+    @Test func 종료가_시작보다_늦으면_통과한다() {
+        let start = Date(timeIntervalSince1970: 1784300400)
+        let end = start.addingTimeInterval(3600)
+        #expect(VisitorCarValidation.timeRangeError(start: start, end: end) == nil)
+    }
+
     // MARK: - 방문사유
 
     /// 등록 화면과 수정 시트가 같은 규칙을 쓰도록 한 곳에 모아 둔 값이다.

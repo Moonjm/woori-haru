@@ -58,6 +58,9 @@ struct VisitorCarEntriesTests {
 
     /// 선택기가 기간을 역전으로 둘 수 있다(`in:` 제약이 없다). 역전 기간을 서버로 보내면
     /// 오류나 빈 목록으로 「입출차 내역이 사라졌다」는 오해를 산다 — 여기서 먼저 막는다.
+    ///
+    /// **`periodError`가 아니라 `timeRangeError`를 쓴다(P2)** — 이 화면은 시각까지 다루므로
+    /// 문구도 「종료 시각이…」다. 날짜만 보는 `periodError`의 「종료일이…」 문구가 아니다.
     @Test func 시작일이_종료일보다_뒤면_조회하지_않는다() async {
         let transport = FakeVisitorCarTransport()
         transport.stub(Self.path, FakeVisitorCarTransport.ok(Self.onePage))
@@ -70,9 +73,50 @@ struct VisitorCarEntriesTests {
         viewModel.to = viewModel.from.addingTimeInterval(-86_400) // 2026-07-17
         await viewModel.search()
 
-        #expect(viewModel.errorMessage == "종료일이 시작일보다 앞설 수 없습니다.")
+        #expect(viewModel.errorMessage == "종료 시각이 시작 시각보다 앞설 수 없습니다.")
         #expect(transport.callCount(Self.path) == callsBefore)
         // 검증 실패는 실패한 조회와 같은 규칙이다 — 보고 있던 목록을 지우지 않는다.
+        #expect(viewModel.entries.map(\.id) == [354751])
+    }
+
+    /// **P2 핵심 회귀.** 같은 날 안에서 시각이 거꾸로면(예: 「오후만」 보려고 18:00 →
+    /// 09:00으로 좁히면) `periodError`는 날짜만 봐서 통과시키지만, `entries()`는 그 시각을
+    /// 그대로 서버에 보낸다 — 역전된 채로 나가 서버 오류나 「내역이 없습니다」로 보인다.
+    /// 여기서 막고, 전송이 아예 나가지 않는지까지 확인한다.
+    @Test func 같은_날_시각이_거꾸로면_조회하지_않는다() async {
+        let transport = FakeVisitorCarTransport()
+        transport.stub(Self.path, FakeVisitorCarTransport.ok(Self.onePage))
+        let viewModel = VisitorCarEntriesViewModel(service: makeService(transport: transport))
+
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = VisitorCarDateFormat.seoulTimeZone
+        let day = calendar.startOfDay(for: Date(timeIntervalSince1970: 1784300400)) // 2026-07-18 00:00 KST
+        viewModel.from = calendar.date(byAdding: .hour, value: 18, to: day)! // 18:00
+        viewModel.to = calendar.date(byAdding: .hour, value: 9, to: day)!    // 09:00 — 같은 날, 거꾸로
+
+        await viewModel.search()
+
+        #expect(viewModel.errorMessage == "종료 시각이 시작 시각보다 앞설 수 없습니다.")
+        #expect(transport.callCount(Self.path) == 0)
+        #expect(viewModel.entries.isEmpty)
+    }
+
+    /// 같은 날 안에서 시각이 정방향이면(09:00 → 18:00) 그대로 통과한다.
+    @Test func 같은_날_시각이_정방향이면_조회한다() async {
+        let transport = FakeVisitorCarTransport()
+        transport.stub(Self.path, FakeVisitorCarTransport.ok(Self.onePage))
+        let viewModel = VisitorCarEntriesViewModel(service: makeService(transport: transport))
+
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = VisitorCarDateFormat.seoulTimeZone
+        let day = calendar.startOfDay(for: Date(timeIntervalSince1970: 1784300400))
+        viewModel.from = calendar.date(byAdding: .hour, value: 9, to: day)!  // 09:00
+        viewModel.to = calendar.date(byAdding: .hour, value: 18, to: day)!  // 18:00
+
+        await viewModel.search()
+
+        #expect(viewModel.errorMessage == nil)
+        #expect(transport.callCount(Self.path) == 1)
         #expect(viewModel.entries.map(\.id) == [354751])
     }
 

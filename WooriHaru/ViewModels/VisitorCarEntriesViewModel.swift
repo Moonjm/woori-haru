@@ -49,8 +49,15 @@ final class VisitorCarEntriesViewModel {
     func search() async {
         // 선택기가 기간을 역전으로 두게 둘 수 있다(둘 다 `in:` 제약이 없다). 역전 기간을
         // 그대로 보내면 서버가 오류를 주거나, 더 나쁘게는 빈 목록을 줘서 「입출차 내역이
-        // 사라졌다」는 오해를 산다 — 등록 내역 조회와 같은 규칙으로 여기서도 먼저 막는다.
-        if let error = VisitorCarValidation.periodError(start: from, end: to) {
+        // 사라졌다」는 오해를 산다 — 여기서 먼저 막는다.
+        //
+        // **`periodError`가 아니라 `timeRangeError`를 쓴다(P2).** 이 화면의 피커는
+        // 시·분까지 받고, `entries()`가 그 정확한 시각을 그대로 서버에 보낸다.
+        // `periodError`는 날짜만 견주므로 같은 날 안에서 시각이 거꾸로면(예: 18:00 →
+        // 09:00, 기본 범위가 오늘 00:00~23:59이니 「오후만」으로 좁히면 곧바로 만난다)
+        // 통과시켜 버린다 — 등록·예약 조회(날짜만 고르는 화면)를 위한 규칙을 시각까지
+        // 다루는 이 화면에 그대로 쓰면 안 된다.
+        if let error = VisitorCarValidation.timeRangeError(start: from, end: to) {
             errorMessage = error
             return
         }
