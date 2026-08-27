@@ -45,7 +45,18 @@ struct VisitorCarRegisterView: View {
     }
 
     private var frequentCarsSheet: some View {
-        NavigationStack {
+        VStack(spacing: 0) {
+            // 달력의 날짜 시트와 같은 손잡이다 — 닫기 버튼 대신 끌어내려 닫는다.
+            Capsule()
+                .fill(Color.slate400)
+                .frame(width: 36, height: 5)
+                .padding(.top, 8)
+
+            Text("자주 쓰는 차량")
+                .font(.headline)
+                .foregroundStyle(Color.slate900)
+                .padding(.vertical, 12)
+
             ScrollView {
                 VStack(spacing: 10) {
                     ForEach(frequentCars.cars) { car in
@@ -85,15 +96,8 @@ struct VisitorCarRegisterView: View {
                 }
                 .padding(GlassTokens.cardPadding)
             }
-            .glassScreenBackground()
-            .navigationTitle("자주 쓰는 차량")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("닫기") { showingFrequentCars = false }
-                }
-            }
         }
+        .glassScreenBackground()
     }
 
     private var carCard: some View {
