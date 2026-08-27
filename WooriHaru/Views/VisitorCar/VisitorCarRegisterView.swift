@@ -9,6 +9,7 @@ struct VisitorCarRegisterView: View {
     @State private var viewModel = VisitorCarRegisterViewModel()
     @State private var showingFrequentCars = false
     @State private var frequentCars = FrequentCarStore.shared
+    @FocusState private var carNoFocused: Bool
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -102,12 +103,31 @@ struct VisitorCarRegisterView: View {
                     .font(.headline)
                     .foregroundStyle(Color.slate900)
 
-                TextField("차량번호", text: $viewModel.carNo)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .textFieldStyle(.plain)
-                    .padding(12)
-                    .background(Color.slate500.opacity(0.10), in: RoundedRectangle(cornerRadius: 10))
+                HStack(spacing: 8) {
+                    TextField("차량번호", text: $viewModel.carNo)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .textFieldStyle(.plain)
+                        .focused($carNoFocused)
+
+                    // 한 글자씩 지우게 두면 열두 자리 차량번호를 고칠 때마다 백스페이스를
+                    // 오래 누르고 있어야 한다 — 가계부 검색칸과 같은 모양으로 한 번에 지운다.
+                    if !viewModel.carNo.isEmpty {
+                        Button {
+                            viewModel.carNo = ""
+                            // 지운 뒤 곧바로 다시 입력하는 게 자연스럽다 — 키보드를 내리지 않는다.
+                            carNoFocused = true
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 14))
+                                .foregroundStyle(Color.slate400)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("차량번호 지우기")
+                    }
+                }
+                .padding(12)
+                .background(Color.slate500.opacity(0.10), in: RoundedRectangle(cornerRadius: 10))
 
                 if let error = viewModel.validationError {
                     Text(error)
