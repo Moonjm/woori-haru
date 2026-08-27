@@ -69,6 +69,20 @@ struct VisitorCarHomeTests {
         #expect(viewModel.state == .needsLogin)
     }
 
+    /// **`loginUnavailable`은 `needsLogin`으로 접지 않는다.** 자격증명은 서비스 쪽에서
+    /// 지워지지 않고 남아 있으므로(R1), 로그인 카드로 되돌리면 있는 계정으로 다시
+    /// 로그인하라고 요구하는 모양이 된다 — `failed`로 두어야 재시도가 자연스럽다.
+    @Test func 재로그인_응답을_판단할_수_없으면_로그인_카드로_접지_않는다() async {
+        let transport = FakeVisitorCarTransport()
+        transport.stub("/book-car", FakeVisitorCarTransport.loginRedirect())
+        transport.stub("/do-login", VisitorCarHTTPResponse(status: 500, location: nil, body: Data()))
+        let viewModel = VisitorCarHomeViewModel(service: makeService(transport: transport))
+
+        await viewModel.load()
+
+        #expect(viewModel.state == .failed(VisitorCarError.loginUnavailable.localizedDescription ?? ""))
+    }
+
     /// 마크업이 바뀐 경우는 로그인 문제가 아니다 — 카드를 지우지 않고 오류만 띄운다.
     @Test func 파싱이_깨지면_실패로_남는다() async {
         let transport = FakeVisitorCarTransport()

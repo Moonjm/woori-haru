@@ -277,13 +277,18 @@ actor VisitorCarService: VisitorCarServing {
                 loginGeneration += 1
             }
         } catch VisitorCarError.loginFailed {
-            // **조용한 재로그인의 실패는 `sessionExpired`로 올린다.** `loginFailed`가 그대로
+            // **조용한 재로그인의 "거절"만 `sessionExpired`로 올린다.** `loginFailed`가 그대로
             // 올라가면 홈 뷰모델이 로그인 카드로 접지 않아(needsLogin은 notLoggedIn·sessionExpired만
             // 본다), 사용자가 붉은 글씨만 보고 빠져나갈 길을 못 찾는다. 저장된 자격증명도
-            // 지운다 — 틀린 것이 확인됐으니 남겨 둘 이유가 없고, 지워야 로그인 카드가
-            // 곧바로 쓸모 있어진다. **이 변환은 여기(조용한 재로그인)에만 한다** — 사용자가
-            // 로그인 카드에서 직접 부르는 `login(id:password:)`는 `loginFailed`를 그대로
-            // 올려야 서버가 준 한국어 문구가 카드에 뜬다.
+            // 지운다 — 서버가 명시적으로 거절했으니(=`loginFailed`) 남겨 둘 이유가 없고,
+            // 지워야 로그인 카드가 곧바로 쓸모 있어진다. **이 변환은 여기(조용한 재로그인)에만
+            // 한다** — 사용자가 로그인 카드에서 직접 부르는 `login(id:password:)`는
+            // `loginFailed`를 그대로 올려야 서버가 준 한국어 문구가 카드에 뜬다.
+            //
+            // **`loginUnavailable`은 이 `catch`가 잡지 않는다** — 여기서 걸러지지 않고
+            // 그대로 위로 전파된다. 일시적 500·점검 페이지처럼 서버가 자격증명을 거절한
+            // 적이 없는 경우까지 여기서 자격증명을 지우면, 서버가 잠깐 아팠을 뿐인데
+            // 멀쩡한 계정이 지워지고 사용자가 로그인 카드로 튕겨 나간다.
             credentials.clear()
             throw VisitorCarError.sessionExpired
         }
@@ -305,6 +310,9 @@ actor VisitorCarService: VisitorCarServing {
         )
 
         if response.isLoginRedirect {
+            // **서버가 명시적으로 거절했다.** `Location`이 `/nxpmsc/login`으로 시작하면
+            // 아이디·비밀번호가 틀렸다는 뜻이다 — `reLogin`이 이 경우에만 저장된
+            // 자격증명을 지운다(아래 `loginUnavailable`과 여기를 갈라 둔 이유).
             let message = VisitorCarHTMLParser.loginErrorMessage(location: response.location ?? "")
             throw VisitorCarError.loginFailed(message ?? "아이디 또는 비밀번호를 확인해 주세요.")
         }
@@ -325,8 +333,13 @@ actor VisitorCarService: VisitorCarServing {
               let location = response.location,
               URLComponents(string: location)?.path == "/nxpmsc/book-car"
         else {
-            // 서버가 이 경우엔 메시지를 주지 않는다 — 여기서 직접 짓는다.
-            throw VisitorCarError.loginFailed("로그인에 실패했습니다. 잠시 후 다시 시도해 주세요.")
+            // **여기 걸리는 것은 "거절"이 아니라 "판단할 수 없음"이다.** 302가 아니거나,
+            // 302인데 `Location`이 없거나, `book-car`도 `login`도 아닌 낯선 곳으로 튄
+            // 경우다 — 일시적 500, 점검 페이지, 알 수 없는 리다이렉트가 여기 해당한다.
+            // 서버가 아이디·비밀번호를 거절했다고 말한 적이 없으므로 `loginFailed`로
+            // 올리면 안 된다 — 올리면 `reLogin`이 그걸 거절로 오인해 멀쩡한 자격증명을
+            // 지운다. 서버가 이 경우엔 메시지를 주지 않으므로 문구는 여기서 직접 짓는다.
+            throw VisitorCarError.loginUnavailable
         }
     }
 

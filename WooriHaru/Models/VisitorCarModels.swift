@@ -222,8 +222,14 @@ struct VisitorCarResult: Decodable, Sendable {
 enum VisitorCarError: Error, LocalizedError, Equatable {
     /// 저장된 자격증명이 없다. 화면이 로그인 카드로 되돌아간다.
     case notLoggedIn
-    /// 로그인 시도가 거절됐다. 문자열은 **서버가 준 한국어 그대로**다.
+    /// 로그인 시도가 **거절됐다**. `Location`이 `/nxpmsc/login`으로 시작해 서버가
+    /// 아이디·비밀번호를 잘못됐다고 명시한 경우다. 문자열은 **서버가 준 한국어 그대로**다.
     case loginFailed(String)
+    /// 로그인 응답을 **판단할 수 없다** — 302가 아니거나, 302인데 `Location`이 없거나,
+    /// `/nxpmsc/book-car`도 `/nxpmsc/login`도 아닌 곳으로 튄 경우(일시적 500, 점검 페이지 등).
+    /// **거절이 아니다** — 서버가 자격증명을 잘못됐다고 말한 적이 없으므로 저장된 자격증명을
+    /// 지우면 안 된다. 서버가 이 경우엔 메시지를 주지 않아 문구는 앱이 짓는다.
+    case loginUnavailable
     /// 재로그인까지 했는데도 로그인 페이지로 튕겼다.
     case sessionExpired
     /// `result != "success"`. 문자열은 서버 `message` 그대로.
@@ -238,6 +244,7 @@ enum VisitorCarError: Error, LocalizedError, Equatable {
         switch self {
         case .notLoggedIn: "로그인이 필요합니다."
         case .loginFailed(let message): message
+        case .loginUnavailable: "로그인 응답을 확인할 수 없습니다. 잠시 후 다시 시도해 주세요."
         case .sessionExpired: "다시 로그인해 주세요."
         case .rejected(let message): message
         case .remainingTimeUnavailable: "잔여시간을 불러오지 못했습니다."

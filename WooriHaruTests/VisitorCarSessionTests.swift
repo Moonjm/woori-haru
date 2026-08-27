@@ -51,9 +51,11 @@ struct VisitorCarSessionTests {
         #expect(store.saveCount == 0)
     }
 
-    /// **`Location`이 없는 302는 실패다.** 「로그인 리다이렉트가 아니면 성공」으로
-    /// 읽으면 이 경우가 성공으로 둔갑해 확인되지 않은 자격증명이 Keychain에 저장된다.
-    @Test func 위치_없는_302는_로그인_실패다() async throws {
+    /// **`Location`이 없는 302는 「판단할 수 없음」이다** — 거절이 아니다. 「로그인
+    /// 리다이렉트가 아니면 성공」으로 읽으면 이 경우가 성공으로 둔갑해 확인되지 않은
+    /// 자격증명이 Keychain에 저장된다. 그렇다고 「거절」(`loginFailed`)로 읽어서도 안 된다 —
+    /// 서버가 아이디·비밀번호를 틀렸다고 말한 적이 없기 때문이다(R1).
+    @Test func 위치_없는_302는_판단할_수_없는_로그인이다() async throws {
         let transport = FakeVisitorCarTransport()
         transport.stub("/do-login", VisitorCarHTTPResponse(status: 302, location: nil, body: Data()))
         let store = FakeCredentialStore()
@@ -63,15 +65,16 @@ struct VisitorCarSessionTests {
             defaults: UserDefaults(suiteName: "visitorcar.tests.\(UUID().uuidString)")!
         )
 
-        await #expect(throws: VisitorCarError.self) {
+        await #expect(throws: VisitorCarError.loginUnavailable) {
             try await service.login(id: "10010101", password: "비밀")
         }
         #expect(store.saveCount == 0)
     }
 
-    /// **문서화된 도착지가 아닌 302도 실패다.** 점검 페이지 등 다른 곳으로 튀는 302를
-    /// 성공으로 읽으면 확인되지 않은 자격증명이 Keychain에 저장된다.
-    @Test func 다른_경로로_가는_302는_로그인_실패다() async throws {
+    /// **문서화된 도착지가 아닌 302도 「판단할 수 없음」이다.** 점검 페이지 등 다른 곳으로
+    /// 튀는 302를 성공으로 읽으면 확인되지 않은 자격증명이 Keychain에 저장된다. 이 경우도
+    /// 서버가 거절한 게 아니므로 `loginFailed`가 아니라 `loginUnavailable`이다(R1).
+    @Test func 다른_경로로_가는_302는_판단할_수_없는_로그인이다() async throws {
         let transport = FakeVisitorCarTransport()
         transport.stub(
             "/do-login",
@@ -84,14 +87,15 @@ struct VisitorCarSessionTests {
             defaults: UserDefaults(suiteName: "visitorcar.tests.\(UUID().uuidString)")!
         )
 
-        await #expect(throws: VisitorCarError.self) {
+        await #expect(throws: VisitorCarError.loginUnavailable) {
             try await service.login(id: "10010101", password: "비밀")
         }
         #expect(store.saveCount == 0)
     }
 
-    /// 302가 아닌 응답(5xx 등)도 실패다 — 성공 판정은 `/nxpmsc/book-car` 302 하나뿐이다.
-    @Test func 리다이렉트가_아니면_로그인_실패다() async throws {
+    /// 302가 아닌 응답(5xx 등)도 「판단할 수 없음」이다 — 성공 판정은 `/nxpmsc/book-car`
+    /// 302 하나뿐이지만, 실패로 보이는 건 전부 거절(`loginFailed`)은 아니다(R1).
+    @Test func 리다이렉트가_아니면_판단할_수_없는_로그인이다() async throws {
         let transport = FakeVisitorCarTransport()
         transport.stub("/do-login", VisitorCarHTTPResponse(status: 500, location: nil, body: Data()))
         let store = FakeCredentialStore()
@@ -101,7 +105,7 @@ struct VisitorCarSessionTests {
             defaults: UserDefaults(suiteName: "visitorcar.tests.\(UUID().uuidString)")!
         )
 
-        await #expect(throws: VisitorCarError.self) {
+        await #expect(throws: VisitorCarError.loginUnavailable) {
             try await service.login(id: "10010101", password: "비밀")
         }
         #expect(store.saveCount == 0)
@@ -158,6 +162,46 @@ struct VisitorCarSessionTests {
             _ = try await service.remainingMinutes()
         }
         #expect(store.load() == nil)
+    }
+
+    /// **조용한 재로그인 중 서버가 500을 주면 계정을 지키고 `sessionExpired`도 보고하지
+    /// 않는다.** 일시적 오류를 거절로 오인해 멀쩡한 자격증명을 지우면, 다음 방문 때
+    /// 사용자가 로그인 카드부터 다시 시작해야 한다(R1).
+    @Test func 재로그인_중_500이_오면_계정을_지키고_판단할_수_없음을_보고한다() async throws {
+        let transport = FakeVisitorCarTransport()
+        transport.stub("/book-car", FakeVisitorCarTransport.loginRedirect())
+        transport.stub("/do-login", VisitorCarHTTPResponse(status: 500, location: nil, body: Data()))
+        let store = FakeCredentialStore(stored: VisitorCarCredentials(id: "10010101", password: "비밀"))
+        let service = VisitorCarService(
+            transport: transport,
+            credentials: store,
+            defaults: UserDefaults(suiteName: "visitorcar.tests.\(UUID().uuidString)")!
+        )
+
+        await #expect(throws: VisitorCarError.loginUnavailable) {
+            _ = try await service.remainingMinutes()
+        }
+        // **일시적 오류가 멀쩡한 자격증명을 지우면 안 된다** — 여기가 이 라운드의 핵심이다.
+        #expect(store.load()?.id == "10010101")
+    }
+
+    /// **조용한 재로그인 중 알 수 없는 곳(`/nxpmsc/login`도 `/nxpmsc/book-car`도 아닌 302)으로
+    /// 튀어도 계정을 지킨다.** 판단할 수 없는 응답과 명시적 거절은 다르다(R1).
+    @Test func 재로그인_중_알_수_없는_경로로_튀면_계정을_지키고_판단할_수_없음을_보고한다() async throws {
+        let transport = FakeVisitorCarTransport()
+        transport.stub("/book-car", FakeVisitorCarTransport.loginRedirect())
+        transport.stub("/do-login", VisitorCarHTTPResponse(status: 302, location: "/nxpmsc/maintenance", body: Data()))
+        let store = FakeCredentialStore(stored: VisitorCarCredentials(id: "10010101", password: "비밀"))
+        let service = VisitorCarService(
+            transport: transport,
+            credentials: store,
+            defaults: UserDefaults(suiteName: "visitorcar.tests.\(UUID().uuidString)")!
+        )
+
+        await #expect(throws: VisitorCarError.loginUnavailable) {
+            _ = try await service.remainingMinutes()
+        }
+        #expect(store.load()?.id == "10010101")
     }
 
     @Test func 저장된_계정이_없으면_로그인이_필요하다() async throws {

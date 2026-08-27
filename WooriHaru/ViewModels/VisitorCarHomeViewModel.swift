@@ -36,6 +36,12 @@ final class VisitorCarHomeViewModel {
             // 로그인이 풀린 것은 「실패」가 아니라 「다시 붙어야 한다」다.
             state = .needsLogin
         } catch {
+            // **`loginUnavailable`은 일부러 여기(제네릭 `catch`)로 떨어뜨린다.** 위 두
+            // 경우와 달리 자격증명은 서비스 쪽에서 지우지 않고 그대로 남아 있다 — 서버가
+            // 잠깐 아팠을 뿐 로그인 자체가 거절된 게 아니기 때문이다. 그런데 `needsLogin`으로
+            // 접으면 화면이 로그인 카드부터 다시 띄워 있는 계정으로 다시 로그인하라고
+            // 요구하는 모양이 된다. `failed`로 두면 재시도 버튼 하나로 곧바로 다시
+            // 시도할 수 있다 — 계정은 이미 있으니 그게 맞는 동선이다.
             state = .failed(error.localizedDescription)
         }
     }
