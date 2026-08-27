@@ -22,9 +22,10 @@ enum VisitorCarValidation {
     }
 
     /// **날짜만 견준다.** 서버가 시각을 00:00:00/23:59:59로 채우므로 같은 날 안의 시각 차이는 뜻이 없다.
+    /// 달력은 `VisitorCarDateFormat.seoulCalendar` 하나를 그대로 쓴다 — 여기서 따로 만들면
+    /// 두 자리가 각자 「한국 시간대」를 조립하게 되고, 그중 하나만 고치는 사고가 난다.
     static func periodError(start: Date, end: Date) -> String? {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(identifier: "Asia/Seoul") ?? .current
+        let calendar = VisitorCarDateFormat.seoulCalendar
         if calendar.startOfDay(for: end) < calendar.startOfDay(for: start) {
             return "종료일이 시작일보다 앞설 수 없습니다."
         }

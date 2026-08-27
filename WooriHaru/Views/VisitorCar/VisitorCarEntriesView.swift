@@ -93,6 +93,8 @@ struct VisitorCarEntriesView: View {
             .font(.subheadline)
             .foregroundStyle(VehicleTheme.textSecondary)
         }
+        // 조회 조건 선택기가 기기 시간대가 아니라 한국 시각으로 뜨고 움직이게 한다.
+        .seoulDatePickerEnvironment()
     }
 
     private func row(_ entry: VisitorCarEntry) -> some View {

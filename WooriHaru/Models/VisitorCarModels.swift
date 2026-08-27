@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 // MARK: - 날짜
 
@@ -6,6 +7,16 @@ import Foundation
 /// 등록 내역·등록 폼은 날짜만, 진입 현황은 시각까지다. 날짜만 보내면 진입 현황이 500으로 죽는다.
 /// 하나로 합치려는 순간 한쪽이 조용히 깨지므로 둘로 나눠 둔다.
 enum VisitorCarDateFormat {
+    /// 주차장은 한국에 있다 — 이 기능이 다루는 모든 날짜·시각의 기준은 기기 시간대가
+    /// 아니라 **여기 하나**다. 포맷터도, 기간 검증도, 날짜 선택기도 이 값을 따라야
+    /// 「사용자가 고른 날」과 「서버로 보낸 날」이 갈리지 않는다.
+    static let seoulTimeZone = TimeZone(identifier: "Asia/Seoul")!
+    static let seoulCalendar: Calendar = {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = seoulTimeZone
+        return calendar
+    }()
+
     static let day = make("yyyy-MM-dd")
     static let second = make("yyyy-MM-dd HH:mm:ss")
 
@@ -13,9 +24,26 @@ enum VisitorCarDateFormat {
     private static func make(_ format: String) -> DateFormatter {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone(identifier: "Asia/Seoul")
+        formatter.timeZone = seoulTimeZone
         formatter.dateFormat = format
         return formatter
+    }
+}
+
+extension View {
+    /// `DatePicker`가 표시·조작하는 값은 `\.timeZone`·`\.calendar` 두 환경값을 함께 읽는다 —
+    /// 하나만 주면 나머지는 기기 값으로 남아 둘이 어긋난다.
+    ///
+    /// **이게 없으면 벌어지는 일 (LA, 서울보다 16시간 느림):** 사용자가 선택기에서
+    /// 「2026-07-18 09:00」을 골라도, 그 순간의 절대 시각은 서울 기준 이미 다음 날이라
+    /// `VisitorCarDateFormat`이 `2026-07-19`로 실어 보낸다. LA 하루 대부분이 다음 한국
+    /// 날짜로 넘어간다 — 해외에서 방문차량을 등록하면 조용히 하루 밀린 날짜가 저장된다.
+    /// **단순해 보인다고 이 중 하나를 지우지 말 것** — 시간대만 주고 달력을 그대로 두면
+    /// `DatePicker`가 여전히 기기 달력(주 시작 요일 등)으로 그 시간대를 해석해 자정 경계가
+    /// 다시 어긋날 수 있다.
+    func seoulDatePickerEnvironment() -> some View {
+        environment(\.timeZone, VisitorCarDateFormat.seoulTimeZone)
+            .environment(\.calendar, VisitorCarDateFormat.seoulCalendar)
     }
 }
 

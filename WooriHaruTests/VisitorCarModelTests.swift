@@ -124,4 +124,34 @@ struct VisitorCarModelTests {
         #expect(VisitorCarDateFormat.day.string(from: date) == "2026-07-18")
         #expect(VisitorCarDateFormat.second.string(from: date) == "2026-07-18 00:00:00")
     }
+
+    // MARK: - 한국 시간대
+
+    /// 날짜 선택기에 주입하는 값이 실제로 `Asia/Seoul`인지 못 박아 둔다.
+    /// (선택기 환경 주입 자체는 SwiftUI 뷰 안의 일이라 유닛 테스트로 붙잡을 수 없다 —
+    /// 여기서 붙잡는 것은 그 값의 **정체**뿐이다.)
+    @Test func seoulTimeZone은_아시아_서울이다() {
+        #expect(VisitorCarDateFormat.seoulTimeZone.identifier == "Asia/Seoul")
+    }
+
+    /// `seoulCalendar`가 `seoulTimeZone`과 다른 시간대를 들고 있으면, 선택기와
+    /// 포맷터가 같은 값을 주입받고도 서로 다른 하루를 계산하게 된다.
+    @Test func seoulCalendar와_seoulTimeZone은_같은_시간대를_가리킨다() {
+        #expect(VisitorCarDateFormat.seoulCalendar.timeZone == VisitorCarDateFormat.seoulTimeZone)
+        #expect(VisitorCarDateFormat.seoulCalendar.identifier == .gregorian)
+    }
+
+    /// **선택기 환경 주입은 SwiftUI 뷰 안의 일이라 유닛 테스트로 확인할 수 없다.**
+    /// 대신 여기서 확인하는 것: 서울 달력 성분으로 만든 `Date`가 `VisitorCarDateFormat.day`를
+    /// 거쳐도 같은 연-월-일 숫자로 되돌아온다 — 선택기가 `seoulCalendar`로 값을 만들기만
+    /// 하면(뷰가 실제로 그렇게 하는지는 코드 검사로 확인했다) 포맷터와 어긋나지 않는다.
+    @Test func 서울_달력_성분으로_만든_날짜는_day_포맷터를_왕복한다() throws {
+        var components = DateComponents()
+        components.year = 2026
+        components.month = 7
+        components.day = 18
+        let date = try #require(VisitorCarDateFormat.seoulCalendar.date(from: components))
+
+        #expect(VisitorCarDateFormat.day.string(from: date) == "2026-07-18")
+    }
 }
