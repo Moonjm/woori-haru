@@ -30,16 +30,70 @@ struct VisitorCarRegisterView: View {
         .vehicleDarkTheme()
         .navigationTitle("신규 차량 등록")
         .navigationBarTitleDisplayMode(.inline)
-        .confirmationDialog("자주 쓰는 차량", isPresented: $showingFrequentCars, titleVisibility: .visible) {
-            ForEach(frequentCars.cars) { car in
-                Button("\(car.nickname) · \(car.carNo)") { viewModel.apply(car) }
-            }
-            Button("취소", role: .cancel) {}
+        // **액션시트가 아니라 하단 시트로 띄운다.** 저장된 차량이 늘면 액션시트는
+        // 화면을 가득 채우고 별칭·차량번호가 한 줄에 뭉개진다 — 등록 상세 시트와 같은
+        // 모양으로 목록을 보여 준다.
+        .sheet(isPresented: $showingFrequentCars) {
+            frequentCarsSheet
+                .presentationDetents([.medium])
+                .vehicleDarkTheme()
         }
         .onChange(of: viewModel.didSucceed) {
             guard viewModel.didSucceed else { return }
             onSaved()
             dismiss()
+        }
+    }
+
+    private var frequentCarsSheet: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 10) {
+                    ForEach(frequentCars.cars) { car in
+                        Button {
+                            viewModel.apply(car)
+                            showingFrequentCars = false
+                        } label: {
+                            GlassCard {
+                                HStack(spacing: 12) {
+                                    Image(systemName: "car")
+                                        .foregroundStyle(VehicleTheme.accent)
+                                        .frame(width: 40, height: 40)
+                                        .background(
+                                            VehicleTheme.tileFill,
+                                            in: RoundedRectangle(cornerRadius: 10)
+                                        )
+
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(car.nickname)
+                                            .font(.subheadline).fontWeight(.semibold)
+                                            .foregroundStyle(VehicleTheme.textPrimary)
+                                        Text(car.carNo)
+                                            .font(.caption)
+                                            .foregroundStyle(VehicleTheme.textTertiary)
+                                    }
+
+                                    Spacer(minLength: 0)
+
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption)
+                                        .foregroundStyle(VehicleTheme.textTertiary)
+                                }
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(GlassTokens.cardPadding)
+            }
+            .glassScreenBackground()
+            .navigationTitle("자주 쓰는 차량")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("닫기") { showingFrequentCars = false }
+                }
+            }
         }
     }
 
