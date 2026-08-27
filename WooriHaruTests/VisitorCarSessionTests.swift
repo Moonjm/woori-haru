@@ -136,6 +136,42 @@ struct VisitorCarSessionTests {
         #expect(transport.callCount("/do-login") == 1)
     }
 
+    /// **낡은 302는 다시 로그인하지 않는다.** 요청 A가 302를 만나 재로그인을 끝낸
+    /// *뒤에*, 그 로그인이 있기 전에 나갔던 요청 B의 302가 뒤늦게 도착하는 상황을
+    /// 흉내 낸다 — B는 A가 이미 세션을 살려 놓은 것을 알아채고 조용히 넘어가야 한다.
+    /// 실제 동시성을 흉내 내는 대신 `seenGeneration`을 손으로 낡게 넘겨 결정론적으로 확인한다.
+    @Test func 낡은_세대로_들어온_재로그인_요청은_다시_로그인하지_않는다() async throws {
+        let transport = FakeVisitorCarTransport()
+        transport.stub("/do-login", FakeVisitorCarTransport.loginSuccess())
+        let service = makeService(transport: transport)
+
+        // 요청 A: 302를 만나 재로그인해서 세대가 0→1로 오른다.
+        try await service.reLogin(seenGeneration: 0)
+        #expect(transport.callCount("/do-login") == 1)
+
+        // 요청 B: A보다 먼저 나갔던 요청의 302다 — 세대는 여전히 0을 봤다.
+        // 하지만 그 사이 로그인이 이미 끝나 세션은 살아 있다. 다시 로그인할 이유가 없다.
+        try await service.reLogin(seenGeneration: 0)
+
+        #expect(transport.callCount("/do-login") == 1)
+    }
+
+    /// 진짜로 늦게 시작한 요청(세대를 새로 찍은 요청)이 302를 만나면 **정상적으로
+    /// 다시 로그인한다** — F1의 최적화가 정상 경로를 깨지 않았는지 확인한다.
+    @Test func 최신_세대로_들어온_재로그인_요청은_정상적으로_로그인한다() async throws {
+        let transport = FakeVisitorCarTransport()
+        transport.stub("/do-login", FakeVisitorCarTransport.loginSuccess())
+        let service = makeService(transport: transport)
+
+        try await service.reLogin(seenGeneration: 0)
+        #expect(transport.callCount("/do-login") == 1)
+
+        // 이번엔 로그인이 끝난 **뒤에** 세대를 새로 찍었다고 가정한다 — 진짜 만료다.
+        try await service.reLogin(seenGeneration: 1)
+
+        #expect(transport.callCount("/do-login") == 2)
+    }
+
     // MARK: - 잔여시간·세대
 
     /// 마크업이 바뀌면 크래시가 아니라 「불러오지 못했습니다」다.

@@ -90,6 +90,11 @@ actor VisitorCarService: VisitorCarServing {
     /// 진행 중인 로그인. 뒤늦게 온 요청은 새로 던지지 않고 이것을 기다린다.
     private var loginTask: Task<Void, any Error>?
 
+    /// **성공한 로그인마다 하나씩 오른다.** 뒤늦게 도착한 302가 이미 끝난 로그인
+    /// 이전에 나간 요청의 것인지 가리는 데 쓴다 — `send(_:)`가 요청을 보내기 직전 값을
+    /// 들고 있다가, 재로그인에 넘겨 「내가 본 302가 최신 로그인보다 오래됐는가」를 묻는다.
+    private var loginGeneration = 0
+
     init(
         transport: any VisitorCarTransport = VisitorCarHTTPTransport(),
         credentials: any VisitorCarCredentialStoring = VisitorCarKeychainStore(),
@@ -104,6 +109,10 @@ actor VisitorCarService: VisitorCarServing {
 
     func login(id: String, password: String) async throws {
         try await performLogin(id: id, password: password)
+        // **이 로그인도 세대를 올린다.** 사용자가 로그인 카드에서 직접 붙는 것도 새 세션을
+        // 여는 일이다 — 여기서 올리지 않으면, 이 로그인 직전에 나갔던 뒤늦은 302가 자기
+        // 세대를 낡은 것으로 잘못 판정해 불필요한 재로그인을 또 던질 수 있다.
+        loginGeneration += 1
         // **성공한 뒤에 저장한다.** 틀린 자격증명을 넣어 두면 이후 재로그인이 영원히 실패한다.
         try credentials.save(VisitorCarCredentials(id: id, password: password))
         // **세대 캐시를 버린다.** 다른 계정으로 로그인했을 수 있다 — 이전 세대의 동·호가
@@ -211,10 +220,14 @@ actor VisitorCarService: VisitorCarServing {
     private func send(
         _ perform: () async throws -> VisitorCarHTTPResponse
     ) async throws -> VisitorCarHTTPResponse {
+        // **요청을 내보내기 전에 세대를 찍어 둔다.** 이 요청이 받은 302가 지금 붙잡고 있는
+        // 세션 이전 것인지, 그 사이 다른 요청이 이미 로그인을 끝내 놨는지를 나중에
+        // `reLogin(seenGeneration:)`이 이 값으로 가른다.
+        let generation = loginGeneration
         let first = try await perform()
         guard first.isLoginRedirect else { return try checkStatus(first) }
 
-        try await reLogin()
+        try await reLogin(seenGeneration: generation)
 
         let second = try await perform()
         if second.isLoginRedirect { throw VisitorCarError.sessionExpired }
@@ -230,7 +243,18 @@ actor VisitorCarService: VisitorCarServing {
 
     /// 진행 중인 로그인이 있으면 **그것을 기다린다.** 동시에 만료를 만난 요청들이
     /// 로그인을 각자 던지지 않게 하는 자리다.
-    private func reLogin() async throws {
+    ///
+    /// `seenGeneration`은 이 302를 만든 요청이 나가기 **직전의** 세대다. 그 요청이
+    /// 느려서 302가 늦게 도착한 사이 다른 요청이 이미 로그인을 끝냈다면
+    /// (`loginGeneration > seenGeneration`), 이 302는 그 로그인이 있기 전의 낡은 세션에
+    /// 대고 보낸 요청의 결과일 뿐이다 — 세션은 이미 살아 있으므로 다시 로그인할 필요가
+    /// 없다. **호출자(`send`)가 원 요청을 재시도하는 것으로 충분하다.** 여기서 다시
+    /// 로그인하면 이미 살아 있는 세션 위에 평문 비밀번호를 한 번 더 얹어 보내고
+    /// `JSESSIONID`를 불필요하게 새로 발급받아, 그 사이 물려 있는 다른 재시도를 흔든다.
+    ///
+    /// 테스트가 이 세대 판정을 직접 걸 수 있도록 `private`이 아니라 내부 접근으로 둔다.
+    func reLogin(seenGeneration: Int) async throws {
+        guard loginGeneration <= seenGeneration else { return }
         do {
             if let existing = loginTask {
                 try await existing.value
@@ -247,6 +271,10 @@ actor VisitorCarService: VisitorCarServing {
                 loginTask = task
                 defer { loginTask = nil }
                 try await task.value
+                // **이 로그인을 우리가 직접 시작했을 때만 세대를 올린다.** 남의 `loginTask`를
+                // 기다리기만 한 다른 호출자들도 이 분기를 타면, 로그인 한 번의 성공이
+                // 여러 번 세어져 세대가 실제 로그인 횟수보다 빨리 앞서 간다.
+                loginGeneration += 1
             }
         } catch VisitorCarError.loginFailed {
             // **조용한 재로그인의 실패는 `sessionExpired`로 올린다.** `loginFailed`가 그대로
