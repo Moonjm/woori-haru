@@ -90,10 +90,17 @@ actor VisitorCarService: VisitorCarServing {
     /// 진행 중인 로그인. 뒤늦게 온 요청은 새로 던지지 않고 이것을 기다린다.
     private var loginTask: Task<Void, any Error>?
 
-    /// **성공한 로그인마다 하나씩 오른다.** 뒤늦게 도착한 302가 이미 끝난 로그인
-    /// 이전에 나간 요청의 것인지 가리는 데 쓴다 — `send(_:)`가 요청을 보내기 직전 값을
-    /// 들고 있다가, 재로그인에 넘겨 「내가 본 302가 최신 로그인보다 오래됐는가」를 묻는다.
-    private var loginGeneration = 0
+    /// **로그인·로그아웃마다 하나씩 오른다.** "세션이 바뀌었다"를 세는 값이다 —
+    /// 뒤늦게 도착한 302가 이미 끝난 로그인 이전에 나간 요청의 것인지 가리는 데도
+    /// (`send(_:)`가 요청을 보내기 직전 값을 들고 있다가 재로그인에 넘긴다),
+    /// **스스로 늦게 끝난 로그인·재로그인이 그 사이의 로그아웃을 되돌리지 않게 막는 데도**
+    /// (`login(id:password:)`, `commitReLogin(seenGeneration:)`) 쓴다.
+    ///
+    /// **로그아웃도 반드시 올려야 한다.** `actor`는 재진입이 가능해서, `login`이 네트워크
+    /// 응답을 기다리는 사이 다른 호출로 `logout()`이 먼저 끝날 수 있다 — 로그아웃이 세대를
+    /// 올리지 않으면 뒤늦게 재개된 로그인이 "내가 나가기 전과 세대가 같다"고 착각해
+    /// 사용자가 방금 지운 자격증명을 Keychain에 되살린다.
+    private var sessionGeneration = 0
 
     init(
         transport: any VisitorCarTransport = VisitorCarHTTPTransport(),
@@ -108,11 +115,34 @@ actor VisitorCarService: VisitorCarServing {
     // MARK: - 로그인
 
     func login(id: String, password: String) async throws {
+        // **요청을 내보내기 전에 세대를 찍어 둔다.** `actor`는 재진입이 가능해서, 아래
+        // `performLogin`이 응답을 기다리는 사이 다른 호출로 `logout()`이 먼저 끝날 수 있다
+        // — 그 경우 이 로그인의 결과는 버려야 한다(P1).
+        try await login(id: id, password: password, seenGeneration: sessionGeneration)
+    }
+
+    /// `login(id:password:)`의 실제 몸통. **테스트가 `seenGeneration`을 손으로 낡게 넘겨
+    /// 「로그인 도중 로그아웃」을 결정론적으로 재현할 수 있도록** `private`이 아니라 내부
+    /// 접근으로 둔다 — `reLogin(seenGeneration:)`을 테스트 가능하게 두는 것과 같은 이유다.
+    /// 진짜 동시성(스케줄링 순서)에 기대지 않고, 로그아웃이 이미 세대를 올려 둔 뒤에
+    /// 「내가 나가기 전 세대」를 그대로 들고 이어지는 로그인을 흉내 낸다.
+    func login(id: String, password: String, seenGeneration: Int) async throws {
         try await performLogin(id: id, password: password)
+
+        // **그 사이 로그아웃(또는 다른 로그인)이 세대를 올렸으면 이 결과를 버린다.**
+        // 사용자가 명시적으로 「나를 잊어라」를 눌렀는데, 뒤늦게 도착한 이 로그인이
+        // 지워진 자격증명을 Keychain에 되살리면 안 된다 — `logout()`도 세대를 올리므로
+        // 이 비교가 그 경우를 잡는다. `notLoggedIn`으로 던진다: 로그아웃 직후이니 실제로
+        // 「로그인된 상태가 아니다」가 맞고, 홈 뷰모델이 이 오류를 오류 문구 없이 로그인
+        // 카드로 접도록 이미 손봤다(다른 일반 오류와 다르게 다룬다).
+        guard sessionGeneration == seenGeneration else {
+            throw VisitorCarError.notLoggedIn
+        }
+
         // **이 로그인도 세대를 올린다.** 사용자가 로그인 카드에서 직접 붙는 것도 새 세션을
         // 여는 일이다 — 여기서 올리지 않으면, 이 로그인 직전에 나갔던 뒤늦은 302가 자기
         // 세대를 낡은 것으로 잘못 판정해 불필요한 재로그인을 또 던질 수 있다.
-        loginGeneration += 1
+        sessionGeneration += 1
         // **성공한 뒤에 저장한다.** 틀린 자격증명을 넣어 두면 이후 재로그인이 영원히 실패한다.
         try credentials.save(VisitorCarCredentials(id: id, password: password))
         // **세대 캐시를 버린다.** 다른 계정으로 로그인했을 수 있다 — 이전 세대의 동·호가
@@ -121,6 +151,10 @@ actor VisitorCarService: VisitorCarServing {
     }
 
     func logout() async {
+        // **로그아웃도 세대를 올린다(P1).** 로그인만 세면, 로그인이 응답을 기다리는 사이
+        // 사용자가 로그아웃해도 세대에 반영되지 않아 뒤늦게 끝난 로그인이 자격증명·세션을
+        // 되살릴 수 있다 — `login`·`commitReLogin`이 이 값으로 그 경우를 가른다.
+        sessionGeneration += 1
         credentials.clear()
         defaults.removeObject(forKey: householdKey)
         await transport.clearCookies()
@@ -223,7 +257,7 @@ actor VisitorCarService: VisitorCarServing {
         // **요청을 내보내기 전에 세대를 찍어 둔다.** 이 요청이 받은 302가 지금 붙잡고 있는
         // 세션 이전 것인지, 그 사이 다른 요청이 이미 로그인을 끝내 놨는지를 나중에
         // `reLogin(seenGeneration:)`이 이 값으로 가른다.
-        let generation = loginGeneration
+        let generation = sessionGeneration
         let first = try await perform()
         guard first.isLoginRedirect else { return try checkStatus(first) }
 
@@ -246,7 +280,7 @@ actor VisitorCarService: VisitorCarServing {
     ///
     /// `seenGeneration`은 이 302를 만든 요청이 나가기 **직전의** 세대다. 그 요청이
     /// 느려서 302가 늦게 도착한 사이 다른 요청이 이미 로그인을 끝냈다면
-    /// (`loginGeneration > seenGeneration`), 이 302는 그 로그인이 있기 전의 낡은 세션에
+    /// (`sessionGeneration > seenGeneration`), 이 302는 그 로그인이 있기 전의 낡은 세션에
     /// 대고 보낸 요청의 결과일 뿐이다 — 세션은 이미 살아 있으므로 다시 로그인할 필요가
     /// 없다. **호출자(`send`)가 원 요청을 재시도하는 것으로 충분하다.** 여기서 다시
     /// 로그인하면 이미 살아 있는 세션 위에 평문 비밀번호를 한 번 더 얹어 보내고
@@ -254,7 +288,7 @@ actor VisitorCarService: VisitorCarServing {
     ///
     /// 테스트가 이 세대 판정을 직접 걸 수 있도록 `private`이 아니라 내부 접근으로 둔다.
     func reLogin(seenGeneration: Int) async throws {
-        guard loginGeneration <= seenGeneration else { return }
+        guard sessionGeneration <= seenGeneration else { return }
         do {
             if let existing = loginTask {
                 try await existing.value
@@ -271,10 +305,7 @@ actor VisitorCarService: VisitorCarServing {
                 loginTask = task
                 defer { loginTask = nil }
                 try await task.value
-                // **이 로그인을 우리가 직접 시작했을 때만 세대를 올린다.** 남의 `loginTask`를
-                // 기다리기만 한 다른 호출자들도 이 분기를 타면, 로그인 한 번의 성공이
-                // 여러 번 세어져 세대가 실제 로그인 횟수보다 빨리 앞서 간다.
-                loginGeneration += 1
+                await commitReLogin(seenGeneration: seenGeneration)
             }
         } catch VisitorCarError.loginFailed {
             // **조용한 재로그인의 "거절"만 `sessionExpired`로 올린다.** `loginFailed`가 그대로
@@ -292,6 +323,27 @@ actor VisitorCarService: VisitorCarServing {
             credentials.clear()
             throw VisitorCarError.sessionExpired
         }
+    }
+
+    /// 조용한 재로그인이 서버 응답을 받은 **뒤**의 마무리(P1). `reLogin`이 `loginTask`를
+    /// 직접 시작했을 때만 부른다 — 남의 `loginTask`를 기다리기만 한 호출자는 이 분기를
+    /// 타지 않는다(세대가 실제 로그인 횟수보다 빨리 앞서 가는 걸 막는다).
+    ///
+    /// **이 사이 로그아웃이 세대를 올렸으면(`sessionGeneration != seenGeneration`) 이
+    /// 로그인은 세션으로 인정하지 않는다.** 조용한 재로그인은 자격증명을 저장하지
+    /// 않지만, 로그인 자체는 서버에 새 `JSESSIONID` 쿠키를 남긴다 — 로그아웃이 막 지운
+    /// 쿠키 저장소에 뒤늦게 도착한 이 성공이 새 쿠키를 다시 채워 넣으면, 방금 로그아웃한
+    /// 사용자가 다음 요청에서 조용히 다시 로그인된 세션을 손에 쥔다. 그래서 세대를
+    /// 올리는 대신 **방금 세운 쿠키를 지운다.**
+    ///
+    /// 테스트가 `reLogin` 안에서 진짜 동시성을 흉내 내지 않고 이 판정을 직접 걸 수
+    /// 있도록 `private`이 아니라 내부 접근으로 둔다.
+    func commitReLogin(seenGeneration: Int) async {
+        guard sessionGeneration == seenGeneration else {
+            await transport.clearCookies()
+            return
+        }
+        sessionGeneration += 1
     }
 
     private func performLogin(id: String, password: String) async throws {

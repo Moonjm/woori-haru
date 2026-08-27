@@ -133,6 +133,39 @@ final class FakeCredentialStore: VisitorCarCredentialStoring, @unchecked Sendabl
     func clear() { lock.withLock { stored = nil } }
 }
 
+/// **`VisitorCarServing`이 있는 이유가 이것이다** — 설계 문서가 「테스트가 여기를 가짜로
+/// 바꾼다」고 적어 둔 자리(P1). 뷰모델이 서비스가 던지는 특정 오류를 어떻게 접는지만
+/// 보고 싶을 때, `VisitorCarService` + `FakeVisitorCarTransport`로 실제 재진입 경쟁을
+/// 재현하는 대신(스케줄링에 기대게 된다) 이 대역이 원하는 결과를 곧바로 돌려준다.
+final class FakeVisitorCarServing: VisitorCarServing, @unchecked Sendable {
+    var loginError: (any Error)?
+    private(set) var loginCallCount = 0
+
+    func login(id: String, password: String) async throws {
+        loginCallCount += 1
+        if let loginError { throw loginError }
+    }
+
+    func logout() async {}
+    func remainingMinutes() async throws -> Int { 0 }
+    func household() async throws -> VisitorCarHousehold {
+        VisitorCarHousehold(dong: "", ho: "", parkingLot: "", parkingZone: "")
+    }
+    func register(_ request: VisitorCarRegisterRequest) async throws {}
+    func update(id: Int, _ request: VisitorCarRegisterRequest) async throws {}
+    func delete(id: Int) async throws {}
+    func bookings(
+        from: Date, to: Date, carNo: String, page: Int, size: Int
+    ) async throws -> VisitorCarPage<VisitorCarBooking> {
+        VisitorCarPage(content: [], totalElements: 0, totalPages: 0, number: 0, last: true)
+    }
+    func entries(
+        from: Date, to: Date, carNo: String, page: Int, size: Int
+    ) async throws -> VisitorCarPage<VisitorCarEntry> {
+        VisitorCarPage(content: [], totalElements: 0, totalPages: 0, number: 0, last: true)
+    }
+}
+
 enum VisitorCarFixture {
     static let bookCarPage = #"<input type="hidden" id="reservedVehiclePointValue" value="6000"/>"#
 

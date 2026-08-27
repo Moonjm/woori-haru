@@ -449,6 +449,94 @@ struct VisitorCarSessionTests {
         #expect(transport.callCount("/book-car/getOriginal") == 1)
     }
 
+    // MARK: - P1: 로그인 도중 로그아웃
+
+    /// **로그인이 응답을 기다리는 사이 로그아웃이 먼저 끝나면, 뒤늦게 재개된 로그인이
+    /// 지워진 자격증명을 되살리면 안 된다.** `actor`는 재진입이 가능해서 실제로 이런
+    /// 순서가 벌어질 수 있다 — 진짜 동시성으로 재현하는 대신, 로그아웃을 먼저 실행해
+    /// 세대를 0→1로 올려 두고, 로그인은 자기가 나가기 전에 봤던 세대(0)를 그대로 들고
+    /// 이어진다고 손으로 흉내 낸다(`seenGeneration: 0`) — 스케줄링 순서에 기대지 않는다.
+    @Test func 로그인_도중_로그아웃하면_자격증명을_되살리지_않는다() async throws {
+        let transport = FakeVisitorCarTransport()
+        transport.stub("/do-login", FakeVisitorCarTransport.loginSuccess())
+        let store = FakeCredentialStore(stored: VisitorCarCredentials(id: "10010101", password: "옛비밀"))
+        let service = VisitorCarService(
+            transport: transport,
+            credentials: store,
+            defaults: UserDefaults(suiteName: "visitorcar.tests.\(UUID().uuidString)")!
+        )
+
+        // 사용자가 설정에서 로그아웃한다 — 세대가 0→1로 오르고 자격증명이 지워진다.
+        await service.logout()
+        #expect(store.load() == nil)
+
+        // 그 전에 나가 있던 로그인이 뒤늦게 성공 응답을 받고 재개된다. 자기가 나가기
+        // 전 세대(0)를 그대로 들고 있으므로 지금 세대(1)와 어긋난다 — 결과를 버린다.
+        await #expect(throws: VisitorCarError.notLoggedIn) {
+            try await service.login(id: "10010101", password: "새비밀", seenGeneration: 0)
+        }
+
+        // 되살아나지 않는다. 지워진 채로 남는다.
+        #expect(store.load() == nil)
+        #expect(store.saveCount == 0)
+    }
+
+    /// **정상 경로(로그아웃이 끼지 않은 경우)는 그대로 저장하고 세대를 올린다** — P1의
+    /// 변경이 평범한 로그인까지 버리지 않는지 확인한다.
+    @Test func 로그아웃_없이_끝난_로그인은_정상적으로_저장한다() async throws {
+        let transport = FakeVisitorCarTransport()
+        transport.stub("/do-login", FakeVisitorCarTransport.loginSuccess())
+        let store = FakeCredentialStore()
+        let service = VisitorCarService(
+            transport: transport,
+            credentials: store,
+            defaults: UserDefaults(suiteName: "visitorcar.tests.\(UUID().uuidString)")!
+        )
+
+        try await service.login(id: "10010101", password: "비밀", seenGeneration: 0)
+
+        #expect(store.load()?.id == "10010101")
+        #expect(store.saveCount == 1)
+        // 세대가 실제로 올랐는지는 다음 재로그인이 "낡은 세대(0)"로 판정되는지로
+        // 간접 확인한다 — 이미 세대 1이므로 `/do-login`을 다시 부르지 않아야 한다.
+        try await service.reLogin(seenGeneration: 0)
+        #expect(transport.callCount("/do-login") == 1)
+    }
+
+    /// **조용한 재로그인이 응답을 받은 뒤 로그아웃이 먼저 끝나 있으면, 방금 세운 쿠키를
+    /// 지운다.** 재로그인 자체는 자격증명을 저장하지 않지만 서버에 새 세션 쿠키를 남긴다
+    /// — 로그아웃이 지운 쿠키 저장소에 뒤늦게 쿠키가 다시 채워지면 로그아웃한 사용자가
+    /// 조용히 다시 로그인된 세션을 손에 쥔다. `commitReLogin(seenGeneration:)`을 직접 불러
+    /// 「재로그인 성공 직후 로그아웃이 끼어든」 순간을 결정론적으로 재현한다.
+    @Test func 재로그인_완료_후_로그아웃이_끼면_쿠키를_지운다() async throws {
+        let transport = FakeVisitorCarTransport()
+        let service = makeService(transport: transport)
+
+        // 재로그인이 세대 0을 보고 시작해 서버 응답까지 받았다(새 쿠키가 섰다). 그런데
+        // 그 사이 로그아웃이 세대를 0→1로 올렸다.
+        await service.logout()
+        let clearedByLogout = transport.clearCookiesCount
+
+        await service.commitReLogin(seenGeneration: 0)
+
+        // 로그아웃이 지운 것과 별개로, 재로그인이 방금 세운 쿠키를 스스로 한 번 더 지운다.
+        #expect(transport.clearCookiesCount == clearedByLogout + 1)
+    }
+
+    /// **로그아웃이 끼지 않은 정상 경로는 쿠키를 지키고 세대를 올린다.**
+    @Test func 재로그인_완료_후_로그아웃이_없으면_쿠키를_지키고_세대를_올린다() async throws {
+        let transport = FakeVisitorCarTransport()
+        let service = makeService(transport: transport)
+
+        await service.commitReLogin(seenGeneration: 0)
+
+        #expect(transport.clearCookiesCount == 0)
+        // 세대가 올랐는지는 다음 `reLogin`이 "낡은 세대(0)"로 판정돼 아무것도 부르지
+        // 않는 것으로 간접 확인한다.
+        try await service.reLogin(seenGeneration: 0)
+        #expect(transport.callCount("/do-login") == 0)
+    }
+
     @Test func 로그아웃하면_계정과_쿠키를_버린다() async throws {
         let transport = FakeVisitorCarTransport()
         let store = FakeCredentialStore(stored: VisitorCarCredentials(id: "10010101", password: "비밀"))

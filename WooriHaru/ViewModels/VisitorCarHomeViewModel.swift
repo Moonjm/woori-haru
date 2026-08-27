@@ -55,6 +55,13 @@ final class VisitorCarHomeViewModel {
         do {
             try await service.login(id: id, password: password)
             await load()
+        } catch VisitorCarError.notLoggedIn, VisitorCarError.sessionExpired {
+            // **P1: 로그인 도중 로그아웃이 끼어든 경우다.** 서비스가 이 결과를 버리고
+            // `notLoggedIn`을 던진다 — 사용자가 방금 직접 로그아웃을 골랐으므로, 여기서
+            // 「로그인이 필요합니다」 같은 문구를 새로 띄우면 자기가 한 일을 오류로
+            // 오인한다. `load()`가 이미 같은 두 경우를 오류 문구 없이 접는 것과 같은
+            // 규칙으로, 조용히 로그인 카드에 남긴다.
+            state = .needsLogin
         } catch {
             loginError = error.localizedDescription
             state = .needsLogin

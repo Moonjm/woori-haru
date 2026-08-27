@@ -123,4 +123,20 @@ struct VisitorCarHomeTests {
         #expect(viewModel.loginError == "아이디 또는 비밀번호가 잘못되었습니다.")
         #expect(viewModel.state == .needsLogin)
     }
+
+    /// **P1.** 로그인 도중 로그아웃이 끼어들면 서비스가 결과를 버리고 `notLoggedIn`을
+    /// 던진다(`VisitorCarSessionTests`가 서비스 쪽을 결정론적으로 확인한다). 여기서는
+    /// 그 신호를 뷰모델이 오류 문구 없이 로그인 카드로 접는지만 본다 — `FakeVisitorCarServing`으로
+    /// 실제 재진입 경쟁을 재현할 필요 없이 서비스의 결과만 손으로 정한다.
+    @Test func 로그인_도중_로그아웃하면_오류_문구_없이_로그인_카드로_남는다() async {
+        let service = FakeVisitorCarServing()
+        service.loginError = VisitorCarError.notLoggedIn
+        let viewModel = VisitorCarHomeViewModel(service: service)
+
+        await viewModel.login(id: "10010101", password: "비밀")
+
+        #expect(viewModel.state == .needsLogin)
+        #expect(viewModel.loginError == nil)
+        #expect(service.loginCallCount == 1)
+    }
 }
