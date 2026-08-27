@@ -506,21 +506,51 @@ struct VisitorCarSessionTests {
     /// **조용한 재로그인이 응답을 받은 뒤 로그아웃이 먼저 끝나 있으면, 방금 세운 쿠키를
     /// 지운다.** 재로그인 자체는 자격증명을 저장하지 않지만 서버에 새 세션 쿠키를 남긴다
     /// — 로그아웃이 지운 쿠키 저장소에 뒤늦게 쿠키가 다시 채워지면 로그아웃한 사용자가
-    /// 조용히 다시 로그인된 세션을 손에 쥔다. `commitReLogin(seenGeneration:)`을 직접 불러
-    /// 「재로그인 성공 직후 로그아웃이 끼어든」 순간을 결정론적으로 재현한다.
+    /// 조용히 다시 로그인된 세션을 손에 쥔다.
+    /// `commitReLogin(seenGeneration:seenLogoutGeneration:)`을 직접 불러 「재로그인 성공
+    /// 직후 로그아웃이 끼어든」 순간을 결정론적으로 재현한다.
     @Test func 재로그인_완료_후_로그아웃이_끼면_쿠키를_지운다() async throws {
         let transport = FakeVisitorCarTransport()
         let service = makeService(transport: transport)
 
-        // 재로그인이 세대 0을 보고 시작해 서버 응답까지 받았다(새 쿠키가 섰다). 그런데
-        // 그 사이 로그아웃이 세대를 0→1로 올렸다.
+        // 재로그인이 세대 0(세션 세대·로그아웃 세대 모두)을 보고 시작해 서버 응답까지
+        // 받았다(새 쿠키가 섰다). 그런데 그 사이 로그아웃이 두 세대를 모두 0→1로 올렸다.
         await service.logout()
         let clearedByLogout = transport.clearCookiesCount
 
-        await service.commitReLogin(seenGeneration: 0)
+        await service.commitReLogin(seenGeneration: 0, seenLogoutGeneration: 0)
 
         // 로그아웃이 지운 것과 별개로, 재로그인이 방금 세운 쿠키를 스스로 한 번 더 지운다.
         #expect(transport.clearCookiesCount == clearedByLogout + 1)
+    }
+
+    /// **재리뷰 핵심 회귀.** 배경 재로그인이 진행 중인 동안 **로그아웃이 아니라 더 새로운
+    /// 로그인이 성공**하면, 재로그인이 끝나도 방금 성립한 세션의 쿠키를 지우면 안 된다.
+    /// 세대를 `sessionGeneration` 하나로만 보면 "세대가 달라졌다"를 전부 "로그아웃이
+    /// 있었다"로 읽어, 로그아웃한 적도 없는데 방금 로그인한 사용자를 조용히 다시
+    /// 로그아웃시키는 버그가 생긴다 — 로그아웃 전용 세대(`logoutGeneration`)로 갈라야
+    /// 이 경우와 진짜 로그아웃을 구분할 수 있다.
+    @Test func 재로그인_완료_전에_더_새_로그인이_성공해도_쿠키를_지키지_않는다() async throws {
+        let transport = FakeVisitorCarTransport()
+        transport.stub("/do-login", FakeVisitorCarTransport.loginSuccess())
+        let store = FakeCredentialStore(stored: VisitorCarCredentials(id: "10010101", password: "비밀"))
+        let service = VisitorCarService(
+            transport: transport,
+            credentials: store,
+            defaults: UserDefaults(suiteName: "visitorcar.tests.\(UUID().uuidString)")!
+        )
+
+        // 배경 재로그인이 세대 0(세션·로그아웃 둘 다)에서 출발했다고 가정한다. 그 사이
+        // 사용자가 로그인 카드에서 직접 로그인해 성공한다 — 세션 세대는 0→1로 오르지만
+        // **로그아웃은 없었다**, 로그아웃 전용 세대는 그대로 0이다.
+        try await service.login(id: "10010101", password: "새비밀", seenGeneration: 0)
+        #expect(store.saveCount == 1)
+
+        // 배경 재로그인이 이제야 응답을 받고 마무리된다.
+        await service.commitReLogin(seenGeneration: 0, seenLogoutGeneration: 0)
+
+        // 로그아웃이 없었으므로 방금 성립한(더 새로운 로그인의) 세션 쿠키를 지우면 안 된다.
+        #expect(transport.clearCookiesCount == 0)
     }
 
     /// **로그아웃이 끼지 않은 정상 경로는 쿠키를 지키고 세대를 올린다.**
@@ -528,7 +558,7 @@ struct VisitorCarSessionTests {
         let transport = FakeVisitorCarTransport()
         let service = makeService(transport: transport)
 
-        await service.commitReLogin(seenGeneration: 0)
+        await service.commitReLogin(seenGeneration: 0, seenLogoutGeneration: 0)
 
         #expect(transport.clearCookiesCount == 0)
         // 세대가 올랐는지는 다음 `reLogin`이 "낡은 세대(0)"로 판정돼 아무것도 부르지

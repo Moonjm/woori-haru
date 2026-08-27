@@ -94,13 +94,27 @@ actor VisitorCarService: VisitorCarServing {
     /// 뒤늦게 도착한 302가 이미 끝난 로그인 이전에 나간 요청의 것인지 가리는 데도
     /// (`send(_:)`가 요청을 보내기 직전 값을 들고 있다가 재로그인에 넘긴다),
     /// **스스로 늦게 끝난 로그인·재로그인이 그 사이의 로그아웃을 되돌리지 않게 막는 데도**
-    /// (`login(id:password:)`, `commitReLogin(seenGeneration:)`) 쓴다.
+    /// (`login(id:password:)`, `commitReLogin(seenGeneration:seenLogoutGeneration:)`의 세대 증가 판정) 쓴다.
     ///
     /// **로그아웃도 반드시 올려야 한다.** `actor`는 재진입이 가능해서, `login`이 네트워크
     /// 응답을 기다리는 사이 다른 호출로 `logout()`이 먼저 끝날 수 있다 — 로그아웃이 세대를
     /// 올리지 않으면 뒤늦게 재개된 로그인이 "내가 나가기 전과 세대가 같다"고 착각해
     /// 사용자가 방금 지운 자격증명을 Keychain에 되살린다.
     private var sessionGeneration = 0
+
+    /// **로그아웃일 때만 오른다.** `sessionGeneration`과 다르게 로그인 성공으로는 절대
+    /// 오르지 않는다 — 이 값이 따로 있는 이유가 재리뷰에서 드러났다(P1 후속).
+    ///
+    /// `commitReLogin`이 조용한 재로그인 성공 뒤 방금 세운 쿠키를 지울지 정할 때,
+    /// `sessionGeneration`만 보면 "세대가 내가 나가기 전과 달라졌다"를 전부 "로그아웃이
+    /// 있었다"로 읽는다. 그런데 세대가 움직이는 이유는 둘이다 — 로그아웃이거나, **그 사이
+    /// 더 새로운 로그인이 성공**했거나. 후자일 때 쿠키를 지우면, 사용자는 로그인 카드에서
+    /// 방금 직접 로그인에 성공했는데 배경에서 뒤늦게 끝난 재로그인이 그 세션의 쿠키를
+    /// 조용히 지워 다시 로그아웃시킨다 — 로그아웃을 한 적도 없는데. 쿠키를 지울 이유가
+    /// 되는 건 로그아웃뿐이므로, `commitReLogin`의 쿠키 삭제 판정은 **이 값**으로만 하고
+    /// 세대 증가 판정(`sessionGeneration`)과 갈라 둔다. **하나로 합치지 말 것** — 합치는
+    /// 순간 "더 새 로그인이 성공한 경우"가 다시 "로그아웃"으로 오인된다.
+    private var logoutGeneration = 0
 
     init(
         transport: any VisitorCarTransport = VisitorCarHTTPTransport(),
@@ -153,8 +167,11 @@ actor VisitorCarService: VisitorCarServing {
     func logout() async {
         // **로그아웃도 세대를 올린다(P1).** 로그인만 세면, 로그인이 응답을 기다리는 사이
         // 사용자가 로그아웃해도 세대에 반영되지 않아 뒤늦게 끝난 로그인이 자격증명·세션을
-        // 되살릴 수 있다 — `login`·`commitReLogin`이 이 값으로 그 경우를 가른다.
+        // 되살릴 수 있다 — `login`이 이 값으로 그 경우를 가른다.
         sessionGeneration += 1
+        // **로그아웃 전용 세대도 함께 올린다.** `commitReLogin`이 쿠키를 지울지는 이
+        // 값으로만 판정한다 — 이유는 선언부 주석 참고.
+        logoutGeneration += 1
         credentials.clear()
         defaults.removeObject(forKey: householdKey)
         await transport.clearCookies()
@@ -295,6 +312,11 @@ actor VisitorCarService: VisitorCarServing {
             } else {
                 guard let saved = credentials.load() else { throw VisitorCarError.notLoggedIn }
 
+                // **로그아웃 전용 세대도 요청을 내보내기 전에 찍어 둔다.** 응답이 돌아온
+                // 뒤 이 값과 비교해 "그 사이 로그아웃이 있었는가"만 따로 가린다 —
+                // `commitReLogin`이 세대를 둘로 갈라 보는 이유는 그 선언부 주석 참고.
+                let seenLogoutGeneration = logoutGeneration
+
                 let task = Task { [transport] in
                     try await Self.performLogin(
                         transport: transport,
@@ -305,7 +327,7 @@ actor VisitorCarService: VisitorCarServing {
                 loginTask = task
                 defer { loginTask = nil }
                 try await task.value
-                await commitReLogin(seenGeneration: seenGeneration)
+                await commitReLogin(seenGeneration: seenGeneration, seenLogoutGeneration: seenLogoutGeneration)
             }
         } catch VisitorCarError.loginFailed {
             // **조용한 재로그인의 "거절"만 `sessionExpired`로 올린다.** `loginFailed`가 그대로
@@ -325,24 +347,32 @@ actor VisitorCarService: VisitorCarServing {
         }
     }
 
-    /// 조용한 재로그인이 서버 응답을 받은 **뒤**의 마무리(P1). `reLogin`이 `loginTask`를
-    /// 직접 시작했을 때만 부른다 — 남의 `loginTask`를 기다리기만 한 호출자는 이 분기를
-    /// 타지 않는다(세대가 실제 로그인 횟수보다 빨리 앞서 가는 걸 막는다).
+    /// 조용한 재로그인이 서버 응답을 받은 **뒤**의 마무리(P1, 재리뷰로 세대를 둘로 갈랐다).
+    /// `reLogin`이 `loginTask`를 직접 시작했을 때만 부른다 — 남의 `loginTask`를 기다리기만
+    /// 한 호출자는 이 분기를 타지 않는다(세대가 실제 로그인 횟수보다 빨리 앞서 가는 걸 막는다).
     ///
-    /// **이 사이 로그아웃이 세대를 올렸으면(`sessionGeneration != seenGeneration`) 이
-    /// 로그인은 세션으로 인정하지 않는다.** 조용한 재로그인은 자격증명을 저장하지
-    /// 않지만, 로그인 자체는 서버에 새 `JSESSIONID` 쿠키를 남긴다 — 로그아웃이 막 지운
-    /// 쿠키 저장소에 뒤늦게 도착한 이 성공이 새 쿠키를 다시 채워 넣으면, 방금 로그아웃한
-    /// 사용자가 다음 요청에서 조용히 다시 로그인된 세션을 손에 쥔다. 그래서 세대를
-    /// 올리는 대신 **방금 세운 쿠키를 지운다.**
+    /// **쿠키를 지울지는 `logoutGeneration`(로그아웃 전용)으로만 판정한다.** 처음엔
+    /// `sessionGeneration`(로그인·로그아웃 둘 다 올리는 값) 하나로 "세대가 달라졌으면
+    /// 로그아웃이 있었다"고 읽었는데, 그러면 **그 사이 더 새로운 로그인이 성공한 경우**까지
+    /// 로그아웃으로 오인한다 — 그 경우 세션은 멀쩡히 살아 있고 쿠키도 그 로그인이 막 세운
+    /// 유효한 것인데, 지워 버리면 방금 로그인한 사용자가 조용히 다시 로그아웃된다. 조용한
+    /// 재로그인은 자격증명을 저장하지 않지만, 로그인 자체는 서버에 새 `JSESSIONID` 쿠키를
+    /// 남긴다 — 진짜 로그아웃이 막 지운 쿠키 저장소에 뒤늦게 도착한 이 성공이 새 쿠키를
+    /// 다시 채워 넣는 경우에만 지워야 한다. **`sessionGeneration`과 `logoutGeneration`을
+    /// 하나로 합치지 말 것** — 합치는 순간 이 오판이 되돌아온다.
+    ///
+    /// 세대(`sessionGeneration`) 증가 여부는 기존과 같은 기준을 그대로 쓴다 — 내가 나가기
+    /// 전 세대와 지금이 같을 때만 올린다. 다른 로그인이 이미 세대를 올려 뒀다면 여기서
+    /// 또 올릴 필요가 없다(로그아웃도 세대를 올리므로 이 기준은 여전히 로그아웃 경우도 잡는다).
     ///
     /// 테스트가 `reLogin` 안에서 진짜 동시성을 흉내 내지 않고 이 판정을 직접 걸 수
     /// 있도록 `private`이 아니라 내부 접근으로 둔다.
-    func commitReLogin(seenGeneration: Int) async {
-        guard sessionGeneration == seenGeneration else {
+    func commitReLogin(seenGeneration: Int, seenLogoutGeneration: Int) async {
+        if logoutGeneration != seenLogoutGeneration {
+            // 로그아웃이 이 사이 끼었다 — 방금 세운 쿠키를 지운다.
             await transport.clearCookies()
-            return
         }
+        guard sessionGeneration == seenGeneration else { return }
         sessionGeneration += 1
     }
 
