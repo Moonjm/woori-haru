@@ -28,17 +28,21 @@ final class VisitorCarBookingsViewModel {
 
     func search() async {
         // **처음부터 채운다.** 이어 붙이면 조건이 바뀐 결과와 섞인다.
-        loadedPage = 0
-        bookings = []
-        // hasMore도 되돌린다 — 그대로 두면 실패했을 때 빈 목록 위에 「더 보기」가 남아,
-        // 누르면 새 조건의 0쪽을 건너뛰고 1쪽을 가져오게 된다.
-        hasMore = false
-        await fetch(page: 0)
+        // **단, 성공했을 때만 갈아 끼운다** — 재조회가 실패하면(일시적 끊김 등) 이전 목록을
+        // 지우지 않는다. 지워 버리면 「저장은 됐는데 목록이 텅 비어 보이는」 상황이 생긴다.
+        await fetch(page: 0, replacing: true)
     }
 
     func loadMore() async {
         guard hasMore, !isLoading else { return }
-        await fetch(page: loadedPage + 1)
+        await fetch(page: loadedPage + 1, replacing: false)
+    }
+
+    /// 편집 모드로 들어갈 때 부른다. 조회·편집 모드가 같은 자리에 오류 문구를 그리므로,
+    /// 지우지 않으면 직전 실패(예: 삭제 거절)의 문구가 아직 아무것도 보내지 않은 편집 폼
+    /// 아래에 그대로 남는다.
+    func clearError() {
+        errorMessage = nil
     }
 
     /// - Returns: 실제로 지워졌으면 `true`. 서버가 거절하면 `false`이고 문구는 `errorMessage`에 남는다.
@@ -95,7 +99,10 @@ final class VisitorCarBookingsViewModel {
         }
     }
 
-    private func fetch(page: Int) async {
+    /// - Parameter replacing: `true`면 `bookings`를 통째로 갈아 끼운다(재조회 0쪽).
+    ///   `false`면 뒤에 잇는다(더 보기). **성공했을 때만** 반영한다 — 실패하면 이전 목록을
+    ///   그대로 두고 `errorMessage`만 세운다.
+    private func fetch(page: Int, replacing: Bool) async {
         guard !isLoading else { return }
         isLoading = true
         errorMessage = nil
@@ -105,7 +112,11 @@ final class VisitorCarBookingsViewModel {
             let result = try await service.bookings(
                 from: from, to: to, carNo: "", page: page, size: pageSize
             )
-            bookings.append(contentsOf: result.content)
+            if replacing {
+                bookings = result.content
+            } else {
+                bookings.append(contentsOf: result.content)
+            }
             loadedPage = result.number
             hasMore = !result.last
         } catch {

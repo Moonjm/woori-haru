@@ -133,6 +133,25 @@ struct VisitorCarBookingsTests {
         #expect(viewModel.errorMessage != nil)
     }
 
+    /// 재조회가 실패했다고 **목록을 비워서는 안 된다** — 수정 성공 뒤 재조회가 일시적으로
+    /// 끊기면, 저장은 됐는데 목록이 텅 비어 보이는 상황이 생긴다.
+    @Test func 재조회가_실패해도_이전_목록을_그대로_둔다() async {
+        let transport = FakeVisitorCarTransport()
+        transport.enqueue(Self.path, FakeVisitorCarTransport.ok(page(ids: [1, 2], totalPages: 1, number: 0)))
+        transport.enqueue(Self.path, FakeVisitorCarTransport.ok("{}"))
+        let viewModel = VisitorCarBookingsViewModel(service: makeService(transport: transport))
+
+        await viewModel.search()
+        #expect(viewModel.bookings.map(\.id) == [1, 2])
+
+        // 조건을 바꾸고 재조회한다 — 이번엔 서버 응답이 깨져서 실패한다.
+        viewModel.to = Date(timeIntervalSince1970: 0)
+        await viewModel.search()
+
+        #expect(viewModel.bookings.map(\.id) == [1, 2])
+        #expect(viewModel.errorMessage != nil)
+    }
+
     @Test func 수정에_성공하면_목록을_다시_읽는다() async throws {
         let transport = FakeVisitorCarTransport()
         transport.enqueue(Self.path, FakeVisitorCarTransport.ok(page(ids: [1], totalPages: 1, number: 0)))

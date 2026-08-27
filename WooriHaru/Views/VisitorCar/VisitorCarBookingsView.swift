@@ -199,6 +199,10 @@ struct VisitorCarBookingsView: View {
                             editEnd = booking.endDate
                             editReason = booking.visitReason
                             isEditing = true
+                            // 조회·편집 모드가 오류 문구를 같은 자리에 그린다 — 지우지 않으면
+                            // 직전 실패(삭제 거절 등)의 문구가 아직 아무것도 보내지 않은 편집 폼
+                            // 아래에 그대로 남는다.
+                            viewModel.clearError()
                         } label: {
                             Text("수정")
                                 .fontWeight(.semibold)
