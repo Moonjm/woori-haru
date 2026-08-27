@@ -473,12 +473,67 @@ struct VisitorCarSessionTests {
         // 그 전에 나가 있던 로그인이 뒤늦게 성공 응답을 받고 재개된다. 자기가 나가기
         // 전 세대(0)를 그대로 들고 있으므로 지금 세대(1)와 어긋난다 — 결과를 버린다.
         await #expect(throws: VisitorCarError.notLoggedIn) {
-            try await service.login(id: "10010101", password: "새비밀", seenGeneration: 0)
+            try await service.login(
+                id: "10010101",
+                password: "새비밀",
+                seenGeneration: 0,
+                seenLogoutGeneration: 0
+            )
         }
 
         // 되살아나지 않는다. 지워진 채로 남는다.
         #expect(store.load() == nil)
         #expect(store.saveCount == 0)
+    }
+
+    /// **버려진 로그인이 세운 세션 쿠키까지 지운다.** 자격증명을 되살리지 않는 것만으로는
+    /// 부족하다 — 로그아웃이 쿠키 저장소를 비운 **뒤에** 이 로그인의 `Set-Cookie`가 도착해
+    /// 남으면, 사용자는 나갔는데 트랜스포트는 인증된 채로 남는다.
+    @Test func 로그인_도중_로그아웃하면_뒤늦은_세션_쿠키도_지운다() async throws {
+        let transport = FakeVisitorCarTransport()
+        transport.stub("/do-login", FakeVisitorCarTransport.loginSuccess())
+        let service = makeService(transport: transport)
+
+        await service.logout()
+        let clearedByLogout = transport.clearCookiesCount
+
+        await #expect(throws: VisitorCarError.notLoggedIn) {
+            try await service.login(
+                id: "10010101",
+                password: "새비밀",
+                seenGeneration: 0,
+                seenLogoutGeneration: 0
+            )
+        }
+
+        // 로그아웃이 지운 것과 별개로, 버려진 로그인이 방금 세운 쿠키를 한 번 더 지운다.
+        #expect(transport.clearCookiesCount == clearedByLogout + 1)
+    }
+
+    /// **`commitReLogin`과 같은 회귀 방어.** 세대가 어긋난 이유가 로그아웃이 아니라
+    /// **그 사이 성공한 더 새로운 로그인**이면, 버려지는 쪽이 쿠키를 지우면 안 된다 —
+    /// 방금 로그인한 사용자의 멀쩡한 세션을 날린다. 로그아웃 전용 세대로 갈라야 구분된다.
+    @Test func 로그인_도중_더_새_로그인이_성공하면_쿠키를_지우지_않는다() async throws {
+        let transport = FakeVisitorCarTransport()
+        transport.stub("/do-login", FakeVisitorCarTransport.loginSuccess())
+        let service = makeService(transport: transport)
+
+        // 사용자가 로그인 카드에서 직접 로그인해 성공한다 — 세션 세대는 0→1로 오르지만
+        // 로그아웃은 없었으므로 로그아웃 전용 세대는 그대로 0이다.
+        try await service.login(id: "10010101", password: "새비밀")
+
+        // 그 전에 나가 있던 로그인이 뒤늦게 재개된다. 결과는 버려지지만(세대 불일치),
+        // 로그아웃이 없었으므로 쿠키는 건드리지 않는다.
+        await #expect(throws: VisitorCarError.notLoggedIn) {
+            try await service.login(
+                id: "10010101",
+                password: "옛비밀",
+                seenGeneration: 0,
+                seenLogoutGeneration: 0
+            )
+        }
+
+        #expect(transport.clearCookiesCount == 0)
     }
 
     /// **정상 경로(로그아웃이 끼지 않은 경우)는 그대로 저장하고 세대를 올린다** — P1의
@@ -493,7 +548,12 @@ struct VisitorCarSessionTests {
             defaults: UserDefaults(suiteName: "visitorcar.tests.\(UUID().uuidString)")!
         )
 
-        try await service.login(id: "10010101", password: "비밀", seenGeneration: 0)
+        try await service.login(
+            id: "10010101",
+            password: "비밀",
+            seenGeneration: 0,
+            seenLogoutGeneration: 0
+        )
 
         #expect(store.load()?.id == "10010101")
         #expect(store.saveCount == 1)
@@ -543,7 +603,12 @@ struct VisitorCarSessionTests {
         // 배경 재로그인이 세대 0(세션·로그아웃 둘 다)에서 출발했다고 가정한다. 그 사이
         // 사용자가 로그인 카드에서 직접 로그인해 성공한다 — 세션 세대는 0→1로 오르지만
         // **로그아웃은 없었다**, 로그아웃 전용 세대는 그대로 0이다.
-        try await service.login(id: "10010101", password: "새비밀", seenGeneration: 0)
+        try await service.login(
+            id: "10010101",
+            password: "새비밀",
+            seenGeneration: 0,
+            seenLogoutGeneration: 0
+        )
         #expect(store.saveCount == 1)
 
         // 배경 재로그인이 이제야 응답을 받고 마무리된다.

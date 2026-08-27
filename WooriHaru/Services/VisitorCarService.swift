@@ -132,7 +132,12 @@ actor VisitorCarService: VisitorCarServing {
         // **요청을 내보내기 전에 세대를 찍어 둔다.** `actor`는 재진입이 가능해서, 아래
         // `performLogin`이 응답을 기다리는 사이 다른 호출로 `logout()`이 먼저 끝날 수 있다
         // — 그 경우 이 로그인의 결과는 버려야 한다(P1).
-        try await login(id: id, password: password, seenGeneration: sessionGeneration)
+        try await login(
+            id: id,
+            password: password,
+            seenGeneration: sessionGeneration,
+            seenLogoutGeneration: logoutGeneration
+        )
     }
 
     /// `login(id:password:)`의 실제 몸통. **테스트가 `seenGeneration`을 손으로 낡게 넘겨
@@ -140,7 +145,12 @@ actor VisitorCarService: VisitorCarServing {
     /// 접근으로 둔다 — `reLogin(seenGeneration:)`을 테스트 가능하게 두는 것과 같은 이유다.
     /// 진짜 동시성(스케줄링 순서)에 기대지 않고, 로그아웃이 이미 세대를 올려 둔 뒤에
     /// 「내가 나가기 전 세대」를 그대로 들고 이어지는 로그인을 흉내 낸다.
-    func login(id: String, password: String, seenGeneration: Int) async throws {
+    func login(
+        id: String,
+        password: String,
+        seenGeneration: Int,
+        seenLogoutGeneration: Int
+    ) async throws {
         try await performLogin(id: id, password: password)
 
         // **그 사이 로그아웃(또는 다른 로그인)이 세대를 올렸으면 이 결과를 버린다.**
@@ -150,6 +160,15 @@ actor VisitorCarService: VisitorCarServing {
         // 「로그인된 상태가 아니다」가 맞고, 홈 뷰모델이 이 오류를 오류 문구 없이 로그인
         // 카드로 접도록 이미 손봤다(다른 일반 오류와 다르게 다룬다).
         guard sessionGeneration == seenGeneration else {
+            // **버린 로그인이 세운 세션 쿠키까지 치운다.** 자격증명을 저장하지 않는 것만으로는
+            // 부족하다 — 서버는 이 로그인에 새 `JSESSIONID`를 이미 내줬고, 그 쿠키는 로그아웃이
+            // 쿠키 저장소를 비운 **뒤에** 들어와 남는다. 사용자가 명시적으로 나갔는데 트랜스포트만
+            // 인증된 채로 남는 상태다. **`commitReLogin`과 같은 기준으로 로그아웃 전용 세대만
+            // 본다** — 세대가 어긋난 이유가 「그 사이 더 새로운 로그인이 성공」인 경우까지 지우면
+            // 방금 로그인한 사용자의 멀쩡한 쿠키를 날린다.
+            if logoutGeneration != seenLogoutGeneration {
+                await transport.clearCookies()
+            }
             throw VisitorCarError.notLoggedIn
         }
 
