@@ -22,6 +22,11 @@ enum AppDestination: Hashable {
     case dispatchUpload
     case vehicle
     case maintenance
+    case visitorCar
+    case visitorCarRegister
+    case visitorCarBookings
+    case visitorCarEntries
+    case visitorCarSettings
 }
 
 struct ContentView: View {
@@ -60,6 +65,17 @@ struct ContentView: View {
                     case .schedule: ScheduleView(navPath: $path, savedYearMonth: $savedDispatchYearMonth)
                     case .vehicle: VehicleView()
                     case .maintenance: MaintenanceView()
+                    case .visitorCar: VisitorCarView(navPath: $path)
+                    case .visitorCarRegister:
+                        VisitorCarRegisterView {
+                            // 홈으로 물러나면 `.task`가 다시 돌아 잔여시간을 새로 읽는다.
+                        }
+                    case .visitorCarBookings: VisitorCarBookingsView()
+                    case .visitorCarEntries: VisitorCarEntriesView()
+                    case .visitorCarSettings:
+                        VisitorCarSettingsView {
+                            // 홈으로 물러나면 `.task`가 다시 돌아 로그인 카드를 띄운다.
+                        }
                     case .dispatchUpload:
                         DispatchUploadView(onSaved: { yearMonth in
                             savedDispatchYearMonth = yearMonth

@@ -2,6 +2,21 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<!-- 아파트 주차관제 웹이 http로만 뜬다. 전역(NSAllowsArbitraryLoads)으로 열면
+		     https인 우리 서버 쪽 보호까지 같이 내려가므로 이 호스트만 연다. -->
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>dasanesesang.iptime.org</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+				<key>NSIncludesSubdomains</key>
+				<true/>
+			</dict>
+		</dict>
+	</dict>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>NSCameraUsageDescription</key>

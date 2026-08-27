@@ -1,0 +1,209 @@
+import SwiftUI
+
+/// 신규 방문차량 등록. **차량번호와 기간이면 끝난다** —
+/// 웹 폼에 있는 휴대폰 칸은 서버가 요구하지 않아 뺐고, 동·호는 서비스가 채운다.
+struct VisitorCarRegisterView: View {
+    /// 등록에 성공해 물러날 때 홈이 잔여시간을 다시 읽게 한다.
+    let onSaved: () -> Void
+
+    @State private var viewModel = VisitorCarRegisterViewModel()
+    @State private var showingFrequentCars = false
+    @State private var frequentCars = FrequentCarStore.shared
+    @FocusState private var carNoFocused: Bool
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: GlassTokens.cardSpacing) {
+                carCard
+                periodCard
+                if let message = viewModel.errorMessage {
+                    Text(message)
+                        .font(.footnote)
+                        .foregroundStyle(Color.red500)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                submitButton
+            }
+            .padding(GlassTokens.cardPadding)
+        }
+        .glassScreenBackground()
+        .navigationTitle("신규 차량 등록")
+        .navigationBarTitleDisplayMode(.inline)
+        // **액션시트가 아니라 하단 시트로 띄운다.** 저장된 차량이 늘면 액션시트는
+        // 화면을 가득 채우고 별칭·차량번호가 한 줄에 뭉개진다 — 등록 상세 시트와 같은
+        // 모양으로 목록을 보여 준다.
+        .sheet(isPresented: $showingFrequentCars) {
+            frequentCarsSheet
+                .presentationDetents([.medium])
+        }
+        .onChange(of: viewModel.didSucceed) {
+            guard viewModel.didSucceed else { return }
+            onSaved()
+            dismiss()
+        }
+    }
+
+    private var frequentCarsSheet: some View {
+        VStack(spacing: 0) {
+            // 달력의 날짜 시트와 같은 손잡이다 — 닫기 버튼 대신 끌어내려 닫는다.
+            Capsule()
+                .fill(Color.slate400)
+                .frame(width: 36, height: 5)
+                .padding(.top, 8)
+
+            Text("자주 쓰는 차량")
+                .font(.headline)
+                .foregroundStyle(Color.slate900)
+                .padding(.vertical, 12)
+
+            ScrollView {
+                VStack(spacing: 10) {
+                    ForEach(frequentCars.cars) { car in
+                        Button {
+                            viewModel.apply(car)
+                            showingFrequentCars = false
+                        } label: {
+                            GlassCard {
+                                HStack(spacing: 12) {
+                                    Image(systemName: "car")
+                                        .foregroundStyle(Color.blue600)
+                                        .frame(width: 40, height: 40)
+                                        .background(
+                                            Color.slate500.opacity(0.10),
+                                            in: RoundedRectangle(cornerRadius: 10)
+                                        )
+
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(car.nickname)
+                                            .font(.subheadline).fontWeight(.semibold)
+                                            .foregroundStyle(Color.slate900)
+                                        Text(car.carNo)
+                                            .font(.caption)
+                                            .foregroundStyle(Color.slate500)
+                                    }
+
+                                    Spacer(minLength: 0)
+
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption)
+                                        .foregroundStyle(Color.slate500)
+                                }
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(GlassTokens.cardPadding)
+            }
+        }
+        .glassScreenBackground()
+    }
+
+    private var carCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 12) {
+                Label("차량 정보", systemImage: "car")
+                    .font(.headline)
+                    .foregroundStyle(Color.slate900)
+
+                HStack(spacing: 8) {
+                    TextField("차량번호", text: $viewModel.carNo)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .textFieldStyle(.plain)
+                        .focused($carNoFocused)
+
+                    // 한 글자씩 지우게 두면 열두 자리 차량번호를 고칠 때마다 백스페이스를
+                    // 오래 누르고 있어야 한다 — 가계부 검색칸과 같은 모양으로 한 번에 지운다.
+                    if !viewModel.carNo.isEmpty {
+                        Button {
+                            viewModel.carNo = ""
+                            // 지운 뒤 곧바로 다시 입력하는 게 자연스럽다 — 키보드를 내리지 않는다.
+                            carNoFocused = true
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 14))
+                                .foregroundStyle(Color.slate400)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("차량번호 지우기")
+                    }
+                }
+                .padding(12)
+                .background(Color.slate500.opacity(0.10), in: RoundedRectangle(cornerRadius: 10))
+
+                if let error = viewModel.validationError {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundStyle(Color.red500)
+                }
+
+                // 저장된 게 없으면 감춘다 — 눌러 봐야 빈 목록이다.
+                if !frequentCars.cars.isEmpty {
+                    Button {
+                        showingFrequentCars = true
+                    } label: {
+                        Label("자주 쓰는 차량 선택", systemImage: "bookmark")
+                            .font(.subheadline)
+                            .foregroundStyle(Color.blue600)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    private var periodCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 12) {
+                Label("방문 기간", systemImage: "calendar")
+                    .font(.headline)
+                    .foregroundStyle(Color.slate900)
+
+                DatePicker("시작일", selection: $viewModel.startDate, displayedComponents: .date)
+                Divider()
+                DatePicker("종료일", selection: $viewModel.endDate, displayedComponents: .date)
+
+                Divider()
+
+                TextField("방문사유 (선택)", text: $viewModel.visitReason)
+                    .textFieldStyle(.plain)
+                    .padding(12)
+                    .background(Color.slate500.opacity(0.10), in: RoundedRectangle(cornerRadius: 10))
+                    // 서버 폼이 20자로 잘라 둔 칸이다 — 수정 시트와 같은 규칙을 쓴다.
+                    .onChange(of: viewModel.visitReason) {
+                        viewModel.visitReason = VisitorCarValidation.clampVisitReason(viewModel.visitReason)
+                    }
+            }
+            .font(.subheadline)
+            .foregroundStyle(Color.slate700)
+        }
+        // 시작일·종료일 선택기가 기기 시간대가 아니라 한국 시각으로 뜨고 움직이게 한다.
+        .seoulDatePickerEnvironment()
+    }
+
+    private var submitButton: some View {
+        Button {
+            Task { await viewModel.submit() }
+        } label: {
+            HStack {
+                Spacer()
+                if viewModel.isSubmitting {
+                    ProgressView().tint(Color.white)
+                } else {
+                    Text("방문 차량 등록").fontWeight(.semibold)
+                }
+                Spacer()
+            }
+            .padding(.vertical, 14)
+            .background(
+                viewModel.canSubmit ? Color.blue600 : Color.slate200,
+                in: RoundedRectangle(cornerRadius: 12)
+            )
+            .foregroundStyle(viewModel.canSubmit ? Color.white : Color.slate500)
+        }
+        .buttonStyle(.plain)
+        .disabled(!viewModel.canSubmit)
+    }
+}
